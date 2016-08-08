@@ -1,0 +1,9 @@
+---
+- name: update kernel params
+  sysctl:
+    name={{item.name}}
+    value={{item.value}}
+    state=present
+  with_items:
+    - {name: 'net.core.somaxconn', value: 512}
+    - {name: 'fs.file-max', value: 20000}

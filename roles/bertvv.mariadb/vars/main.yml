@@ -1,0 +1,8 @@
+# roles/mariadb/vars/main.yml
+---
+
+mariadb_packages:
+  - mariadb
+  - mariadb-server
+  - MySQL-python
+

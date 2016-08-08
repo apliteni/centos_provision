@@ -1,0 +1,32 @@
+---
+- hosts: all
+  become: yes
+  become_method: sudo
+  vars_files:
+    - vars/app.yml
+  pre_tasks:
+    - name: Upgrade all packages
+      yum:
+        name=*
+        state=latest
+
+    - stat: path=/selinux/enforce
+      register: selinux
+
+  roles:
+    - kernel
+    - resmo.ntp
+    - mrlesmithjr.timezone
+    - geerlingguy.repo-epel
+    - geerlingguy.repo-remi
+    - {role: 'mikegleasonjr.swap', tags: 'swap', when: "ansible_memtotal_mb < 1000"}
+    - tools
+    - memcached
+    - redis
+    - bertvv.mariadb
+    - geerlingguy.nginx
+    - php
+    - {role: 'selinux',  when: selinux.stat.exists == True}
+    - monit
+    - {role: 'geerlingguy.firewall', tags: 'firewall'}
+    - keitaro

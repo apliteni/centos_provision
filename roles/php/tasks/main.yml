@@ -1,0 +1,40 @@
+---
+- name: install php-fpm
+  yum: name={{item}}
+  with_items:
+    - "{{php_version}}"
+    - "{{php_version}}-php-fpm"
+    - "{{php_version}}-php-devel"
+    - "{{php_version}}-php-mysqlnd"
+    - "{{php_version}}-php-pecl-redis"
+    - "{{php_version}}-php-mbstring"
+    - "{{php_version}}-php-pear"
+    - "{{php_version}}-php-memcached"
+    - "{{php_version}}-php-ioncube-loader"
+
+- name: link some php files
+  file:
+    src: "{{item.from}}"
+    dest: "{{item.to}}"
+    state: link
+  with_items:
+    - {from: "/usr/bin/{{php_version}}", to: '/bin/php'}
+    - {from: "/opt/remi/{{php_version}}/root/etc/", to: '/etc/php'}
+    - {from: "/opt/remi/{{php_version}}/root/var/log/php-fpm/", to: '/var/log/php-fpm'}
+
+
+- name: upload a pool config
+  template:
+    src: "www.conf.j2"
+    dest: "/etc/php/php-fpm.d/www.conf"
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - restart php-fpm
+
+- name: run php-fpm
+  service:
+    name="{{php_version}}-php-fpm"
+    state=started
+    enabled=yes

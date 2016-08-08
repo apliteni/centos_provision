@@ -1,0 +1,21 @@
+---
+- name: Set selinux permissive
+  selinux:
+    policy=targeted
+    state=permissive
+
+- name: Add php.te
+  tags: selinux
+  template:
+    src: php.te.j2
+    dest: /tmp/php.te
+    group: root
+    owner: root
+    mode: 0644
+
+- name: Configure Selinux
+  tags: selinux
+  shell: |
+    checkmodule -M -m -o /tmp/php.mod /tmp/php.te
+    semodule_package -m /tmp/php.mod -o /tmp/php.pp
+    sudo semodule -i /tmp/php.pp

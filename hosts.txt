@@ -1,0 +1,14 @@
+[app]
+YOUR_IP
+
+[app:vars]
+ansible_ssh_user=SSH_LOGIN
+ansible_ssh_pass=SSH_PASSWORD
+db_name = DB_NAME
+db_user = DB_USER
+db_password = DB_PASSWORD
+license_ip = LICENSE_IP
+license_key = LICENSE_KEY
+admin_login = ADMIN_LOGIN
+admin_password = ADMIN_PASSWORD
+
