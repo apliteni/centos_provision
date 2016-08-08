@@ -1,0 +1,286 @@
+---
+- hosts: all
+  sudo: true
+  vars:
+    php_version: 'php56'
+    swap_space: 1000
+    db:
+      username: tds
+      dbname: tds
+      password: 012e-f23rh2e
+    keitaro:
+      path: /var/www/keitaro
+
+  tasks:
+    - name: upgrade all packages
+      yum: name=* state=latest
+
+    - name: install epel repo
+      yum:
+        name=epel-release
+        state=present
+    - name: install remi repo
+      get_url:
+        url="http://rpms.remirepo.net/enterprise/remi.repo"
+        dest="/etc/yum.repos.d/"
+
+    - name: install tools
+      yum:
+        name={{item}}
+        state=present
+
+      with_items:
+        - nano
+        - htop
+
+    - name: Kernel params
+      sysctl:
+        name={{item.name}}
+        value={{item.value}}
+        state=present
+      with_items:
+        - {name: 'vm.overcommit_memory', value: 1}
+        - {name: 'net.core.somaxconn', value: 512}
+        - {name: 'fs.file-max', value: 20000}
+
+    - name: install MariaDB
+      yum:
+        name={{item}}
+        state=present
+      with_items:
+        - mariadb
+        - mariadb-server
+    - name: run MariaDB
+      service:
+        name=mariadb
+        state=started
+        enabled=yes
+
+    - name: install redis
+      yum:
+        name=redis
+        state=latest
+    - name: run redis
+      service:
+        name=redis
+        state=started
+        enabled=yes
+
+    - name: install nginx
+      yum:
+        name: nginx
+        state: latest
+
+    - name: run nginx
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+
+
+    - name: install php-fpm
+      yum: name={{item}}
+      with_items:
+        - "{{php_version}}"
+        - "{{php_version}}-php-fpm"
+        - "{{php_version}}-php-devel"
+        - "{{php_version}}-php-mysqlnd"
+        - "{{php_version}}-php-pecl-redis"
+        - "{{php_version}}-php-mbstring"
+        - "{{php_version}}-php-pear"
+        - "{{php_version}}-php-ioncube-loader"
+
+    - name: link some php files
+      file:
+        src: "{{item.from}}"
+        dest: "{{item.to}}"
+        state: link
+      with_items:
+        - {from: "/bin/{{php_version}}", to: '/bin/php'}
+        - {from: "/opt/remi/{{php_version}}/root/etc/", to: '/etc/php'}
+        - {from: "/opt/remi/{{php_version}}/root/var/log/php-fpm/", to: '/var/log/php-fpm'}
+
+    - name: edit php-fpm config
+      ini_file:
+        dest=/etc/php/php-fpm.d/www.conf
+        section="www"
+        option="{{item.option}}"
+        value="{{item.value}}"
+      with_items:
+        - {option: 'user', value: 'nginx'}
+        - {option: 'group', value: 'nginx'}
+        - {option: 'listen', value: '/var/run/php5-fpm.sock'}
+        - {option: 'listen.owner', value: 'nginx'}
+        - {option: 'listen.group', value: 'nginx'}
+        - {option: 'listen.mode', value: '0660'}
+
+    - name: run php-fpm
+      service:
+        name="{{php_version}}-php-fpm"
+        state=started
+        enabled=yes
+
+    - name: install monit
+      yum:
+        name: monit
+        state: latest
+
+    - name: add mariadb to monit
+      copy:
+        dest=/etc/monit.d/mariadb
+        content='check process mariadb with pidfile /var/run/mariadb/mariadb.pid\n
+            start program = "/bin/systemctl start mariadb"\n
+            stop program = "/bin/systemctl stop mariadb"'
+
+    - name: add nginx to monit
+      copy:
+        dest=/etc/monit.d/nginx
+        content='check process nginx with pidfile /var/run/nginx.pid\n
+          start program = "/bin/systemctl start nginx"\n
+          stop program = "/bin/systemctl stop nginx"'
+
+    - name: add redis to monit
+      copy:
+        dest=/etc/monit.d/redis
+        content='check process redis with pidfile /var/run/redis/redis.pid\n
+                start program = "/bin/systemctl start redis"\n
+                stop program = "/bin/systemctl stop redis"'
+
+    - name: add php-fpm to monit
+      copy:
+        dest=/etc/monit.d/php-fpm
+        content="check process {{php_version}}-php-fpm with pidfile /opt/remi/{{php_version}}/root/var/run/php-fpm/php-fpm.pid\n
+              start program = \"/bin/systemctl start {{php_version}}-php-fpm\"\n
+              stop program = \"/bin/systemctl stop {{php_version}}-php-fpm\""
+
+    - name: run monit
+      service:
+        name: monit
+        state: started
+        enabled: yes
+
+    - name: set swap_file variable
+      tags: ['swap']
+      set_fact:
+        swap_file: /mnt/{{ swap_space }}.swap
+
+    - name: check if swap file exists
+      tags: ['swap']
+      stat:
+        path: "{{ swap_file }}"
+      register: swap_file_check
+
+    - name: create swap file
+      tags: ['swap']
+      command: fallocate -l {{ swap_space * 1024 * 1024}} {{ swap_file }}
+      when: not swap_file_check.stat.exists
+
+    - name: set permissions on swap file
+      tags: ['swap']
+      file:
+        path: "{{ swap_file }}"
+        mode: 0600
+
+    - name: format swap file
+      tags: ['swap']
+      command: mkswap {{ swap_file }}
+      when: not swap_file_check.stat.exists
+
+    - name: add to fstab
+      tags: ['swap']
+      lineinfile:
+        dest: /etc/fstab
+        regexp: "{{ swap_file }}"
+        line: "{{ swap_file }} none swap sw 0 0"
+
+    - name: turn on swap
+      tags: ['swap']
+      command: swapon -a
+
+    - name: set swapiness
+      tags: ['swap']
+      sysctl:
+        name: vm.swappiness
+        value: "1"
+
+    - name: switch selinux to permissive
+      tags: ['selinux']
+      lineinfile:
+        dest=/etc/selinux/config
+        regexp="^SELINUX="
+        line="SELINUX=permissive"
+
+    - name: setenforce to 0
+      tags: ['selinux']
+      shell: setenforce 0
+
+    - name: create database
+      tags: ['mysql']
+      command: mysql -e "{{ item }}"
+      with_items:
+        - "CREATE DATABASE IF NOT EXISTS {{ db.dbname }};"
+        - "GRANT ALL ON `{{ db.dbname }}`.* TO '{{ db.username }}'@'localhost' IDENTIFIED BY '{{ db.password }}';"
+
+    - name: create nginx host
+      tags: ['nginx']
+      copy:
+        dest=/etc/nginx/conf.d/keitaro.conf
+        content='server {\n
+             listen 80 default_server;\n
+             server_name _;\n
+             set $root_path {{ keitaro.path }};\n
+             root $root_path;\n
+             charset utf-8;\n
+             index index.php;\n
+
+             location ~* \.(jpg|jpeg|gif|png|js|css|txt|zip|ico|gz|csv)$ {\n
+               access_log off;\n
+               expires 10d;\n
+             }\n
+
+             location ~* /(var|lib|application)/.*$ {\n
+               return 403;\n
+             }\n
+
+             location ~* \.(htaccess|ini|dat)$ {\n
+               return 403;\n
+             }\n
+
+             location ~ \.php$ {\n
+               include /etc/nginx/fastcgi_params;\n
+               fastcgi_pass unix:/var/run/php5-fpm.sock;\n
+               fastcgi_index index.php;\n
+               fastcgi_param SCRIPT_FILENAME $root_path/$fastcgi_script_name;\n
+             }\n
+
+             location / {\n
+               try_files $uri $uri/ /index.php?$args;\n
+             }\n
+           }
+          '
+
+    - name: disable default host
+      tags: ['nginx']
+      lineinfile:
+        dest=/etc/nginx/nginx.conf
+        regexp=" default_server"
+        state=absent
+
+    - name: reload nginx
+      tags: ['nginx']
+      service:
+        name=nginx
+        state=reloaded
+
+    - name: prepare dir
+      file:
+        path={{ keitaro.path }}
+        state=directory
+        owner=nginx
+        group=nginx
+        mode=0777
+
+    - name: download installer
+      get_url:
+        url=http://keitarotds.com/getfile/install
+        dest={{ keitaro.path }}/install.php
