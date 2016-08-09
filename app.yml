@@ -21,7 +21,7 @@
     - geerlingguy.repo-remi
     - {role: 'mikegleasonjr.swap', tags: 'swap', when: "ansible_memtotal_mb < 1000"}
     - tools
-    - memcached
+    - {role: 'memcached', when: "ansible_memtotal_mb > 2000"}
     - redis
     - bertvv.mariadb
     - geerlingguy.nginx
