@@ -8,7 +8,6 @@ keitaro:
   path: /var/www/keitaro
 
 # MariaDB
-mariadb_version: 10.1
 mariadb_databases:
   - "{{ db_name }}"
 mariadb_users:

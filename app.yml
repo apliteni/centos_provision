@@ -14,19 +14,19 @@
       register: selinux
 
   roles:
-    - kernel
-    - resmo.ntp
-    - mrlesmithjr.timezone
-    - geerlingguy.repo-epel
-    - geerlingguy.repo-remi
+    - {role: 'kernel'}
+    - {role: 'resmo.ntp'}
+    - {role: 'mrlesmithjr.timezone'}
+    - {role: 'geerlingguy.repo-epel'}
+    - {role: 'geerlingguy.repo-remi'}
     - {role: 'mikegleasonjr.swap', tags: 'swap', when: "ansible_memtotal_mb < 1000"}
-    - tools
+    - {role: 'tools'}
     - {role: 'memcached', when: "ansible_memtotal_mb > 2000"}
-    - redis
-    - bertvv.mariadb
-    - geerlingguy.nginx
-    - php
+    - {role: 'redis'}
+    - {role: 'bertvv.mariadb'}
+    - {role: 'geerlingguy.nginx'}
+    - {role: 'php'}
     - {role: 'selinux',  when: selinux.stat.exists == True}
-    - monit
+    - {role: 'monit'}
     - {role: 'geerlingguy.firewall', tags: 'firewall'}
-    - keitaro
+    - {role: 'keitaro'}

@@ -22,9 +22,9 @@
         --key={{ license_key }} \
         --db-user={{ db_user }} \
         --db-name={{ db_name }} \
-        --db-password={{ db_password }} \
+        --db-password='{{ db_password }}' \
         --admin-login={{ admin_login }} \
-        --admin-password={{ admin_password }} \
+        --admin-password='{{ admin_password }}' \
         --draft-storage=redis
 
 - name: Add cron task
