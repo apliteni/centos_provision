@@ -1,11 +1,13 @@
 ---
-php_version: 'php56'
+php_version: 'php70'
 timezone: Europe/Moscow
 swap_size: "2048M"
 os_user: nginx
 
 keitaro:
   path: /var/www/keitaro
+
+ioncube_package: https://www.ioncube.com/php7-linux-x86-64-beta8.tgz
 
 # MariaDB
 mariadb_databases:

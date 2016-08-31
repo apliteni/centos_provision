@@ -1,0 +1,24 @@
+---
+- name: download ioncube
+  get_url:
+    url: "{{ioncube_package}}"
+    dest: /tmp/ioncube.tgz
+
+- name: unpack ioncube
+  shell: "tar zxvf /tmp/ioncube.tgz ioncube_loader* -O /tmp/ioncube.so"
+  args:
+    creates: "/tmp/ioncube.so"
+
+- name: find modules dir
+  shell: "php-config --extension-dir"
+  register: extension_dir
+
+- name: find config dir
+  shell: 'php --ini | grep "Scan for" | grep -oE "(\/.*)"'
+  register: config_dir
+
+- name: copy to extension dir
+  shell: "cp /tmp/ioncube.so {{extension_dir.stdout}}"
+
+- name: create config
+  shell: "echo \"zend_extension = {{extension_dir.stdout}}/ioncube.so\" > {{config_dir.stdout}}/00-ioncube.ini"

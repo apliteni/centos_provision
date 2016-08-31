@@ -25,7 +25,8 @@
     - {role: 'redis'}
     - {role: 'bertvv.mariadb'}
     - {role: 'geerlingguy.nginx'}
-    - {role: 'php'}
+    - {role: 'php', tags: 'php'}
+    - {role: 'ioncube', tags: 'ioncube', when: php_version >= 7}
     - {role: 'selinux',  when: selinux.stat.exists == True}
     - {role: 'monit'}
     - {role: 'geerlingguy.firewall', tags: 'firewall'}

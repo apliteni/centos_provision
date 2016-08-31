@@ -1,5 +1,5 @@
 ---
-- name: install php-fpm
+- name: install php extensions
   yum: name={{item}}
   with_items:
     - "{{php_version}}"
@@ -9,19 +9,48 @@
     - "{{php_version}}-php-pecl-redis"
     - "{{php_version}}-php-mbstring"
     - "{{php_version}}-php-pear"
+
+- name: install php5 extensions
+  yum: name={{item}}
+  when: php_version < 7
+  with_items:
     - "{{php_version}}-php-memcached"
     - "{{php_version}}-php-ioncube-loader"
 
-- name: link some php files
+- name: install php7 extensions
+  yum: name={{item}}
+  when: php_version >= 7
+  with_items:
+    - "{{php_version}}-php-memcache"
+
+- name: link some php files (php5)
+  when: php_version < 7
   file:
     src: "{{item.from}}"
     dest: "{{item.to}}"
     state: link
   with_items:
-    - {from: "/usr/bin/{{php_version}}", to: '/bin/php'}
+    - {from: "/usr/bin/{{php_version}}", to: '/usr/bin/php'}
+    - {from: "/opt/remi/{{php_version}}/root/bin/php-config", to: '/usr/bin/php-config'}
     - {from: "/opt/remi/{{php_version}}/root/etc/", to: '/etc/php'}
     - {from: "/opt/remi/{{php_version}}/root/var/log/php-fpm/", to: '/var/log/php-fpm'}
 
+- name: link some php files (php7)
+  when: php_version >= 7
+  file:
+    src: "{{item.from}}"
+    dest: "{{item.to}}"
+    state: link
+  with_items:
+    - {from: "/usr/bin/{{php_version}}", to: '/usr/bin/php'}
+    - {from: "/opt/remi/{{php_version}}/root/bin/php-config", to: '/usr/bin/php-config'}
+    - {from: "/etc/opt/remi/{{php_version}}", to: '/etc/php'}
+
+- name: increase memory_limit
+  lineinfile:
+    dest: /etc/php/php.ini
+    regexp: ^memory_limit
+    line: memory_limit=256M
 
 - name: upload a pool config
   template:
