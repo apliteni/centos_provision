@@ -12,3 +12,5 @@ license_key = LICENSE_KEY
 admin_login = ADMIN_LOGIN
 admin_password = ADMIN_PASSWORD
 
+[defaults]
+host_key_checking = False

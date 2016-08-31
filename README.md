@@ -24,8 +24,10 @@ Download and unpack the ansible playbook
 
     wget https://github.com/keitarocorp/centos_provision/archive/master.zip
     unzip master.zip
-    
-Create file ```hosts.txt```
+    cd master
+    cp hosts.example.txt hosts.txt
+     
+Edit file ```hosts.txt```
      
     [app]
     YOUR_IP
@@ -43,7 +45,7 @@ Create file ```hosts.txt```
     
 Run 
 
-    ansible-playbook -i hosts.txt app.yml
+    ansible-playbook -i hosts.txt playbook.yml
 
 
 Answer ```yes```
