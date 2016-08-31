@@ -1,7 +1,7 @@
-[app]
+[server]
 YOUR_IP
 
-[app:vars]
+[server:vars]
 ansible_ssh_user=SSH_LOGIN
 ansible_ssh_pass=SSH_PASSWORD
 db_name = DB_NAME

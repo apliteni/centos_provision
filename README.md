@@ -1,12 +1,9 @@
 # Provision CentOS for Keitaro TDS
 
-This repository contains ansible playbooks to provision new server.
+This repository contains an Ansible playbook to provision new bare servers.
 
-# Server Requirements
- - CentOS 7
-
-# Client Requirements
- - Ansible
+# Compatibility
+ - CentOS 7, Ansible 2
 
 ## Install Ansible
 
@@ -60,6 +57,9 @@ Answer ```yes```
     Are you sure you want to continue connecting (yes/no)?
     yes
     
+## Configuration
+    
+Take a look to ```vars/server.yml```.    
     
 ## Troubleshooting
     
