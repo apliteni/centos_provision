@@ -1,8 +1,9 @@
 ---
 php_version: 'php70'
 timezone: Europe/Moscow
-swap_size: "2048M"
+swap_size: 2048M
 os_user: nginx
+php_memory_limit: 500M
 
 keitaro:
   path: /var/www/keitaro

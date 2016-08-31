@@ -50,7 +50,7 @@
   lineinfile:
     dest: /etc/php/php.ini
     regexp: ^memory_limit
-    line: memory_limit=256M
+    line: memory_limit={{php_memory_limit}}
 
 - name: upload a pool config
   template:
