@@ -3,7 +3,7 @@
   become: yes
   become_method: sudo
   vars_files:
-    - vars/app.yml
+    - vars/server.yml
   pre_tasks:
     - name: Upgrade all packages
       yum:

@@ -5,7 +5,7 @@
     dest: /tmp/ioncube.tgz
 
 - name: unpack ioncube
-  shell: "tar zxvf /tmp/ioncube.tgz ioncube_loader* -O /tmp/ioncube.so"
+  shell: "tar zxvf /tmp/ioncube.tgz ioncube_loader* -O > /tmp/ioncube.so"
   args:
     creates: "/tmp/ioncube.so"
 
@@ -22,3 +22,6 @@
 
 - name: create config
   shell: "echo \"zend_extension = {{extension_dir.stdout}}/ioncube.so\" > {{config_dir.stdout}}/00-ioncube.ini"
+  notify:
+    - restart php-fpm
+
