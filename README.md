@@ -63,8 +63,10 @@ Take a look to ```vars/server.yml```.
     
 ## Troubleshooting
     
-Run ansible with verbose mode
+Run ansible 
 
-    ansible-playbook -i hosts.txt app.yml -vvvv            
+    ansible-playbook -i hosts.txt app.yml -vvvv
+                                    
+                                    
     
 support@keitarotds.com 

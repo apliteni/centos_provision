@@ -67,6 +67,7 @@ nginx_vhosts:
 
 # Firewall
 firewall_allowed_tcp_ports:
-  - "22"
-  - "443"
-  - "80"
+  - 22
+  - 443
+  - 80
+  - 1500 # isp manager

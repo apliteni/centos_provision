@@ -1,8 +1,9 @@
 [server]
-YOUR_IP
+SERVER_IP                       # 127.0.0.1 if you run local
 
 [server:vars]
-ansible_ssh_user=SSH_LOGIN
+connection = remote             # Or "local"
+ansible_ssh_user=SSH_LOGIN      #
 ansible_ssh_pass=SSH_PASSWORD
 db_name = DB_NAME
 db_user = DB_USER
