@@ -1,8 +1,12 @@
 [server]
-SERVER_IP                       # 127.0.0.1 if you run local
+# 127.0.0.1 if you run local
+SERVER_IP
+
 
 [server:vars]
-# connection = local            # uncomment if provision local machine
+# Uncomment if provision local machine
+#connection = locale
+
 ansible_ssh_user=SSH_LOGIN
 ansible_ssh_pass=SSH_PASSWORD
 db_name = DB_NAME
