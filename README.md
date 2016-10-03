@@ -65,7 +65,7 @@ Take a look to ```vars/server.yml```.
     
 Run ansible 
 
-    ansible-playbook -i hosts.txt app.yml -vvvv
+    ansible-playbook -i hosts.txt playbook.yml -vvv
                                     
                                     
     
