@@ -4,8 +4,8 @@ SERVER_IP
 
 
 [server:vars]
-# Uncomment if provision local machine
-#connection = locale
+# Or change to 'local'
+connection = paramiko
 
 ansible_ssh_user=SSH_LOGIN
 ansible_ssh_pass=SSH_PASSWORD
