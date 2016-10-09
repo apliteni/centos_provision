@@ -13,15 +13,8 @@
 
 - name: install php5 extensions
   yum: name={{item}}
-  when: php_version < 'php70'
   with_items:
     - "{{php_version}}-php-memcached"
-    - "{{php_version}}-php-ioncube-loader"
-
-- name: install php7 extensions
-  yum: name={{item}}
-  when: php_version >= 'php70'
-  with_items:
     - "{{php_version}}-php-memcache"
 
 - name: link some php files (php5)
