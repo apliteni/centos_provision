@@ -22,7 +22,6 @@
     - {role: 'geerlingguy.repo-remi'}
     - {role: 'mikegleasonjr.swap', tags: 'swap', when: "ansible_memtotal_mb < 1000"}
     - {role: 'tools'}
-    - {role: 'memcached', when: "ansible_memtotal_mb > 2000"}
     - {role: 'redis'}
     - {role: 'bertvv.mariadb'}
     - {role: 'geerlingguy.nginx'}

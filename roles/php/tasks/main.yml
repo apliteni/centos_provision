@@ -11,12 +11,6 @@
     - "{{php_version}}-php-pear"
     - "{{php_version}}-php-xml"
 
-- name: install php5 extensions
-  yum: name={{item}}
-  with_items:
-    - "{{php_version}}-php-memcached"
-    - "{{php_version}}-php-memcache"
-
 - name: link some php files (php5)
   when: php_version < 'php70'
   file:
