@@ -23,14 +23,14 @@ RUN ln -s /usr/bin/${PHP_VERSION} /usr/bin/php \
     && ln -s /opt/remi/${PHP_VERSION}/root/etc/ /etc/php \
     && ln -s /opt/remi/${PHP_VERSION}/root/var/log/php-fpm/ /var/log/php-fpm
 
-RUN sed -i -e 's/^memory_limit/memory_limit=500M/' /etc/php/php.ini \
-    && sed -i -e 's/;daemonize\s*=\s*yes/daemonize = no/' /etc/php/php-fpm.conf \
-    && sed -i -e 's/^listen = /listen = 0.0.0.0:9000/' \
-              -e 's/^listen.allowed_clients/;listen.allowed_clients =/' \
-              -e 's/^;catch_workers_output/catch_workers_output = yes/' \
-              -e 's/php_admin_flag\[log_errors\] = .*/;php_admin_flag[log_errors] =/' \
-              -e 's/php_admin_value\[error_log\] =.*/;php_admin_value[error_log] =/' \
-              -e 's/php_admin_value\[error_log\] =.*/;php_admin_value[error_log] =/' \
+RUN sed -i -e 's/^memory_limit.*/memory_limit=500M/' /etc/php/php.ini \
+    && sed -i -e 's/^;daemonize.*/daemonize = no/' /etc/php/php-fpm.conf \
+    && sed -i -e 's/^listen = .*/listen = 0.0.0.0:9000/' \
+              -e 's/^listen.allowed_clients.*/;listen.allowed_clients =/' \
+              -e 's/^;catch_workers_output.*/catch_workers_output = yes/' \
+              -e 's/^php_admin_flag\[log_errors\] = .*/;php_admin_flag[log_errors] =/' \
+              -e 's/^php_admin_value\[error_log\] =.*/;php_admin_value[error_log] =/' \
+              -e 's/^php_admin_value\[error_log\] =.*/;php_admin_value[error_log] =/' \
               -e '$aphp_admin_value[display_errors] = "stderr"' \
               /etc/php/php-fpm.d/www.conf
 
