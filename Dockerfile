@@ -42,4 +42,4 @@ VOLUME ["/var/www"]
 
 EXPOSE 9000
 
-ENTRYPOINT ["/usr/sbin/php-fpm", "-F"]
+ENTRYPOINT ["/opt/remi/php56/root/usr/sbin/php-fpm", "-F"]
