@@ -1,37 +1,41 @@
-php-fpm:
-  build: .
-  ports:
-    - "9000:9000"
-  links:
-    - mysql:mysql
-#    - memcached:memcached
-    - redis:redis
-  volumes:
-    - ./www:/var/www
+version: '2'
+services:
+  php-fpm:
+    build:
+      context: .
+      dockerfile: Dockerfile.php70
+    ports:
+      - "9000:9000"
+    links:
+      - mysql:mysql
+#      - memcached:memcached
+      - redis:redis
+    volumes:
+      - ./www:/var/www
 
-nginx:
-  image: nginx
-  ports: 
-    - "80:80"
-  links:
-    - php-fpm:php-fpm
-  volumes:
-    - ./www:/var/www
-    - ./sites:/etc/nginx/conf.d
+  nginx:
+    image: nginx
+    ports:
+      - "80:80"
+    links:
+      - php-fpm:php-fpm
+    volumes:
+      - ./www:/var/www
+      - ./sites:/etc/nginx/conf.d
   
-mysql:
-  image: mysql
-  ports:
-    - "3306:3306"
-  environment:
-    MYSQL_ROOT_PASSWORD: password
+  mysql:
+    image: mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: password
 
-#memcached:
-#  image: memcached
-#  ports:
-#    - "11211:11211"
+#  memcached:
+#    image: memcached
+#    ports:
+#      - "11211:11211"
 
-redis:
-  image: redis
-  ports:
-    - "6379:6379"
+  redis:
+    image: redis
+    ports:
+      - "6379:6379"
