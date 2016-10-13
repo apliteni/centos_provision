@@ -1,11 +1,12 @@
 FROM centos
 
-ENV MAJOR_CENTOS_VERSION=7 \
-    PHP_VERSION=php56
+ARG MAJOR_CENTOS_VERSION=7
 
 RUN yum install -y deltarpm epel-release \
     && rpm -Uvh http://rpms.famillecollet.com/enterprise/remi-release-${MAJOR_CENTOS_VERSION}.rpm \
     && yum update -y
+
+ARG PHP_VERSION=php56
 
 RUN yum install -y --enablerepo=remi ${PHP_VERSION} \
                                      ${PHP_VERSION}-php-fpm \
@@ -14,14 +15,22 @@ RUN yum install -y --enablerepo=remi ${PHP_VERSION} \
                                      ${PHP_VERSION}-php-pecl-redis \
                                      ${PHP_VERSION}-php-mbstring \
                                      ${PHP_VERSION}-php-pear \
-                                     ${PHP_VERSION}-php-xml \
-                                     ${PHP_VERSION}-php-memcached \
-                                     ${PHP_VERSION}-php-ioncube-loader
+                                     ${PHP_VERSION}-php-xml
+
+RUN if [[ "${PHP_VERSION}" =~ ^php5 ]]; then \
+      yum install -y --enablerepo=remi ${PHP_VERSION}-php-memcached ${PHP_VERSION}-php-ioncube-loader; \
+    else \
+      yum install -y --enablerepo=remi ${PHP_VERSION}-php-memcache; \
+    fi  
 
 RUN ln -s /usr/bin/${PHP_VERSION} /usr/bin/php \
-    && ln -s /opt/remi/${PHP_VERSION}/root/bin/php-config /usr/bin/php-config \
-    && ln -s /opt/remi/${PHP_VERSION}/root/etc/ /etc/php \
-    && ln -s /opt/remi/${PHP_VERSION}/root/var/log/php-fpm/ /var/log/php-fpm
+    && ln -s /opt/remi/${PHP_VERSION}/root/bin/php-config /usr/bin/php-config
+
+RUN if [[ "${PHP_VERSION}" =~ ^php5 ]]; then \
+      ln -s /opt/remi/${PHP_VERSION}/root/etc/ /etc/php; \
+    else \
+      ln -s /etc/opt/remi/${PHP_VERSION} /etc/php; \
+    fi
 
 RUN sed -i -e 's/^memory_limit = .*/memory_limit=500M/' /etc/php/php.ini \
     && sed -i -e 's/^daemonize = .*/daemonize = no/' \
@@ -33,4 +42,4 @@ RUN sed -i -e 's/^memory_limit = .*/memory_limit=500M/' /etc/php/php.ini \
               -e 's|^php_admin_value\[error_log\] = .*|php_admin_value[error_log] = /proc/self/fd/2|' \
               /etc/php/php-fpm.d/www.conf
 
-ENTRYPOINT ["/opt/remi/php56/root/usr/sbin/php-fpm", "-F"]
+ENTRYPOINT ["/opt/remi/${PHP_VERSION}/root/usr/sbin/php-fpm", "-F"]
