@@ -1,9 +1,7 @@
 version: '2'
 services:
   php-fpm:
-    build:
-      context: .
-      dockerfile: Dockerfile.php70
+    image: keitarotds/php56
     ports:
       - "9000:9000"
     links:

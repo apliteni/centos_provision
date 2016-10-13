@@ -24,7 +24,8 @@ RUN if [[ "${PHP_VERSION}" =~ ^php5 ]]; then \
     fi  
 
 RUN ln -s /usr/bin/${PHP_VERSION} /usr/bin/php \
-    && ln -s /opt/remi/${PHP_VERSION}/root/bin/php-config /usr/bin/php-config
+    && ln -s /opt/remi/${PHP_VERSION}/root/bin/php-config /usr/bin/php-config \
+    && ln -s /opt/remi/${PHP_VERSION}/root/usr/sbin/php-fpm /usr/sbin/php-fpm
 
 RUN if [[ "${PHP_VERSION}" =~ ^php5 ]]; then \
       ln -s /opt/remi/${PHP_VERSION}/root/etc/ /etc/php; \
@@ -38,8 +39,8 @@ RUN sed -i -e 's/^memory_limit = .*/memory_limit=500M/' /etc/php/php.ini \
     && sed -i -e 's/^listen = .*/listen = 0.0.0.0:9000/' \
               -e 's/^listen.allowed_clients =/;listen.allowed_clients =/' \
               -e 's/^;catch_workers_output = .*/catch_workers_output = yes/' \
-              -e 's|^;access\.log = .*|access\.log = /proc/self/fd/2|' \
+              -e 's|^;access\.log = .*|access.log = /proc/self/fd/2|' \
               -e 's|^php_admin_value\[error_log\] = .*|php_admin_value[error_log] = /proc/self/fd/2|' \
               /etc/php/php-fpm.d/www.conf
 
-ENTRYPOINT ["/opt/remi/${PHP_VERSION}/root/usr/sbin/php-fpm", "-F"]
+ENTRYPOINT ["/usr/sbin/php-fpm", "-F"]
