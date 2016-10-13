@@ -20,7 +20,7 @@ services:
     volumes:
       - ./www:/var/www
       - ./sites:/etc/nginx/conf.d
-  
+
   mysql:
     image: mysql
     ports:
