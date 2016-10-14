@@ -8,7 +8,8 @@ RUN yum install -y deltarpm epel-release \
 
 ARG PHP_VERSION=php56
 
-RUN yum install -y --enablerepo=remi ${PHP_VERSION} \
+RUN yum install -y --enablerepo=remi composer \
+                                     ${PHP_VERSION} \
                                      ${PHP_VERSION}-php-fpm \
                                      ${PHP_VERSION}-php-devel \
                                      ${PHP_VERSION}-php-mysqlnd \
@@ -20,6 +21,8 @@ RUN yum install -y --enablerepo=remi ${PHP_VERSION} \
 RUN if [[ "${PHP_VERSION}" =~ ^php5 ]]; then \
       yum install -y --enablerepo=remi ${PHP_VERSION}-php-ioncube-loader; \
     fi
+
+RUN yum install -y composer
 
 RUN ln -s /usr/bin/${PHP_VERSION} /usr/bin/php \
     && ln -s /opt/remi/${PHP_VERSION}/root/bin/php-config /usr/bin/php-config \
