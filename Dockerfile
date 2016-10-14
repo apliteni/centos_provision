@@ -18,9 +18,7 @@ RUN yum install -y --enablerepo=remi ${PHP_VERSION} \
                                      ${PHP_VERSION}-php-xml
 
 RUN if [[ "${PHP_VERSION}" =~ ^php5 ]]; then \
-      yum install -y --enablerepo=remi ${PHP_VERSION}-php-memcached ${PHP_VERSION}-php-ioncube-loader; \
-    else \
-      yum install -y --enablerepo=remi ${PHP_VERSION}-php-memcache; \
+      yum install -y --enablerepo=remi ${PHP_VERSION}-php-ioncube-loader; \
     fi
 
 RUN ln -s /usr/bin/${PHP_VERSION} /usr/bin/php \
