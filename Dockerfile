@@ -31,7 +31,9 @@ RUN if [[ "${PHP_VERSION}" =~ ^php5 ]]; then \
       ln -s /etc/opt/remi/${PHP_VERSION} /etc/php; \
     fi
 
-RUN sed -i -e 's/^memory_limit = .*/memory_limit=500M/' /etc/php/php.ini \
+RUN sed -i -e 's/^memory_limit = .*/memory_limit=500M/' \
+           -e 's|^;date.timezone =.*|date.timezone = "Europe/Moscow"|' \
+           /etc/php/php.ini \
     && sed -i -e 's/^daemonize = .*/daemonize = no/' \
               /etc/php/php-fpm.conf \
     && sed -i -e 's/^listen = .*/listen = 0.0.0.0:9000/' \
