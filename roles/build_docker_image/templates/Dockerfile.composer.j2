@@ -1,7 +1,5 @@
 FROM keitarotds/php:{{ php_version }}
 
-VOLUME ["/data", "/cache"]
-
 ENV COMPOSER_CACHE_DIR=/cache
 
 RUN yum install -y git
@@ -12,6 +10,4 @@ RUN curl https://getcomposer.org/installer -o composer-installer.php \
     && chmod a+x composer.phar \
     && mv composer.phar /usr/local/bin/composer
     
-WORKDIR /data
-
 ENTRYPOINT ["/usr/local/bin/composer"]
