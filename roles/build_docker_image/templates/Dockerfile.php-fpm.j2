@@ -1,4 +1,4 @@
-FROM keitarotds/php:{{ version }}
+FROM keitarotds/php:{{ php_version }}
 
 RUN yum install -y --enablerepo=remi {{ php_version }}-php-fpm
 
