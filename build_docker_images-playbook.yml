@@ -1,0 +1,15 @@
+---
+- name: Build an image by running ansible in a container
+  hosts: localhost
+  connection: local
+
+  vars_files:
+    - vars/server.yml
+
+  vars:
+    centos_major_version: 7
+
+  roles:
+    - {role: build_php_image, php_version: "php56"}
+    - {role: build_php_image, php_version: "php70"}
+    - {role: build_php_image, php_version: "php71"}
