@@ -29,4 +29,4 @@ RUN sed -i -e 's/^;?memory_limit = .*/memory_limit={{ php_memory_limit }}/' \
            -e 's|^;?date.timezone =.*|date.timezone = "{{ timezone }}"|' \
            /etc/php/php.ini
 
-CMD ["/usr/bin/php"]
+ENTRYPOINT ["/usr/bin/php"]

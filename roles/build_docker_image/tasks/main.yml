@@ -1,0 +1,16 @@
+- name: "Create tempfile"
+  command: mktemp
+  register: temp_file
+
+- name: "Generate Dockerfile for {{ package }}:{{ version }}"
+  template: src=Dockerfile.{{ package }}.j2 dest={{ temp_file.stdout }}
+
+- name: "Build docker image for {{ package }}:{{ version }}"
+  shell: "docker build -t keitarotds/{{ package }}:{{ version }} - < {{ temp_file.stdout }}"
+
+- name: "Push docker image {{ package }}:{{ version }} to docker hub"
+  docker_image:
+    name: "keitarotds/{{ package }}"
+    repository: "keitarotds/{{ package }}"
+    tag: "{{ version }}"
+    push: yes

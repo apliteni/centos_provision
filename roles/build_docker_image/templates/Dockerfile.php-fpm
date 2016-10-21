@@ -1,0 +1,19 @@
+ARG PHP_VERSION=php56
+
+FROM keitarotds/${PHP_VERSION}
+
+RUN yum install -y --enablerepo=remi ${PHP_VERSION}-php-fpm
+
+RUN ln -s /opt/remi/${PHP_VERSION}/root/usr/sbin/php-fpm /usr/sbin/php-fpm
+
+RUN sed -i -e 's/^daemonize = .*/daemonize = no/' \
+              /etc/php/php-fpm.conf \
+    && sed -i -e 's/^listen = .*/listen = 0.0.0.0:9000/' \
+              -e 's/^listen.allowed_clients =/;listen.allowed_clients =/' \
+              -e 's/^;catch_workers_output = .*/catch_workers_output = yes/' \
+              -e 's|^;access\.log = .*|access.log = /proc/self/fd/2|' \
+              -e 's|^php_admin_value\[error_log\] = .*|php_admin_value[error_log] = /proc/self/fd/2|' \
+              -e 's/^;php_admin_value\[memory_limit\].*/php_admin_value[memory_limit] = 256M/' \
+              /etc/php/php-fpm.d/www.conf
+
+ENTRYPOINT ["/usr/sbin/php-fpm", "-F"]
