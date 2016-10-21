@@ -1,4 +1,4 @@
-- name: "Create tempfile"
+- name: "Create tempfile for {{ package }}:{{ version }}"
   command: mktemp
   register: temp_file
 
@@ -9,8 +9,4 @@
   shell: "docker build -t keitarotds/{{ package }}:{{ version }} - < {{ temp_file.stdout }}"
 
 - name: "Push docker image {{ package }}:{{ version }} to docker hub"
-  docker_image:
-    name: "keitarotds/{{ package }}"
-    repository: "keitarotds/{{ package }}"
-    tag: "{{ version }}"
-    push: yes
+  command: "docker push keitarotds/{{ package }}:{{version}}"

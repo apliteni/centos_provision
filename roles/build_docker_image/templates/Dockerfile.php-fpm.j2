@@ -1,10 +1,8 @@
-ARG PHP_VERSION=php56
+FROM keitarotds/php:{{ version }}
 
-FROM keitarotds/${PHP_VERSION}
+RUN yum install -y --enablerepo=remi {{ php_version }}-php-fpm
 
-RUN yum install -y --enablerepo=remi ${PHP_VERSION}-php-fpm
-
-RUN ln -s /opt/remi/${PHP_VERSION}/root/usr/sbin/php-fpm /usr/sbin/php-fpm
+RUN ln -s /opt/remi/{{ php_version }}/root/usr/sbin/php-fpm /usr/sbin/php-fpm
 
 RUN sed -i -e 's/^daemonize = .*/daemonize = no/' \
               /etc/php/php-fpm.conf \
@@ -16,4 +14,4 @@ RUN sed -i -e 's/^daemonize = .*/daemonize = no/' \
               -e 's/^;php_admin_value\[memory_limit\].*/php_admin_value[memory_limit] = 256M/' \
               /etc/php/php-fpm.d/www.conf
 
-ENTRYPOINT ["/usr/sbin/php-fpm", "-F"]
+ENTRYPOINT ["/usr/sbin/php-fpm"]
