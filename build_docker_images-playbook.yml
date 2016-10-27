@@ -19,4 +19,4 @@
 
     - {role: build_docker_image, package: composer, version: 5.6, php_version: php56}
     - {role: build_docker_image, package: composer, version: 7.0, php_version: php70}
-    - {role: build_docker_image, package: composer, version: 7.1, php_version: php70}
+    - {role: build_docker_image, package: composer, version: 7.1, php_version: php71}

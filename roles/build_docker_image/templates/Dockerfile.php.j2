@@ -25,9 +25,9 @@ RUN if [[ "{{ php_version }}" =~ ^php5 ]]; then \
       ln -s /etc/opt/remi/{{ php_version }} /etc/php; \
     fi
 
-RUN sed -i -e 's/^;?memory_limit = .*/memory_limit={{ php_memory_limit }}/' \
-           -e 's|^;?date.timezone =.*|date.timezone = "{{ timezone }}"|' \
-           /etc/php/php.ini
+RUN sed -i -r -e 's/^;?memory_limit = .*/memory_limit={{ php_memory_limit }}/' \
+              -e 's|^;?date.timezone =.*|date.timezone = "{{ timezone }}"|' \
+              /etc/php/php.ini
 
 VOLUME ["/data", "/cache"]
 WORKDIR /data

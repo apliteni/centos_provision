@@ -10,6 +10,8 @@ RUN sed -i -e 's/^daemonize = .*/daemonize = no/' \
               -e 's/^listen.allowed_clients =/;listen.allowed_clients =/' \
               -e 's/^;catch_workers_output = .*/catch_workers_output = yes/' \
               -e 's|^;access\.log = .*|access.log = /proc/self/fd/2|' \
+              -e 's/^user =/;user =/' \
+              -e 's/^group =/;group =/' \
               -e 's|^php_admin_value\[error_log\] = .*|php_admin_value[error_log] = /proc/self/fd/2|' \
               -e 's/^;php_admin_value\[memory_limit\].*/php_admin_value[memory_limit] = 256M/' \
               /etc/php/php-fpm.d/www.conf
