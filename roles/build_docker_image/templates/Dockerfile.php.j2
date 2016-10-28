@@ -10,12 +10,11 @@ RUN yum install -y --enablerepo=remi {{ php_version }} \
                                      {{ php_version }}-php-pecl-redis \
                                      {{ php_version }}-php-mbstring \
                                      {{ php_version }}-php-pear \
-                                     {{ php_version }}-php-xml
+                                     {{ php_version }}-php-xml \
+                                     {{ php_version }}-php-ioncube-loader
 
-RUN if [[ "{{ php_version }}" =~ ^php5 ]]; then \
-      yum install -y --enablerepo=remi {{ php_version }}-php-ioncube-loader; \
-    else \
-      yum install -y --enablerepo=remi {{ php_version }}-zip; \
+RUN if [[ "{{ php_version }}" =~ ^php7 ]]; then \
+      yum install -y --enablerepo=remi {{ php_version }}-php-pecl-zip; \
     fi
 
 RUN ln -s /usr/bin/{{ php_version }} /usr/bin/php \
