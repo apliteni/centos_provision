@@ -14,6 +14,8 @@ RUN yum install -y --enablerepo=remi {{ php_version }} \
 
 RUN if [[ "{{ php_version }}" =~ ^php5 ]]; then \
       yum install -y --enablerepo=remi {{ php_version }}-php-ioncube-loader; \
+    else \
+      yum install -y --enablerepo=remi {{ php_version }}-zip; \
     fi
 
 RUN ln -s /usr/bin/{{ php_version }} /usr/bin/php \
