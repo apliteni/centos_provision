@@ -15,7 +15,7 @@
       register: selinux
 
   roles:
-    - {role: 'kernel'}
+    - {role: 'kernel', tags: 'kernel'}
     - {role: 'resmo.ntp'}
     - {role: 'mrlesmithjr.timezone'}
     - {role: 'geerlingguy.repo-epel'}
@@ -23,8 +23,8 @@
     - {role: 'mikegleasonjr.swap', tags: 'swap', when: "ansible_memtotal_mb < 1000"}
     - {role: 'tools'}
     - {role: 'redis'}
-    - {role: 'bertvv.mariadb'}
-    - {role: 'geerlingguy.nginx'}
+    - {role: 'bertvv.mariadb', tags: 'mariadb'}
+    - {role: 'geerlingguy.nginx', tags: 'nginx'}
     - {role: 'php', tags: 'php'}
     - {role: 'ioncube', tags: 'ioncube', when: php_version >= 'php70'}
     - {role: 'selinux',  when: selinux.stat.exists == True}
