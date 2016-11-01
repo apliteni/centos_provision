@@ -8,6 +8,8 @@
     - nano
     - htop
     - httpd-tools
+    - sudo
+    - cronie
 
 - name: Remove require tty
   tags: tty
@@ -15,3 +17,9 @@
 
 - name: Remove require tty - alt
   lineinfile: regexp="requiretty" dest=/etc/sudoers.d/os_defaults state=absent
+
+- name: Run crond
+  service:
+    name: crond
+    state: started
+    enabled: yes
