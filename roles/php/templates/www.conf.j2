@@ -35,7 +35,7 @@ group = nginx
 ;                            specific port;
 ;   '/path/to/unix/socket' - to listen on a unix socket.
 ; Note: This value is mandatory.
-listen = '/var/run/php5-fpm.sock'
+listen = '/var/run/{{php_version}}-fpm.sock'
 
 
 ; Set listen(2) backlog. A value of '-1' means unlimited.
