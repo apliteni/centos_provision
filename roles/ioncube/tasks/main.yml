@@ -3,3 +3,5 @@
   yum: name={{item}}
   with_items:
     - "{{php_version}}-php-ioncube-loader"
+  notify:
+    - restart php-fpm
