@@ -3,7 +3,7 @@
   register: temp_file
 
 - name: "Generate Dockerfile for {{ package }}:{{ php_version }}"
-  template: src=Dockerfile.{{ package }}.j2 dest={{ temp_file.stdout }}
+  template: src=Dockerfile.{{ docker_file_suffix | default(package) }}.j2 dest={{ temp_file.stdout }}
 
 - name: "Build docker image for {{ package }}:{{ php_version }}"
   shell: "docker build -t keitarotds/{{ package }}:{{ php_version }} - < {{ temp_file.stdout }}"
