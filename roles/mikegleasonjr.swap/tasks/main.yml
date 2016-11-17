@@ -25,4 +25,4 @@
   sysctl:
     name: "{{ item.key }}"
     value: "{{ item.value }}"
-  with_dict: swap_sysctl_tweaks
+  with_dict: "{{ swap_sysctl_tweaks }}"
