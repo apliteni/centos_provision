@@ -1,8 +1,8 @@
-FROM keitarotds/php:{{ php_version }}
+FROM keitarotds/php:{{ image_version }}
 
-RUN yum install -y --enablerepo=remi {{ php_version }}-php-fpm
+RUN yum install -y --enablerepo=remi {{ image_version }}-php-fpm
 
-RUN ln -s /opt/remi/{{ php_version }}/root/usr/sbin/php-fpm /usr/sbin/php-fpm
+RUN ln -s /opt/remi/{{ image_version }}/root/usr/sbin/php-fpm /usr/sbin/php-fpm
 
 RUN sed -i -e 's/^daemonize = .*/daemonize = no/' \
               /etc/php/php-fpm.conf \

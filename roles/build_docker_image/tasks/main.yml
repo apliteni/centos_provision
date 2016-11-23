@@ -1,12 +1,12 @@
-- name: "Create tempfile for {{ package }}:{{ php_version }}"
+- name: "Create tempfile for {{ package }}:{{ image_version }}"
   command: mktemp
   register: temp_file
 
-- name: "Generate Dockerfile for {{ package }}:{{ php_version }}"
+- name: "Generate Dockerfile for {{ package }}:{{ image_version }}"
   template: src=Dockerfile.{{ docker_file_suffix | default(package) }}.j2 dest={{ temp_file.stdout }}
 
-- name: "Build docker image for {{ package }}:{{ php_version }}"
-  shell: "docker build -t keitarotds/{{ package }}:{{ php_version }} - < {{ temp_file.stdout }}"
+- name: "Build docker image for {{ package }}:{{ image_version }}"
+  shell: "docker build -t keitarotds/{{ package }}:{{ image_version }} - < {{ temp_file.stdout }}"
 
-- name: "Push docker image {{ package }}:{{ php_version }} to docker hub"
-  command: "docker push keitarotds/{{ package }}:{{php_version}}"
+- name: "Push docker image {{ package }}:{{ image_version }} to docker hub"
+  command: "docker push keitarotds/{{ package }}:{{image_version}}"

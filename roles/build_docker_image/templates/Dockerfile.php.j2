@@ -4,26 +4,26 @@ RUN yum install -y deltarpm epel-release \
     && rpm -Uvh http://rpms.famillecollet.com/enterprise/remi-release-{{ centos_major_version }}.rpm \
     && yum update -y
 
-RUN yum install -y --enablerepo=remi {{ php_version }} \
-                                     {{ php_version }}-php-devel \
-                                     {{ php_version }}-php-mysqlnd \
-                                     {{ php_version }}-php-pecl-redis \
-                                     {{ php_version }}-php-mbstring \
-                                     {{ php_version }}-php-pear \
-                                     {{ php_version }}-php-xml \
-                                     {{ php_version }}-php-ioncube-loader
+RUN yum install -y --enablerepo=remi {{ image_version }} \
+                                     {{ image_version }}-php-devel \
+                                     {{ image_version }}-php-mysqlnd \
+                                     {{ image_version }}-php-pecl-redis \
+                                     {{ image_version }}-php-mbstring \
+                                     {{ image_version }}-php-pear \
+                                     {{ image_version }}-php-xml \
+                                     {{ image_version }}-php-ioncube-loader
 
-RUN if [[ "{{ php_version }}" =~ ^php7 ]]; then \
-      yum install -y --enablerepo=remi {{ php_version }}-php-pecl-zip; \
+RUN if [[ "{{ image_version }}" =~ ^php7 ]]; then \
+      yum install -y --enablerepo=remi {{ image_version }}-php-pecl-zip; \
     fi
 
-RUN ln -s /usr/bin/{{ php_version }} /usr/bin/php \
-    && ln -s /opt/remi/{{ php_version }}/root/bin/php-config /usr/bin/php-config
+RUN ln -s /usr/bin/{{ image_version }} /usr/bin/php \
+    && ln -s /opt/remi/{{ image_version }}/root/bin/php-config /usr/bin/php-config
 
-RUN if [[ "{{ php_version }}" =~ ^php5 ]]; then \
-      ln -s /opt/remi/{{ php_version }}/root/etc/ /etc/php; \
+RUN if [[ "{{ image_version }}" =~ ^php5 ]]; then \
+      ln -s /opt/remi/{{ image_version }}/root/etc/ /etc/php; \
     else \
-      ln -s /etc/opt/remi/{{ php_version }} /etc/php; \
+      ln -s /etc/opt/remi/{{ image_version }} /etc/php; \
     fi
 
 RUN sed -i -r -e 's/^;?memory_limit = .*/memory_limit={{ php_memory_limit }}/' \
