@@ -16,4 +16,4 @@
 
     - {role: build_docker_image, package: composer, image_version: php54}
 
-    - {role: build_docker_image, package: npm, image_version: latest }
+    - {role: build_docker_image, package: node, image_version: latest }
