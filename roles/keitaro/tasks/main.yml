@@ -25,7 +25,7 @@
         --db-password='{{ db_password }}' \
         --admin-login={{ admin_login }} \
         --admin-password='{{ admin_password }}' \
-        --draft-storage=redis\
+        --draft-storage=redis \
         --cache-storage=redis
 
 - name: Add cron task

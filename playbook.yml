@@ -11,9 +11,6 @@
         name=*
         state=latest
 
-    - stat: path=/selinux/enforce
-      register: selinux
-
   roles:
     - {role: 'kernel', tags: 'kernel'}
     - {role: 'resmo.ntp'}
@@ -27,7 +24,7 @@
     - {role: 'geerlingguy.nginx', tags: 'nginx'}
     - {role: 'php', tags: 'php'}
     - {role: 'ioncube', tags: 'ioncube', when: php_version >= 'php70'}
-    - {role: 'selinux',  when: selinux.stat.exists == True}
+    - {role: 'selinux', tags: 'selinux'}
     - {role: 'monit'}
     - {role: 'geerlingguy.firewall', tags: 'firewall'}
     - {role: 'keitaro'}
