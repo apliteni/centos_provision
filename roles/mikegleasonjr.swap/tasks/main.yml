@@ -22,7 +22,6 @@
   when: swap|changed
 
 - name: Tweak swap sysctl variables
-  sysctl:
-    name: "{{ item.key }}"
-    value: "{{ item.value }}"
+  command: "sysctl -w {{ item.key }}={{ item.value }}"
+  ignore_errors: true
   with_dict: "{{ swap_sysctl_tweaks }}"
