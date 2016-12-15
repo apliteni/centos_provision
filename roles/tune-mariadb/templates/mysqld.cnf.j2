@@ -1,0 +1,3 @@
+[mysqld]
+innodb_buffer_pool_size = {{ [((ansible_memtotal_mb * innodb_buffer_pool_size_factor ) | int), max_innodb_buffer_pool_size] | min }}M
+innodb_buffer_pool_instances = 1
