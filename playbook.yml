@@ -21,6 +21,7 @@
     - {role: 'tools'}
     - {role: 'redis'}
     - {role: 'bertvv.mariadb', tags: 'mariadb'}
+    - {role: 'tune-mariadb', tags: 'mariadb'}
     - {role: 'geerlingguy.nginx', tags: 'nginx'}
     - {role: 'php', tags: 'php'}
     - {role: 'ioncube', tags: 'ioncube', when: php_version >= 'php70'}
