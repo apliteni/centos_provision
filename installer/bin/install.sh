@@ -3,24 +3,29 @@
 usage() {
   progname=$(basename $0)
   cat <<USAGE
-    ${progname} installs Keitarotds
+  ${progname} installs Keitarotds
 
-    Usage: ${progname} [-p]
+  Usage: ${progname} [-pv]
 
-        -p      The -p (preserve installation) option causes ${progname} to preserve the invoking installation commands. Installation commands will be printed to stdout instead.
+    -p      The -p (preserve installation) option causes ${progname} to preserve the invoking installation commands. Installation commands will be printed to stdout instead.
+    -v      The -v (verbose mode) option causes ${progname} to display more verbose information of installation process.
 
 USAGE
+}
+
+print_on_verbose() {
+  if [ "${VERBOSE}" == "true" ]; then
+    echo "${1}"
+  fi
 }
 
 while getopts ":pv" opt; do
   case $opt in
     p)
-      echo "-p was triggered" >&2
-      PRESERVE_MODE=true
+      PRESERVE=true
       ;;
     v)
-      echo "-v was triggered" >&2 
-      VERBOSE_MODE=true
+      VERBOSE=true
       ;;
     :)
       echo "Option -$OPTARG requires an argument." >&2
@@ -33,6 +38,6 @@ while getopts ":pv" opt; do
   esac
 done
 
-echo '123'
+print_on_verbose "Verbose mode: on"
 
 exit 0

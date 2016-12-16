@@ -21,18 +21,34 @@ describe 'invoke installer.sh' do
     invoke_installer_sh_result[1]
   end
 
+  def get_result(invoke_installer_sh_result)
+    invoke_installer_sh_result[2]
+  end
+
   shared_examples_for 'should not print anything to stderr' do
-    specify { expect(get_stderr(invoke_installer_sh)) }
+    specify { expect(get_stderr(invoke_installer_sh)).to be_empty }
   end
 
-  context 'with -h flag' do
-    let(:options) { %w[-h] }
 
-    it 'should print usage to stdout' do
-      stdout = get_stdout(invoke_installer_sh)
-      expect(stdout).to match("Usage: #{INSTALLER_CMD}")
-    end
+  shared_examples_for 'should print to stdout' do |expected_text|
+    specify { expect(get_stdout(invoke_installer_sh)).to match(expected_text) }
+  end
 
+  shared_examples_for 'should exit with error status' do
+    specify { expect(get_result(invoke_installer_sh)).not_to be_success }
+  end
+
+  context 'with wrong options' do
+    let(:options) { %w[-x] }
+
+    it_behaves_like 'should print to stdout', "Usage: #{INSTALLER_CMD}"
     it_behaves_like 'should not print anything to stderr'
+    it_behaves_like 'should exit with error status'
   end
+
+  context 'with -v -p options' do
+    let(:options) { %w[-v -p] }
+    it_behaves_like 'should print to stdout', 'Verbose mode: on'
+  end
+
 end
