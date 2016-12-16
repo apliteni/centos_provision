@@ -2,13 +2,20 @@
 
 usage() {
   progname=$(basename $0)
-  cat <<USAGE
+  cat >&2 <<USAGE
   ${progname} installs Keitarotds
 
-  Usage: ${progname} [-pv]
+  Usage: ${progname} [-pv] [-l en|ru]
 
-    -p      The -p (preserve installation) option causes ${progname} to preserve the invoking installation commands. Installation commands will be printed to stdout instead.
-    -v      The -v (verbose mode) option causes ${progname} to display more verbose information of installation process.
+    -p
+        The -p (preserve installation) option causes ${progname} to preserve the invoking installation commands. Installation commands will be printed to stdout instead.
+
+    -v
+        The -v (verbose mode) option causes ${progname} to display more verbose information of installation process.
+
+    -l <lang>
+        By default ${progname} try to detect language from LANG environment variable, but you can explicitly set language with -l option.
+        Only en and ru (for English and Russian) values supported now.
 
 USAGE
 }
@@ -19,7 +26,7 @@ print_on_verbose() {
   fi
 }
 
-while getopts ":pv" opt; do
+while getopts ":pvl:" opt; do
   case $opt in
     p)
       PRESERVE=true
@@ -27,8 +34,22 @@ while getopts ":pv" opt; do
     v)
       VERBOSE=true
       ;;
+    l)
+      case ${OPTARG} in
+        en)
+            LANGUAGE=en
+            ;;
+        ru)
+            LANGUAGE=ru
+            ;;
+        *)
+            echo "Specified language \"${OPTARG}\" is not supported" >&2
+            exit 1
+            ;;
+      esac
+      ;;
     :)
-      echo "Option -$OPTARG requires an argument." >&2
+      echo "Option -${OPTARG} requires an argument." >&2
       exit 1
       ;;
     \?)
@@ -39,5 +60,6 @@ while getopts ":pv" opt; do
 done
 
 print_on_verbose "Verbose mode: on"
+print_on_verbose "Language: ${LANGUAGE}"
 
 exit 0

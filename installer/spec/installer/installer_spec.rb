@@ -29,26 +29,63 @@ describe 'invoke installer.sh' do
     specify { expect(get_stderr(invoke_installer_sh)).to be_empty }
   end
 
-
   shared_examples_for 'should print to stdout' do |expected_text|
     specify { expect(get_stdout(invoke_installer_sh)).to match(expected_text) }
   end
 
-  shared_examples_for 'should exit with error status' do
+  shared_examples_for 'should print to stderr' do |expected_text|
+    specify { expect(get_stderr(invoke_installer_sh)).to match(expected_text) }
+  end
+
+  shared_examples_for 'should exit with error' do
     specify { expect(get_result(invoke_installer_sh)).not_to be_success }
+  end
+
+  shared_examples_for 'should exit without errors' do
+    specify { expect(get_result(invoke_installer_sh)).to be_success }
   end
 
   context 'with wrong options' do
     let(:options) { %w[-x] }
 
-    it_behaves_like 'should print to stdout', "Usage: #{INSTALLER_CMD}"
-    it_behaves_like 'should not print anything to stderr'
-    it_behaves_like 'should exit with error status'
+    it_behaves_like 'should exit with error'
+    it_behaves_like 'should print to stderr', "Usage: #{INSTALLER_CMD}"
   end
 
-  context 'with -v -p options' do
+  context 'with `-v` `-p` options' do
     let(:options) { %w[-v -p] }
+
+    it_behaves_like 'should exit without errors'
+    it_behaves_like 'should not print anything to stderr'
     it_behaves_like 'should print to stdout', 'Verbose mode: on'
+  end
+
+  context 'with `-l` option' do
+    let(:env) { LANG=C }
+    let(:options) { %W[-v -l #{lang}]}
+
+    context 'with `en` value' do
+      let(:lang) { 'en' }
+
+      it_behaves_like 'should exit without errors'
+      it_behaves_like 'should not print anything to stderr'
+      it_behaves_like 'should print to stdout', 'Language: en'
+    end
+
+    context 'with `ru` value' do
+      let(:lang) { 'ru' }
+
+      it_behaves_like 'should exit without errors'
+      it_behaves_like 'should not print anything to stderr'
+      it_behaves_like 'should print to stdout', 'Language: ru'
+    end
+
+    context 'with unsupported value' do
+      let(:lang) { 'xx' }
+
+      it_behaves_like 'should exit with error'
+      it_behaves_like 'should print to stderr', 'Specified language "xx" is not supported'
+    end
   end
 
 end
