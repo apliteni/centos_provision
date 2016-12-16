@@ -7,10 +7,12 @@ INSTALLER_PATH = File.expand_path(File.dirname(__FILE__)) + "/../../bin/#{INSTAL
 
 describe 'invoke installer.sh' do
   let(:options) { [] }
+  let(:env) { {} }
 
   def invoke_installer_sh
     options_str = options.join(' ')
-    Open3.capture3("#{INSTALLER_PATH} #{options_str}")
+    env_vars = env.map { |k, v| [k.to_s, v] }.to_h
+    Open3.capture3(env_vars, "#{INSTALLER_PATH} #{options_str}")
   end
 
   def get_stdout(invoke_installer_sh_result)
@@ -61,8 +63,8 @@ describe 'invoke installer.sh' do
   end
 
   context 'with `-l` option' do
-    let(:env) { LANG=C }
-    let(:options) { %W[-v -l #{lang}]}
+    let(:env) { {LANG: 'C'} }
+    let(:options) { %W[-v -l #{lang}] }
 
     context 'with `en` value' do
       let(:lang) { 'en' }
@@ -85,6 +87,18 @@ describe 'invoke installer.sh' do
 
       it_behaves_like 'should exit with error'
       it_behaves_like 'should print to stderr', 'Specified language "xx" is not supported'
+    end
+  end
+
+  describe 'detects language from LANG environment variable' do
+    let(:options) { %w[-v] } # Switch on verbose mode
+
+    context 'LANG=ru_RU.UTF-8' do
+      let(:env) { {LANG: 'ru_RU.UTF-8'} }
+
+      it_behaves_like 'should exit without errors'
+      it_behaves_like 'should not print anything to stderr'
+      it_behaves_like 'should print to stdout', 'Language: ru'
     end
   end
 
