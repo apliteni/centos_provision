@@ -91,7 +91,7 @@ describe 'invoke installer.sh' do
   end
 
   describe 'detects language from LANG environment variable' do
-    let(:options) { %w[-v] } # Switch on verbose mode
+    let(:options) { %w[-v] }                          # Switch on verbose mode for testing purposes
 
     context 'LANG=ru_RU.UTF-8' do
       let(:env) { {LANG: 'ru_RU.UTF-8'} }
@@ -99,6 +99,30 @@ describe 'invoke installer.sh' do
       it_behaves_like 'should exit without errors'
       it_behaves_like 'should not print anything to stderr'
       it_behaves_like 'should print to stdout', 'Language: ru'
+    end
+
+    context 'LANG=ru_UA.UTF-8' do
+      let(:env) { {LANG: 'ru_UA.UTF-8'} }
+
+      it_behaves_like 'should exit without errors'
+      it_behaves_like 'should not print anything to stderr'
+      it_behaves_like 'should print to stdout', 'Language: ru'
+    end
+
+    context 'LANG=en_US.UTF-8' do
+      let(:env) { {LANG: 'en_US.UTF-8'} }
+
+      it_behaves_like 'should exit without errors'
+      it_behaves_like 'should not print anything to stderr'
+      it_behaves_like 'should print to stdout', 'Language: en'
+    end
+
+    context 'LANG=de_DE.UTF-8' do
+      let(:env) { {LANG: 'de_DE.UTF-8'} }
+
+      it_behaves_like 'should exit without errors'
+      it_behaves_like 'should not print anything to stderr'
+      it_behaves_like 'should print to stdout', 'Language: en'
     end
   end
 
