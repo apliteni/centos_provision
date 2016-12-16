@@ -26,6 +26,14 @@ print_on_verbose() {
   fi
 }
 
+echo ${LANG}
+if [[ "${LANG}" =~ ^ru_[[:alpha:]]+\.UTF-8$ ]]; then
+  LANGUAGE=ru
+else
+  LANGUAGE=en
+fi
+echo ${LANGUAGE}
+
 while getopts ":pvl:" opt; do
   case $opt in
     p)
