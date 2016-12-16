@@ -26,13 +26,16 @@ print_on_verbose() {
   fi
 }
 
-echo ${LANG}
+read_var() {
+  echo -n "$2 > "
+  read $1
+}
+
 if [[ "${LANG}" =~ ^ru_[[:alpha:]]+\.UTF-8$ ]]; then
   LANGUAGE=ru
 else
   LANGUAGE=en
 fi
-echo ${LANGUAGE}
 
 while getopts ":pvl:" opt; do
   case $opt in
@@ -70,18 +73,20 @@ done
 print_on_verbose "Verbose mode: on"
 print_on_verbose "Language: ${LANGUAGE}"
 
+read_var "LICENSE_IP" "Please enter server IP"
+
 cat > .keitarotds-hosts <<EOF
 [server]
 keitarotds
 
 [server:vars]
-db_name = ${HOSTS_DB_NAME}
-db_user = ${HOSTS_DB_USER}
-db_password = ${HOSTS_DB_PASSWORD}
-license_ip = ${HOSTS_LICENSE_IP}
-license_key = ${HOSTS_LICENSE_KEY}
-admin_login = ${HOSTS_ADMIN_LOGIN}
-admin_password = ${HOSTS_ADMIN_PASSWORD}
+db_name = ${DB_NAME}
+db_user = ${DB_USER}
+db_password = ${DB_PASSWORD}
+license_ip = ${LICENSE_IP}
+license_key = ${LICENSE_KEY}
+admin_login = ${ADMIN_LOGIN}
+admin_password = ${ADMIN_PASSWORD}
 connection = local
 EOF
 
