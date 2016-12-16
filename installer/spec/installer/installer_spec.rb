@@ -1,18 +1,26 @@
 require 'spec_helper'
 
 require 'open3'
+require 'tmpdir'
 
 INSTALLER_CMD = 'install.sh'
 INSTALLER_PATH = File.expand_path(File.dirname(__FILE__)) + "/../../bin/#{INSTALLER_CMD}"
 
 describe 'invoke installer.sh' do
-  let(:options) { [] }
+  around(:example) do |example|
+    Dir.mktmpdir do |dir|
+      Dir.chdir(dir) do
+        example.run
+      end
+    end
+  end
+
+  let(:args) { '' }
   let(:env) { {} }
 
   def invoke_installer_sh
-    options_str = options.join(' ')
     env_vars = env.map { |k, v| [k.to_s, v] }.to_h
-    Open3.capture3(env_vars, "#{INSTALLER_PATH} #{options_str}")
+    Open3.capture3(env_vars, "#{INSTALLER_PATH} #{args}")
   end
 
   def get_stdout(invoke_installer_sh_result)
@@ -47,15 +55,15 @@ describe 'invoke installer.sh' do
     specify { expect(get_result(invoke_installer_sh)).to be_success }
   end
 
-  context 'with wrong options' do
-    let(:options) { %w[-x] }
+  context 'with wrong args' do
+    let(:args) { '-x' }
 
     it_behaves_like 'should exit with error'
     it_behaves_like 'should print to stderr', "Usage: #{INSTALLER_CMD}"
   end
 
-  context 'with `-v` `-p` options' do
-    let(:options) { %w[-v -p] }
+  context 'with `-v` `-p` args' do
+    let(:args) { '-v -p' }
 
     it_behaves_like 'should exit without errors'
     it_behaves_like 'should not print anything to stderr'
@@ -64,7 +72,7 @@ describe 'invoke installer.sh' do
 
   context 'with `-l` option' do
     let(:env) { {LANG: 'C'} }
-    let(:options) { %W[-v -l #{lang}] }
+    let(:args) { "-v -l #{lang}" }
 
     context 'with `en` value' do
       let(:lang) { 'en' }
@@ -90,8 +98,9 @@ describe 'invoke installer.sh' do
     end
   end
 
+  # TODO: Detect from LC_MESSAGES
   describe 'detects language from LANG environment variable' do
-    let(:options) { %w[-v] }                          # Switch on verbose mode for testing purposes
+    let(:args) { '-v' } # Switch on verbose mode for testing purposes
 
     context 'LANG=ru_RU.UTF-8' do
       let(:env) { {LANG: 'ru_RU.UTF-8'} }
@@ -126,4 +135,8 @@ describe 'invoke installer.sh' do
     end
   end
 
+  it 'creates hosts file based on entered info' do
+    invoke_installer_sh
+    expect(File.exist?('.keitarotds-hosts')).to be_truthy
+  end
 end

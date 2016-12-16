@@ -70,4 +70,19 @@ done
 print_on_verbose "Verbose mode: on"
 print_on_verbose "Language: ${LANGUAGE}"
 
+cat > .keitarotds-hosts <<EOF
+[server]
+keitarotds
+
+[server:vars]
+db_name = ${HOSTS_DB_NAME}
+db_user = ${HOSTS_DB_USER}
+db_password = ${HOSTS_DB_PASSWORD}
+license_ip = ${HOSTS_LICENSE_IP}
+license_key = ${HOSTS_LICENSE_KEY}
+admin_login = ${HOSTS_ADMIN_LOGIN}
+admin_password = ${HOSTS_ADMIN_PASSWORD}
+connection = local
+EOF
+
 exit 0
