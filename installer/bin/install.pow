@@ -1,0 +1,98 @@
+#!/usr/bin/env powscript
+
+print_err(message)
+    echo $message >&2
+
+
+usage()
+  progname=$(basename $0)
+  print_err "$progname installs Keitarotds"
+  print_err
+  print_err "Usage: $progname [-pv] [-l en|ru]"
+  print_err
+  print_err "  -p"
+  print_err "    The -p (preserve installation) option causes $progname to preserve the invoking installation commands. Installation commands will be printed to stdout instead."
+  print_err
+  print_err "  -v"
+  print_err "    The -v (verbose mode) option causes $progname to display more verbose information of installation process."
+  print_err
+  print_err "  -l <lang>"
+  print_err "    By default $progname try to detect language from LANG environment variable, but you can explicitly set language with -l option."
+  print_err "    Only en and ru (for English and Russian) values supported now."
+
+
+print_on_verbose(message)
+  if $VERBOSE is "true"
+    echo $message
+
+
+read_var(variable, hint)
+  echo -n "$hint > "
+  read -r $variable
+
+
+detect_language(lang_value)
+  if $lang_value match ^ru_[[:alpha:]]+\.UTF-8$
+    UI_LANG=ru
+
+
+autodetect_language()
+  if not empty $LC_ALL
+    detect_language $LC_ALL
+  else
+    if not empty $LC_MESSAGES
+      detect_language $LC_MESSAGES
+    else
+      detect_language $LANG
+
+
+UI_LANG=en
+autodetect_language
+
+
+while getopts ":hpvl:" opt
+  switch $opt
+    case p
+      PRESERVE=true
+    case v
+      VERBOSE=true
+    case l
+      switch $OPTARG
+        case en
+          UI_LANG=en
+        case ru
+          UI_LANG=ru
+        case *
+          print_err "Specified language \"$OPTARG\" is not supported"
+          exit 1
+    case :
+      print_err "Option -$OPTARG requires an argument."
+      exit 1
+    case h
+      usage
+      exit 0
+    case \?
+      usage
+      exit 1
+
+
+print_on_verbose "Verbose mode: on"
+print_on_verbose "Language: ${UI_LANG}"
+
+
+read_var "LICENSE_IP" "Please enter server IP"
+
+cat > .keitarotds-hosts <<EOF
+[server]
+keitarotds
+[server:vars]
+db_name = ${DB_NAME}
+db_user = ${DB_USER}
+db_password = ${DB_PASSWORD}
+license_ip = ${LICENSE_IP}
+license_key = ${LICENSE_KEY}
+admin_login = ${ADMIN_LOGIN}
+admin_password = ${ADMIN_PASSWORD}
+connection = local
+EOF
+
