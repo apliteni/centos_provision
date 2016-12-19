@@ -154,7 +154,7 @@ describe 'installer.sh' do
 
     it 'contains license_ip key' do
       invoke_installer_sh
-      expect(hosts_file_content).to match("\nlicense_ip = #{license_ip}")
+      expect(hosts_file_content).to match(%Q{\nlicense_ip = "#{license_ip}"\n})
     end
   end
 end

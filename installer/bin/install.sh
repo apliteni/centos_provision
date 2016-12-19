@@ -40,10 +40,17 @@ on ()
 
 
 
+declare -A DICT
+DICT['en.server_ip']='Please enter server IP'
+DICT['ru.server_ip']='Укажите IP адрес сервера'
+
+
+declare -A VARS
+
 print_err(){
   local message="${1}"
-    echo "$message" >&2
-  }
+  echo "$message" >&2
+}
 
 
 usage(){
@@ -73,10 +80,11 @@ print_on_verbose(){
 
 
 read_var(){
-  local variable="${1}"
-  local hint="${2}"
-  echo -n "$hint > "
-  read -r "$variable"
+  local var_name="${1}"
+  key=$UI_LANG.$var_name
+  echo -n ""${DICT[$key]}" > "
+  read -r variable
+  VARS[$var_name]=$variable
 }
 
 
@@ -147,20 +155,20 @@ print_on_verbose "Verbose mode: on"
 print_on_verbose "Language: ${UI_LANG}"
 
 
-read_var "LICENSE_IP" "Please enter server IP"
+read_var 'server_ip'
 
 cat > .keitarotds-hosts <<EOF
 [server]
-keitarotds
+localhost connection=local
+
 [server:vars]
-db_name = ${DB_NAME}
-db_user = ${DB_USER}
-db_password = ${DB_PASSWORD}
-license_ip = ${LICENSE_IP}
-license_key = ${LICENSE_KEY}
-admin_login = ${ADMIN_LOGIN}
-admin_password = ${ADMIN_PASSWORD}
-connection = local
+db_name = "${VARS['db_name']}"
+db_user = "${VARS['db_user']}"
+db_password = "${VARS['db_password']}"
+license_ip = "${VARS['server_ip']}"
+license_key = "${VARS['license_key']}"
+admin_login = "${VARS['admin_login']}"
+admin_password = "${VARS['admin_password']}"
 EOF
 
 # wait for all async child processes (because "await ... then" is used in powscript)
