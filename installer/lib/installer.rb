@@ -5,17 +5,29 @@ require 'rubygems'
 require 'bundler/setup'
 
 class Installer
+  INSTALLER_ROOT = File.expand_path(File.dirname(__FILE__) + '/../')
   INSTALLER_CMD = 'install.sh'
-  INSTALLER_PATH = File.expand_path(File.dirname(__FILE__)) + "/../bin/#{INSTALLER_CMD}"
+  DEFAULT_DOCKER_IMAGE = 'centos'
 
-  attr_reader :env, :args, :prompts_with_values, :stdout, :stderr, :ret_value
+  attr_accessor :env, :args, :prompts_with_values, :docker_image
+  attr_reader :stdout, :stderr, :ret_value
 
-  def initialize(env: {}, args: '', prompts_with_values: {})
-    @env, @args, @prompts_with_values = env, args, prompts_with_values
+  def initialize(env: {}, args: '', prompts_with_values: {}, docker_image: DEFAULT_DOCKER_IMAGE)
+    @env, @args, @prompts_with_values, @docker_image = env, args, prompts_with_values, docker_image
   end
 
   def call
-    Open3.popen3(stringified_env, "#{INSTALLER_PATH} #{args}") do |stdin, stdout, stderr, wait_thr|
+    invoke_installer_cmd
+  end
+
+  def self.docker_installed?
+    system("sh -c 'command -v docker > /dev/null'")
+  end
+
+  private
+
+  def invoke_installer_cmd
+    Open3.popen3(installer_cmd) do |stdin, stdout, stderr, wait_thr|
       stdout.sync = true
       stdin.sync = true
 
@@ -25,10 +37,12 @@ class Installer
     end
   end
 
-  private
+  def installer_cmd
+    "docker run #{docker_env} -i --rm -v #{INSTALLER_ROOT}:/data -w /data #{docker_image} bin/#{INSTALLER_CMD} #{args}"
+  end
 
-  def stringified_env
-    env.map { |k, v| [k.to_s, v.to_s] }.to_h
+  def docker_env
+    env.map { |key, value| "-e #{key}=#{value}"}.join(' ')
   end
 
   def emulate_interactive_io(stdin, stdout)
@@ -60,5 +74,11 @@ class Installer
     buffer << stdout.getc
     buffer
   end
-
 end
+
+begin
+  unless Installer.docker_installed?
+    puts 'You need to install the docker for running this specs'
+  end
+end
+
