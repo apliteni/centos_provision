@@ -43,37 +43,24 @@ RSpec.describe 'installer.sh' do
 
   let(:installer) { Installer.new(env: env, args: args, prompts_with_values: prompts_with_values) }
 
-  shared_examples_for 'should not print anything to stderr' do
-    before { installer.call }
-    specify { expect(installer.stderr).to be_empty }
-  end
-
   shared_examples_for 'should print to stdout' do |expected_text|
     before { installer.call }
     specify { expect(installer.stdout).to match(expected_text) }
   end
 
-  shared_examples_for 'should print to stderr' do |expected_text|
-    before { installer.call }
-    specify { expect(installer.stderr).to match(expected_text) }
-  end
-
-  shared_examples_for 'should exit with error' do
-    before { installer.call }
-    specify { expect(installer.ret_value).not_to be_success }
-  end
-
-  shared_examples_for 'should exit without errors' do
-    before { installer.call }
-    specify { expect(installer.ret_value).to be_success }
+  shared_examples_for 'should exit with error' do |expected_text|
+    it 'exits with error' do
+      installer.call
+      expect(installer.ret_value).not_to be_success
+      expect(installer.stderr).to match(expected_text)
+    end
   end
 
   describe 'invoked' do
     context 'with wrong args' do
       let(:args) { '-x' }
 
-      it_behaves_like 'should exit with error'
-      it_behaves_like 'should print to stderr', "Usage: #{Installer::INSTALLER_CMD}"
+      it_behaves_like 'should exit with error', "Usage: #{Installer::INSTALLER_CMD}"
     end
 
     context 'with `-v` args' do
@@ -101,8 +88,7 @@ RSpec.describe 'installer.sh' do
       context 'with unsupported value' do
         let(:lang) { 'xx' }
 
-        it_behaves_like 'should exit with error'
-        it_behaves_like 'should print to stderr', 'Specified language "xx" is not supported'
+        it_behaves_like 'should exit with error', 'Specified language "xx" is not supported'
       end
     end
 
