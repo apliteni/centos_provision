@@ -19,15 +19,60 @@ describe 'installer.sh' do
   let(:env) { {} }
 
   let(:license_ip) { '8.8.8.8' }
-  let(:stdin_data) do
-    <<-END
-#{license_ip}
-    END
+  let(:license_key) { 'WWWW-XXXX-YYYY-ZZZZ' }
+
+  let(:en_data) do
+    {
+      'Please enter server IP > ' => license_ip,
+      'Please enter license key > ' => license_key
+    }
+  end
+
+  let(:stdin_data) { en_data }
+
+  def read_stream(stdout)
+    buffer = ''
+
+    begin
+      char = stdout.getc
+
+      return if char.nil?
+
+      buffer << char
+    end while char != '>'
+
+    buffer << stdout.getc
+
+    buffer
   end
 
   def invoke_installer_sh
     env_vars = env.map { |k, v| [k.to_s, v] }.to_h
-    Open3.capture3(env_vars, "#{INSTALLER_PATH} #{args}", stdin_data: stdin_data)
+    Open3.popen3(env_vars, "#{INSTALLER_PATH} #{args}") do |stdin, stdout, stderr, wait_thr|
+      stdout.sync = true
+      stdin.sync = true
+
+      out = ''
+
+      out_thr = Thread.new {
+        begin
+          out_chunk = read_stream(stdout)
+
+          break if out_chunk.nil?
+
+          out << out_chunk
+
+          prompt = out_chunk.split("\n").last
+
+          stdin.puts(stdin_data[prompt])
+        end while true
+      }
+      out_thr.join
+
+      err = Thread.new { stderr.read }.value
+
+      [out, err, wait_thr.value]
+    end
   end
 
   def get_stdout(invoke_installer_sh_result)
@@ -145,6 +190,8 @@ describe 'installer.sh' do
   end
 
   describe 'generated hosts file' do
+    let(:args) { '-l en' }
+
     let(:hosts_file_content) { File.read('.keitarotds-hosts') }
 
     it 'creates hosts file based on entered info' do
@@ -155,6 +202,11 @@ describe 'installer.sh' do
     it 'contains license_ip key' do
       invoke_installer_sh
       expect(hosts_file_content).to match(%Q{\nlicense_ip = "#{license_ip}"\n})
+    end
+
+    it 'contains license_key key' do
+      invoke_installer_sh
+      expect(hosts_file_content).to match(%Q{\nlicense_key = "#{license_key}"\n})
     end
   end
 end
