@@ -51,8 +51,8 @@ print_on_verbose(message)
     echo $message
 
 
-is_installed(progname)
-  which -s $progname
+is_installed(command)
+  ! sh -c 'command -v $command'
 
 
 ensure_yum_installed()

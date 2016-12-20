@@ -52,7 +52,7 @@ DICT['en.prompts.admin_login']='Please enter keitaro admin login'
 DICT['en.prompts.admin_password']='Please enter keitaro admin password'
 DICT['en.prompts.license_ip']='Please enter server IP'
 
-DICT['ru.errors.yum_not_installed']='This installer works only on yum-based systems. Please run it on CentOS/RHEL/Fedora distros'
+DICT['ru.errors.yum_not_installed']='Утановщик keitaro работает только с пакетным менеджером yum. Пожалуйста, запустите его в CentOS/RHEL/Fedora дистрибутиве'
 DICT['ru.prompts.license_ip']='Укажите IP адрес сервера'
 DICT['ru.prompts.license_key']='Укажите лицензионный ключ'
 DICT['ru.prompts.db_name']='Укажите имя базы данных'
@@ -98,17 +98,19 @@ print_on_verbose(){
 
 
 is_installed(){
-  local progname="${1}"
-  which -s "$progname"
+  local command="${1}"
+  ! sh -c 'command -v "$command"'
 }
 
 
 ensure_yum_installed(){
-  print_on_verbose 'Check yum is installed'
+  print_on_verbose 'Try to found yum'
   if is_installed 'yum'; then
-    print_on_verbose 'Ok, yum installed'
+    print_on_verbose 'OK, yum found'
   else
-    print_err "This installer works only on yum-based systems. Please run it on CentOS/RHEL/Fedora distros"
+    print_on_verbose 'NOK, yum not found'
+    print_err "$(translate errors.yum_not_installed)"
+    exit 1
   fi
 }
 
