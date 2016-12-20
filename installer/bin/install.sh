@@ -41,11 +41,13 @@ on ()
 
 
 declare -A DICT
-DICT['en.server_ip']='Please enter server IP'
-DICT['ru.server_ip']='Укажите IP адрес сервера'
-
+DICT['en.license_ip']='Please enter server IP'
+DICT['en.license_key']='Please enter license key'
+DICT['ru.license_ip']='Укажите IP адрес сервера'
+DICT['ru.license_key']='Укажите лицензионный ключ'
 
 declare -A VARS
+
 
 print_err(){
   local message="${1}"
@@ -155,7 +157,9 @@ print_on_verbose "Verbose mode: on"
 print_on_verbose "Language: ${UI_LANG}"
 
 
-read_var 'server_ip'
+read_var 'license_ip'
+read_var 'license_key'
+
 
 cat > .keitarotds-hosts <<EOF
 [server]
@@ -165,7 +169,7 @@ localhost connection=local
 db_name = "${VARS['db_name']}"
 db_user = "${VARS['db_user']}"
 db_password = "${VARS['db_password']}"
-license_ip = "${VARS['server_ip']}"
+license_ip = "${VARS['license_ip']}"
 license_key = "${VARS['license_key']}"
 admin_login = "${VARS['admin_login']}"
 admin_password = "${VARS['admin_password']}"
