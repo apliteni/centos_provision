@@ -76,11 +76,9 @@ RSpec.describe 'installer.sh' do
       it_behaves_like 'should print to stderr', "Usage: #{Installer::INSTALLER_CMD}"
     end
 
-    context 'with `-v` `-p` args' do
-      let(:args) { '-v -p' }
+    context 'with `-v` args' do
+      let(:args) { '-v' }
 
-      it_behaves_like 'should exit without errors'
-      it_behaves_like 'should not print anything to stderr'
       it_behaves_like 'should print to stdout', 'Verbose mode: on'
     end
 
@@ -91,16 +89,12 @@ RSpec.describe 'installer.sh' do
       context 'with `en` value' do
         let(:lang) { 'en' }
 
-        it_behaves_like 'should exit without errors'
-        it_behaves_like 'should not print anything to stderr'
         it_behaves_like 'should print to stdout', 'Language: en'
       end
 
       context 'with `ru` value' do
         let(:lang) { 'ru' }
 
-        it_behaves_like 'should exit without errors'
-        it_behaves_like 'should not print anything to stderr'
         it_behaves_like 'should print to stdout', 'Language: ru'
       end
 
@@ -119,32 +113,24 @@ RSpec.describe 'installer.sh' do
       context 'LANG=ru_RU.UTF-8' do
         let(:env) { {LANG: 'ru_RU.UTF-8'} }
 
-        it_behaves_like 'should exit without errors'
-        it_behaves_like 'should not print anything to stderr'
         it_behaves_like 'should print to stdout', 'Language: ru'
       end
 
       context 'LANG=ru_UA.UTF-8' do
         let(:env) { {LANG: 'ru_UA.UTF-8'} }
 
-        it_behaves_like 'should exit without errors'
-        it_behaves_like 'should not print anything to stderr'
         it_behaves_like 'should print to stdout', 'Language: ru'
       end
 
       context 'LANG=en_US.UTF-8' do
         let(:env) { {LANG: 'en_US.UTF-8'} }
 
-        it_behaves_like 'should exit without errors'
-        it_behaves_like 'should not print anything to stderr'
         it_behaves_like 'should print to stdout', 'Language: en'
       end
 
       context 'LANG=de_DE.UTF-8' do
         let(:env) { {LANG: 'de_DE.UTF-8'} }
 
-        it_behaves_like 'should exit without errors'
-        it_behaves_like 'should not print anything to stderr'
         it_behaves_like 'should print to stdout', 'Language: en'
       end
     end
@@ -163,29 +149,11 @@ RSpec.describe 'installer.sh' do
 
       it 'contains correct entires' do
         expect(hosts_file_content).to match(%Q{\nlicense_ip = "#{license_ip}"\n})
-      end
-
-      it 'contains license_key key' do
         expect(hosts_file_content).to match(%Q{\nlicense_key = "#{license_key}"\n})
-      end
-
-      it 'contains db_name key' do
         expect(hosts_file_content).to match(%Q{\ndb_name = "#{db_name}"\n})
-      end
-
-      it 'contains db_user key' do
         expect(hosts_file_content).to match(%Q{\ndb_user = "#{db_user}"\n})
-      end
-
-      it 'contains db_password key' do
         expect(hosts_file_content).to match(%Q{\ndb_password = "#{db_password}"\n})
-      end
-
-      it 'contains admin_login key' do
         expect(hosts_file_content).to match(%Q{\nadmin_login = "#{admin_login}"\n})
-      end
-
-      it 'contains admin_password key' do
         expect(hosts_file_content).to match(%Q{\nadmin_password = "#{admin_password}"\n})
       end
     end
