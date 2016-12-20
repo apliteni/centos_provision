@@ -4,14 +4,6 @@ require 'open3'
 require 'tmpdir'
 
 RSpec.describe 'installer.sh' do
-  around(:example) do |example|
-    Dir.mktmpdir do |dir|
-      Dir.chdir(dir) do
-        example.run
-      end
-    end
-  end
-
   let(:args) { '' }
   let(:env) { {} }
 
@@ -169,7 +161,7 @@ RSpec.describe 'installer.sh' do
 
       let(:hosts_file_content) { File.read('.keitarotds-hosts') }
 
-      it 'contains license_ip key' do
+      it 'contains correct entires' do
         expect(hosts_file_content).to match(%Q{\nlicense_ip = "#{license_ip}"\n})
       end
 
