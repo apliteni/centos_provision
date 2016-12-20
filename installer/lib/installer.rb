@@ -17,7 +17,12 @@ class Installer
   end
 
   def call
-    invoke_installer_cmd
+    Dir.mktmpdir('', '/tmp') do |current_dir|
+      Dir.chdir(current_dir) do
+        FileUtils.copy("#{INSTALLER_ROOT}/bin/#{INSTALLER_CMD}", './')
+        invoke_installer_cmd(current_dir)
+      end
+    end
   end
 
   def self.docker_installed?
@@ -26,8 +31,8 @@ class Installer
 
   private
 
-  def invoke_installer_cmd
-    Open3.popen3(installer_cmd) do |stdin, stdout, stderr, wait_thr|
+  def invoke_installer_cmd(current_dir)
+    Open3.popen3(installer_cmd(current_dir)) do |stdin, stdout, stderr, wait_thr|
       stdout.sync = true
       stdin.sync = true
 
@@ -37,8 +42,8 @@ class Installer
     end
   end
 
-  def installer_cmd
-    "docker run #{docker_env} -i --rm -v #{INSTALLER_ROOT}:/data -w /data #{docker_image} bin/#{INSTALLER_CMD} #{args}"
+  def installer_cmd(current_dir)
+    "docker run #{docker_env} -i --rm -v #{current_dir}:/data -w /data #{docker_image} ./#{INSTALLER_CMD} #{args}"
   end
 
   def docker_env
