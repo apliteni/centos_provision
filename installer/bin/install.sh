@@ -45,14 +45,19 @@ declare -A DICT
 DICT['en.license_ip']='Please enter server IP'
 DICT['en.license_key']='Please enter license key'
 DICT['en.db_name']='Please enter database name'
-DICT['en.db_user']='Please enter database user'
+DICT['en.db_user']='Please enter database user name'
 DICT['en.db_password']='Please enter database user password'
+DICT['en.admin_login']='Please enter keitaro admin login'
+DICT['en.admin_password']='Please enter keitaro admin password'
 
 DICT['ru.license_ip']='Укажите IP адрес сервера'
 DICT['ru.license_key']='Укажите лицензионный ключ'
 DICT['ru.db_name']='Укажите имя базы данных'
 DICT['ru.db_user']='Укажите пользователя базы данных'
 DICT['ru.db_password']='Укажите пароль пользователя базы данных'
+DICT['ru.admin_login']='Укажите имя администратора keitaro'
+DICT['ru.admin_password']='Укажите пароль администратора keitaro'
+
 
 declare -A VARS
 
@@ -70,7 +75,7 @@ usage(){
   print_err "Usage: "$progname" [-pv] [-l en|ru]"
   print_err
   print_err "  -p"
-  print_err "    The -p (preserve installation) option causes "$progname" to preserve the invoking installation commands. Installation commands will be printed to stdout instead."
+  print_err "    The -p (preserve installation) option causes "$progname" to preserve the invoking of installation commands. Installation commands will be printed to stdout instead."
   print_err
   print_err "  -v"
   print_err "    The -v (verbose mode) option causes "$progname" to display more verbose information of installation process."
@@ -170,6 +175,8 @@ read_var 'license_key'
 read_var 'db_name'
 read_var 'db_user'
 read_var 'db_password'
+read_var 'admin_login'
+read_var 'admin_password'
 
 
 cat > .keitarotds-hosts <<EOF
