@@ -18,22 +18,38 @@ RSpec.describe 'installer.sh' do
   let(:license_ip) { '8.8.8.8' }
   let(:license_key) { 'WWWW-XXXX-YYYY-ZZZZ' }
   let(:db_name) { 'keitarodb' }
-  let(:db_user) { 'keitarouser' }
-  let(:db_password) { 'secret' }
+  let(:db_user) { 'keitarodb_user' }
+  let(:db_password) { 'keitarodb_password' }
+  let(:admin_login) { 'admin' }
+  let(:admin_password) { 'admin_password' }
 
-  let(:en_data) do
+  let(:en_prompts_with_values) do
     {
       'Please enter server IP > ' => license_ip,
       'Please enter license key > ' => license_key,
       'Please enter database name > ' => db_name,
-      'Please enter database user > ' => db_user,
+      'Please enter database user name > ' => db_user,
       'Please enter database user password > ' => db_password,
+      'Please enter keitaro admin login > ' => admin_login,
+      'Please enter keitaro admin password > ' => admin_password,
     }
   end
 
-  let(:stdin_data) { en_data }
+  let(:ru_prompts_with_values) do
+    {
+      'Укажите IP адрес сервера > ' => license_ip,
+      'Укажите лицензионный ключ > ' => license_key,
+      'Укажите имя базы данных > ' => db_name,
+      'Укажите пользователя базы данных > ' => db_user,
+      'Укажите пароль пользователя базы данных > ' => db_password,
+      'Укажите имя администратора keitaro > ' => admin_login,
+      'Укажите пароль администратора keitaro > ' => admin_password,
+    }
+  end
 
-  let(:installer) { Installer.new(env: env, args: args, prompts_with_values: stdin_data) }
+  let(:prompts_with_values) { en_prompts_with_values }
+
+  let(:installer) { Installer.new(env: env, args: args, prompts_with_values: prompts_with_values) }
 
   shared_examples_for 'should not print anything to stderr' do
     before { installer.call }
@@ -148,30 +164,52 @@ RSpec.describe 'installer.sh' do
   end
 
   describe 'generated hosts file' do
-    let(:args) { '-l en' }
+    shared_examples_for 'contains correct entries' do
+      before { installer.call }
 
-    let(:hosts_file_content) { File.read('.keitarotds-hosts') }
+      let(:hosts_file_content) { File.read('.keitarotds-hosts') }
 
-    before { installer.call }
+      it 'contains license_ip key' do
+        expect(hosts_file_content).to match(%Q{\nlicense_ip = "#{license_ip}"\n})
+      end
 
-    it 'contains license_ip key' do
-      expect(hosts_file_content).to match(%Q{\nlicense_ip = "#{license_ip}"\n})
+      it 'contains license_key key' do
+        expect(hosts_file_content).to match(%Q{\nlicense_key = "#{license_key}"\n})
+      end
+
+      it 'contains db_name key' do
+        expect(hosts_file_content).to match(%Q{\ndb_name = "#{db_name}"\n})
+      end
+
+      it 'contains db_user key' do
+        expect(hosts_file_content).to match(%Q{\ndb_user = "#{db_user}"\n})
+      end
+
+      it 'contains db_password key' do
+        expect(hosts_file_content).to match(%Q{\ndb_password = "#{db_password}"\n})
+      end
+
+      it 'contains admin_login key' do
+        expect(hosts_file_content).to match(%Q{\nadmin_login = "#{admin_login}"\n})
+      end
+
+      it 'contains admin_password key' do
+        expect(hosts_file_content).to match(%Q{\nadmin_password = "#{admin_password}"\n})
+      end
     end
 
-    it 'contains license_key key' do
-      expect(hosts_file_content).to match(%Q{\nlicense_key = "#{license_key}"\n})
+    context 'english prompts' do
+      let(:args) { '-l en' }
+      let(:prompts_with_values) { en_prompts_with_values }
+
+      it_behaves_like 'contains correct entries'
     end
 
-    it 'contains db_name key' do
-      expect(hosts_file_content).to match(%Q{\ndb_name = "#{db_name}"\n})
-    end
+    context 'russian prompts' do
+      let(:args) { '-l ru' }
+      let(:prompts_with_values) { ru_prompts_with_values }
 
-    it 'contains db_user key' do
-      expect(hosts_file_content).to match(%Q{\ndb_user = "#{db_user}"\n})
-    end
-
-    it 'contains db_password key' do
-      expect(hosts_file_content).to match(%Q{\ndb_password = "#{db_password}"\n})
+      it_behaves_like 'contains correct entries'
     end
   end
 end
