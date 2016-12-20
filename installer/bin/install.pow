@@ -1,10 +1,18 @@
 #!/usr/bin/env powscript
 
 DICT={}
+
 DICT['en.license_ip']='Please enter server IP'
 DICT['en.license_key']='Please enter license key'
+DICT['en.db_name']='Please enter database name'
+DICT['en.db_user']='Please enter database user'
+DICT['en.db_password']='Please enter database user password'
+
 DICT['ru.license_ip']='Укажите IP адрес сервера'
 DICT['ru.license_key']='Укажите лицензионный ключ'
+DICT['ru.db_name']='Укажите имя базы данных'
+DICT['ru.db_user']='Укажите пользователя базы данных'
+DICT['ru.db_password']='Укажите пароль пользователя базы данных'
 
 VARS={}
 
@@ -93,6 +101,9 @@ print_on_verbose "Language: ${UI_LANG}"
 
 read_var 'license_ip'
 read_var 'license_key'
+read_var 'db_name'
+read_var 'db_user'
+read_var 'db_password'
 
 
 cat > .keitarotds-hosts <<EOF

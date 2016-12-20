@@ -3,7 +3,7 @@ require 'spec_helper'
 require 'open3'
 require 'tmpdir'
 
-describe 'installer.sh' do
+RSpec.describe 'installer.sh' do
   around(:example) do |example|
     Dir.mktmpdir do |dir|
       Dir.chdir(dir) do
@@ -17,21 +17,23 @@ describe 'installer.sh' do
 
   let(:license_ip) { '8.8.8.8' }
   let(:license_key) { 'WWWW-XXXX-YYYY-ZZZZ' }
+  let(:db_name) { 'keitarodb' }
+  let(:db_user) { 'keitarouser' }
+  let(:db_password) { 'secret' }
 
   let(:en_data) do
     {
       'Please enter server IP > ' => license_ip,
-      'Please enter license key > ' => license_key
+      'Please enter license key > ' => license_key,
+      'Please enter database name > ' => db_name,
+      'Please enter database user > ' => db_user,
+      'Please enter database user password > ' => db_password,
     }
   end
 
   let(:stdin_data) { en_data }
 
   let(:installer) { Installer.new(env: env, args: args, prompts_with_values: stdin_data) }
-
-  def invoke_installer_sh
-    installer.call
-  end
 
   shared_examples_for 'should not print anything to stderr' do
     before { installer.call }
@@ -138,6 +140,11 @@ describe 'installer.sh' do
         it_behaves_like 'should print to stdout', 'Language: en'
       end
     end
+
+    it 'creates hosts file based on entered info' do
+      installer.call
+      expect(File.exist?('.keitarotds-hosts')).to be_truthy
+    end
   end
 
   describe 'generated hosts file' do
@@ -145,19 +152,26 @@ describe 'installer.sh' do
 
     let(:hosts_file_content) { File.read('.keitarotds-hosts') }
 
-    it 'creates hosts file based on entered info' do
-      invoke_installer_sh
-      expect(File.exist?('.keitarotds-hosts')).to be_truthy
-    end
+    before { installer.call }
 
     it 'contains license_ip key' do
-      invoke_installer_sh
       expect(hosts_file_content).to match(%Q{\nlicense_ip = "#{license_ip}"\n})
     end
 
     it 'contains license_key key' do
-      invoke_installer_sh
       expect(hosts_file_content).to match(%Q{\nlicense_key = "#{license_key}"\n})
+    end
+
+    it 'contains db_name key' do
+      expect(hosts_file_content).to match(%Q{\ndb_name = "#{db_name}"\n})
+    end
+
+    it 'contains db_user key' do
+      expect(hosts_file_content).to match(%Q{\ndb_user = "#{db_user}"\n})
+    end
+
+    it 'contains db_password key' do
+      expect(hosts_file_content).to match(%Q{\ndb_password = "#{db_password}"\n})
     end
   end
 end
