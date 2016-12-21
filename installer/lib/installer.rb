@@ -11,7 +11,7 @@ class Installer
   DOCKER_IMAGE_CENTOS = 'centos'
 
   attr_accessor :env, :args, :prompts_with_values, :docker_image
-  attr_reader :stdout, :stderr, :ret_value
+  attr_reader :stdout, :stderr, :ret_value, :hosts_file_content
 
   def initialize(env: {}, args: '', prompts_with_values: {}, docker_image: nil)
     @env, @args, @prompts_with_values, @docker_image = env, args, prompts_with_values, docker_image
@@ -22,6 +22,7 @@ class Installer
       Dir.chdir(current_dir) do
         FileUtils.copy("#{INSTALLER_ROOT}/bin/#{INSTALLER_CMD}", './')
         invoke_installer_cmd(current_dir)
+        @hosts_file_content = File.read('.keitarotds-hosts') if ret_value.success?
       end
     end
   end
@@ -64,14 +65,14 @@ class Installer
     reader_thread = Thread.new {
       begin
         stdout_chunk = read_stream(stdout)
-        break if stdout_chunk.nil?
+        break if stdout_chunk == ''
 
         out << stdout_chunk
         prompt = stdout_chunk.split("\n").last
-        stdin.puts(prompts_with_values[prompt])
+        stdin.puts(prompts_with_values[prompt]) if prompt =~ / > $/
       end while true
     }
-    reader_thread.join
+    reader_thread.value
     out
   end
 
@@ -80,7 +81,7 @@ class Installer
 
     begin
       char = stdout.getc
-      return if char.nil?
+      return buffer if char.nil?
 
       buffer << char
     end while char != '>'
