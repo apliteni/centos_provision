@@ -7,12 +7,13 @@ require 'bundler/setup'
 class Installer
   INSTALLER_ROOT = File.expand_path(File.dirname(__FILE__) + '/../')
   INSTALLER_CMD = 'install.sh'
-  DEFAULT_DOCKER_IMAGE = 'centos'
+  DOCKER_IMAGE_CENTOS_ANSIBLE = 'ansible/centos7-ansible'
+  DOCKER_IMAGE_CENTOS = 'centos'
 
   attr_accessor :env, :args, :prompts_with_values, :docker_image
   attr_reader :stdout, :stderr, :ret_value
 
-  def initialize(env: {}, args: '', prompts_with_values: {}, docker_image: DEFAULT_DOCKER_IMAGE)
+  def initialize(env: {}, args: '', prompts_with_values: {}, docker_image: nil)
     @env, @args, @prompts_with_values, @docker_image = env, args, prompts_with_values, docker_image
   end
 
@@ -32,22 +33,30 @@ class Installer
   private
 
   def invoke_installer_cmd(current_dir)
-    Open3.popen3(installer_cmd(current_dir)) do |stdin, stdout, stderr, wait_thr|
+    Open3.popen3(*installer_cmd(current_dir)) do |stdin, stdout, stderr, wait_thr|
       stdout.sync = true
       stdin.sync = true
 
       @stdout = emulate_interactive_io(stdin, stdout)
       @stderr = Thread.new { stderr.read }.value
-      @ret_value =  wait_thr.value
+      @ret_value = wait_thr.value
     end
   end
 
   def installer_cmd(current_dir)
-    "docker run #{docker_env} -i --rm -v #{current_dir}:/data -w /data #{docker_image} ./#{INSTALLER_CMD} #{args}"
+    if docker_image
+      "docker run #{docker_env} -i --rm -v #{current_dir}:/data -w /data #{docker_image} ./#{INSTALLER_CMD} #{args}"
+    else
+      [stringified_env, "./#{INSTALLER_CMD} #{args}"]
+    end
   end
 
   def docker_env
-    env.map { |key, value| "-e #{key}=#{value}"}.join(' ')
+    env.map { |key, value| "-e #{key}=#{value}" }.join(' ')
+  end
+
+  def stringified_env
+    env.map { |key, value| [key.to_s, value.to_s] }.to_h
   end
 
   def emulate_interactive_io(stdin, stdout)
