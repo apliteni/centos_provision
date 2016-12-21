@@ -99,13 +99,14 @@ print_on_verbose(){
 
 is_installed(){
   local command="${1}"
-  ! sh -c 'command -v "$command"'
+  echo installed
+  sh -c 'command -v "$command"'
 }
 
 
 ensure_yum_installed(){
   print_on_verbose 'Try to found yum'
-  if is_installed 'yum'; then
+  if [[ $(is_installed 'yum') ]]; then
     print_on_verbose 'OK, yum found'
   else
     print_on_verbose 'NOK, yum not found'

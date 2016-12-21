@@ -120,42 +120,59 @@ RSpec.describe 'installer.sh' do
         it_behaves_like 'should print to stdout', 'Language: en'
       end
     end
-
-    it 'creates hosts file based on entered info' do
-      installer.call
-      expect(File.exist?('.keitarotds-hosts')).to be_truthy
-    end
   end
 
-  describe 'generated hosts file' do
-    shared_examples_for 'contains correct entries' do
-      before { installer.call }
+  context 'without actual yum/ansible checks, without actual invoking install commands' do
+    # `-s` option disables yum/ansible checks
+    # `-p` option disables invoking install commands
 
-      let(:hosts_file_content) { File.read('.keitarotds-hosts') }
+    describe 'generated hosts file' do
+      shared_examples_for 'contains correct entries' do
+        before { installer.call }
 
-      it 'contains correct entires' do
-        expect(hosts_file_content).to match(%Q{\nlicense_ip = "#{license_ip}"\n})
-        expect(hosts_file_content).to match(%Q{\nlicense_key = "#{license_key}"\n})
-        expect(hosts_file_content).to match(%Q{\ndb_name = "#{db_name}"\n})
-        expect(hosts_file_content).to match(%Q{\ndb_user = "#{db_user}"\n})
-        expect(hosts_file_content).to match(%Q{\ndb_password = "#{db_password}"\n})
-        expect(hosts_file_content).to match(%Q{\nadmin_login = "#{admin_login}"\n})
-        expect(hosts_file_content).to match(%Q{\nadmin_password = "#{admin_password}"\n})
+        let(:hosts_file_content) { File.read('.keitarotds-hosts') }
+
+        it 'contains license_ip key' do
+          expect(hosts_file_content).to match(%Q{\nlicense_ip = "#{license_ip}"\n})
+        end
+
+        it 'contains license_key key' do
+          expect(hosts_file_content).to match(%Q{\nlicense_key = "#{license_key}"\n})
+        end
+
+        it 'contains db_name key' do
+          expect(hosts_file_content).to match(%Q{\ndb_name = "#{db_name}"\n})
+        end
+        it 'contains db_user key' do
+          expect(hosts_file_content).to match(%Q{\ndb_user = "#{db_user}"\n})
+        end
+
+        it 'contains db_password key' do
+          expect(hosts_file_content).to match(%Q{\ndb_password = "#{db_password}"\n})
+        end
+
+        it 'contains admin_login key' do
+          expect(hosts_file_content).to match(%Q{\nadmin_login = "#{admin_login}"\n})
+        end
+
+        it 'contains admin_password key' do
+          expect(hosts_file_content).to match(%Q{\nadmin_password = "#{admin_password}"\n})
+        end
       end
-    end
 
-    context 'english prompts' do
-      let(:args) { '-l en' }
-      let(:prompts_with_values) { en_prompts_with_values }
+      context 'english prompts' do
+        let(:args) { '-sp -l en' }
+        let(:prompts_with_values) { en_prompts_with_values }
 
-      it_behaves_like 'contains correct entries'
-    end
+        it_behaves_like 'contains correct entries'
+      end
 
-    context 'russian prompts' do
-      let(:args) { '-l ru' }
-      let(:prompts_with_values) { ru_prompts_with_values }
+      context 'russian prompts' do
+        let(:args) { '-sp -l ru' }
+        let(:prompts_with_values) { ru_prompts_with_values }
 
-      it_behaves_like 'contains correct entries'
+        it_behaves_like 'contains correct entries'
+      end
     end
   end
 end

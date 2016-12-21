@@ -38,6 +38,9 @@ usage()
   print_err "  -p"
   print_err "    The -p (preserve installation) option causes $progname to preserve the invoking of installation commands. Installation commands will be printed to stdout instead."
   print_err
+  print_err "  -s"
+  print_err "    The -s (skip checks) option causes $progname to skip checks of yum/ansible presence."
+  print_err
   print_err "  -v"
   print_err "    The -v (verbose mode) option causes $progname to display more verbose information of installation process."
   print_err
@@ -52,7 +55,10 @@ print_on_verbose(message)
 
 
 is_installed(command)
-  ! sh -c 'command -v $command'
+  if isset $SKIP_CHECKS
+    sh -c 'command -v $command'
+  else
+    print_on_verbose "Actual check of '$command' presence skipped"
 
 
 ensure_yum_installed()
@@ -96,7 +102,7 @@ UI_LANG=en
 autodetect_language
 
 
-while getopts ":hpvl:" opt
+while getopts ":hpvsl:" opt
   switch $opt
     case p
       PRESERVE=true
