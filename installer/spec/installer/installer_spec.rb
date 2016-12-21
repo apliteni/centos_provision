@@ -44,8 +44,10 @@ RSpec.describe 'installer.sh' do
   let(:installer) { Installer.new(env: env, args: args, prompts_with_values: prompts_with_values) }
 
   shared_examples_for 'should print to stdout' do |expected_text|
-    before { installer.call }
-    specify { expect(installer.stdout).to match(expected_text) }
+    it "prints to stdout '#{expected_text}'" do
+      installer.call
+      expect(installer.stdout).to match(expected_text)
+    end
   end
 
   shared_examples_for 'should exit with error' do |expected_text|
@@ -130,7 +132,7 @@ RSpec.describe 'installer.sh' do
       shared_examples_for 'contains correct entries' do
         before { installer.call }
 
-        let(:hosts_file_content) { File.read('.keitarotds-hosts') }
+        let(:hosts_file_content) { installer.hosts_file_content }
 
         it 'contains license_ip key' do
           expect(hosts_file_content).to match(%Q{\nlicense_ip = "#{license_ip}"\n})
@@ -175,4 +177,14 @@ RSpec.describe 'installer.sh' do
       end
     end
   end
+
+  context 'without actual installing software' do
+    let(:env) { {LANG: 'C'} }
+    let(:args) { '-vp' }
+
+    context 'yum presented, ansible presented' do
+      it_behaves_like 'should print to stdout', "Try to found yum\nOK"
+      it_behaves_like 'should print to stdout', "Try to found ansible\nOK"
+    end
+  end if false
 end

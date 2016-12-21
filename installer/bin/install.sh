@@ -33,6 +33,11 @@ values ()
     echo "$2"
 }
 
+isset () 
+{ 
+    [[ ! "${#1}" == 0 ]] && return 0 || return 1
+}
+
 empty () 
 { 
     [[ "${#1}" == 0 ]] && return 0 || return 1
@@ -75,10 +80,13 @@ usage(){
   progname=$(basename "$0")
   print_err "$progname installs Keitarotds"
   print_err
-  print_err "Usage: "$progname" [-pv] [-l en|ru]"
+  print_err "Usage: "$progname" [-psv] [-l en|ru]"
   print_err
   print_err "  -p"
   print_err "    The -p (preserve installation) option causes "$progname" to preserve the invoking of installation commands. Installation commands will be printed to stdout instead."
+  print_err
+  print_err "  -s"
+  print_err "    The -s (skip checks) option causes "$progname" to skip checks of yum/ansible presence."
   print_err
   print_err "  -v"
   print_err "    The -v (verbose mode) option causes "$progname" to display more verbose information of installation process."
@@ -99,14 +107,17 @@ print_on_verbose(){
 
 is_installed(){
   local command="${1}"
-  echo installed
-  sh -c 'command -v "$command"'
+  if isset "$SKIP_CHECKS"; then
+    print_on_verbose "Actual check of '$command' presence skipped"
+  else
+    sh -c 'command -v "$command"'
+  fi
 }
 
 
 ensure_yum_installed(){
   print_on_verbose 'Try to found yum'
-  if [[ $(is_installed 'yum') ]]; then
+  if is_installed 'yum'; then
     print_on_verbose 'OK, yum found'
   else
     print_on_verbose 'NOK, yum not found'
@@ -157,10 +168,13 @@ UI_LANG=en
 autodetect_language
 
 
-while getopts ":hpvl:" opt; do
+while getopts ":hpvsl:" opt; do
   case $opt in
     p)
       PRESERVE=true
+      ;;
+    s)
+      SKIP_CHECKS=true
       ;;
     v)
       VERBOSE=true

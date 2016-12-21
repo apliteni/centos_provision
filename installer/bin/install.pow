@@ -33,7 +33,7 @@ usage()
   progname=$(basename $0)
   print_err "$progname installs Keitarotds"
   print_err
-  print_err "Usage: $progname [-pv] [-l en|ru]"
+  print_err "Usage: $progname [-psv] [-l en|ru]"
   print_err
   print_err "  -p"
   print_err "    The -p (preserve installation) option causes $progname to preserve the invoking of installation commands. Installation commands will be printed to stdout instead."
@@ -56,9 +56,9 @@ print_on_verbose(message)
 
 is_installed(command)
   if isset $SKIP_CHECKS
-    sh -c 'command -v $command'
-  else
     print_on_verbose "Actual check of '$command' presence skipped"
+  else
+    sh -c 'command -v $command'
 
 
 ensure_yum_installed()
@@ -106,6 +106,8 @@ while getopts ":hpvsl:" opt
   switch $opt
     case p
       PRESERVE=true
+    case s
+      SKIP_CHECKS=true
     case v
       VERBOSE=true
     case l
