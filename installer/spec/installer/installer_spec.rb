@@ -6,6 +6,7 @@ require 'tmpdir'
 RSpec.describe 'installer.sh' do
   let(:args) { '' }
   let(:env) { {} }
+  let(:docker_image) { nil }
 
   let(:license_ip) { '8.8.8.8' }
   let(:license_key) { 'WWWW-XXXX-YYYY-ZZZZ' }
@@ -41,12 +42,19 @@ RSpec.describe 'installer.sh' do
 
   let(:prompts_with_values) { en_prompts_with_values }
 
-  let(:installer) { Installer.new(env: env, args: args, prompts_with_values: prompts_with_values) }
+  let(:installer) { Installer.new(env: env, args: args, prompts_with_values: prompts_with_values, docker_image: docker_image) }
 
   shared_examples_for 'should print to stdout' do |expected_text|
-    it "prints to stdout '#{expected_text}'" do
+    it "prints to stdout #{expected_text.inspect}" do
       installer.call
       expect(installer.stdout).to match(expected_text)
+    end
+  end
+
+  shared_examples_for 'should not print to stdout' do |expected_text|
+    it "does not print to stdout #{expected_text.inspect}" do
+      installer.call
+      expect(installer.stdout).not_to match(expected_text)
     end
   end
 
@@ -94,7 +102,7 @@ RSpec.describe 'installer.sh' do
       end
     end
 
-    # TODO: Detect from LC_MESSAGES
+    # TODO: Detect language from LC_MESSAGES
     describe 'detects language from LANG environment variable' do
       let(:args) { '-v' } # Switch on verbose mode for testing purposes
 
@@ -182,9 +190,33 @@ RSpec.describe 'installer.sh' do
     let(:env) { {LANG: 'C'} }
     let(:args) { '-vp' }
 
+    shared_examples_for 'installs keitarotds' do
+      it_behaves_like 'should print to stdout', ''
+
+    end
+
     context 'yum presented, ansible presented' do
+      let(:docker_image) { 'ansible/centos7-ansible' }
+
       it_behaves_like 'should print to stdout', "Try to found yum\nOK"
       it_behaves_like 'should print to stdout', "Try to found ansible\nOK"
+      it_behaves_like 'should not print to stdout', 'Execute command: yum install -y ansible'
     end
-  end if false
+
+    context 'yum presented, ansible not presented' do
+      let(:docker_image) { 'centos' }
+
+      it_behaves_like 'should print to stdout', "Try to found yum\nOK"
+      it_behaves_like 'should print to stdout', "Try to found ansible\nNOK"
+      it_behaves_like 'should print to stdout', 'yum install -y epel-release'
+      it_behaves_like 'should print to stdout', 'yum install -y ansible'
+    end
+
+    context 'yum not presented' do
+      let(:docker_image) { 'ubuntu' }
+
+      it_behaves_like 'should print to stdout', "Try to found yum\nNOK"
+      it_behaves_like 'should exit with error', 'This installer works only on yum-based systems'
+    end
+  end
 end

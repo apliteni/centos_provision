@@ -7,8 +7,6 @@ require 'bundler/setup'
 class Installer
   INSTALLER_ROOT = File.expand_path(File.dirname(__FILE__) + '/../')
   INSTALLER_CMD = 'install.sh'
-  DOCKER_IMAGE_CENTOS_ANSIBLE = 'ansible/centos7-ansible'
-  DOCKER_IMAGE_CENTOS = 'centos'
 
   attr_accessor :env, :args, :prompts_with_values, :docker_image
   attr_reader :stdout, :stderr, :ret_value, :hosts_file_content
@@ -46,7 +44,7 @@ class Installer
 
   def installer_cmd(current_dir)
     if docker_image
-      "docker run #{docker_env} -i --rm -v #{current_dir}:/data -w /data #{docker_image} ./#{INSTALLER_CMD} #{args}"
+      "docker run #{docker_env} --name keitaro_installer_test -i --rm -v #{current_dir}:/data -w /data #{docker_image} ./#{INSTALLER_CMD} #{args}"
     else
       [stringified_env, "./#{INSTALLER_CMD} #{args}"]
     end
@@ -65,10 +63,12 @@ class Installer
     reader_thread = Thread.new {
       begin
         stdout_chunk = read_stream(stdout)
+        out << stdout_chunk
+
         break if stdout_chunk == ''
 
-        out << stdout_chunk
         prompt = stdout_chunk.split("\n").last
+
         stdin.puts(prompts_with_values[prompt]) if prompt =~ / > $/
       end while true
     }

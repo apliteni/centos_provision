@@ -58,7 +58,7 @@ is_installed(command)
   if isset $SKIP_CHECKS
     print_on_verbose "Actual check of '$command' presence skipped"
   else
-    sh -c 'command -v $command'
+    sh -c "command -v $command > /dev/null"
 
 
 ensure_yum_installed()
@@ -69,6 +69,29 @@ ensure_yum_installed()
     print_on_verbose 'NOK, yum not found'
     print_err "$(translate errors.yum_not_installed)"
     exit 1
+
+
+install_ansible_if_not_installed()
+  print_on_verbose 'Try to found ansible'
+  if is_installed ansible
+    print_on_verbose "OK, ansible found"
+  else
+    print_on_verbose "NOK, ansible not found"
+    print_on_verbose "Try to install ansible"
+    install_package epel-release
+    install_package ansible
+
+
+install_package(package)
+  run_command "yum install -y $package"
+
+
+run_command(command)
+  echo $command
+  if isset $PRESERVE
+    print_on_verbose "Actual running disabled"
+  else
+    eval $command &> /dev/null
 
 
 translate(key)
@@ -136,11 +159,7 @@ print_on_verbose "Language: ${UI_LANG}"
 
 ensure_yum_installed
 
-#if ! is_ansible_installed
-#  print_on_verbose "Ansible executable not found, try to install ansible"
-#  install_ansible
-#else
-#  print_on_verbose "Ansible executable found"
+install_ansible_if_not_installed
 
 
 read_var 'license_ip'
