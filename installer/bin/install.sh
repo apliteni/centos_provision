@@ -28,9 +28,9 @@ on ()
     done
 }
 
-values () 
+empty () 
 { 
-    echo "$2"
+    [[ "${#1}" == 0 ]] && return 0 || return 1
 }
 
 isset () 
@@ -38,15 +38,13 @@ isset ()
     [[ ! "${#1}" == 0 ]] && return 0 || return 1
 }
 
-empty () 
+values () 
 { 
-    [[ "${#1}" == 0 ]] && return 0 || return 1
+    echo "$2"
 }
 
 
 
-INVENTORY_FILE=.keitarotds-hosts
-KEITARO_PROVISION_DIRECTORY=centos_provision-master
 
 declare -A DICT
 
@@ -69,52 +67,38 @@ DICT['ru.prompts.db_password']='Укажите пароль пользовате
 DICT['ru.prompts.admin_login']='Укажите имя администратора keitaro'
 DICT['ru.prompts.admin_password']='Укажите пароль администратора keitaro'
 
-declare -A VARS
 
-
-print_err(){
-  local message="${1}"
-  echo "$message" >&2
-}
-
-
-usage(){
-  progname=$(basename "$0")
-  print_err "$progname installs Keitarotds"
-  print_err
-  print_err "Usage: "$progname" [-psv] [-l en|ru]"
-  print_err
-  print_err "  -p"
-  print_err "    The -p (preserve installation) option causes "$progname" to preserve the invoking of installation commands. Installation commands will be printed to stdout instead."
-  print_err
-  print_err "  -s"
-  print_err "    The -s (skip checks) option causes "$progname" to skip checks of yum/ansible presence."
-  print_err
-  print_err "  -v"
-  print_err "    The -v (verbose mode) option causes "$progname" to display more verbose information of installation process."
-  print_err
-  print_err "  -l <lang>"
-  print_err "    By default "$progname" try to detect language from LANG environment variable, but you can explicitly set language with -l option."
-  print_err "    Only en and ru (for English and Russian) values supported now."
-}
-
-
-print_on_verbose(){
-  local message="${1}"
-  if [[ "$VERBOSE" == "true" ]]; then
-    echo "$message"
-  fi
-}
-
-
-is_installed(){
-  local command="${1}"
-  if isset "$SKIP_CHECKS"; then
-    print_on_verbose "Actual check of '$command' presence skipped"
+detect_language(){
+  if ! empty "$LC_ALL"; then
+    detect_language_from_var "$LC_ALL"
   else
-    sh -c "command -v "$command" > /dev/null"
+    if ! empty "$LC_MESSAGES"; then
+      detect_language_from_var "$LC_MESSAGES"
+    else
+      detect_language_from_var "$LANG"
+    fi
   fi
 }
+
+
+translate(){
+  local key="${1}"
+  i18n_key=$UI_LANG.$key
+  echo "${DICT[$i18n_key]}"
+}
+
+
+detect_language_from_var(){
+  local lang_value="${1}"
+  if [[ "$lang_value" =~ ^ru_[[:alpha:]]+\.UTF-8$ ]]; then
+    echo ru
+  else
+    echo en
+  fi
+}
+
+
+
 
 
 ensure_yum_installed(){
@@ -141,15 +125,32 @@ install_ansible_if_not_installed(){
   fi
 }
 
-get_latest_keitaro_release(){
-  KEITARO_RELEASE_URL=https://github.com/keitarocorp/centos_provision/archive/master.tar.gz
-  run_command "curl -L "$KEITARO_RELEASE_URL" | tar xz"
+
+install_keitarotds(){
+  get_keitaro_provision
+  run_command "ansible-playbook -i "$INVENTORY_FILE" "$KEITARO_PROVISION_DIRECTORY"/playbook.yml"
+}
+
+
+is_installed(){
+  local command="${1}"
+  if isset "$SKIP_CHECKS"; then
+    print_on_verbose "Actual check of '$command' presence skipped"
+  else
+    sh -c "command -v "$command" > /dev/null"
+  fi
 }
 
 
 install_package(){
   local package="${1}"
   run_command "yum install -y "$package""
+}
+
+
+get_keitaro_provision(){
+  KEITARO_RELEASE_URL=https://github.com/keitarocorp/centos_provision/archive/master.tar.gz
+  run_command "curl -L "$KEITARO_RELEASE_URL" | tar xz"
 }
 
 
@@ -164,19 +165,13 @@ run_command(){
 }
 
 
-translate(){
-  local key="${1}"
-  i18n_key=$UI_LANG.$key
-  echo "${DICT[$i18n_key]}"
-}
+
+declare -A VARS
 
 
-read_var(){
-  local var_name="${1}"
-  prompt=$(translate prompts.$var_name)
-  echo -n "$prompt > "
-  read -r variable
-  VARS[$var_name]=$variable
+write_inventory_file(){
+  read_inventory_file_vars
+  write_vars_to_inventory_file
 }
 
 
@@ -191,7 +186,7 @@ read_inventory_file_vars(){
 }
 
 
-write_inventory_file(){
+write_vars_to_inventory_file(){
   echo -n > "$INVENTORY_FILE"
   print_line_to_inventory_file "[server]"
   print_line_to_inventory_file "localhost connection=local"
@@ -207,9 +202,14 @@ write_inventory_file(){
 }
 
 
-install_keitarotds(){
-  run_command "ansible-playbook -i "$INVENTORY_FILE" "$KEITARO_PROVISION_DIRECTORY"/playbook.yml"
+read_var(){
+  local var_name="${1}"
+  prompt=$(translate prompts.$var_name)
+  echo -n "$prompt > "
+  read -r variable
+  VARS[$var_name]=$variable
 }
+
 
 print_line_to_inventory_file(){
   local line="${1}"
@@ -217,83 +217,108 @@ print_line_to_inventory_file(){
 }
 
 
-detect_language(){
-  local lang_value="${1}"
-  if [[ "$lang_value" =~ ^ru_[[:alpha:]]+\.UTF-8$ ]]; then
-    UI_LANG=ru
+
+parse_options(){
+  while getopts ":hpvsl:" opt; do
+    case $opt in
+      p)
+        PRESERVE=true
+        ;;
+      s)
+        SKIP_CHECKS=true
+        ;;
+      v)
+        VERBOSE=true
+        ;;
+      l)
+        case $OPTARG in
+          en)
+            UI_LANG=en
+            ;;
+          ru)
+            UI_LANG=ru
+            ;;
+          *)
+            print_err "Specified language \"$OPTARG\" is not supported"
+            exit 1
+            ;;
+        esac
+        ;;
+      :)
+        print_err "Option -$OPTARG requires an argument."
+        exit 1
+        ;;
+      h)
+        usage
+        exit 0
+        ;;
+      \?)
+        usage
+        exit 1
+        ;;
+    esac
+  done
+}
+
+
+usage(){
+  progname=$(basename "$0")
+  print_err "$progname installs Keitarotds"
+  print_err
+  print_err "Usage: "$progname" [-psv] [-l en|ru]"
+  print_err
+  print_err "  -p"
+  print_err "    The -p (preserve installation) option causes "$progname" to preserve the invoking of installation commands. Installation commands will be printed to stdout instead."
+  print_err
+  print_err "  -s"
+  print_err "    The -s (skip checks) option causes "$progname" to skip checks of yum/ansible presence."
+  print_err
+  print_err "  -v"
+  print_err "    The -v (verbose mode) option causes "$progname" to display more verbose information of installation process."
+  print_err
+  print_err "  -l <lang>"
+  print_err "    By default "$progname" try to detect language from LANG environment variable, but you can explicitly set language with -l option."
+  print_err "    Only en and ru (for English and Russian) values supported now."
+}
+
+
+
+
+print_err(){
+  local message="${1}"
+  echo "$message" >&2
+}
+
+
+print_on_verbose(){
+  local message="${1}"
+  if [[ "$VERBOSE" == "true" ]]; then
+    echo "$message"
   fi
 }
 
 
-autodetect_language(){
-  if ! empty "$LC_ALL"; then
-    detect_language "$LC_ALL"
-  else
-    if ! empty "$LC_MESSAGES"; then
-      detect_language "$LC_MESSAGES"
-    else
-      detect_language "$LANG"
-    fi
-  fi
-}
 
 
-UI_LANG=en
-autodetect_language
+
+INVENTORY_FILE=.keitarotds-hosts
+KEITARO_PROVISION_DIRECTORY=centos_provision-master
 
 
-while getopts ":hpvsl:" opt; do
-  case $opt in
-    p)
-      PRESERVE=true
-      ;;
-    s)
-      SKIP_CHECKS=true
-      ;;
-    v)
-      VERBOSE=true
-      ;;
-    l)
-      case $OPTARG in
-        en)
-          UI_LANG=en
-          ;;
-        ru)
-          UI_LANG=ru
-          ;;
-        *)
-          print_err "Specified language \"$OPTARG\" is not supported"
-          exit 1
-          ;;
-      esac
-      ;;
-    :)
-      print_err "Option -$OPTARG requires an argument."
-      exit 1
-      ;;
-    h)
-      usage
-      exit 0
-      ;;
-    \?)
-      usage
-      exit 1
-      ;;
-  esac
-done
 
+
+parse_options "$@"
+
+if empty "$UI_LANG"; then
+  UI_LANG=$(detect_language)
+fi
 
 print_on_verbose "Verbose mode: on"
 print_on_verbose "Language: ${UI_LANG}"
 
-
 ensure_yum_installed
 
 install_ansible_if_not_installed
-
-get_latest_keitaro_release
-
-read_inventory_file_vars
 
 write_inventory_file
 

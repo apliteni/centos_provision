@@ -1,0 +1,47 @@
+#!/usr/bin/env powscript
+
+
+DICT={}
+
+DICT['en.errors.yum_not_installed']='This installer works only on yum-based systems. Please run it on CentOS/RHEL/Fedora distros'
+DICT['en.prompts.license_ip']='Please enter server IP'
+DICT['en.prompts.license_key']='Please enter license key'
+DICT['en.prompts.db_name']='Please enter database name'
+DICT['en.prompts.db_user']='Please enter database user name'
+DICT['en.prompts.db_password']='Please enter database user password'
+DICT['en.prompts.admin_login']='Please enter keitaro admin login'
+DICT['en.prompts.admin_password']='Please enter keitaro admin password'
+DICT['en.prompts.license_ip']='Please enter server IP'
+
+DICT['ru.errors.yum_not_installed']='Утановщик keitaro работает только с пакетным менеджером yum. Пожалуйста, запустите его в CentOS/RHEL/Fedora дистрибутиве'
+DICT['ru.prompts.license_ip']='Укажите IP адрес сервера'
+DICT['ru.prompts.license_key']='Укажите лицензионный ключ'
+DICT['ru.prompts.db_name']='Укажите имя базы данных'
+DICT['ru.prompts.db_user']='Укажите пользователя базы данных'
+DICT['ru.prompts.db_password']='Укажите пароль пользователя базы данных'
+DICT['ru.prompts.admin_login']='Укажите имя администратора keitaro'
+DICT['ru.prompts.admin_password']='Укажите пароль администратора keitaro'
+
+
+detect_language()
+  if not empty $LC_ALL
+    detect_language_from_var $LC_ALL
+  else
+    if not empty $LC_MESSAGES
+      detect_language_from_var $LC_MESSAGES
+    else
+      detect_language_from_var $LANG
+
+
+translate(key)
+  i18n_key=$UI_LANG.$key
+  echo $DICT[$i18n_key]
+
+
+detect_language_from_var(lang_value)
+  if $lang_value match ^ru_[[:alpha:]]+\.UTF-8$
+    echo ru
+  else
+    echo en
+
+

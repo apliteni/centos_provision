@@ -1,0 +1,29 @@
+#!/usr/bin/env powscript
+
+
+INVENTORY_FILE=.keitarotds-hosts
+KEITARO_PROVISION_DIRECTORY=centos_provision-master
+
+
+require 'modules/i18n.pow'
+require 'modules/install.pow'
+require 'modules/inventory.pow'
+require 'modules/options.pow'
+require 'modules/print.pow'
+
+
+parse_options $@
+
+if empty $UI_LANG
+  UI_LANG=$(detect_language)
+
+print_on_verbose "Verbose mode: on"
+print_on_verbose "Language: ${UI_LANG}"
+
+ensure_yum_installed
+
+install_ansible_if_not_installed
+
+write_inventory_file
+
+install_keitarotds
