@@ -18,25 +18,25 @@ RSpec.describe 'installer.sh' do
 
   let(:en_prompts_with_values) do
     {
-      'Please enter server IP > ' => license_ip,
-      'Please enter license key > ' => license_key,
-      'Please enter database name > ' => db_name,
-      'Please enter database user name > ' => db_user,
-      'Please enter database user password > ' => db_password,
-      'Please enter keitaro admin login > ' => admin_login,
-      'Please enter keitaro admin password > ' => admin_password,
+      'Please enter server IP' => license_ip,
+      'Please enter license key' => license_key,
+      'Please enter database name' => db_name,
+      'Please enter database user name' => db_user,
+      'Please enter database user password' => db_password,
+      'Please enter keitaro admin login' => admin_login,
+      'Please enter keitaro admin password' => admin_password,
     }
   end
 
   let(:ru_prompts_with_values) do
     {
-      'Укажите IP адрес сервера > ' => license_ip,
-      'Укажите лицензионный ключ > ' => license_key,
-      'Укажите имя базы данных > ' => db_name,
-      'Укажите пользователя базы данных > ' => db_user,
-      'Укажите пароль пользователя базы данных > ' => db_password,
-      'Укажите имя администратора keitaro > ' => admin_login,
-      'Укажите пароль администратора keitaro > ' => admin_password,
+      'Укажите IP адрес сервера' => license_ip,
+      'Укажите лицензионный ключ' => license_key,
+      'Укажите имя базы данных' => db_name,
+      'Укажите пользователя базы данных' => db_user,
+      'Укажите пароль пользователя базы данных' => db_password,
+      'Укажите имя администратора keitaro' => admin_login,
+      'Укажите пароль администратора keitaro' => admin_password,
     }
   end
 
@@ -184,6 +184,21 @@ RSpec.describe 'installer.sh' do
         it_behaves_like 'contains correct entries'
       end
     end
+
+    context 'inventory file presented' do
+      let(:args) { '-spl en' }
+      let(:prompts_with_values) { en_prompts_with_values }
+
+      def write_to_inventory(name, value)
+        IO.write(Installer::INVENTORY_FILE, "#{name}=#{value}")
+      end
+
+      it 'adds licence_ip to prompt' do
+        write_to_inventory(:licence_ip, license_ip)
+        installer(prompts_with_values.merge("Please enter server IP [#{license_ip}] > ")).call
+        expect()
+      end
+    end
   end
 
   context 'without actual installing software' do
@@ -197,7 +212,7 @@ RSpec.describe 'installer.sh' do
                       'curl -L https://github.com/keitarocorp/centos_provision/archive/master.tar.gz | tar xz'
 
       it_behaves_like 'should print to stdout',
-                      'ansible-playbook -i .keitarotds-hosts centos_provision-master/playbook.yml'
+                      "ansible-playbook -i #{Installer::INVENTORY_FILE} centos_provision-master/playbook.yml"
     end
 
     context 'yum presented, ansible presented' do
