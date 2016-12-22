@@ -190,6 +190,8 @@ RSpec.describe 'installer.sh' do
     let(:env) { {LANG: 'C'} }
     let(:args) { '-vp' }
 
+    before(:all) { `docker rm keitaro_installer_test &>/dev/null` }
+
     shared_examples_for 'should install keitarotds' do
       it_behaves_like 'should print to stdout',
                       'curl -L https://github.com/keitarocorp/centos_provision/archive/master.tar.gz | tar xz'

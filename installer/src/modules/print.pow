@@ -1,0 +1,12 @@
+#!/usr/bin/env powscript
+
+
+print_err(message)
+  echo $message >&2
+
+
+print_on_verbose(message)
+  if $VERBOSE is "true"
+    echo $message
+
+
