@@ -168,21 +168,42 @@ run_command(){
 
 declare -A VARS
 
+VARS['license_ip']=''
+VARS['license_key']=''
+VARS['db_name']='keitaro'
+VARS['db_user']='keitaro'
+VARS['db_password']='keitaro_password'
+VARS['admin_login']='admin'
+VARS['admin_password']='admin_password'
+
 
 write_inventory_file(){
-  read_inventory_file_vars
+  read_vars_from_inventory_file
+  get_vars_from_user
   write_vars_to_inventory_file
 }
 
 
-read_inventory_file_vars(){
-  read_var 'license_ip'
-  read_var 'license_key'
-  read_var 'db_name'
-  read_var 'db_user'
-  read_var 'db_password'
-  read_var 'admin_login'
-  read_var 'admin_password'
+read_vars_from_inventory_file(){
+  if [ -f "$INVENTORY_FILE" ]; then
+    print_on_verbose "Inventory file found, read defaults from it"
+    while IFS="" read -r line; do
+      parse_line_from_inventory_file "$line"
+    done <   $INVENTORY_FILE
+  else
+    print_on_verbose "Inventory file not found"
+  fi
+}
+
+
+get_vars_from_user(){
+  get_var 'license_ip'
+  get_var 'license_key'
+  get_var 'db_name'
+  get_var 'db_user'
+  get_var 'db_password'
+  get_var 'admin_login'
+  get_var 'admin_password'
 }
 
 
@@ -192,24 +213,42 @@ write_vars_to_inventory_file(){
   print_line_to_inventory_file "localhost connection=local"
   print_line_to_inventory_file
   print_line_to_inventory_file "[server:vars]"
+  print_line_to_inventory_file "license_ip="${VARS['license_ip']}""
+  print_line_to_inventory_file "license_key="${VARS['license_key']}""
   print_line_to_inventory_file "db_name="${VARS['db_name']}""
   print_line_to_inventory_file "db_user="${VARS['db_user']}""
   print_line_to_inventory_file "db_password="${VARS['db_password']}""
-  print_line_to_inventory_file "license_ip="${VARS['license_ip']}""
-  print_line_to_inventory_file "license_key="${VARS['license_key']}""
   print_line_to_inventory_file "admin_login="${VARS['admin_login']}""
   print_line_to_inventory_file "admin_password="${VARS['admin_password']}""
 }
 
 
-read_var(){
+get_var(){
   local var_name="${1}"
   prompt=$(translate prompts.$var_name)
-  echo -n "$prompt > "
-  read -r variable
-  VARS[$var_name]=$variable
+  if ! empty ${VARS[$var_name]}; then
+    prompt="$prompt [${VARS[$var_name]}]"
+  fi
+  while true; do
+    echo -n "$prompt > "
+    read -r variable
+    if ! empty "$variable"; then
+      VARS[$var_name]=$variable
+    fi
+    if ! empty ${VARS[$var_name]}; then
+      break
+    fi
+  done
 }
 
+parse_line_from_inventory_file(){
+  local line="${1}"
+  if [[ "$line" =~ = ]]; then
+      IFS="=" read var_name value <<< "$line"
+      VARS[$var_name]=$value
+      print_on_verbose "  "$var_name"=${VARS[$var_name]}"
+    fi
+  }
 
 print_line_to_inventory_file(){
   local line="${1}"

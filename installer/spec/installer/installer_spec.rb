@@ -187,16 +187,24 @@ RSpec.describe 'installer.sh' do
 
     context 'inventory file presented' do
       let(:args) { '-spl en' }
-      let(:prompts_with_values) { en_prompts_with_values }
 
       def write_to_inventory(name, value)
         IO.write(Installer::INVENTORY_FILE, "#{name}=#{value}")
       end
 
-      it 'adds licence_ip to prompt' do
-        write_to_inventory(:licence_ip, license_ip)
-        installer(prompts_with_values.merge("Please enter server IP [#{license_ip}] > ")).call
-        expect()
+      context 'license_ip presented' do
+        before { write_to_inventory(:licence_ip, license_ip) }
+
+        let(:prompts_with_values) do
+          en_prompts_with_values.tap do |result|
+            result.merge('Please enter server IP' => nil)
+          end
+        end
+
+        it 'adds licence_ip to prompt' do
+          installer.call
+          expect(installer.hosts_file_content).to match("\nlicense_ip=#{license_ip}\n")
+        end
       end
     end
   end
