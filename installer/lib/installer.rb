@@ -71,8 +71,13 @@ class Installer
         prompt = stdout_chunk.split("\n").last
 
         if prompt =~ / > $/
-          key = prompt[0..-4]
-          stdin.puts(prompts_with_values[key])
+          key = prompt.match(/[[[:alnum:]]\s]+/)[0].strip
+          if prompts_with_values.key?(key)
+            stdin.puts(prompts_with_values[key])
+          else
+            stdin.puts('value')
+            puts "Value for prompt #{prompt.inspect} not found, using fake value instead"
+          end
         end
       end while true
     }
