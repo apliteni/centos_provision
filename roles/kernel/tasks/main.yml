@@ -1,6 +1,7 @@
 ---
 - name: update kernel params
   command: "sysctl -w {{item.name}}={{item.value}}"
+  ignore_errors: true
   with_items:
     - {name: 'net.core.somaxconn', value: 512}
     - {name: 'fs.file-max', value: 20000}
