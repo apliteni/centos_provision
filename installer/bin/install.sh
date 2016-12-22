@@ -159,7 +159,7 @@ run_command(){
   if isset "$PRESERVE"; then
     print_on_verbose "Actual running disabled"
   else
-    eval "$command" &> /dev/null
+    eval "$command"
   fi
 }
 

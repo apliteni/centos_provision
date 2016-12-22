@@ -97,7 +97,7 @@ run_command(command)
   if isset $PRESERVE
     print_on_verbose "Actual running disabled"
   else
-    eval $command &> /dev/null
+    eval $command
 
 
 translate(key)
