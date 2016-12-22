@@ -301,7 +301,7 @@ print_on_verbose(){
 
 
 
-INVENTORY_FILE=.keitarotds-hosts
+INVENTORY_FILE=hosts.txt
 KEITARO_PROVISION_DIRECTORY=centos_provision-master
 
 

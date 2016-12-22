@@ -7,6 +7,7 @@ require 'bundler/setup'
 class Installer
   INSTALLER_ROOT = File.expand_path(File.dirname(__FILE__) + '/../')
   INSTALLER_CMD = 'install.sh'
+  INVENTORY_FILE = 'hosts.txt'
 
   attr_accessor :env, :args, :prompts_with_values, :docker_image
   attr_reader :stdout, :stderr, :ret_value, :hosts_file_content
@@ -20,7 +21,7 @@ class Installer
       Dir.chdir(current_dir) do
         FileUtils.copy("#{INSTALLER_ROOT}/bin/#{INSTALLER_CMD}", './')
         invoke_installer_cmd(current_dir)
-        @hosts_file_content = File.read('.keitarotds-hosts') if ret_value.success?
+        @hosts_file_content = File.read(INVENTORY_FILE) if ret_value.success?
       end
     end
   end
@@ -69,7 +70,10 @@ class Installer
 
         prompt = stdout_chunk.split("\n").last
 
-        stdin.puts(prompts_with_values[prompt]) if prompt =~ / > $/
+        if prompt =~ / > $/
+          key = prompt[0..-4]
+          stdin.puts(prompts_with_values[key])
+        end
       end while true
     }
     reader_thread.value
