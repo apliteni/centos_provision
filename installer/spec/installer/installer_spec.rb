@@ -143,30 +143,30 @@ RSpec.describe 'installer.sh' do
         let(:hosts_file_content) { installer.hosts_file_content }
 
         it 'contains license_ip key' do
-          expect(hosts_file_content).to match(%Q{\nlicense_ip = "#{license_ip}"\n})
+          expect(hosts_file_content).to match("\nlicense_ip=#{license_ip}\n")
         end
 
         it 'contains license_key key' do
-          expect(hosts_file_content).to match(%Q{\nlicense_key = "#{license_key}"\n})
+          expect(hosts_file_content).to match("\nlicense_key=#{license_key}\n")
         end
 
         it 'contains db_name key' do
-          expect(hosts_file_content).to match(%Q{\ndb_name = "#{db_name}"\n})
+          expect(hosts_file_content).to match("\ndb_name=#{db_name}\n")
         end
         it 'contains db_user key' do
-          expect(hosts_file_content).to match(%Q{\ndb_user = "#{db_user}"\n})
+          expect(hosts_file_content).to match("\ndb_user=#{db_user}\n")
         end
 
         it 'contains db_password key' do
-          expect(hosts_file_content).to match(%Q{\ndb_password = "#{db_password}"\n})
+          expect(hosts_file_content).to match("\ndb_password=#{db_password}\n")
         end
 
         it 'contains admin_login key' do
-          expect(hosts_file_content).to match(%Q{\nadmin_login = "#{admin_login}"\n})
+          expect(hosts_file_content).to match("\nadmin_login=#{admin_login}\n")
         end
 
         it 'contains admin_password key' do
-          expect(hosts_file_content).to match(%Q{\nadmin_password = "#{admin_password}"\n})
+          expect(hosts_file_content).to match("\nadmin_password=#{admin_password}\n")
         end
       end
 
@@ -190,9 +190,12 @@ RSpec.describe 'installer.sh' do
     let(:env) { {LANG: 'C'} }
     let(:args) { '-vp' }
 
-    shared_examples_for 'installs keitarotds' do
-      it_behaves_like 'should print to stdout', ''
+    shared_examples_for 'should install keitarotds' do
+      it_behaves_like 'should print to stdout',
+                      'curl -L https://github.com/keitarocorp/centos_provision/archive/master.tar.gz | tar xz'
 
+      it_behaves_like 'should print to stdout',
+                      'ansible-playbook -i .keitarotds-hosts centos_provision-master/playbook.yml'
     end
 
     context 'yum presented, ansible presented' do
@@ -201,6 +204,8 @@ RSpec.describe 'installer.sh' do
       it_behaves_like 'should print to stdout', "Try to found yum\nOK"
       it_behaves_like 'should print to stdout', "Try to found ansible\nOK"
       it_behaves_like 'should not print to stdout', 'Execute command: yum install -y ansible'
+
+      it_behaves_like 'should install keitarotds'
     end
 
     context 'yum presented, ansible not presented' do
@@ -210,6 +215,8 @@ RSpec.describe 'installer.sh' do
       it_behaves_like 'should print to stdout', "Try to found ansible\nNOK"
       it_behaves_like 'should print to stdout', 'yum install -y epel-release'
       it_behaves_like 'should print to stdout', 'yum install -y ansible'
+
+      it_behaves_like 'should install keitarotds'
     end
 
     context 'yum not presented' do

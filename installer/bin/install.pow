@@ -1,5 +1,8 @@
 #!/usr/bin/env powscript
 
+INVENTORY_FILE=.keitarotds-hosts
+KEITARO_PROVISION_DIRECTORY=centos_provision-master
+
 DICT={}
 
 DICT['en.errors.yum_not_installed']='This installer works only on yum-based systems. Please run it on CentOS/RHEL/Fedora distros'
@@ -20,7 +23,6 @@ DICT['ru.prompts.db_user']='Укажите пользователя базы д�
 DICT['ru.prompts.db_password']='Укажите пароль пользователя базы данных'
 DICT['ru.prompts.admin_login']='Укажите имя администратора keitaro'
 DICT['ru.prompts.admin_password']='Укажите пароль администратора keitaro'
-
 
 VARS={}
 
@@ -81,6 +83,10 @@ install_ansible_if_not_installed()
     install_package epel-release
     install_package ansible
 
+get_latest_keitaro_release()
+  KEITARO_RELEASE_URL=https://github.com/keitarocorp/centos_provision/archive/master.tar.gz
+  run_command "curl -L $KEITARO_RELEASE_URL | tar xz"
+
 
 install_package(package)
   run_command "yum install -y $package"
@@ -104,6 +110,38 @@ read_var(var_name)
   echo -n "$prompt > "
   read -r variable
   VARS[$var_name]=$variable
+
+
+read_inventory_file_vars()
+  read_var 'license_ip'
+  read_var 'license_key'
+  read_var 'db_name'
+  read_var 'db_user'
+  read_var 'db_password'
+  read_var 'admin_login'
+  read_var 'admin_password'
+
+
+write_inventory_file()
+  echo -n > $INVENTORY_FILE
+  print_line_to_inventory_file "[server]"
+  print_line_to_inventory_file "localhost connection=local"
+  print_line_to_inventory_file
+  print_line_to_inventory_file "[server:vars]"
+  print_line_to_inventory_file "db_name=$VARS['db_name']"
+  print_line_to_inventory_file "db_user=$VARS['db_user']"
+  print_line_to_inventory_file "db_password=$VARS['db_password']"
+  print_line_to_inventory_file "license_ip=$VARS['license_ip']"
+  print_line_to_inventory_file "license_key=$VARS['license_key']"
+  print_line_to_inventory_file "admin_login=$VARS['admin_login']"
+  print_line_to_inventory_file "admin_password=$VARS['admin_password']"
+
+
+install_keitarotds()
+  run_command "ansible-playbook -i $INVENTORY_FILE $KEITARO_PROVISION_DIRECTORY/playbook.yml"
+
+print_line_to_inventory_file(line)
+  echo "$line" >> $INVENTORY_FILE
 
 
 detect_language(lang_value)
@@ -161,27 +199,10 @@ ensure_yum_installed
 
 install_ansible_if_not_installed
 
+get_latest_keitaro_release
 
-read_var 'license_ip'
-read_var 'license_key'
-read_var 'db_name'
-read_var 'db_user'
-read_var 'db_password'
-read_var 'admin_login'
-read_var 'admin_password'
+read_inventory_file_vars
 
+write_inventory_file
 
-cat > .keitarotds-hosts <<EOF
-[server]
-localhost connection=local
-
-[server:vars]
-db_name = $VARS['db_name']
-db_user = $VARS['db_user']
-db_password = $VARS['db_password']
-license_ip = $VARS['license_ip']
-license_key = $VARS['license_key']
-admin_login = $VARS['admin_login']
-admin_password = $VARS['admin_password']
-EOF
-
+install_keitarotds
