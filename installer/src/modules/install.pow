@@ -40,11 +40,11 @@ install_package(package)
 
 get_keitaro_provision()
   KEITARO_RELEASE_URL=https://github.com/keitarocorp/centos_provision/archive/master.tar.gz
-  run_command "curl -L $KEITARO_RELEASE_URL | tar xz"
+  run_command "curl -sSL $KEITARO_RELEASE_URL | tar xz"
 
 
 run_command(command)
-  echo $command
+  echo "$(translate 'messages.run_command') '$command'"
   if isset $PRESERVE
     print_on_verbose "Actual running disabled"
   else
