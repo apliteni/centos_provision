@@ -121,6 +121,7 @@ class Installer
         prompt = stdout_chunk.split("\n").last
 
         if prompt =~ / > $/
+          byebug if prompt =~ /Evaluating/
           key = prompt.match(/[[[:alnum:]]\s]+/)[0].strip
           if prompts_with_values.key?(key)
             stdin.puts(prompts_with_values[key])
