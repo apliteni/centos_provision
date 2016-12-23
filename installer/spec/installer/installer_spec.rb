@@ -1,11 +1,9 @@
 require 'spec_helper'
 
-require 'open3'
-require 'tmpdir'
-
 RSpec.describe 'installer.sh' do
   let(:args) { '' }
   let(:env) { {} }
+  let(:stored_values) { {} }
   let(:docker_image) { nil }
 
   let(:license_ip) { '8.8.8.8' }
@@ -16,45 +14,86 @@ RSpec.describe 'installer.sh' do
   let(:admin_login) { 'admin' }
   let(:admin_password) { 'admin_password' }
 
+  let(:prompts) do
+    {
+      en: {
+        license_ip: 'Please enter server IP',
+        license_key: 'Please enter license key',
+        db_name: 'Please enter database name',
+        db_user: 'Please enter database user name',
+        db_password: 'Please enter database user password',
+        admin_login: 'Please enter keitaro admin login',
+        admin_password: 'Please enter keitaro admin password'
+      },
+      ru: {
+        license_ip: 'Укажите IP адрес сервера',
+        license_key: 'Укажите лицензионный ключ',
+        db_name: 'Укажите имя базы данных',
+        db_user: 'Укажите пользователя базы данных',
+        db_password: 'Укажите пароль пользователя базы данных',
+        admin_login: 'Укажите имя администратора keitaro',
+        admin_password: 'Укажите пароль администратора keitaro',
+      }
+    }
+  end
+
+  let(:user_values) do
+    {
+      license_ip: '8.8.8.8',
+      license_key: 'WWWW-XXXX-YYYY-ZZZZ',
+      db_name: 'keitarodb',
+      db_user: 'keitarodb_user',
+      db_password: 'keitarodb_password',
+      admin_login: 'admin',
+      admin_password: 'admin_password',
+    }
+  end
+
   let(:en_prompts_with_values) do
     {
-      'Please enter server IP' => license_ip,
-      'Please enter license key' => license_key,
-      'Please enter database name' => db_name,
-      'Please enter database user name' => db_user,
-      'Please enter database user password' => db_password,
-      'Please enter keitaro admin login' => admin_login,
-      'Please enter keitaro admin password' => admin_password,
+      prompts[:en][:license_ip] => user_values[:license_ip],
+      prompts[:en][:license_key] => user_values[:license_key],
+      prompts[:en][:db_name] => user_values[:db_name],
+      prompts[:en][:db_user] => user_values[:db_user],
+      prompts[:en][:db_password] => user_values[:db_password],
+      prompts[:en][:admin_login] => user_values[:admin_login],
+      prompts[:en][:admin_password] => user_values[:admin_password],
     }
   end
 
   let(:ru_prompts_with_values) do
     {
-      'Укажите IP адрес сервера' => license_ip,
-      'Укажите лицензионный ключ' => license_key,
-      'Укажите имя базы данных' => db_name,
-      'Укажите пользователя базы данных' => db_user,
-      'Укажите пароль пользователя базы данных' => db_password,
-      'Укажите имя администратора keitaro' => admin_login,
-      'Укажите пароль администратора keitaro' => admin_password,
+      prompts[:ru][:license_ip] => user_values[:license_ip],
+      prompts[:ru][:license_key] => user_values[:license_key],
+      prompts[:ru][:db_name] => user_values[:db_name],
+      prompts[:ru][:db_user] => user_values[:db_user],
+      prompts[:ru][:db_password] => user_values[:db_password],
+      prompts[:ru][:admin_login] => user_values[:admin_login],
+      prompts[:ru][:admin_password] => user_values[:admin_password],
     }
   end
 
   let(:prompts_with_values) { en_prompts_with_values }
 
-  let(:installer) { Installer.new(env: env, args: args, prompts_with_values: prompts_with_values, docker_image: docker_image) }
+  let(:installer) do
+    Installer.new(env: env,
+                  args: args,
+                  prompts_with_values: prompts_with_values,
+                  stored_values: stored_values,
+                  docker_image: docker_image)
+  end
 
   shared_examples_for 'should print to stdout' do |expected_text|
     it "prints to stdout #{expected_text.inspect}" do
       installer.call
-      expect(installer.stdout).to match(expected_text)
+      expect(installer.stdout).to include(expected_text)
     end
   end
 
   shared_examples_for 'should not print to stdout' do |expected_text|
     it "does not print to stdout #{expected_text.inspect}" do
       installer.call
-      expect(installer.stdout).not_to match(expected_text)
+      expect(installer.stdout).not_to include(expected_text)
     end
   end
 
@@ -62,7 +101,7 @@ RSpec.describe 'installer.sh' do
     it 'exits with error' do
       installer.call
       expect(installer.ret_value).not_to be_success
-      expect(installer.stderr).to match(expected_text)
+      expect(installer.stderr).to include(expected_text)
     end
   end
 
@@ -132,81 +171,120 @@ RSpec.describe 'installer.sh' do
     end
   end
 
-  context 'without actual yum/ansible checks, without actual invoking install commands' do
+  describe 'fields' do
     # `-s` option disables yum/ansible checks
     # `-p` option disables invoking install commands
 
-    describe 'generated hosts file' do
-      shared_examples_for 'contains correct entries' do
-        before { installer.call }
+    let(:args) { '-spvl en' }
 
-        let(:hosts_file_content) { installer.hosts_file_content }
+    shared_examples_for 'field without default' do |field|
+      context 'field not stored in inventory' do
+        it_behaves_like 'should not show default value', field
 
-        it 'contains license_ip key' do
-          expect(hosts_file_content).to match("\nlicense_ip=#{license_ip}\n")
-        end
-
-        it 'contains license_key key' do
-          expect(hosts_file_content).to match("\nlicense_key=#{license_key}\n")
-        end
-
-        it 'contains db_name key' do
-          expect(hosts_file_content).to match("\ndb_name=#{db_name}\n")
-        end
-        it 'contains db_user key' do
-          expect(hosts_file_content).to match("\ndb_user=#{db_user}\n")
-        end
-
-        it 'contains db_password key' do
-          expect(hosts_file_content).to match("\ndb_password=#{db_password}\n")
-        end
-
-        it 'contains admin_login key' do
-          expect(hosts_file_content).to match("\nadmin_login=#{admin_login}\n")
-        end
-
-        it 'contains admin_password key' do
-          expect(hosts_file_content).to match("\nadmin_password=#{admin_password}\n")
-        end
+        it_behaves_like 'should store user value', field, readed_inventory_value: 'user.value'
       end
 
-      context 'english prompts' do
-        let(:args) { '-sp -l en' }
-        let(:prompts_with_values) { en_prompts_with_values }
+      it_behaves_like 'should take values from previously saved inventory', field
 
-        it_behaves_like 'contains correct entries'
+      it_behaves_like 'should support russian prompts', field
+    end
+
+    shared_examples_for 'field with default' do |field, default:|
+      context 'field not stored in inventory' do
+        it_behaves_like 'should show default value', field, showed_value: default
+
+        it_behaves_like 'should store default value', field, readed_inventory_value: default
+
+        it_behaves_like 'should store user value', field, readed_inventory_value: 'user.value'
       end
 
-      context 'russian prompts' do
-        let(:args) { '-sp -l ru' }
-        let(:prompts_with_values) { ru_prompts_with_values }
+      it_behaves_like 'should take values from previously saved inventory', field
 
-        it_behaves_like 'contains correct entries'
+      it_behaves_like 'should support russian prompts', field
+    end
+
+    shared_examples_for 'password field' do |field|
+      context 'field not stored in inventory' do
+        it_behaves_like 'should show default value', field, showed_value: /\w{16}/
+
+        it_behaves_like 'should store default value', field, readed_inventory_value: /\w+{16}/
+
+        it_behaves_like 'should store user value', field, readed_inventory_value: 'user.value'
+      end
+
+      it_behaves_like 'should take values from previously saved inventory', field
+
+      it_behaves_like 'should support russian prompts', field
+    end
+
+    shared_examples_for 'should take values from previously saved inventory' do |field|
+      context 'field stored in inventory' do
+        let(:stored_values) { {field => 'stored.value'} }
+
+        it_behaves_like 'should show default value', field, showed_value: 'stored.value'
+
+        it_behaves_like 'should store default value', field, readed_inventory_value: 'stored.value'
+
+        it_behaves_like 'should store user value', field, readed_inventory_value: 'user.value'
       end
     end
 
-    context 'inventory file presented' do
-      let(:args) { '-spl en' }
+    shared_examples_for 'should support russian prompts' do |field|
+      let(:args) { '-sp -l ru' }
+      let(:prompts_with_values) { ru_prompts_with_values }
 
-      def write_to_inventory(name, value)
-        IO.write(Installer::INVENTORY_FILE, "#{name}=#{value}")
-      end
-
-      context 'license_ip presented' do
-        before { write_to_inventory(:licence_ip, license_ip) }
-
-        let(:prompts_with_values) do
-          en_prompts_with_values.tap do |result|
-            result.merge('Please enter server IP' => nil)
-          end
-        end
-
-        it 'adds licence_ip to prompt' do
-          installer.call
-          expect(installer.hosts_file_content).to match("\nlicense_ip=#{license_ip}\n")
-        end
+      it 'stdout contains prompt with default value' do
+        installer.call
+        expect(installer.stdout).to include(prompts[:ru][field])
       end
     end
+
+    shared_examples_for 'should show default value' do |field, showed_value:|
+      it 'stdout contains prompt with default value' do
+        installer.call
+        expect(installer.stdout).to match(/#{prompts[:en][field]} \[#{showed_value}\] >/)
+      end
+    end
+
+    shared_examples_for 'should not show default value' do |field|
+      it 'stdout does not contain prompt with default value' do
+        installer.call
+        expect(installer.stdout).to include("#{prompts[:en][field]} >")
+      end
+    end
+
+    shared_examples_for 'should store default value' do |field, readed_inventory_value:|
+      let(:prompts_with_values) { en_prompts_with_values.merge(prompts[:en][field] => nil) }
+
+      it_behaves_like 'inventory contains value', field, readed_inventory_value
+    end
+
+    shared_examples_for 'should store user value' do |field, readed_inventory_value:|
+      let(:prompts_with_values) { en_prompts_with_values.merge(prompts[:en][field] => readed_inventory_value) }
+
+      it_behaves_like 'inventory contains value', field, readed_inventory_value
+    end
+
+    shared_examples_for 'inventory contains value' do |field, value|
+      it "inventory file contains field #{field.inspect} with value #{value.inspect}" do
+        installer.call
+        expect(installer.inventory.values[field]).to match(value)
+      end
+    end
+
+    it_behaves_like 'field without default', :license_ip
+
+    it_behaves_like 'field without default', :license_key
+
+    it_behaves_like 'field with default', :db_name, default: 'keitaro'
+
+    it_behaves_like 'field with default', :db_user, default: 'keitaro'
+
+    it_behaves_like 'password field', :db_password
+
+    it_behaves_like 'field with default', :admin_login, default: 'admin'
+
+    it_behaves_like 'password field', :admin_password
   end
 
   context 'without actual installing software' do
