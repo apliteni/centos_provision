@@ -24,7 +24,8 @@ install_ansible_if_not_installed()
 
 install_keitarotds()
   get_keitaro_provision
-  run_command "ansible-playbook -i $INVENTORY_FILE $KEITARO_PROVISION_DIRECTORY/playbook.yml"
+  command="ansible-playbook -i ${INVENTORY_FILE} ${KEITARO_PROVISION_DIRECTORY}/playbook.yml >${ANSIBLE_LOG}"
+  run_command $command && handle_successful_install || handle_unsuccessful_install
 
 
 is_installed(command)
@@ -49,3 +50,13 @@ run_command(command)
     print_on_verbose "Actual running disabled"
   else
     eval $command
+
+
+handle_successful_install()
+  message=$(translate 'messages.successful_install')
+  echo $message
+
+
+handle_unsuccessful_install()
+  message=$(translate 'errors.unsuccessful_install')
+  print_err $message
