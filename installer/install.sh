@@ -48,8 +48,6 @@ values ()
 
 declare -A DICT
 
-DICT['en.errors.yum_not_installed']='This installer works only on yum-based systems. Please run it on CentOS/RHEL/Fedora distros'
-DICT['en.prompts.license_ip']='Please enter server IP'
 DICT['en.prompts.license_key']='Please enter license key'
 DICT['en.prompts.db_name']='Please enter database name'
 DICT['en.prompts.db_user']='Please enter database user name'
@@ -57,8 +55,10 @@ DICT['en.prompts.db_password']='Please enter database user password'
 DICT['en.prompts.admin_login']='Please enter keitaro admin login'
 DICT['en.prompts.admin_password']='Please enter keitaro admin password'
 DICT['en.prompts.license_ip']='Please enter server IP'
+DICT['en.prompts.license_ip']='Please enter server IP'
+DICT['en.messages.run_command']='Evaluating command'
+DICT['en.errors.yum_not_installed']='This installer works only on yum-based systems. Please run it on CentOS/RHEL/Fedora distros'
 
-DICT['ru.errors.yum_not_installed']='Утановщик keitaro работает только с пакетным менеджером yum. Пожалуйста, запустите его в CentOS/RHEL/Fedora дистрибутиве'
 DICT['ru.prompts.license_ip']='Укажите IP адрес сервера'
 DICT['ru.prompts.license_key']='Укажите лицензионный ключ'
 DICT['ru.prompts.db_name']='Укажите имя базы данных'
@@ -66,6 +66,8 @@ DICT['ru.prompts.db_user']='Укажите пользователя базы д�
 DICT['ru.prompts.db_password']='Укажите пароль пользователя базы данных'
 DICT['ru.prompts.admin_login']='Укажите имя администратора keitaro'
 DICT['ru.prompts.admin_password']='Укажите пароль администратора keitaro'
+DICT['ru.messages.run_command']='Выполняется команда'
+DICT['ru.errors.yum_not_installed']='Утановщик keitaro работает только с пакетным менеджером yum. Пожалуйста, запустите его в CentOS/RHEL/Fedora дистрибутиве'
 
 
 detect_language(){
@@ -84,7 +86,11 @@ detect_language(){
 translate(){
   local key="${1}"
   i18n_key=$UI_LANG.$key
-  echo "${DICT[$i18n_key]}"
+  if isset ${DICT[$i18n_key]}; then
+    echo "${DICT[$i18n_key]}"
+  else
+    echo "$i18n_key"
+  fi
 }
 
 
@@ -150,13 +156,13 @@ install_package(){
 
 get_keitaro_provision(){
   KEITARO_RELEASE_URL=https://github.com/keitarocorp/centos_provision/archive/master.tar.gz
-  run_command "curl -L "$KEITARO_RELEASE_URL" | tar xz"
+  run_command "curl -sSL "$KEITARO_RELEASE_URL" | tar xz"
 }
 
 
 run_command(){
   local command="${1}"
-  echo "$command"
+  echo "$(translate 'messages.run_command') '$command'"
   if isset "$PRESERVE"; then
     print_on_verbose "Actual running disabled"
   else
@@ -166,23 +172,28 @@ run_command(){
 
 
 
+generate_password(){
+  LC_ALL=C tr -cd '[:alnum:]' < /dev/urandom | head -c16
+}
+
+
 declare -A VARS
 
 VARS['license_ip']=''
 VARS['license_key']=''
 VARS['db_name']='keitaro'
 VARS['db_user']='keitaro'
-VARS['db_password']='keitaro_password'
+VARS['db_password']=$(generate_password)
 VARS['admin_login']='admin'
-VARS['admin_password']='admin_password'
+VARS['admin_password']=$(generate_password)
 
+PASSWORD_LENGTH=16
 
 write_inventory_file(){
   read_vars_from_inventory_file
   get_vars_from_user
   write_vars_to_inventory_file
 }
-
 
 read_vars_from_inventory_file(){
   if [ -f "$INVENTORY_FILE" ]; then
@@ -223,6 +234,16 @@ write_vars_to_inventory_file(){
 }
 
 
+parse_line_from_inventory_file(){
+  local line="${1}"
+  if [[ "$line" =~ = ]]; then
+    IFS="=" read var_name value <<< "$line"
+    VARS[$var_name]=$value
+    print_on_verbose "  "$var_name"=${VARS[$var_name]}"
+  fi
+}
+
+
 get_var(){
   local var_name="${1}"
   prompt=$(translate prompts.$var_name)
@@ -241,14 +262,6 @@ get_var(){
   done
 }
 
-parse_line_from_inventory_file(){
-  local line="${1}"
-  if [[ "$line" =~ = ]]; then
-      IFS="=" read var_name value <<< "$line"
-      VARS[$var_name]=$value
-      print_on_verbose "  "$var_name"=${VARS[$var_name]}"
-    fi
-  }
 
 print_line_to_inventory_file(){
   local line="${1}"
@@ -366,11 +379,6 @@ install_keitarotds
 # wait for all async child processes (because "await ... then" is used in powscript)
 [[ $ASYNC == 1 ]] && wait
 
-
-# cleanup tmp files
-if ls /tmp/$(basename $0).tmp.lda* &>/dev/null; then
-  for f in /tmp/$(basename $0).tmp.lda*; do rm $f; done
-fi
 
 exit 0
 

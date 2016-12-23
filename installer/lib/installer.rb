@@ -19,7 +19,7 @@ class Installer
   def call
     Dir.mktmpdir('', '/tmp') do |current_dir|
       Dir.chdir(current_dir) do
-        FileUtils.copy("#{INSTALLER_ROOT}/bin/#{INSTALLER_CMD}", './')
+        FileUtils.copy("#{INSTALLER_ROOT}/#{INSTALLER_CMD}", current_dir)
         invoke_installer_cmd(current_dir)
         @hosts_file_content = File.read(INVENTORY_FILE) if ret_value.success?
       end
@@ -47,7 +47,7 @@ class Installer
     if docker_image
       "docker run #{docker_env} --name keitaro_installer_test -i --rm -v #{current_dir}:/data -w /data #{docker_image} ./#{INSTALLER_CMD} #{args}"
     else
-      [stringified_env, "./#{INSTALLER_CMD} #{args}"]
+      [stringified_env, "#{current_dir}/#{INSTALLER_CMD} #{args}"]
     end
   end
 
