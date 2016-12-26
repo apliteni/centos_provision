@@ -15,8 +15,7 @@ require 'modules/print.pow'
 
 parse_options $@
 
-if empty $UI_LANG
-  UI_LANG=$(detect_language)
+set_ui_lang
 
 print_on_verbose "Verbose mode: on"
 print_on_verbose "Language: ${UI_LANG}"

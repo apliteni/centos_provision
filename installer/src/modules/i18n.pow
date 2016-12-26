@@ -33,6 +33,10 @@ DICT['ru.errors.unsuccessful_install']="Во время установки Keita
 DICT['ru.errors.yum_not_installed']='Утановщик keitaro работает только с пакетным менеджером yum. Пожалуйста, запустите $(program_name) в CentOS/RHEL/Fedora дистрибутиве'
 
 
+set_ui_lang()
+  if empty $UI_LANG
+    UI_LANG=$(detect_language)
+
 detect_language()
   if not empty $LC_ALL
     detect_language_from_var $LC_ALL

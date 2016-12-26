@@ -109,6 +109,7 @@ RSpec.describe 'installer.sh' do
 
   describe 'invoked' do
     context 'with wrong args' do
+      let(:env) { {LANG: 'C'} }
       let(:args) { '-x' }
 
       it_behaves_like 'should exit with error', "Usage: #{Installer::INSTALLER_CMD}"
