@@ -351,4 +351,10 @@ RSpec.describe 'installer.sh' do
                       /There was an error .* send email to support@keitarotds.com/
     end
   end
+
+  describe 'check running under non-root' do
+    let(:env) { {LANG: 'C'} }
+
+    it_behaves_like 'should exit with error', 'Error: You must run this program as root'
+  end
 end

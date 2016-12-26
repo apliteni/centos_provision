@@ -1,22 +1,27 @@
 #!/usr/bin/env powscript
 
 
-ensure_yum_installed()
-  print_on_verbose 'Try to found yum'
-  if is_installed 'yum'
-    print_on_verbose 'OK, yum found'
+ensure_running_by_root()
+  print_on_verbose 'Ensure script has been running by root'
+  if isset $SKIP_CHECKS
+    print_on_verbose "OK, skip actual checking of current user"
   else
-    print_on_verbose 'NOK, yum not found'
+    if $EUID = 0
+      print_on_verbose 'OK, current user is root'
+    else
+      print_on_verbose 'NOK, current user is not root'
+      print_err "$(translate errors.must_be_root)"
+      exit 1
+
+
+ensure_yum_installed()
+  if ! is_installed 'yum'
     print_err "$(translate errors.yum_not_installed)"
     exit 1
 
 
 install_ansible_if_not_installed()
-  print_on_verbose 'Try to found ansible'
-  if is_installed ansible
-    print_on_verbose "OK, ansible found"
-  else
-    print_on_verbose "NOK, ansible not found"
+  if ! is_installed ansible
     print_on_verbose "Try to install ansible"
     install_package epel-release
     install_package ansible
@@ -29,10 +34,16 @@ install_keitarotds()
 
 
 is_installed(command)
+  print_on_verbose "Try to found $command"
   if isset $SKIP_CHECKS
-    print_on_verbose "Actual check of '$command' presence skipped"
+    print_on_verbose "OK, skip actual checking of '$command' presence"
   else
-    sh -c "command -v $command > /dev/null"
+    if $(sh -c "command -v $command > /dev/null")
+      print_on_verbose "OK, $command found"
+    else
+      print_on_verbose "NOK, $command not found"
+      return 1
+
 
 
 install_package(package)
@@ -53,13 +64,11 @@ run_command(command)
 
 
 handle_successful_install()
-  message=$(translate 'messages.successful_install')
-  echo $message
+  echo "$(translate 'messages.successful_install')"
   echo "http://${VARS['license_ip']}/admin"
   echo "login: ${VARS['admin_login']}"
   echo "password: ${VARS['admin_password']}"
 
 
 handle_unsuccessful_install()
-  message=$(translate 'errors.unsuccessful_install')
-  print_err $message
+  print_err "$(translate 'errors.unsuccessful_install')"
