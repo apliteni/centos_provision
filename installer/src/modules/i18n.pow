@@ -15,7 +15,7 @@ DICT['en.prompts.license_ip']='Please enter server IP'
 DICT['en.prompts.license_ip']='Please enter server IP'
 DICT['en.messages.run_command']='Evaluating command'
 DICT['en.messages.successful_install']='Everything done!'
-DICT['en.errors.must_be_root']="Error: You must run this program as root. Try 'sudo $(program_name)'"
+DICT['en.errors.must_be_root']='Error: You must run this program as root.'
 DICT['en.errors.unsuccessful_install']="There was an error installing Keitaro TDS. Please send email to $SUPPORT_EMAIL with log $ANSIBLE_LOG"
 DICT['en.errors.yum_not_installed']='This installer works only on yum-based systems. Please run $(program_name) in CentOS/RHEL/Fedora distro'
 
@@ -28,7 +28,7 @@ DICT['ru.prompts.admin_login']='Укажите имя администратор
 DICT['ru.prompts.admin_password']='Укажите пароль администратора keitaro'
 DICT['ru.messages.run_command']='Выполняется команда'
 DICT['ru.messages.successful_install']='Установка завершена!'
-DICT['ru.errors.must_be_root']="Ошибка: Эту программу может запускать только root. Попробуйте 'sudo $(program_name)'"
+DICT['ru.errors.must_be_root']='Ошибка: Эту программу может запускать только root.'
 DICT['ru.errors.unsuccessful_install']="Во время установки Keitaro TDS произошла ошибка. Пожалуйста, отправьте email на $SUPPORT_EMAIL приложив $ANSIBLE_LOG"
 DICT['ru.errors.yum_not_installed']='Утановщик keitaro работает только с пакетным менеджером yum. Пожалуйста, запустите $(program_name) в CentOS/RHEL/Fedora дистрибутиве'
 
