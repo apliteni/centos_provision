@@ -59,8 +59,8 @@ DICT['en.prompts.admin_password']='Please enter keitaro admin password'
 DICT['en.prompts.license_ip']='Please enter server IP'
 DICT['en.prompts.license_ip']='Please enter server IP'
 DICT['en.messages.run_command']='Evaluating command'
-DICT['en.messages.successful_install']="Congratulations! You have installed Keitaro TDS"
-DICT['en.errors.unsuccessful_install']="There was an error installing Keitaro. Please, send message to "$SUPPORT_EMAIL" with log "$ANSIBLE_LOG""
+DICT['en.messages.successful_install']='Everything done!'
+DICT['en.errors.unsuccessful_install']="There was an error installing Keitaro TDS. Please send email to "$SUPPORT_EMAIL" with log "$ANSIBLE_LOG""
 DICT['en.errors.yum_not_installed']='This installer works only on yum-based systems. Please run it on CentOS/RHEL/Fedora distros'
 
 DICT['ru.prompts.license_ip']='Укажите IP адрес сервера'
@@ -71,8 +71,8 @@ DICT['ru.prompts.db_password']='Укажите пароль пользовате
 DICT['ru.prompts.admin_login']='Укажите имя администратора keitaro'
 DICT['ru.prompts.admin_password']='Укажите пароль администратора keitaro'
 DICT['ru.messages.run_command']='Выполняется команда'
-DICT['ru.messages.successful_install']='Поздравляем! Вы установили Keitaro TDS'
-DICT['ru.errors.unsuccessful_install']="Во время установки Keitaro TDS произошла ошибка. Пожалуйста, отправьте письмо на "$SUPPORT_EMAIL" приложив "$ANSIBLE_LOG""
+DICT['ru.messages.successful_install']='Установка завершена!'
+DICT['ru.errors.unsuccessful_install']="Во время установки Keitaro TDS произошла ошибка. Пожалуйста, отправьте email на "$SUPPORT_EMAIL" приложив "$ANSIBLE_LOG""
 DICT['ru.errors.yum_not_installed']='Утановщик keitaro работает только с пакетным менеджером yum. Пожалуйста, запустите его в CentOS/RHEL/Fedora дистрибутиве'
 
 
@@ -141,7 +141,7 @@ install_ansible_if_not_installed(){
 install_keitarotds(){
   get_keitaro_provision
   command="ansible-playbook -i ${INVENTORY_FILE} ${KEITARO_PROVISION_DIRECTORY}/playbook.yml >${ANSIBLE_LOG}"
-  run_command "$command" && handle_successful_install || handle_unsuccessful_install
+  run_command "$command" && handle_successful_install || ( handle_unsuccessful_install && exit 1 )
 }
 
 
@@ -181,6 +181,9 @@ run_command(){
 handle_successful_install(){
   message=$(translate 'messages.successful_install')
   echo "$message"
+  echo "http://${VARS['license_ip']}/admin"
+  echo "login: ${VARS['admin_login']}"
+  echo "password: ${VARS['admin_password']}"
 }
 
 

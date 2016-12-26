@@ -45,12 +45,12 @@ class Installer
     end
   end
 
-  attr_accessor :env, :args, :prompts_with_values, :stored_values, :docker_image
+  attr_accessor :env, :args, :prompts_with_values, :stored_values, :docker_image, :command_stubs
   attr_reader :stdout, :stderr, :ret_value, :inventory
 
-  def initialize(env: {}, args: '', prompts_with_values: {}, stored_values: {}, docker_image: nil)
-    @env, @args, @prompts_with_values, @stored_values, @docker_image =
-      env, args, prompts_with_values, stored_values, docker_image
+  def initialize(env: {}, args: '', prompts_with_values: {}, stored_values: {}, docker_image: nil, command_stubs: {})
+    @env, @args, @prompts_with_values, @stored_values, @docker_image, @command_stubs =
+      env, args, prompts_with_values, stored_values, docker_image, command_stubs
     @inventory = Inventory.new
   end
 
@@ -79,12 +79,14 @@ class Installer
   def invoke_installer_cmd(current_dir)
     FileUtils.copy("#{INSTALLER_ROOT}/#{INSTALLER_CMD}", current_dir)
 
+
     Open3.popen3(*installer_cmd(current_dir)) do |stdin, stdout, stderr, wait_thr|
       stdout.sync = true
       stdin.sync = true
 
       @stdout = emulate_interactive_io(stdin, stdout)
       @stderr = Thread.new { stderr.read }.value
+
       @ret_value = wait_thr.value
     end
   end
@@ -95,9 +97,18 @@ class Installer
 
   def installer_cmd(current_dir)
     if docker_image
-      "docker run #{docker_env} --name keitaro_installer_test -i --rm -v #{current_dir}:/data -w /data #{docker_image} ./#{INSTALLER_CMD} #{args}"
+      docker_run = "docker run #{docker_env} --name keitaro_installer_test -i --rm -v #{current_dir}:/data -w /data #{docker_image}"
+      commands = make_command_stubs + ["./#{INSTALLER_CMD} #{args}"]
+      %Q{#{docker_run} sh -c '#{commands.join(' && ')}'}
     else
+      raise "Cann't stub fake commands in real system. Please use docker mode." if command_stubs.any?
       [stringified_env, "#{current_dir}/#{INSTALLER_CMD} #{args}"]
+    end
+  end
+
+  def make_command_stubs
+    command_stubs.map do |command, fake_command|
+      %Q{rm -f `sh -c "command -v #{command}"` && cp #{fake_command} /bin/#{command}}
     end
   end
 
@@ -121,7 +132,6 @@ class Installer
         prompt = stdout_chunk.split("\n").last
 
         if prompt =~ / > $/
-          byebug if prompt =~ /Evaluating/
           key = prompt.match(/[[[:alnum:]]\s]+/)[0].strip
           if prompts_with_values.key?(key)
             stdin.puts(prompts_with_values[key])
@@ -144,11 +154,11 @@ class Installer
       return buffer if char.nil?
 
       buffer << char
-    end while char != '>'
+    end while buffer !~ / > /
 
-    buffer << stdout.getc
     buffer
   end
+
 end
 
 begin
