@@ -83,6 +83,12 @@ DICT['ru.errors.unsuccessful_install']="Во время установки Keita
 DICT['ru.errors.yum_not_installed']='Утановщик keitaro работает только с пакетным менеджером yum. Пожалуйста, запустите $(program_name) в CentOS/RHEL/Fedora дистрибутиве'
 
 
+set_ui_lang(){
+  if empty "$UI_LANG"; then
+    UI_LANG=$(detect_language)
+  fi
+}
+
 detect_language(){
   if ! empty "$LC_ALL"; then
     detect_language_from_var "$LC_ALL"
@@ -356,7 +362,36 @@ parse_options(){
 
 
 usage(){
-  print_err "$(program_name) installs Keitarotds"
+  set_ui_lang
+  if [[ "$UI_LANG" = 'ru' ]]; then
+    ru_usage
+  else
+    en_usage
+  fi
+}
+
+ru_usage(){
+  print_err "$(program_name) устанавливает Keitaro TDS"
+  print_err
+  print_err "Использование: $(program_name) [-psv] [-l en|ru]"
+  print_err
+  print_err "  -p"
+  print_err "    С опцией -p (preserve installation) $(program_name) не запускает установочные команды. Вместо этого текс команд будет показан на экране."
+  print_err
+  print_err "  -s"
+  print_err "    С опцией -s (skip checks) $(program_name) не будет проверять присутствие yum/ansible в системе, не будет проверять факт запуска из под root."
+  print_err
+  print_err "  -v"
+  print_err "    С опцией -v (verbose mode) $(program_name) будет выводить детальную информацию оп процессе установки."
+  print_err
+  print_err "  -l <lang>"
+  print_err "    $(program_name) определяет язык через установленные переменные окружения LANG/LC_MESSAGES/LC_ALL, однако вы можете явно задать язык при помощи параметра -l."
+  print_err "    На данный момент поддерживаются значения en и ru (для английского и русского языков)."
+  print_err
+}
+
+en_usage(){
+  print_err "$(program_name) installs Keitaro TDS"
   print_err
   print_err "Usage: $(program_name) [-psv] [-l en|ru]"
   print_err
@@ -364,14 +399,15 @@ usage(){
   print_err "    The -p (preserve installation) option causes $(program_name) to preserve the invoking of installation commands. Installation commands will be printed to stdout instead."
   print_err
   print_err "  -s"
-  print_err "    The -s (skip checks) option causes $(program_name) to skip checks of yum/ansible presence."
+  print_err "    The -s (skip checks) option causes $(program_name) to skip checks of yum/ansible presence, skip check root running"
   print_err
   print_err "  -v"
   print_err "    The -v (verbose mode) option causes $(program_name) to display more verbose information of installation process."
   print_err
   print_err "  -l <lang>"
-  print_err "    By default $(program_name) try to detect language from LANG environment variable, but you can explicitly set language with -l option."
+  print_err "    By default $(program_name) tries to detect language from LANG/LC_MESSAGES/LC_ALL environment variables, but you can explicitly set language with -l option."
   print_err "    Only en and ru (for English and Russian) values supported now."
+  print_err
 }
 
 
@@ -402,9 +438,7 @@ KEITARO_PROVISION_DIRECTORY=centos_provision-master
 
 parse_options "$@"
 
-if empty "$UI_LANG"; then
-  UI_LANG=$(detect_language)
-fi
+set_ui_lang
 
 print_on_verbose "Verbose mode: on"
 print_on_verbose "Language: ${UI_LANG}"
