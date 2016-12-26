@@ -5,6 +5,7 @@ RSpec.describe 'installer.sh' do
   let(:env) { {} }
   let(:stored_values) { {} }
   let(:docker_image) { nil }
+  let(:command_stubs) { {} }
 
   let(:license_ip) { '8.8.8.8' }
   let(:license_key) { 'WWWW-XXXX-YYYY-ZZZZ' }
@@ -76,24 +77,25 @@ RSpec.describe 'installer.sh' do
   let(:prompts_with_values) { en_prompts_with_values }
 
   let(:installer) do
-    Installer.new(env: env,
+    Installer.new env: env,
                   args: args,
                   prompts_with_values: prompts_with_values,
                   stored_values: stored_values,
-                  docker_image: docker_image)
+                  docker_image: docker_image,
+                  command_stubs: command_stubs
   end
 
   shared_examples_for 'should print to stdout' do |expected_text|
     it "prints to stdout #{expected_text.inspect}" do
       installer.call
-      expect(installer.stdout).to include(expected_text)
+      expect(installer.stdout).to match(expected_text)
     end
   end
 
   shared_examples_for 'should not print to stdout' do |expected_text|
     it "does not print to stdout #{expected_text.inspect}" do
       installer.call
-      expect(installer.stdout).not_to include(expected_text)
+      expect(installer.stdout).not_to match(expected_text)
     end
   end
 
@@ -101,7 +103,7 @@ RSpec.describe 'installer.sh' do
     it 'exits with error' do
       installer.call
       expect(installer.ret_value).not_to be_success
-      expect(installer.stderr).to include(expected_text)
+      expect(installer.stderr).to match(expected_text)
     end
   end
 
@@ -327,6 +329,26 @@ RSpec.describe 'installer.sh' do
 
       it_behaves_like 'should print to stdout', "Try to found yum\nNOK"
       it_behaves_like 'should exit with error', 'This installer works only on yum-based systems'
+    end
+  end
+
+  describe 'installation result' do
+    let(:env) { {LANG: 'C'} }
+
+    let(:docker_image) { 'ansible/centos7-ansible' }
+
+    context 'successful installation' do
+      let(:command_stubs) { {curl: '/bin/true', tar: '/bin/true', 'ansible-playbook': '/bin/true'} }
+
+      it_behaves_like 'should print to stdout',
+                      %r{Everything done!\nhttp://8.8.8.8/admin\nlogin: admin\npassword: \w+}
+    end
+
+    context 'unsuccessfil installation' do
+      let(:command_stubs) { {curl: '/bin/true', tar: '/bin/true', 'ansible-playbook': '/bin/false'} }
+
+      it_behaves_like 'should exit with error',
+                      /There was an error .* send email to support@keitarotds.com/
     end
   end
 end

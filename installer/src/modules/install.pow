@@ -25,7 +25,7 @@ install_ansible_if_not_installed()
 install_keitarotds()
   get_keitaro_provision
   command="ansible-playbook -i ${INVENTORY_FILE} ${KEITARO_PROVISION_DIRECTORY}/playbook.yml >${ANSIBLE_LOG}"
-  run_command $command && handle_successful_install || handle_unsuccessful_install
+  run_command $command && handle_successful_install || ( handle_unsuccessful_install && exit 1 )
 
 
 is_installed(command)
@@ -55,6 +55,9 @@ run_command(command)
 handle_successful_install()
   message=$(translate 'messages.successful_install')
   echo $message
+  echo "http://${VARS['license_ip']}/admin"
+  echo "login: ${VARS['admin_login']}"
+  echo "password: ${VARS['admin_password']}"
 
 
 handle_unsuccessful_install()
