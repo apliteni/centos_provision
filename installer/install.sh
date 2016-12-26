@@ -45,6 +45,11 @@ values ()
 
 
 
+program_name(){
+  echo "${0##*/}"
+}
+
+
 ANSIBLE_LOG=ansible.log
 SUPPORT_EMAIL=support@keitarotds.com
 
@@ -60,8 +65,9 @@ DICT['en.prompts.license_ip']='Please enter server IP'
 DICT['en.prompts.license_ip']='Please enter server IP'
 DICT['en.messages.run_command']='Evaluating command'
 DICT['en.messages.successful_install']='Everything done!'
+DICT['en.errors.must_be_root']="Error: You must run this program as root. Try 'sudo $(program_name)'"
 DICT['en.errors.unsuccessful_install']="There was an error installing Keitaro TDS. Please send email to "$SUPPORT_EMAIL" with log "$ANSIBLE_LOG""
-DICT['en.errors.yum_not_installed']='This installer works only on yum-based systems. Please run it on CentOS/RHEL/Fedora distros'
+DICT['en.errors.yum_not_installed']='This installer works only on yum-based systems. Please run $(program_name) in CentOS/RHEL/Fedora distro'
 
 DICT['ru.prompts.license_ip']='Укажите IP адрес сервера'
 DICT['ru.prompts.license_key']='Укажите лицензионный ключ'
@@ -72,8 +78,9 @@ DICT['ru.prompts.admin_login']='Укажите имя администратор
 DICT['ru.prompts.admin_password']='Укажите пароль администратора keitaro'
 DICT['ru.messages.run_command']='Выполняется команда'
 DICT['ru.messages.successful_install']='Установка завершена!'
+DICT['ru.errors.must_be_root']="Ошибка: Эту программу может запускать только root. Попробуйте 'sudo $(program_name)'"
 DICT['ru.errors.unsuccessful_install']="Во время установки Keitaro TDS произошла ошибка. Пожалуйста, отправьте email на "$SUPPORT_EMAIL" приложив "$ANSIBLE_LOG""
-DICT['ru.errors.yum_not_installed']='Утановщик keitaro работает только с пакетным менеджером yum. Пожалуйста, запустите его в CentOS/RHEL/Fedora дистрибутиве'
+DICT['ru.errors.yum_not_installed']='Утановщик keitaro работает только с пакетным менеджером yum. Пожалуйста, запустите $(program_name) в CentOS/RHEL/Fedora дистрибутиве'
 
 
 detect_language(){
@@ -113,12 +120,24 @@ detect_language_from_var(){
 
 
 
-ensure_yum_installed(){
-  print_on_verbose 'Try to found yum'
-  if is_installed 'yum'; then
-    print_on_verbose 'OK, yum found'
+ensure_running_by_root(){
+  print_on_verbose 'Ensure script has been running by root'
+  if isset "$SKIP_CHECKS"; then
+    print_on_verbose "OK, skip actual checking of current user"
   else
-    print_on_verbose 'NOK, yum not found'
+    if [[ "$EUID" = 0 ]]; then
+      print_on_verbose 'OK, current user is root'
+    else
+      print_on_verbose 'NOK, current user is not root'
+      print_err "$(translate errors.must_be_root)"
+      exit 1
+    fi
+  fi
+}
+
+
+ensure_yum_installed(){
+  if ! is_installed 'yum'; then
     print_err "$(translate errors.yum_not_installed)"
     exit 1
   fi
@@ -126,11 +145,7 @@ ensure_yum_installed(){
 
 
 install_ansible_if_not_installed(){
-  print_on_verbose 'Try to found ansible'
-  if is_installed ansible; then
-    print_on_verbose "OK, ansible found"
-  else
-    print_on_verbose "NOK, ansible not found"
+  if ! is_installed ansible; then
     print_on_verbose "Try to install ansible"
     install_package epel-release
     install_package ansible
@@ -147,12 +162,19 @@ install_keitarotds(){
 
 is_installed(){
   local command="${1}"
+  print_on_verbose "Try to found "$command""
   if isset "$SKIP_CHECKS"; then
-    print_on_verbose "Actual check of '$command' presence skipped"
+    print_on_verbose "OK, skip actual checking of '$command' presence"
   else
-    sh -c "command -v "$command" > /dev/null"
+    if [[ $(sh -c "command -v "$command" -gt /dev/null") ]]; then
+      print_on_verbose "OK, "$command" found"
+    else
+      print_on_verbose "NOK, "$command" not found"
+      return 1
+    fi
   fi
 }
+
 
 
 install_package(){
@@ -179,8 +201,7 @@ run_command(){
 
 
 handle_successful_install(){
-  message=$(translate 'messages.successful_install')
-  echo "$message"
+  echo "$(translate 'messages.successful_install')"
   echo "http://${VARS['license_ip']}/admin"
   echo "login: ${VARS['admin_login']}"
   echo "password: ${VARS['admin_password']}"
@@ -188,8 +209,7 @@ handle_successful_install(){
 
 
 handle_unsuccessful_install(){
-  message=$(translate 'errors.unsuccessful_install')
-  print_err "$message"
+  print_err "$(translate 'errors.unsuccessful_install')"
 }
 
 
@@ -336,22 +356,21 @@ parse_options(){
 
 
 usage(){
-  progname=$(basename "$0")
-  print_err "$progname installs Keitarotds"
+  print_err "$(program_name) installs Keitarotds"
   print_err
-  print_err "Usage: "$progname" [-psv] [-l en|ru]"
+  print_err "Usage: $(program_name) [-psv] [-l en|ru]"
   print_err
   print_err "  -p"
-  print_err "    The -p (preserve installation) option causes "$progname" to preserve the invoking of installation commands. Installation commands will be printed to stdout instead."
+  print_err "    The -p (preserve installation) option causes $(program_name) to preserve the invoking of installation commands. Installation commands will be printed to stdout instead."
   print_err
   print_err "  -s"
-  print_err "    The -s (skip checks) option causes "$progname" to skip checks of yum/ansible presence."
+  print_err "    The -s (skip checks) option causes $(program_name) to skip checks of yum/ansible presence."
   print_err
   print_err "  -v"
-  print_err "    The -v (verbose mode) option causes "$progname" to display more verbose information of installation process."
+  print_err "    The -v (verbose mode) option causes $(program_name) to display more verbose information of installation process."
   print_err
   print_err "  -l <lang>"
-  print_err "    By default "$progname" try to detect language from LANG environment variable, but you can explicitly set language with -l option."
+  print_err "    By default $(program_name) try to detect language from LANG environment variable, but you can explicitly set language with -l option."
   print_err "    Only en and ru (for English and Russian) values supported now."
 }
 
@@ -390,6 +409,7 @@ fi
 print_on_verbose "Verbose mode: on"
 print_on_verbose "Language: ${UI_LANG}"
 
+ensure_running_by_root
 ensure_yum_installed
 
 install_ansible_if_not_installed

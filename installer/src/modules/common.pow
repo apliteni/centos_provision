@@ -1,0 +1,4 @@
+#!/usr/bin/env powscript
+
+program_name()
+  echo "${0##*/}"

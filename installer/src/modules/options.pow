@@ -31,21 +31,20 @@ parse_options()
 
 
 usage()
-  progname=$(basename $0)
-  print_err "$progname installs Keitarotds"
+  print_err "$(program_name) installs Keitarotds"
   print_err
-  print_err "Usage: $progname [-psv] [-l en|ru]"
+  print_err "Usage: $(program_name) [-psv] [-l en|ru]"
   print_err
   print_err "  -p"
-  print_err "    The -p (preserve installation) option causes $progname to preserve the invoking of installation commands. Installation commands will be printed to stdout instead."
+  print_err "    The -p (preserve installation) option causes $(program_name) to preserve the invoking of installation commands. Installation commands will be printed to stdout instead."
   print_err
   print_err "  -s"
-  print_err "    The -s (skip checks) option causes $progname to skip checks of yum/ansible presence."
+  print_err "    The -s (skip checks) option causes $(program_name) to skip checks of yum/ansible presence."
   print_err
   print_err "  -v"
-  print_err "    The -v (verbose mode) option causes $progname to display more verbose information of installation process."
+  print_err "    The -v (verbose mode) option causes $(program_name) to display more verbose information of installation process."
   print_err
   print_err "  -l <lang>"
-  print_err "    By default $progname try to detect language from LANG environment variable, but you can explicitly set language with -l option."
+  print_err "    By default $(program_name) try to detect language from LANG environment variable, but you can explicitly set language with -l option."
   print_err "    Only en and ru (for English and Russian) values supported now."
 
