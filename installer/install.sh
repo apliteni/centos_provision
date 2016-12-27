@@ -48,7 +48,6 @@ values ()
 INSTALL_LOG=install.log
 SUPPORT_EMAIL=support@keitarotds.com
 INVENTORY_FILE=hosts.txt
-PROVISION_DIRECTORY=centos_provision-master
 
 
 declare -A DICT
@@ -535,9 +534,11 @@ download_provision(){
 
 
 run_ansible_playbook(){
-  command="ansible-playbook -i ${INVENTORY_FILE} ${PROVISION_DIRECTORY}/playbook.yml >${INSTALL_LOG}"
-  run_command "$command" && handle_successful_install || handle_unsuccessful_install
-}
+  playbook_path=centos_provision-master/playbook.yml
+  run_command "ansible-playbook -i ${INVENTORY_FILE} ${playbook_path}" \
+    && handle_successful_install \
+    || handle_unsuccessful_install
+  }
 
 
 handle_successful_install(){

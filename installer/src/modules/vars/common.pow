@@ -3,4 +3,3 @@
 INSTALL_LOG=install.log
 SUPPORT_EMAIL=support@keitarotds.com
 INVENTORY_FILE=hosts.txt
-PROVISION_DIRECTORY=centos_provision-master
