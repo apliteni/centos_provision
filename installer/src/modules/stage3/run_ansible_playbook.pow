@@ -1,0 +1,19 @@
+#!/usr/bin/env powscript
+
+
+run_ansible_playbook()
+  command="ansible-playbook -i ${INVENTORY_FILE} ${PROVISION_DIRECTORY}/playbook.yml >${INSTALL_LOG}"
+  run_command $command && handle_successful_install || handle_unsuccessful_install
+
+
+handle_successful_install()
+  print_with_color "$(translate 'messages.successful_install')" 'green'
+  print_with_color "http://${VARS['license_ip']}/admin" 'light.green'
+  colored_login=$(print_with_color "${VARS['admin_login']}" 'light.green')
+  colored_password=$(print_with_color "${VARS['admin_password']}" 'light.green')
+  echo -e "login: ${colored_login}"
+  echo -e "password: ${colored_password}"
+
+
+handle_unsuccessful_install()
+  fail "$(translate 'errors.unsuccessful_install')"

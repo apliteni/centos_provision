@@ -1,8 +1,5 @@
 #!/usr/bin/env powscript
 
-INSTALL_LOG=install.log
-SUPPORT_EMAIL=support@keitarotds.com
-
 DICT={}
 
 DICT['en.prompts.license_key']='Please enter license key'
@@ -18,7 +15,7 @@ DICT['en.messages.successful_install']='Everything done!'
 DICT['en.errors.installation_failed_header']='INSTALLATION FAILED'
 DICT['en.errors.must_be_root']='You must run this program as root.'
 DICT['en.errors.unsuccessful_install']="There was an error installing Keitaro TDS. Please send email to $SUPPORT_EMAIL with log $INSTALL_LOG"
-DICT['en.errors.yum_not_installed']='This installer works only on yum-based systems. Please run $(program_name) in CentOS/RHEL/Fedora distro'
+DICT['en.errors.yum_not_installed']='This installer works only on yum-based systems. Please run $SHELLNAME in CentOS/RHEL/Fedora distro'
 
 DICT['ru.prompts.license_ip']='Укажите IP адрес сервера'
 DICT['ru.prompts.license_key']='Укажите лицензионный ключ'
@@ -32,35 +29,4 @@ DICT['ru.messages.successful_install']='Установка завершена!'
 DICT['ru.errors.installation_failed_header']='ОШИБКА УСТАНОВКИ'
 DICT['ru.errors.must_be_root']='Эту программу может запускать только root.'
 DICT['ru.errors.unsuccessful_install']="Во время установки Keitaro TDS произошла ошибка. Пожалуйста, отправьте email на $SUPPORT_EMAIL приложив $INSTALL_LOG"
-DICT['ru.errors.yum_not_installed']='Утановщик keitaro работает только с пакетным менеджером yum. Пожалуйста, запустите $(program_name) в CentOS/RHEL/Fedora дистрибутиве'
-
-
-set_ui_lang()
-  if empty $UI_LANG
-    UI_LANG=$(detect_language)
-
-detect_language()
-  if not empty $LC_ALL
-    detect_language_from_var $LC_ALL
-  else
-    if not empty $LC_MESSAGES
-      detect_language_from_var $LC_MESSAGES
-    else
-      detect_language_from_var $LANG
-
-
-translate(key)
-  i18n_key=$UI_LANG.$key
-  if isset ${DICT[$i18n_key]}
-    echo $DICT[$i18n_key]
-  else
-    echo $i18n_key
-
-
-detect_language_from_var(lang_value)
-  if $lang_value match ^ru_[[:alpha:]]+\.UTF-8$
-    echo ru
-  else
-    echo en
-
-
+DICT['ru.errors.yum_not_installed']='Утановщик keitaro работает только с пакетным менеджером yum. Пожалуйста, запустите $SHELLNAME в CentOS/RHEL/Fedora дистрибутиве'

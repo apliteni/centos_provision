@@ -1,0 +1,29 @@
+#!/usr/bin/env powscript
+
+
+get_user_vars()
+  get_var 'license_ip'
+  get_var 'license_key'
+  get_var 'db_name'
+  get_var 'db_user'
+  get_var 'db_password'
+  get_var 'admin_login'
+  get_var 'admin_password'
+
+
+get_var(var_name)
+  while true
+    print_prompt $var_name
+    read -r variable
+    if not empty $variable
+      VARS[$var_name]=$variable
+    if not empty ${VARS[$var_name]}
+      break
+
+
+print_prompt(var_name)
+  prompt=$(translate "prompts.$var_name")
+  prompt="$(print_with_color $prompt 'bold')"
+  if not empty ${VARS[$var_name]}
+    prompt="$prompt [${VARS[$var_name]}]"
+  echo -en "$prompt > "

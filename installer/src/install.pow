@@ -1,29 +1,35 @@
 #!/usr/bin/env powscript
 
 
-INVENTORY_FILE=hosts.txt
-KEITARO_PROVISION_DIRECTORY=centos_provision-master
+require "modules/vars/common.pow"
+require "modules/vars/dict.pow"
+require "modules/common/i18n.pow"
+require "modules/common/installing.pow"
+require "modules/common/printing.pow"
+require "modules/stage0.pow"
+require 'modules/stage0/parse_options.pow'
+require 'modules/stage0/set_ui_lang.pow'
+require "modules/stage1.pow"
+require "modules/stage1/asserts.pow"
+require "modules/stage1/install_ansible.pow"
+require "modules/stage2.pow"
+require "modules/stage2/read_inventory_file.pow"
+require "modules/stage2/get_user_vars.pow"
+require "modules/stage2/write_inventory_file.pow"
+require "modules/stage3.pow"
+require "modules/stage3/download_provision.pow"
+require "modules/stage3/run_ansible_playbook.pow"
 
-
-require 'modules/asserts.pow'
-require 'modules/common.pow'
-require 'modules/i18n.pow'
-require 'modules/install.pow'
-require 'modules/inventory.pow'
-require 'modules/parse_options.pow'
 
 # We wrap the entire script in a big function which we only call at the very end, in order to
 # protect against the possibility of the connection dying mid-script. This protects us against
 # the problem described in this blog post:
 #   http://blog.existentialize.com/dont-pipe-to-your-shell.html
 install()
-  parse_options $@
-  set_ui_lang
-  print_info
-  assert_caller_root
-  assert_yum_installed
-  install_ansible_if_not_installed
-  write_inventory_file
-  install_keitarotds
+  stage0 $@     # intital script setup
+  stage1        # check/install required sofware
+  stage2        # write inventory file
+  stage3        # run ansible playbook
+
 
 install $@
