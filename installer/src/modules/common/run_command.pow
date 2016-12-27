@@ -1,0 +1,10 @@
+#!/usr/bin/env powscript
+
+
+run_command(command)
+  run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
+  echo -e "$run_command_message '$command'"
+  if isset $PRESERVE
+    debug "Actual running disabled"
+  else
+    eval "$command &>> install.log"

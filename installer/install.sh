@@ -83,34 +83,29 @@ DICT['ru.errors.yum_not_installed']='Утановщик keitaro работает
 
 
 
-translate(){
-  local key="${1}"
-  i18n_key=$UI_LANG.$key
-  if isset ${DICT[$i18n_key]}; then
-    echo "${DICT[$i18n_key]}"
-  else
-    echo "$i18n_key"
-  fi
+debug(){
+  local message="${1}"
+  print_with_color "$message" 'light.green' >> "$INSTALL_LOG"
 }
 
 
 
-run_command(){
-  local command="${1}"
-  run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
-  echo -e "$run_command_message '$command'"
-  if isset "$PRESERVE"; then
-    debug "Actual running disabled"
-  else
-    eval "$command"
-  fi
+fail(){
+  local message="${1}"
+  print_err "*** $(translate errors.installation_failed_header) ***" 'red'
+  print_err "$message" 'red'
+  print_err
+  exit 1
 }
+
 
 
 install_package(){
   local package="${1}"
   run_command "yum install -y "$package""
 }
+
+
 
 
 is_installed(){
@@ -132,6 +127,14 @@ is_installed(){
 
 is_pipe_mode(){
   [ "${SHELLNAME}" == 'bash' ]
+}
+
+
+
+print_err(){
+  local message="${1}"
+  local color="${2}"
+  print_with_color "$message" "$color" >&2
 }
 
 
@@ -171,43 +174,68 @@ print_with_color(){
 }
 
 
-debug(){
-  local message="${1}"
-  if [[ "$VERBOSE" == "true" ]]; then
-    print_with_color "$message" 'light.green'
+
+
+run_command(){
+  local command="${1}"
+  run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
+  echo -e "$run_command_message '$command'"
+  if isset "$PRESERVE"; then
+    debug "Actual running disabled"
+  else
+    eval "$command &>> install.log"
   fi
 }
 
 
-print_debug_info(){
-  debug "Verbose mode: on"
-  debug "Language: ${UI_LANG}"
-}
 
-
-print_err(){
-  local message="${1}"
-  local color="${2}"
-  print_with_color "$message" "$color" >&2
-}
-
-
-fail(){
-  local message="${1}"
-  print_err "*** $(translate errors.installation_failed_header) ***" 'red'
-  print_err "$message" 'red'
-  print_err
-  exit 1
+translate(){
+  local key="${1}"
+  i18n_key=$UI_LANG.$key
+  if isset ${DICT[$i18n_key]}; then
+    echo "${DICT[$i18n_key]}"
+  else
+    echo "$i18n_key"
+  fi
 }
 
 
 
 stage0(){
+  debug "Run with arguments: '$@'"
+  debug "Current date time: $(date +'%Y-%m-%d %H:%M:%S %:z')"
+}
+
+
+
+recreate_log(){
+  echo -n > "$INSTALL_LOG"
+}
+
+
+
+stage1(){
   parse_options "$@"
   set_ui_lang
   print_debug_info
   hack_stdin_if_pipe_mode
 }
+
+
+hack_stdin_if_pipe_mode(){
+  if is_pipe_mode; then
+    debug 'Detected pipe bash mode. Stdin hack enabled'
+    hack_stdin
+  else
+    debug "Can't detect pipe bash mode. Stdin hack disabled"
+  fi
+}
+
+
+hack_stdin(){
+  exec 3<&1
+}
+
 
 
 
@@ -307,6 +335,13 @@ en_usage(){
 
 
 
+print_debug_info(){
+  debug "Verbose mode: on"
+  debug "Language: ${UI_LANG}"
+}
+
+
+
 set_ui_lang(){
   if empty "$UI_LANG"; then
     UI_LANG=$(detect_language)
@@ -337,23 +372,7 @@ detect_language_from_var(){
 }
 
 
-hack_stdin_if_pipe_mode(){
-  if is_pipe_mode; then
-    debug 'Detected pipe bash mode. Stdin hack enabled'
-    hack_stdin
-  else
-    debug "Can't detect "pipe bash" mode. Stdin hack disabled"
-  fi
-}
-
-
-hack_stdin(){
-  exec 3<&1
-}
-
-
-
-stage1(){
+stage2(){
   assert_caller_root
   assert_yum_installed
   install_ansible_if_not_installed
@@ -412,7 +431,7 @@ VARS['admin_password']=$(generate_password)
 PASSWORD_LENGTH=16
 
 
-stage2(){
+stage3(){
   read_inventory_file
   get_user_vars
   write_inventory_file
@@ -519,7 +538,7 @@ print_line_to_inventory_file(){
 
 
 
-stage3(){
+stage4(){
   download_provision
   run_ansible_playbook
 }
@@ -560,16 +579,18 @@ handle_unsuccessful_install(){
 
 
 install(){
-  debug "Starting stage 0: initial script setup"
+  recreate_log
+  debug "Starting stage 0: log basic info"
   stage0 "$@"
-  debug "Starting stage 1: check/install required sofware"
-  stage1
-  debug "Starting stage 2: write inventory file"
+  debug "Starting stage 1: initial script setup"
+  stage1 "$@"
+  debug "Starting stage 2: check/install required sofware"
   stage2
-  debug "Starting stage 3: run ansible playbook"
+  debug "Starting stage 3: write inventory file"
   stage3
+  debug "Starting stage 4: run ansible playbook"
+  stage4
 }
-
 
 install "$@"
 

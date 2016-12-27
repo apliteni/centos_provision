@@ -1,0 +1,5 @@
+#!/usr/bin/env powscript
+
+
+recreate_log()
+  echo -n > $INSTALL_LOG
