@@ -120,11 +120,15 @@ class Installer
     env.map { |key, value| [key.to_s, value.to_s] }.to_h
   end
 
+  def without_formatting(output)
+    output.gsub /\e\[\d+(;\d+)*m/, ''
+  end
+
   def emulate_interactive_io(stdin, stdout)
     out = ''
     reader_thread = Thread.new {
       begin
-        stdout_chunk = read_stream(stdout)
+        stdout_chunk = without_formatting(read_stream(stdout))
         out << stdout_chunk
 
         break if stdout_chunk == ''

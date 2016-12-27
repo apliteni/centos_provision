@@ -1,4 +1,57 @@
 #!/usr/bin/env powscript
 
+
+COLOR_CODE={}
+
+COLOR_CODE['bold']=1
+
+COLOR_CODE['default']=39
+COLOR_CODE['red']=31
+COLOR_CODE['green']=32
+COLOR_CODE['yellow']=33
+COLOR_CODE['blue']=34
+COLOR_CODE['magenta']=35
+COLOR_CODE['cyan']=36
+COLOR_CODE['grey']=90
+COLOR_CODE['light.red']=91
+COLOR_CODE['light.green']=92
+COLOR_CODE['light.yellow']=99
+COLOR_CODE['light.blue']=94
+COLOR_CODE['light.magenta']=95
+COLOR_CODE['light.cyan']=96
+COLOR_CODE['light.grey']=37
+
+RESET_FORMATTING='\e[0m'
+
+
 program_name()
   echo "${0##*/}"
+
+
+print_with_color(message, color)
+  if ! empty $color
+    escape_sequence="\e[${COLOR_CODE[$color]}m"
+    echo -e "${escape_sequence}${message}${RESET_FORMATTING}"
+  else
+    echo $message
+
+
+debug(message)
+  if $VERBOSE is "true"
+    print_with_color $message 'light.green'
+
+
+print_info()
+  debug "Verbose mode: on"
+  debug "Language: ${UI_LANG}"
+
+
+print_err(message, color)
+  print_with_color $message $color >&2
+
+
+fail(message)
+  print_err "*** $(translate errors.installation_failed_header) ***" 'red'
+  print_err $message 'red'
+  print_err
+  exit 1
