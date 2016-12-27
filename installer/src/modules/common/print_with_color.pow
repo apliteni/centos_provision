@@ -31,23 +31,3 @@ print_with_color(message, color)
   else
     echo $message
 
-
-debug(message)
-  if $VERBOSE is "true"
-    print_with_color $message 'light.green'
-
-
-print_debug_info()
-  debug "Verbose mode: on"
-  debug "Language: ${UI_LANG}"
-
-
-print_err(message, color)
-  print_with_color $message $color >&2
-
-
-fail(message)
-  print_err "*** $(translate errors.installation_failed_header) ***" 'red'
-  print_err $message 'red'
-  print_err
-  exit 1

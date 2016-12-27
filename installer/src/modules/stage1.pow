@@ -1,6 +1,8 @@
 #!/usr/bin/env powscript
 
+
 stage1()
-  assert_caller_root
-  assert_yum_installed
-  install_ansible_if_not_installed
+  parse_options $@
+  set_ui_lang
+  print_debug_info
+  hack_stdin_if_pipe_mode

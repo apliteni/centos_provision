@@ -5,7 +5,7 @@ hack_stdin_if_pipe_mode()
     debug 'Detected pipe bash mode. Stdin hack enabled'
     hack_stdin
   else
-    debug "Can't detect "pipe bash" mode. Stdin hack disabled"
+    debug "Can't detect pipe bash mode. Stdin hack disabled"
 
 
 # Hack: If the script is being read in from a pipe, then FD 0 is not the terminal input. But we
