@@ -2,6 +2,7 @@
 
 
 get_user_vars()
+  debug 'Read vars from user input'
   get_var 'license_ip'
   get_var 'license_key'
   get_var 'db_name'
@@ -14,11 +15,24 @@ get_user_vars()
 get_var(var_name)
   while true
     print_prompt $var_name
-    read -r variable
+    variable=$(read_stdin $var_name)
     if not empty $variable
       VARS[$var_name]=$variable
     if not empty ${VARS[$var_name]}
+      debug "  $var_name=$variable"
       break
+
+
+# Hack: We read from FD 3 in pipe bash mode because when reading the script from a pipe,
+#   FD 0 is the script, not the terminal. We checked above that FD 1 (stdout) is in fact
+#   a terminal and then dup it to FD 3, thus we can input from FD 3 here.
+# Source: https://install.sandstorm.io
+read_stdin(var_name)
+  if is_pipe_mode
+    read -r -u 3 variable
+  else
+    read -r variable
+  echo $variable
 
 
 print_prompt(var_name)

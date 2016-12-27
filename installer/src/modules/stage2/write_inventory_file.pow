@@ -2,6 +2,7 @@
 
 
 write_inventory_file()
+  debug "Write inventory file"
   echo -n > $INVENTORY_FILE
   print_line_to_inventory_file "[server]"
   print_line_to_inventory_file "localhost connection=local"
@@ -17,4 +18,5 @@ write_inventory_file()
 
 
 print_line_to_inventory_file(line)
+  debug "  $line"
   echo "$line" >> $INVENTORY_FILE
