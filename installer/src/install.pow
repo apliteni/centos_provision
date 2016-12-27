@@ -5,10 +5,12 @@ require "modules/vars/common.pow"
 require "modules/vars/dict.pow"
 require "modules/common/i18n.pow"
 require "modules/common/installing.pow"
+require "modules/common/is_pipe_mode.pow"
 require "modules/common/printing.pow"
 require "modules/stage0.pow"
 require 'modules/stage0/parse_options.pow'
 require 'modules/stage0/set_ui_lang.pow'
+require 'modules/stage0/hack_stdin.pow'
 require "modules/stage1.pow"
 require "modules/stage1/asserts.pow"
 require "modules/stage1/install_ansible.pow"
@@ -26,10 +28,14 @@ require "modules/stage3/run_ansible_playbook.pow"
 # the problem described in this blog post:
 #   http://blog.existentialize.com/dont-pipe-to-your-shell.html
 install()
-  stage0 $@     # intital script setup
-  stage1        # check/install required sofware
-  stage2        # write inventory file
-  stage3        # run ansible playbook
+  debug "Starting stage 0: initial script setup"
+  stage0 $@
+  debug "Starting stage 1: check/install required sofware"
+  stage1
+  debug "Starting stage 2: write inventory file"
+  stage2
+  debug "Starting stage 3: run ansible playbook"
+  stage3
 
 
 install $@

@@ -131,6 +131,12 @@ is_installed(){
 
 
 
+is_pipe_mode(){
+  [ "${SHELLNAME}" == 'bash' ]
+}
+
+
+
 declare -A COLOR_CODE
 
 COLOR_CODE['bold']=1
@@ -201,6 +207,7 @@ stage0(){
   parse_options "$@"
   set_ui_lang
   print_debug_info
+  hack_stdin_if_pipe_mode
 }
 
 
@@ -331,6 +338,22 @@ detect_language_from_var(){
 }
 
 
+hack_stdin_if_pipe_mode(){
+  if is_pipe_mode; then
+    debug 'Detected pipe bash mode. Stdin hack enabled'
+    hack_stdin
+  else
+    debug "Can't detect "pipe bash" mode. Stdin hack disabled"
+  fi
+}
+
+
+hack_stdin(){
+  exec 3<&1
+}
+
+
+
 stage1(){
   assert_caller_root
   assert_yum_installed
@@ -422,6 +445,7 @@ parse_line_from_inventory_file(){
 
 
 get_user_vars(){
+  debug 'Read vars from user input'
   get_var 'license_ip'
   get_var 'license_key'
   get_var 'db_name'
@@ -436,14 +460,26 @@ get_var(){
   local var_name="${1}"
   while true; do
     print_prompt "$var_name"
-    read -r variable
+    variable=$(read_stdin "$var_name")
     if ! empty "$variable"; then
       VARS[$var_name]=$variable
     fi
     if ! empty ${VARS[$var_name]}; then
+      debug "  "$var_name"="$variable""
       break
     fi
   done
+}
+
+
+read_stdin(){
+  local var_name="${1}"
+  if is_pipe_mode; then
+    read -r -u 3 variable
+  else
+    read -r variable
+  fi
+  echo "$variable"
 }
 
 
@@ -460,6 +496,7 @@ print_prompt(){
 
 
 write_inventory_file(){
+  debug "Write inventory file"
   echo -n > "$INVENTORY_FILE"
   print_line_to_inventory_file "[server]"
   print_line_to_inventory_file "localhost connection=local"
@@ -477,6 +514,7 @@ write_inventory_file(){
 
 print_line_to_inventory_file(){
   local line="${1}"
+  debug "  "$line""
   echo "$line" >> "$INVENTORY_FILE"
 }
 
@@ -521,10 +559,14 @@ handle_unsuccessful_install(){
 
 
 install(){
-  stage0 "$@"     # intital script setup
-  stage1        # check/install required sofware
-  stage2        # write inventory file
-  stage3        # run ansible playbook
+  debug "Starting stage 0: initial script setup"
+  stage0 "$@"
+  debug "Starting stage 1: check/install required sofware"
+  stage1
+  debug "Starting stage 2: write inventory file"
+  stage2
+  debug "Starting stage 3: run ansible playbook"
+  stage3
 }
 
 
