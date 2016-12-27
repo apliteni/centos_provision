@@ -1,0 +1,6 @@
+#!/usr/bin/env powscript
+
+stage1()
+  assert_caller_root
+  assert_yum_installed
+  install_ansible_if_not_installed

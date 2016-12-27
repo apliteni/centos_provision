@@ -1,0 +1,7 @@
+#!/usr/bin/env powscript
+
+
+stage0()
+  parse_options $@
+  set_ui_lang
+  print_debug_info

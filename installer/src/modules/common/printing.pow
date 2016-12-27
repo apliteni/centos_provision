@@ -24,10 +24,6 @@ COLOR_CODE['light.grey']=37
 RESET_FORMATTING='\e[0m'
 
 
-program_name()
-  echo "${0##*/}"
-
-
 print_with_color(message, color)
   if ! empty $color
     escape_sequence="\e[${COLOR_CODE[$color]}m"
@@ -41,7 +37,7 @@ debug(message)
     print_with_color $message 'light.green'
 
 
-print_info()
+print_debug_info()
   debug "Verbose mode: on"
   debug "Language: ${UI_LANG}"
 
