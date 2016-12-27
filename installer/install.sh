@@ -64,7 +64,8 @@ DICT['en.messages.run_command']='Evaluating command'
 DICT['en.messages.successful_install']='Everything done!'
 DICT['en.errors.installation_failed_header']='INSTALLATION FAILED'
 DICT['en.errors.must_be_root']='You must run this program as root.'
-DICT['en.errors.unsuccessful_install']="There was an error installing Keitaro TDS. Please send email to "$SUPPORT_EMAIL" with log "$INSTALL_LOG""
+DICT['en.errors.unsuccessful_run_command']='There was an error evaluating command'
+DICT['en.errors.please_send_email']="Please send email to "$SUPPORT_EMAIL" with log "$INSTALL_LOG""
 DICT['en.errors.yum_not_installed']='This installer works only on yum-based systems. Please run "$SHELLNAME" in CentOS/RHEL/Fedora distro'
 
 DICT['ru.prompts.license_ip']='Укажите IP адрес сервера'
@@ -78,13 +79,17 @@ DICT['ru.messages.run_command']='Выполняется команда'
 DICT['ru.messages.successful_install']='Установка завершена!'
 DICT['ru.errors.installation_failed_header']='ОШИБКА УСТАНОВКИ'
 DICT['ru.errors.must_be_root']='Эту программу может запускать только root.'
-DICT['ru.errors.unsuccessful_install']="Во время установки Keitaro TDS произошла ошибка. Пожалуйста, отправьте email на "$SUPPORT_EMAIL" приложив "$INSTALL_LOG""
+DICT['ru.errors.unsuccessful_run_command']='Ошибка выполнения команды'
+DICT['ru.errors.please_send_email']="Пожалуйста, отправьте email на "$SUPPORT_EMAIL" приложив "$INSTALL_LOG""
 DICT['ru.errors.yum_not_installed']='Утановщик keitaro работает только с пакетным менеджером yum. Пожалуйста, запустите "$SHELLNAME" в CentOS/RHEL/Fedora дистрибутиве'
 
 
 
 debug(){
   local message="${1}"
+  if [[ "$VERBOSE" == "true" ]]; then
+    print_with_color "$message" 'light.green'
+  fi
   print_with_color "$message" 'light.green' >> "$INSTALL_LOG"
 }
 
@@ -178,13 +183,20 @@ print_with_color(){
 
 run_command(){
   local command="${1}"
+  debug "Evaluating command: ${command}"
   run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
   echo -e "$run_command_message '$command'"
   if isset "$PRESERVE"; then
     debug "Actual running disabled"
   else
-    eval "$command &>> install.log"
+    eval "$command &>> install.log" || handle_unsuccessful_run_command "$command"
   fi
+}
+
+
+handle_unsuccessful_run_command(){
+  local command="${1}"
+  fail "$(translate 'errors.unsuccessful_run_command') '$command'\n$(translate 'errors.please_send_email')"
 }
 
 
@@ -546,7 +558,7 @@ stage4(){
 
 
 download_provision(){
-  release_url=https://github.com/keitarocorp/centos_provision/archive/master.tar.gz
+  release_url=https://xxgithub.com/keitarocorp/centos_provision/archive/master.tar.gz
   run_command "curl -sSL "$release_url" | tar xz"
 }
 
@@ -554,24 +566,18 @@ download_provision(){
 
 run_ansible_playbook(){
   playbook_path=centos_provision-master/playbook.yml
-  run_command "ansible-playbook -i ${INVENTORY_FILE} ${playbook_path}" \
-    && handle_successful_install \
-    || handle_unsuccessful_install
-  }
+  run_command "ansible-playbook -i ${INVENTORY_FILE} ${playbook_path}"
+  show_successful_install_message
+}
 
 
-handle_successful_install(){
+show_successful_install_message(){
   print_with_color "$(translate 'messages.successful_install')" 'green'
   print_with_color "http://${VARS['license_ip']}/admin" 'light.green'
   colored_login=$(print_with_color "${VARS['admin_login']}" 'light.green')
   colored_password=$(print_with_color "${VARS['admin_password']}" 'light.green')
   echo -e "login: ${colored_login}"
   echo -e "password: ${colored_password}"
-}
-
-
-handle_unsuccessful_install(){
-  fail "$(translate 'errors.unsuccessful_install')"
 }
 
 

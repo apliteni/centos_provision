@@ -3,19 +3,14 @@
 
 run_ansible_playbook()
   playbook_path=centos_provision-master/playbook.yml
-  run_command "ansible-playbook -i ${INVENTORY_FILE} ${playbook_path}" \
-    && handle_successful_install \
-    || handle_unsuccessful_install
+  run_command "ansible-playbook -i ${INVENTORY_FILE} ${playbook_path}"
+  show_successful_install_message
 
 
-handle_successful_install()
+show_successful_install_message()
   print_with_color "$(translate 'messages.successful_install')" 'green'
   print_with_color "http://${VARS['license_ip']}/admin" 'light.green'
   colored_login=$(print_with_color "${VARS['admin_login']}" 'light.green')
   colored_password=$(print_with_color "${VARS['admin_password']}" 'light.green')
   echo -e "login: ${colored_login}"
   echo -e "password: ${colored_password}"
-
-
-handle_unsuccessful_install()
-  fail "$(translate 'errors.unsuccessful_install')"

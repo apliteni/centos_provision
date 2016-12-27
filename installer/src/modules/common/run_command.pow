@@ -2,9 +2,14 @@
 
 
 run_command(command)
+  debug "Evaluating command: ${command}"
   run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
   echo -e "$run_command_message '$command'"
   if isset $PRESERVE
     debug "Actual running disabled"
   else
-    eval "$command &>> install.log"
+    eval "$command &>> install.log" || handle_unsuccessful_run_command $command
+
+
+handle_unsuccessful_run_command(command)
+  fail "$(translate 'errors.unsuccessful_run_command') '$command'\n$(translate 'errors.please_send_email')"
