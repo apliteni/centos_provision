@@ -24,11 +24,11 @@ write_inventory_file()
 
 read_vars_from_inventory_file()
   if [ -f $INVENTORY_FILE ]
-    print_on_verbose "Inventory file found, read defaults from it"
+    debug "Inventory file found, read defaults from it"
     for line from $INVENTORY_FILE
       parse_line_from_inventory_file $line
   else
-    print_on_verbose "Inventory file not found"
+    debug "Inventory file not found"
 
 
 get_vars_from_user()
@@ -60,20 +60,25 @@ parse_line_from_inventory_file(line)
   if $line match =
     IFS="=" read var_name value <<< $line
     VARS[$var_name]=$value
-    print_on_verbose "  $var_name=${VARS[$var_name]}"
+    debug "  $var_name=${VARS[$var_name]}"
 
 
 get_var(var_name)
-  prompt=$(translate prompts.$var_name)
-  if not empty ${VARS[$var_name]}
-    prompt="$prompt [${VARS[$var_name]}]"
   while true
-    echo -n "$prompt > "
+    print_prompt $var_name
     read -r variable
     if not empty $variable
       VARS[$var_name]=$variable
     if not empty ${VARS[$var_name]}
       break
+
+
+print_prompt(var_name)
+  prompt=$(translate "prompts.$var_name")
+  prompt="$(print_with_color $prompt 'bold')"
+  if not empty ${VARS[$var_name]}
+    prompt="$prompt [${VARS[$var_name]}]"
+  echo -en "$prompt > "
 
 
 print_line_to_inventory_file(line)

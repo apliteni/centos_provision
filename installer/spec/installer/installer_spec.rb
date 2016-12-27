@@ -356,6 +356,6 @@ RSpec.describe 'installer.sh' do
   describe 'check running under non-root' do
     let(:env) { {LANG: 'C'} }
 
-    it_behaves_like 'should exit with error', 'Error: You must run this program as root'
+    it_behaves_like 'should exit with error', 'You must run this program as root'
   end
 end

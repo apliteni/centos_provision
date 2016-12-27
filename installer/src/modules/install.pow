@@ -1,49 +1,29 @@
 #!/usr/bin/env powscript
 
 
-ensure_running_by_root()
-  print_on_verbose 'Ensure script has been running by root'
-  if isset $SKIP_CHECKS
-    print_on_verbose "OK, skip actual checking of current user"
-  else
-    if $EUID = 0
-      print_on_verbose 'OK, current user is root'
-    else
-      print_on_verbose 'NOK, current user is not root'
-      print_err "$(translate errors.must_be_root)"
-      exit 1
-
-
-ensure_yum_installed()
-  if ! is_installed 'yum'
-    print_err "$(translate errors.yum_not_installed)"
-    exit 1
-
-
 install_ansible_if_not_installed()
   if ! is_installed ansible
-    print_on_verbose "Try to install ansible"
+    debug "Try to install ansible"
     install_package epel-release
     install_package ansible
 
 
 install_keitarotds()
   get_keitaro_provision
-  command="ansible-playbook -i ${INVENTORY_FILE} ${KEITARO_PROVISION_DIRECTORY}/playbook.yml >${ANSIBLE_LOG}"
-  run_command $command && handle_successful_install || ( handle_unsuccessful_install && exit 1 )
+  command="ansible-playbook -i ${INVENTORY_FILE} ${KEITARO_PROVISION_DIRECTORY}/playbook.yml >${INSTALL_LOG}"
+  run_command $command && handle_successful_install || handle_unsuccessful_install
 
 
 is_installed(command)
-  print_on_verbose "Try to found $command"
+  debug "Try to found $command"
   if isset $SKIP_CHECKS
-    print_on_verbose "OK, skip actual checking of '$command' presence"
+    debug "OK, skip actual checking of '$command' presence"
   else
     if $(sh -c "command -v $command > /dev/null")
-      print_on_verbose "OK, $command found"
+      debug "OK, $command found"
     else
-      print_on_verbose "NOK, $command not found"
+      debug "NOK, $command not found"
       return 1
-
 
 
 install_package(package)
@@ -56,19 +36,22 @@ get_keitaro_provision()
 
 
 run_command(command)
-  echo "$(translate 'messages.run_command') '$command'"
+  run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
+  echo -e "$run_command_message '$command'"
   if isset $PRESERVE
-    print_on_verbose "Actual running disabled"
+    debug "Actual running disabled"
   else
     eval $command
 
 
 handle_successful_install()
-  echo "$(translate 'messages.successful_install')"
-  echo "http://${VARS['license_ip']}/admin"
-  echo "login: ${VARS['admin_login']}"
-  echo "password: ${VARS['admin_password']}"
+  print_with_color "$(translate 'messages.successful_install')" 'green'
+  print_with_color "http://${VARS['license_ip']}/admin" 'light.green'
+  colored_login=$(print_with_color "${VARS['admin_login']}" 'light.green')
+  colored_password=$(print_with_color "${VARS['admin_password']}" 'light.green')
+  echo -e "login: ${colored_login}"
+  echo -e "password: ${colored_password}"
 
 
 handle_unsuccessful_install()
-  print_err "$(translate 'errors.unsuccessful_install')"
+  fail "$(translate 'errors.unsuccessful_install')"
