@@ -1,0 +1,6 @@
+#!/usr/bin/env powscript
+
+INSTALL_LOG="install.$(date -u +'%Y%m%d.%H%M%S').log"
+SUPPORT_EMAIL=support@keitarotds.com
+INVENTORY_FILE=hosts.txt
+PROVISION_DIRECTORY=centos_provision-master

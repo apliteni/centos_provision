@@ -1,0 +1,7 @@
+#!/usr/bin/env powscript
+
+
+debug(message)
+  if $VERBOSE is "true"
+    print_with_color $message 'light.green'
+  print_with_color $message 'light.green' >> $INSTALL_LOG

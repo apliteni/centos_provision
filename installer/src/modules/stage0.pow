@@ -1,0 +1,6 @@
+#!/usr/bin/env powscript
+
+
+stage0()
+  debug "Run with arguments: '$@'"
+  debug "Current date time: $(date +'%Y-%m-%d %H:%M:%S %:z')"
