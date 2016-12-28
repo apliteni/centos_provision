@@ -189,7 +189,7 @@ run_command(){
   if isset "$PRESERVE"; then
     debug "Actual running disabled"
   else
-    eval "$command &>> install.log" || handle_unsuccessful_run_command "$command"
+    bash -c "set -euo pipefail; ($command) &>> "$INSTALL_LOG"" || handle_unsuccessful_run_command "$command"
   fi
 }
 
@@ -558,7 +558,7 @@ stage4(){
 
 
 download_provision(){
-  release_url=https://xxgithub.com/keitarocorp/centos_provision/archive/master.tar.gz
+  release_url=https://github.com/keitarocorp/centos_provision/archive/master.tar.gz
   run_command "curl -sSL "$release_url" | tar xz"
 }
 
