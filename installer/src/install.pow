@@ -14,7 +14,6 @@ require "modules/common/print_with_color.pow"
 require "modules/common/run_command.pow"
 require "modules/common/translate.pow"
 require "modules/stage0.pow"
-require "modules/stage0/recreate_log.pow"
 require "modules/stage1.pow"
 require 'modules/stage1/hack_stdin.pow'
 require 'modules/stage1/parse_options.pow'
@@ -37,7 +36,6 @@ require "modules/stage4/run_ansible_playbook.pow"
 # the problem described in this blog post:
 #   http://blog.existentialize.com/dont-pipe-to-your-shell.html
 install()
-  recreate_log
   debug "Starting stage 0: log basic info"
   stage0 $@
   debug "Starting stage 1: initial script setup"

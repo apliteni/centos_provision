@@ -45,7 +45,7 @@ values ()
 
 
 
-INSTALL_LOG=install.log
+INSTALL_LOG="install.$(date -u +'%Y%m%d.%H%M%S').log"
 SUPPORT_EMAIL=support@keitarotds.com
 INVENTORY_FILE=hosts.txt
 PROVISION_DIRECTORY=centos_provision-master
@@ -239,12 +239,6 @@ translate(){
 stage0(){
   debug "Run with arguments: '$@'"
   debug "Current date time: $(date +'%Y-%m-%d %H:%M:%S %:z')"
-}
-
-
-
-recreate_log(){
-  echo -n > "$INSTALL_LOG"
 }
 
 
@@ -608,7 +602,6 @@ show_successful_install_message(){
 
 
 install(){
-  recreate_log
   debug "Starting stage 0: log basic info"
   stage0 "$@"
   debug "Starting stage 1: initial script setup"
