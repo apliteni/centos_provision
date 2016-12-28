@@ -65,7 +65,7 @@ DICT['en.messages.successful_install']='Everything done!'
 DICT['en.errors.installation_failed_header']='INSTALLATION FAILED'
 DICT['en.errors.must_be_root']='You must run this program as root.'
 DICT['en.errors.unsuccessful_run_command']='There was an error evaluating command'
-DICT['en.errors.please_send_email']="Please send email to "$SUPPORT_EMAIL" with log "$INSTALL_LOG""
+DICT['en.errors.please_send_email']="Please send email to "$SUPPORT_EMAIL" with attached "$INSTALL_LOG""
 DICT['en.errors.yum_not_installed']='This installer works only on yum-based systems. Please run "$SHELLNAME" in CentOS/RHEL/Fedora distro'
 
 DICT['ru.prompts.license_ip']='Укажите IP адрес сервера'
@@ -189,14 +189,26 @@ run_command(){
   if isset "$PRESERVE"; then
     debug "Actual running disabled"
   else
-    bash -c "set -euo pipefail; ($command) &>> "$INSTALL_LOG"" || handle_unsuccessful_run_command "$command"
+    bash -c "set -euo pipefail; ($command) &>> "$INSTALL_LOG"" & pid=$!
+    print_dots_while_alive "$pid"
+    handle_failed_process "$pid"
   fi
 }
 
+print_dots_while_alive(){
+  local pid="${1}"
+  while kill -0 "$pid" 2>/dev/null; do
+    echo -n  "."
+    sleep 1
+  done
+  echo
+}
 
-handle_unsuccessful_run_command(){
-  local command="${1}"
-  fail "$(translate 'errors.unsuccessful_run_command') '$command'\n$(translate 'errors.please_send_email')"
+handle_failed_process(){
+  local pid="${1}"
+  if ! wait "$pid"; then
+    fail "$(translate 'errors.unsuccessful_run_command') '$command'\n$(translate 'errors.please_send_email')"
+  fi
 }
 
 
@@ -566,7 +578,7 @@ download_provision(){
 
 run_ansible_playbook(){
   playbook_path=centos_provision-master/playbook.yml
-  run_command "ansible-playbook -i ${INVENTORY_FILE} ${playbook_path}"
+  run_command "ansible-playbook -vvv -i ${INVENTORY_FILE} ${playbook_path}"
   show_successful_install_message
 }
 
