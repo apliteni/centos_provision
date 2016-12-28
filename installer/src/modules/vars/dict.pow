@@ -15,7 +15,7 @@ DICT['en.messages.successful_install']='Everything done!'
 DICT['en.errors.installation_failed_header']='INSTALLATION FAILED'
 DICT['en.errors.must_be_root']='You must run this program as root.'
 DICT['en.errors.unsuccessful_run_command']='There was an error evaluating command'
-DICT['en.errors.please_send_email']="Please send email to $SUPPORT_EMAIL with log $INSTALL_LOG"
+DICT['en.errors.please_send_email']="Please send email to $SUPPORT_EMAIL with attached $INSTALL_LOG"
 DICT['en.errors.yum_not_installed']='This installer works only on yum-based systems. Please run $SHELLNAME in CentOS/RHEL/Fedora distro'
 
 DICT['ru.prompts.license_ip']='Укажите IP адрес сервера'
