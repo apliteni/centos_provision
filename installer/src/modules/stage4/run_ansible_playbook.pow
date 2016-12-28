@@ -3,7 +3,7 @@
 
 run_ansible_playbook()
   playbook_path=centos_provision-master/playbook.yml
-  run_command "ansible-playbook -i ${INVENTORY_FILE} ${playbook_path}"
+  run_command "ansible-playbook -vvv -i ${INVENTORY_FILE} ${playbook_path}"
   show_successful_install_message
 
 
