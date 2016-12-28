@@ -301,7 +301,7 @@ RSpec.describe 'installer.sh' do
                       'curl -sSL https://github.com/keitarocorp/centos_provision/archive/master.tar.gz | tar xz'
 
       it_behaves_like 'should print to stdout',
-                      "ansible-playbook -i #{Installer::INVENTORY_FILE} centos_provision-master/playbook.yml"
+                      "ansible-playbook -vvv -i #{Installer::INVENTORY_FILE} centos_provision-master/playbook.yml"
     end
 
     context 'yum presented, ansible presented' do
@@ -349,7 +349,7 @@ RSpec.describe 'installer.sh' do
       let(:command_stubs) { {curl: '/bin/true', tar: '/bin/true', 'ansible-playbook': '/bin/false'} }
 
       it_behaves_like 'should exit with error',
-                      /There was an error .* send email to support@keitarotds.com/
+                      /There was an error .* send email to support@keitarotds.com/m
     end
   end
 
