@@ -1,0 +1,6 @@
+#!/usr/bin/env powscript
+
+
+install_package(package)
+  run_command "yum install -y $package"
+
