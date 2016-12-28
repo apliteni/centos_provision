@@ -8,7 +8,7 @@ run_command(command)
   if isset $PRESERVE
     debug "Actual running disabled"
   else
-    eval "$command &>> install.log" || handle_unsuccessful_run_command $command
+    bash -c "set -euo pipefail; ($command) &>> $INSTALL_LOG" || handle_unsuccessful_run_command $command
 
 
 handle_unsuccessful_run_command(command)
