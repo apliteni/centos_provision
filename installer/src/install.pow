@@ -3,6 +3,7 @@
 
 require "modules/vars/common.pow"
 require "modules/vars/dict.pow"
+require "modules/common/cleanup.pow"
 require "modules/common/debug.pow"
 require "modules/common/fail.pow"
 require "modules/common/install_package.pow"

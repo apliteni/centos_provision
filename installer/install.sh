@@ -48,6 +48,7 @@ values ()
 INSTALL_LOG=install.log
 SUPPORT_EMAIL=support@keitarotds.com
 INVENTORY_FILE=hosts.txt
+PROVISION_DIRECTORY=centos_provision-master
 
 
 declare -A DICT
@@ -85,6 +86,15 @@ DICT['ru.errors.yum_not_installed']='Утановщик keitaro работает
 
 
 
+cleanup(){
+  if [ -d "$PROVISION_DIRECTORY" ]; then
+    debug "Remove ${PROVISION_DIRECTORY}"
+    rm -rf "$PROVISION_DIRECTORY"
+  fi
+}
+
+
+
 debug(){
   local message="${1}"
   if [[ "$VERBOSE" == "true" ]]; then
@@ -100,6 +110,7 @@ fail(){
   print_err "*** $(translate errors.installation_failed_header) ***" 'red'
   print_err "$message" 'red'
   print_err
+  cleanup
   exit 1
 }
 
@@ -577,8 +588,8 @@ download_provision(){
 
 
 run_ansible_playbook(){
-  playbook_path=centos_provision-master/playbook.yml
-  run_command "ansible-playbook -vvv -i ${INVENTORY_FILE} ${playbook_path}"
+  run_command "ansible-playbook -vvv -i ${INVENTORY_FILE} ${PROVISION_DIRECTORY}/playbook.yml"
+  cleanup
   show_successful_install_message
 }
 
