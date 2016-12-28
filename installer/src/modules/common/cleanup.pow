@@ -1,0 +1,7 @@
+#!/usr/bin/env powscript
+
+
+cleanup()
+  if [ -d $PROVISION_DIRECTORY ]
+    debug "Remove ${PROVISION_DIRECTORY}"
+    rm -rf $PROVISION_DIRECTORY
