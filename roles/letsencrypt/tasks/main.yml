@@ -1,0 +1,16 @@
+---
+
+- name: Install packages
+  package:
+    name: certbot
+    state: installed
+
+- name: Detect existence of letsencrypt certificate
+  stat:
+    path: "/etc/letsencrypt/live/{{letsencrypt_cert_domains}}"
+  register: letsencrypt_cert_dir
+
+- name: Obtain Let's Encrypt cert
+  command: "{{ letsencrypt_command }} certonly --register-unsafely-without-email --agree-tos "
+  when: not (letsencrypt_cert_dir.stat.islnk is defined and letsencrypt_cert_dir.stat.islnk)
+
