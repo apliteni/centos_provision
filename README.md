@@ -23,9 +23,9 @@ Download and unpack the ansible playbook
     unzip master.zip
     cd master
     cp hosts.example.txt hosts.txt
-     
+
 Edit file ```hosts.txt```
-     
+
     [app]
     YOUR_IP
     
@@ -39,7 +39,9 @@ Edit file ```hosts.txt```
     license_key = LICENSE_KEY
     admin_login = ADMIN_LOGIN
     admin_password = ADMIN_PASSWORD
-    
+    letsencrypt_cert = true                                          # If you want access keitaro by https
+    site_domains = SITE_DOMAIN,SITE_DOMAIN_ALIAS1,SITE_DOMAIN_ALIAS2 # You must set this value if you want use https
+
 Run 
 
     ansible-playbook -i hosts.txt playbook.yml
@@ -47,7 +49,7 @@ Run
 
 Answer ```yes```
 
-    $ ansible-playbook -i hosts.txt app.yml                                                                                
+    $ ansible-playbook -i hosts.txt playbook.yml
     
     PLAY ***************************************************************************
     
@@ -58,15 +60,15 @@ Answer ```yes```
     yes
     
 ## Configuration
-    
-Take a look to ```vars/server.yml```.    
-    
+
+Take a look to ```vars/server.yml```.
+
 ## Troubleshooting
-    
-Run ansible 
+
+Run ansible
 
     ansible-playbook -i hosts.txt playbook.yml -vvv
-                                    
-                                    
-    
-support@keitarotds.com 
+
+
+
+support@keitarotds.com

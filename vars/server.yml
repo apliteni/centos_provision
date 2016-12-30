@@ -67,10 +67,12 @@ nginx_vhosts:
         access_log /var/log/nginx/admin.access.log combined buffer=16k;
       }
 
-
 # Firewall
 firewall_allowed_tcp_ports:
   - 22
   - 443
   - 80
   - 1500 # isp manager
+
+letsencrypt_webroot_path: "{{ keitaro.path }}"
+letsencrypt_cert_domains: "{{ site_domains.split(',') }}"
