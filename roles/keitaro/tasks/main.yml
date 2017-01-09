@@ -1,5 +1,5 @@
 ---
-- name: prepare keitaro dir
+- name: Prepare keitaro dir
   file:
     path={{ keitaro.path }}
     state=directory
@@ -7,13 +7,13 @@
     group={{ os_user }}
     mode=0777
 
-- name: download installer
+- name: Download installer
   tags: keitaro
   get_url:
     url=http://keitarotds.com/getfile/install
     dest={{ keitaro.path }}/install.php
 
-- name: install Keitaro TDS
+- name: Install Keitaro TDS
   tags: keitaro
   shell: |
     cd {{ keitaro.path }} && \
@@ -27,6 +27,8 @@
         --admin-password='{{ admin_password }}' \
         --draft-storage=redis \
         --cache-storage=redis
+  register: command_result
+  failed_when: "'Installation Finished' not in command_result.stdout"
 
 - name: Add cron task
   tags: keitaro
