@@ -14,3 +14,15 @@
   command: "{{ letsencrypt_command }} certonly --register-unsafely-without-email --agree-tos "
   when: not (letsencrypt_cert_dir.stat.islnk is defined and letsencrypt_cert_dir.stat.islnk)
 
+
+- name: Generate strong Diffie-Hellman group
+  command: "openssl dhparam -out /etc/ssl/certs/dhparam.pem 2048"
+
+- name: Add managed https vhost config file (if any vhosts are configured).
+  template:
+    src: vhosts.j2
+    dest: "/etc/nginx/conf.d/https_vhosts.conf"
+    mode: 0644
+  notify:
+    - reload nginx
+
