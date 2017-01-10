@@ -1,10 +1,16 @@
 ---
-- name: install redis
+- name: Install redis
   yum:
     name=redis
     state=latest
 
-- name: run redis
+- name: Tune redis tcp-backlog
+  lineinfile:
+    dest=/etc/redis.conf
+    regexp='^tcp-backlog \d+'
+    line='tcp-backlog 65535'
+
+- name: Run redis
   service:
     name=redis
     state=started
