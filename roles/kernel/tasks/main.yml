@@ -7,17 +7,14 @@
   ignore_errors: true
   with_dict: "{{ kernel_sysctl_tweaks }}"
 
-- name: Add service for disabling Transparent Huge Pages
+- name: Add service file for disabling Transparent Huge Pages
   copy:
     src: files/disable-transparent-hugepages
     dest: /etc/init.d/disable-transparent-hugepages
     mode: 0755
 
-#- name: Enable service for disabling THP
-#  command: chkconfig --add disable-transparent-hugepages
-#
-- name: Disable THP
-  systemd:
+- name: Run service for disabling THP
+  service:
     name: disable-transparent-hugepages
     state: restarted
     enabled: yes
