@@ -5,11 +5,11 @@
   become_method: sudo
   vars_files:
     - vars/server.yml
-#  pre_tasks:
-#    - name: Upgrade all packages
-#      yum:
-#        name=*
-#        state=latest
+  pre_tasks:
+    - name: Upgrade all packages
+      yum:
+        name=*
+        state=latest
 
   roles:
     - {role: 'kernel', tags: 'kernel'}

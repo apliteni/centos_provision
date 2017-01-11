@@ -1,0 +1,16 @@
+- name: Detect existence of letsencrypt certificate
+  stat:
+    path: "/etc/letsencrypt/live/{{ domain }}"
+  register: letsencrypt_cert_dir
+
+- name: Obtain Let's Encrypt cert
+  command: "{{ letsencrypt_command }} certonly --register-unsafely-without-email --agree-tos --domain={{ domain }}"
+  when: not letsencrypt_cert_dir.stat.exists
+
+- name: Add managed https vhost config file (if any vhosts are configured).
+  template:
+    src: vhost.j2
+    dest: "/etc/nginx/conf.d/https_{{ domain }}.conf"
+    mode: 0644
+  notify:
+    - reload nginx
