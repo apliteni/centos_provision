@@ -6,4 +6,3 @@
     state: present
   ignore_errors: true
   with_dict: "{{ kernel_sysctl_tweaks }}"
-
