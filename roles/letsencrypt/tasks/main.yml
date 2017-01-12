@@ -14,6 +14,18 @@
   command: "openssl dhparam  -out /etc/ssl/certs/dhparam.pem 2048"
   when: not dhparam.stat.exists
 
-- name: Add SSL support to host
-  include: add_host.yml domain={{item}}
-  with_items: "{{ letsencrypt_cert_domains }}"
+- name: Obtain Let's Encrypt cert
+  command:
+    certbot certonly --webroot --webroot-path={{letsencrypt_webroot_path}} \
+                     {% for domain in letsencrypt_cert_domains %}--domain {{ domain }} {% endfor %} \
+                     --register-unsafely-without-email \
+                     --agree-tos \
+                     --non-interactive
+
+- name: Add managed ssl vhosts config file
+  template:
+    src: ssl_vhosts.j2
+    dest: "/etc/nginx/conf.d/ssl_vhosts.conf"
+    mode: 0644
+  notify:
+    - reload nginx
