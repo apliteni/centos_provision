@@ -4,7 +4,7 @@
   register: letsencrypt_cert_dir
 
 - name: Obtain Let's Encrypt cert
-  command: "{{ letsencrypt_command }} certonly --register-unsafely-without-email --agree-tos --domain={{ domain }}"
+  command: "{{ letsencrypt_command }} --domain={{ domain }}"
   when: not letsencrypt_cert_dir.stat.exists
 
 - name: Add managed https vhost config file (if any vhosts are configured).
