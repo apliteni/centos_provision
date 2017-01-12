@@ -1,9 +1,10 @@
 server {
-    listen 443 ssl;
-    server_name {{ domain }};
+    listen 443 default_server ssl;
 
-    ssl_certificate /etc/letsencrypt/live/{{ domain }}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/{{ domain }}/privkey.pem;
+    server_name {{ site_domains }};
+
+    ssl_certificate /etc/letsencrypt/live/{{ letsencrypt_cert_domains[0] }}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/{{ letsencrypt_cert_domains[0] }}/privkey.pem;
 
     ssl_session_cache   shared:SSL:10m;
     ssl_session_timeout 10m;
