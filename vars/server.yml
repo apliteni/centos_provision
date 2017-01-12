@@ -20,7 +20,6 @@ mariadb_users:
 
 # NGinx
 nginx_vhost: &nginx_vhost
-  server_name: "{% if site_domains is defined %}{{ site_domains | replace(',', ' ') }}{% else %}_{% endif %}"
   root: "{{ keitaro.path }}"
   index: index.php
   charset: utf-8
