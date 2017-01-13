@@ -401,10 +401,10 @@ detect_language_from_var(){
 }
 
 
+
 stage2(){
   assert_caller_root
   assert_yum_installed
-  install_ansible_if_not_installed
 }
 
 
@@ -556,9 +556,8 @@ print_line_to_inventory_file(){
 }
 
 
-stage2(){
-  assert_caller_root
-  assert_yum_installed
+
+stage4(){
   install_ansible_if_not_installed
 }
 
