@@ -6,6 +6,7 @@
     - "{{php_version}}-php-fpm"
     - "{{php_version}}-php-devel"
     - "{{php_version}}-php-mysqlnd"
+    - "{{php_version}}-php-opcache"
     - "{{php_version}}-php-pecl-redis"
     - "{{php_version}}-php-mbstring"
     - "{{php_version}}-php-pear"
