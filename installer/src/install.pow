@@ -21,14 +21,15 @@ require 'modules/stage1/print_debug_info.pow'
 require 'modules/stage1/set_ui_lang.pow'
 require "modules/stage2.pow"
 require "modules/stage2/asserts.pow"
-require "modules/stage2/install_ansible.pow"
 require "modules/stage3.pow"
 require "modules/stage3/read_inventory_file.pow"
 require "modules/stage3/get_user_vars.pow"
 require "modules/stage3/write_inventory_file.pow"
 require "modules/stage4.pow"
-require "modules/stage4/download_provision.pow"
-require "modules/stage4/run_ansible_playbook.pow"
+require "modules/stage4/install_ansible.pow"
+require "modules/stage5.pow"
+require "modules/stage5/download_provision.pow"
+require "modules/stage5/run_ansible_playbook.pow"
 
 
 # We wrap the entire script in a big function which we only call at the very end, in order to
@@ -40,11 +41,13 @@ install()
   stage0 $@
   debug "Starting stage 1: initial script setup"
   stage1 $@
-  debug "Starting stage 2: check/install required sofware"
+  debug "Starting stage 2: make some asserts"
   stage2
   debug "Starting stage 3: write inventory file"
   stage3
-  debug "Starting stage 4: run ansible playbook"
+  debug "Starting stage 4: install ansible"
   stage4
+  debug "Starting stage 5: run ansible playbook"
+  stage5
 
 install $@
