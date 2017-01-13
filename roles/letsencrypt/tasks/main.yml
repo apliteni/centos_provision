@@ -32,7 +32,7 @@
                      --register-unsafely-without-email \
                      --agree-tos \
                      --non-interactive
-  become_user: nginx
+  become_user: "{{ os_user }}"
 
 - name: Add ssl support to nginx config file (listen section)
   lineinfile:
@@ -67,4 +67,4 @@
     job: certbot renew
     hour: "{{ ansible_date_time.hour }}"
     minute: "{{ ansible_date_time.minute }}"
-    user: nginx
+    user: "{{ os_user }}"
