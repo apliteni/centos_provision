@@ -1,7 +1,7 @@
 ---
 php_version: 'php70'
 timezone: Europe/Moscow
-swap_size: 2048M
+swap_size: 2048
 os_user: nginx
 php_memory_limit: 500M
 
@@ -73,4 +73,5 @@ firewall_allowed_tcp_ports:
   - 22
   - 443
   - 80
+  - 3333 # friendhosting ssh
   - 1500 # isp manager
