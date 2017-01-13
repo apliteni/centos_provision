@@ -432,16 +432,6 @@ assert_yum_installed(){
 
 
 
-install_ansible_if_not_installed(){
-  if ! is_installed ansible; then
-    debug "Try to install ansible"
-    install_package epel-release
-    install_package ansible
-  fi
-}
-
-
-
 generate_password(){
   LC_ALL=C tr -cd '[:alnum:]' < /dev/urandom | head -c16
 }
@@ -566,8 +556,25 @@ print_line_to_inventory_file(){
 }
 
 
+stage2(){
+  assert_caller_root
+  assert_yum_installed
+  install_ansible_if_not_installed
+}
 
-stage4(){
+
+
+install_ansible_if_not_installed(){
+  if ! is_installed ansible; then
+    debug "Try to install ansible"
+    install_package epel-release
+    install_package ansible
+  fi
+}
+
+
+
+stage5(){
   download_provision
   run_ansible_playbook
 }
@@ -606,12 +613,14 @@ install(){
   stage0 "$@"
   debug "Starting stage 1: initial script setup"
   stage1 "$@"
-  debug "Starting stage 2: check/install required sofware"
+  debug "Starting stage 2: make some asserts"
   stage2
   debug "Starting stage 3: write inventory file"
   stage3
-  debug "Starting stage 4: run ansible playbook"
+  debug "Starting stage 4: install ansible"
   stage4
+  debug "Starting stage 5: run ansible playbook"
+  stage5
 }
 
 install "$@"
