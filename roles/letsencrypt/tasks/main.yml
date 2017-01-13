@@ -46,3 +46,11 @@
 
       add_header Strict-Transport-Security max-age=15768000;
       add_header X-Content-Type-Options nosniff;
+
+- name: Schedule renewal cert task
+  cron:
+    name: Renew Let's Encrypt certs
+    job: certbot renew
+    hour: "{{ ansible_date_time.hour }}"
+    minute: "{{ ansible_date_time.minute }}"
+    user: nginx
