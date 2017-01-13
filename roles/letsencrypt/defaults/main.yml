@@ -1,10 +1,3 @@
 ---
-letsencrypt_cert_domains:
-  - "{{ ansible_fqdn }}"
+letsencrypt_cert_domains: []
 letsencrypt_webroot_path: /var/www
-letsencrypt_renewal_frequency:
-  day: "*"
-  hour: 0
-  minute: 0
-letsencrypt_renewal_command_args: ''
-letsencrypt_standalone_command_args: ''
