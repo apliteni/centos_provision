@@ -1,6 +1,6 @@
 ---
 - name: Create swap space
-  command: fallocate -l {{ swap_size }} {{ swap_location }}
+  command: sudo dd if=/dev/zero of={{ swap_location }} count={{ swap_size }} bs=1MiB
   args:
     creates: "{{ swap_location }}"
   register: swap
