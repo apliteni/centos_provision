@@ -31,8 +31,11 @@
                      {% for domain in letsencrypt_cert_domains %}--domain {{ domain }} {% endfor %} \
                      --register-unsafely-without-email \
                      --agree-tos \
-                     --non-interactive
+                     --non-interactive \
+                     --expand
   become_user: "{{ os_user }}"
+  notify:
+    - reload nginx
 
 - name: Add ssl support to nginx config file (listen section)
   lineinfile:
