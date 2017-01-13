@@ -58,6 +58,8 @@
 
       add_header Strict-Transport-Security max-age=15768000;
       add_header X-Content-Type-Options nosniff;
+  notify:
+    - reload nginx
 
 - name: Schedule renewal cert task
   cron:
