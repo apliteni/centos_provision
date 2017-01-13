@@ -14,6 +14,16 @@
   command: "openssl dhparam  -out /etc/ssl/certs/dhparam.pem 2048"
   when: not dhparam.stat.exists
 
+- name: Create letsencrypt directories
+  file:
+     path: "{{ item }}"
+     state: directory
+     owner: nginx
+     mode: 0755
+  with_items:
+    - /etc/letsencrypt
+    - /var/log/letsencrypt
+
 - name: Obtain Let's Encrypt cert
   command:
     certbot certonly --webroot --webroot-path={{letsencrypt_webroot_path}} \
@@ -21,6 +31,7 @@
                      --register-unsafely-without-email \
                      --agree-tos \
                      --non-interactive
+  become_user: nginx
 
 - name: Add ssl support to nginx config file (listen section)
   lineinfile:
