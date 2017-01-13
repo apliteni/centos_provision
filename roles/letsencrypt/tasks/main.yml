@@ -22,6 +22,7 @@
      mode: 0755
   with_items:
     - /etc/letsencrypt
+    - /var/lib/letsencrypt
     - /var/log/letsencrypt
 
 - name: Obtain Let's Encrypt cert
