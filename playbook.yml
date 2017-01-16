@@ -13,19 +13,19 @@
 
   roles:
     - {role: 'kernel', tags: 'kernel'}
-    - {role: 'resmo.ntp'}
+    - {role: 'tools'}
+    - {role: 'selinux', tags: 'selinux'}
+    - {role: 'resmo.ntp', tags: 'ntp'}
     - {role: 'mrlesmithjr.timezone'}
     - {role: 'geerlingguy.repo-epel'}
     - {role: 'geerlingguy.repo-remi'}
     - {role: 'mikegleasonjr.swap', tags: 'swap', when: "ansible_memtotal_mb < 3000"}
-    - {role: 'tools'}
     - {role: 'redis'}
     - {role: 'bertvv.mariadb', tags: 'mariadb'}
     - {role: 'tune-mariadb', tags: 'mariadb'}
     - {role: 'geerlingguy.nginx', tags: 'nginx'}
     - {role: 'php', tags: 'php'}
     - {role: 'ioncube', tags: 'ioncube', when: php_version >= 'php70'}
-    - {role: 'selinux', tags: 'selinux'}
     - {role: 'monit'}
     - {role: 'geerlingguy.firewall', tags: 'firewall'}
     - {role: 'keitaro'}
