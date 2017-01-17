@@ -7,8 +7,8 @@ generate_password()
 
 VARS={}
 
-VARS['license_ip']=''
-VARS['license_key']=''
+VARS['ssl']='no'
+VARS['ssl_agree_toc']='no'
 VARS['db_name']='keitaro'
 VARS['db_user']='keitaro'
 VARS['db_password']=$(generate_password)

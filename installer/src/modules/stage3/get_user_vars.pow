@@ -3,6 +3,8 @@
 
 get_user_vars()
   debug 'Read vars from user input'
+  print_welcome
+  get_var 'ssl'
   get_var 'license_ip'
   get_var 'license_key'
   get_var 'db_name'
@@ -36,6 +38,17 @@ read_stdin(var_name)
   echo $variable
 
 
+print_welcome()
+  welcome=$(translate "welcome")
+  echo $welcome
+
+
+print_help(var_name)
+  help=$(translate "prompts.$var_name.help")
+  if not empty $help
+    echo $help
+
+
 print_prompt(var_name)
   prompt=$(translate "prompts.$var_name")
   prompt="$(print_with_color $prompt 'bold')"
@@ -44,7 +57,3 @@ print_prompt(var_name)
   echo -en "$prompt > "
 
 
-print_help(var_name)
-  help=$(translate "prompts.$var_name.help")
-  if not empty $help
-    echo $help
