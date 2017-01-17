@@ -14,6 +14,7 @@ get_user_vars()
 
 get_var(var_name)
   while true
+    print_help $var_name
     print_prompt $var_name
     variable=$(read_stdin $var_name)
     if not empty $variable
@@ -41,3 +42,9 @@ print_prompt(var_name)
   if not empty ${VARS[$var_name]}
     prompt="$prompt [${VARS[$var_name]}]"
   echo -en "$prompt > "
+
+
+print_help(var_name)
+  help=$(translate "prompts.$var_name.help")
+  if not empty $help
+    echo $help
