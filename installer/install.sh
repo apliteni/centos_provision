@@ -53,36 +53,36 @@ PROVISION_DIRECTORY=centos_provision-master
 
 declare -A DICT
 
-DICT['en.prompts.license_key']='Please enter license key'
-DICT['en.prompts.db_name']='Please enter database name'
-DICT['en.prompts.db_user']='Please enter database user name'
-DICT['en.prompts.db_password']='Please enter database user password'
-DICT['en.prompts.admin_login']='Please enter keitaro admin login'
-DICT['en.prompts.admin_password']='Please enter keitaro admin password'
-DICT['en.prompts.license_ip']='Please enter server IP'
-DICT['en.prompts.license_ip']='Please enter server IP'
-DICT['en.messages.run_command']='Evaluating command'
-DICT['en.messages.successful_install']='Everything done!'
 DICT['en.errors.installation_failed_header']='INSTALLATION FAILED'
 DICT['en.errors.must_be_root']='You must run this program as root.'
-DICT['en.errors.unsuccessful_run_command']='There was an error evaluating command'
 DICT['en.errors.please_send_email']="Please send email to "$SUPPORT_EMAIL" with attached "$INSTALL_LOG""
+DICT['en.errors.unsuccessful_run_command']='There was an error evaluating command'
 DICT['en.errors.yum_not_installed']='This installer works only on yum-based systems. Please run "$SHELLNAME" in CentOS/RHEL/Fedora distro'
+DICT['en.messages.run_command']='Evaluating command'
+DICT['en.messages.successful_install']='Everything done!'
+DICT['en.prompts.admin_login']='Please enter keitaro admin login'
+DICT['en.prompts.admin_password']='Please enter keitaro admin password'
+DICT['en.prompts.db_name']='Please enter database name'
+DICT['en.prompts.db_password']='Please enter database user password'
+DICT['en.prompts.db_user']='Please enter database user name'
+DICT['en.prompts.license_ip']='Please enter server IP'
+DICT['en.prompts.license_ip']='Please enter server IP'
+DICT['en.prompts.license_key']='Please enter license key'
 
-DICT['ru.prompts.license_ip']='Укажите IP адрес сервера'
-DICT['ru.prompts.license_key']='Укажите лицензионный ключ'
-DICT['ru.prompts.db_name']='Укажите имя базы данных'
-DICT['ru.prompts.db_user']='Укажите пользователя базы данных'
-DICT['ru.prompts.db_password']='Укажите пароль пользователя базы данных'
-DICT['ru.prompts.admin_login']='Укажите имя администратора keitaro'
-DICT['ru.prompts.admin_password']='Укажите пароль администратора keitaro'
-DICT['ru.messages.run_command']='Выполняется команда'
-DICT['ru.messages.successful_install']='Установка завершена!'
 DICT['ru.errors.installation_failed_header']='ОШИБКА УСТАНОВКИ'
 DICT['ru.errors.must_be_root']='Эту программу может запускать только root.'
-DICT['ru.errors.unsuccessful_run_command']='Ошибка выполнения команды'
 DICT['ru.errors.please_send_email']="Пожалуйста, отправьте email на "$SUPPORT_EMAIL" приложив "$INSTALL_LOG""
+DICT['ru.errors.unsuccessful_run_command']='Ошибка выполнения команды'
 DICT['ru.errors.yum_not_installed']='Утановщик keitaro работает только с пакетным менеджером yum. Пожалуйста, запустите "$SHELLNAME" в CentOS/RHEL/Fedora дистрибутиве'
+DICT['ru.messages.run_command']='Выполняется команда'
+DICT['ru.messages.successful_install']='Установка завершена!'
+DICT['ru.prompts.admin_login']='Укажите имя администратора keitaro'
+DICT['ru.prompts.admin_password']='Укажите пароль администратора keitaro'
+DICT['ru.prompts.db_name']='Укажите имя базы данных'
+DICT['ru.prompts.db_password']='Укажите пароль пользователя базы данных'
+DICT['ru.prompts.db_user']='Укажите пользователя базы данных'
+DICT['ru.prompts.license_ip']='Укажите IP адрес сервера'
+DICT['ru.prompts.license_key']='Укажите лицензионный ключ'
 
 
 
@@ -229,8 +229,6 @@ translate(){
   i18n_key=$UI_LANG.$key
   if isset ${DICT[$i18n_key]}; then
     echo "${DICT[$i18n_key]}"
-  else
-    echo "$i18n_key"
   fi
 }
 
@@ -496,6 +494,7 @@ get_user_vars(){
 get_var(){
   local var_name="${1}"
   while true; do
+    print_help "$var_name"
     print_prompt "$var_name"
     variable=$(read_stdin "$var_name")
     if ! empty "$variable"; then
@@ -528,6 +527,15 @@ print_prompt(){
     prompt="$prompt [${VARS[$var_name]}]"
   fi
   echo -en "$prompt > "
+}
+
+
+print_help(){
+  local var_name="${1}"
+  help=$(translate "prompts.$var_name.help")
+  if ! empty "$help"; then
+    echo "$help"
+  fi
 }
 
 
