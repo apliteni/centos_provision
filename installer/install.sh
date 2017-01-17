@@ -53,6 +53,7 @@ PROVISION_DIRECTORY=centos_provision-master
 
 declare -A DICT
 
+DICT['en.errors.empty_value']='You must enter value'
 DICT['en.errors.installation_failed_header']='INSTALLATION FAILED'
 DICT['en.errors.must_be_root']='You must run this program as root.'
 DICT['en.errors.please_send_email']="Please send email to "$SUPPORT_EMAIL" with attached "$INSTALL_LOG""
@@ -75,6 +76,7 @@ DICT['en.prompts.ssl.help']=$(cat <<- END
 	2. Have at least one domain associated with this server.
 END
 )
+DICT['en.prompts.ssl.error']='Please answer "yes" or "no"'
 DICT['en.prompts.ssl_agree_toc']="Do you agree with terms of Let's Encrypt Subscriber Agreement?"
 DICT['en.prompts.ssl_domains']='Please enter server domains, separated by comma'
 DICT['en.welcome']=$(cat <<- END
@@ -83,6 +85,7 @@ DICT['en.welcome']=$(cat <<- END
 END
 )
 
+DICT['ru.errors.empty_value']='Введите значение'
 DICT['ru.errors.installation_failed_header']='ОШИБКА УСТАНОВКИ'
 DICT['ru.errors.must_be_root']='Эту программу может запускать только root.'
 DICT['ru.errors.please_send_email']="Пожалуйста, отправьте email на "$SUPPORT_EMAIL" приложив "$INSTALL_LOG""
@@ -98,6 +101,7 @@ DICT['ru.prompts.db_user']='Укажите пользователя базы д�
 DICT['ru.prompts.license_ip']='Укажите IP адрес сервера'
 DICT['ru.prompts.license_key']='Укажите лицензионный ключ'
 DICT['ru.prompts.ssl']="Вы хотите установить бесплатные SSL сертификаты, предоставляемые Let's Encrypt?"
+DICT['en.prompts.ssl.error']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
 DICT['ru.prompts.ssl.help']=$(cat <<- END
 	Программа установки может установить бесплатные SSL сертификаты, предоставляемые Let's Encrypt. Для этого вы должны:
 	1. Согласиться с условиями Абонентского Соглашения Let's Encrypt (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf).
@@ -511,7 +515,7 @@ parse_line_from_inventory_file(){
 get_user_vars(){
   debug 'Read vars from user input'
   print_welcome
-  get_var 'ssl'
+  get_var 'ssl' '^(yes|no|да|нет)'
   get_var 'license_ip'
   get_var 'license_key'
   get_var 'db_name'
@@ -524,19 +528,29 @@ get_user_vars(){
 
 get_var(){
   local var_name="${1}"
+  local validation_regex="${2}"
+  local error_message="${3}"
+  print_help "$var_name"
   while true; do
-    print_help "$var_name"
     print_prompt "$var_name"
     variable=$(read_stdin "$var_name")
     if ! empty "$variable"; then
       VARS[$var_name]=$variable
     fi
     if ! empty ${VARS[$var_name]}; then
+    # if isset "${VARS[$var_name]}" && valid "${VARS[$var_name]}" "$validation_regex"
       debug "  "$var_name"="$variable""
       break
+    else
+      echo "*** $(translate 'errors.empty_value')"
     fi
   done
 }
+
+
+
+
+
 
 
 read_stdin(){
@@ -573,6 +587,12 @@ print_prompt(){
     prompt="$prompt [${VARS[$var_name]}]"
   fi
   echo -en "$prompt > "
+}
+
+
+print_error(){
+  local var_name="${1}"
+  error=$(translate "prompts.$var_name.error")
 }
 
 
