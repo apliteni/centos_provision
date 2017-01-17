@@ -4,7 +4,7 @@
 get_user_vars()
   debug 'Read vars from user input'
   print_welcome
-  get_var 'ssl'
+  get_var 'ssl' '^(yes|no|да|нет)'
   get_var 'license_ip'
   get_var 'license_key'
   get_var 'db_name'
@@ -14,16 +14,30 @@ get_user_vars()
   get_var 'admin_password'
 
 
-get_var(var_name)
+get_var(var_name, validation_regex, error_message)
+  print_help $var_name
   while true
-    print_help $var_name
     print_prompt $var_name
     variable=$(read_stdin $var_name)
     if not empty $variable
       VARS[$var_name]=$variable
     if not empty ${VARS[$var_name]}
+    # if isset "${VARS[$var_name]}" && valid "${VARS[$var_name]}" $validation_regex
       debug "  $var_name=$variable"
       break
+    else
+      echo "*** $(translate 'errors.empty_value')"
+
+
+#valid(value, regex)
+#  if empty "${regex}" || isset "${regex}" && value_matches_regex $value $regex
+#    true
+
+
+#value_matches_regex(value, regex)
+#  if "${value}" match "${regex}"
+#    true
+
 
 
 # Hack: We read from FD 3 in pipe bash mode because when reading the script from a pipe,
@@ -57,3 +71,23 @@ print_prompt(var_name)
   echo -en "$prompt > "
 
 
+print_error(var_name)
+  error=$(translate "prompts.$var_name.error")
+
+
+#prompt-yesno() {
+#  while true; do
+#    local VALUE=$(prompt "$@")
+#
+#    case $VALUE in
+#      y | Y | yes | YES | Yes )
+#        return 0
+#        ;;
+#      n | N | no | NO | No )
+#        return 1
+#        ;;
+#    esac
+#
+#    echo "*** Please answer \"yes\" or \"no\"."
+#  done
+#}
