@@ -68,6 +68,20 @@ DICT['en.prompts.db_user']='Please enter database user name'
 DICT['en.prompts.license_ip']='Please enter server IP'
 DICT['en.prompts.license_ip']='Please enter server IP'
 DICT['en.prompts.license_key']='Please enter license key'
+DICT['en.prompts.ssl']="Do you want to install Free SSL certificates from Let's Encrypt?"
+DICT['en.prompts.ssl.help']=$(cat <<- END
+	Installer can install Free SSL certificates from Let's Encrypt. In order to install this free certificates you must:
+	1. Agree with terms of Subscriber Agreement of Let's Encrypt (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf).
+	2. Have at least one domain associated with this server.
+END
+)
+DICT['en.prompts.ssl_agree_toc']="Do you agree with terms of Let's Encrypt Subscriber Agreement?"
+DICT['en.prompts.ssl_domains']='Please enter server domains, separated by comma'
+DICT['en.welcome']=$(cat <<- END
+	Welcome to Keitaro TDS installer.
+	This installer will guide you through the steps required to install Keitaro TDS on your server.
+END
+)
 
 DICT['ru.errors.installation_failed_header']='ОШИБКА УСТАНОВКИ'
 DICT['ru.errors.must_be_root']='Эту программу может запускать только root.'
@@ -83,6 +97,21 @@ DICT['ru.prompts.db_password']='Укажите пароль пользовате
 DICT['ru.prompts.db_user']='Укажите пользователя базы данных'
 DICT['ru.prompts.license_ip']='Укажите IP адрес сервера'
 DICT['ru.prompts.license_key']='Укажите лицензионный ключ'
+DICT['ru.prompts.ssl']="Вы хотите установить бесплатные SSL сертификаты, предоставляемые Let's Encrypt?"
+DICT['ru.prompts.ssl.help']=$(cat <<- END
+	Программа установки может установить бесплатные SSL сертификаты, предоставляемые Let's Encrypt. Для этого вы должны:
+	1. Согласиться с условиями Абонентского Соглашения Let's Encrypt (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf).
+	2. Иметь хотя бы один домен для этого сервера.
+END
+)
+DICT['ru.prompts.ssl_agree_toc']="Вы согласны с условиями Абонентского Соглашения Let's Encrypt?"
+DICT['ru.prompts.ssl_domains']='Укажите список доменов через запятую'
+DICT['ru.welcome']=$(cat <<- END
+	Добро пожаловать в программу установки Keitaro TDS.
+	Эта программа поможет собрать информацию необходимую для установки Keitaro TDS на вашем сервере.
+END
+)
+
 
 
 
@@ -437,8 +466,8 @@ generate_password(){
 
 declare -A VARS
 
-VARS['license_ip']=''
-VARS['license_key']=''
+VARS['ssl']='no'
+VARS['ssl_agree_toc']='no'
 VARS['db_name']='keitaro'
 VARS['db_user']='keitaro'
 VARS['db_password']=$(generate_password)
@@ -481,6 +510,8 @@ parse_line_from_inventory_file(){
 
 get_user_vars(){
   debug 'Read vars from user input'
+  print_welcome
+  get_var 'ssl'
   get_var 'license_ip'
   get_var 'license_key'
   get_var 'db_name'
@@ -519,6 +550,21 @@ read_stdin(){
 }
 
 
+print_welcome(){
+  welcome=$(translate "welcome")
+  echo "$welcome"
+}
+
+
+print_help(){
+  local var_name="${1}"
+  help=$(translate "prompts.$var_name.help")
+  if ! empty "$help"; then
+    echo "$help"
+  fi
+}
+
+
 print_prompt(){
   local var_name="${1}"
   prompt=$(translate "prompts.$var_name")
@@ -530,13 +576,6 @@ print_prompt(){
 }
 
 
-print_help(){
-  local var_name="${1}"
-  help=$(translate "prompts.$var_name.help")
-  if ! empty "$help"; then
-    echo "$help"
-  fi
-}
 
 
 
