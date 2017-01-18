@@ -555,7 +555,7 @@ get_var(){
     if ! empty "$variable"; then
       VARS[$var_name]=$variable
     fi
-    if is_valid "${VARS[$var_name]}" "$validation_method"; then
+    if is_valid "$validation_method" "${VARS[$var_name]}"; then
       debug "  "$var_name"="$variable""
       break
     else
@@ -600,8 +600,8 @@ read_stdin(){
 
 
 is_valid(){
-  local value="${1}"
-  local validation_method="${2}"
+  local validation_method="${1}"
+  local value="${2}"
   if empty "$validation_method"; then
     true
   else
