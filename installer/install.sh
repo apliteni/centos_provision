@@ -61,8 +61,8 @@ DICT['en.errors.yum_not_installed']='This installer works only on yum-based syst
 DICT['en.messages.run_command']='Evaluating command'
 DICT['en.messages.successful_install']='Everything done!'
 DICT['en.no']='no'
-DICT['en.prompt_errors.empty_value']='Please enter value'
-DICT['en.prompt_errors.yes_no']='Please answer "yes" or "no"'
+DICT['en.prompt_errors.validate_presence']='Please enter value'
+DICT['en.prompt_errors.validate_yes_no']='Please answer "yes" or "no"'
 DICT['en.prompts.admin_login']='Please enter keitaro admin login'
 DICT['en.prompts.admin_password']='Please enter keitaro admin password'
 DICT['en.prompts.db_name']='Please enter database name'
@@ -96,8 +96,8 @@ DICT['ru.errors.yum_not_installed']='Утановщик keitaro работает
 DICT['ru.messages.run_command']='Выполняется команда'
 DICT['ru.messages.successful_install']='Установка завершена!'
 DICT['ru.no']='нет'
-DICT['ru.prompt_errors.empty_value']='Введите значение'
-DICT['ru.prompt_errors.yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
+DICT['ru.prompt_errors.validate_presence']='Введите значение'
+DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
 DICT['ru.prompts.admin_login']='Укажите имя администратора keitaro'
 DICT['ru.prompts.admin_password']='Укажите пароль администратора keitaro'
 DICT['ru.prompts.db_name']='Укажите имя базы данных'
@@ -527,20 +527,21 @@ parse_line_from_inventory_file(){
 get_user_vars(){
   debug 'Read vars from user input'
   print_welcome
-  get_var 'ssl' 'yes_no'
+  get_var 'ssl' 'validate_yes_no'
   if is_yes_answer ${VARS['ssl']}; then
-    get_var 'ssl_agree_tos' 'yes_no'
+    get_var 'ssl_agree_tos' 'validate_yes_no'
     if is_yes_answer ${VARS['ssl_agree_tos']}; then
-      get_var 'ssl_domains'
+      get_var 'ssl_domains' 'validate_presence'
+      get_var 'ssl_email'
     fi
   fi
-  get_var 'license_ip'
-  get_var 'license_key'
-  get_var 'db_name'
-  get_var 'db_user'
-  get_var 'db_password'
-  get_var 'admin_login'
-  get_var 'admin_password'
+  get_var 'license_ip' 'validate_presence'
+  get_var 'license_key' 'validate_presence'
+  get_var 'db_name' 'validate_presence'
+  get_var 'db_user' 'validate_presence'
+  get_var 'db_password' 'validate_presence'
+  get_var 'admin_login' 'validate_presence'
+  get_var 'admin_password' 'validate_presence'
 }
 
 
@@ -554,16 +555,12 @@ get_var(){
     if ! empty "$variable"; then
       VARS[$var_name]=$variable
     fi
-    if ! empty "${VARS[$var_name]}"; then
-      if valid "${VARS[$var_name]}" "$validation_method"; then
-        debug "  "$var_name"="$variable""
-        break
-      else
-        VARS[$var_name]=''
-        print_error "$validation_method"
-      fi
+    if is_valid "${VARS[$var_name]}" "$validation_method"; then
+      debug "  "$var_name"="$variable""
+      break
     else
-      print_error 'empty_value'
+      VARS[$var_name]=''
+      print_error "$validation_method"
     fi
   done
 }
@@ -602,13 +599,13 @@ read_stdin(){
 }
 
 
-valid(){
+is_valid(){
   local value="${1}"
   local validation_method="${2}"
   if empty "$validation_method"; then
     true
   else
-    eval "validate_${validation_method}" "$value"
+    eval "$validation_method" "$value"
   fi
 }
 
@@ -629,9 +626,15 @@ print_translated(){
 }
 
 
+validate_presence(){
+  local value="${1}"
+  isset "$value"
+}
+
+
 validate_yes_no(){
   local value="${1}"
-  is_yes_answer "$value" || is_no_answer "$value"
+  (is_yes_answer "$value" || is_no_answer "$value")
 }
 
 
@@ -647,8 +650,6 @@ is_no_answer(){
   shopt -s nocasematch
   [[ "$answer" =~ ^(no|n|нет|н) ]]
 }
-
-
 
 
 

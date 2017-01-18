@@ -4,18 +4,19 @@
 get_user_vars()
   debug 'Read vars from user input'
   print_welcome
-  get_var 'ssl' 'yes_no'
+  get_var 'ssl' 'validate_yes_no'
   if is_yes_answer ${VARS['ssl']}
-    get_var 'ssl_agree_tos' 'yes_no'
+    get_var 'ssl_agree_tos' 'validate_yes_no'
     if is_yes_answer ${VARS['ssl_agree_tos']}
-      get_var 'ssl_domains'
-  get_var 'license_ip'
-  get_var 'license_key'
-  get_var 'db_name'
-  get_var 'db_user'
-  get_var 'db_password'
-  get_var 'admin_login'
-  get_var 'admin_password'
+      get_var 'ssl_domains' 'validate_presence'
+      get_var 'ssl_email'
+  get_var 'license_ip' 'validate_presence'
+  get_var 'license_key' 'validate_presence'
+  get_var 'db_name' 'validate_presence'
+  get_var 'db_user' 'validate_presence'
+  get_var 'db_password' 'validate_presence'
+  get_var 'admin_login' 'validate_presence'
+  get_var 'admin_password' 'validate_presence'
 
 
 get_var(var_name, validation_method)
@@ -25,15 +26,12 @@ get_var(var_name, validation_method)
     variable=$(read_stdin $var_name)
     if not empty $variable
       VARS[$var_name]=$variable
-    if not empty "${VARS[$var_name]}"
-      if valid "${VARS[$var_name]}" $validation_method
-        debug "  $var_name=$variable"
-        break
-      else
-        VARS[$var_name]=''
-        print_error $validation_method
+    if is_valid "${VARS[$var_name]}" $validation_method
+      debug "  $var_name=$variable"
+      break
     else
-      print_error 'empty_value'
+      VARS[$var_name]=''
+      print_error $validation_method
 
 
 print_welcome()
@@ -64,11 +62,11 @@ read_stdin(var_name)
   echo $variable
 
 
-valid(value, validation_method)
+is_valid(value, validation_method)
   if empty $validation_method
     true
   else
-    eval "validate_${validation_method}" $value
+    eval $validation_method $value
 
 
 print_error(error_key)
@@ -82,8 +80,12 @@ print_translated(key)
     echo $message
 
 
+validate_presence(value)
+  isset $value
+
+
 validate_yes_no(value)
-  is_yes_answer $value || is_no_answer $value
+  (is_yes_answer $value || is_no_answer $value)
 
 
 is_yes_answer(answer)
@@ -94,21 +96,3 @@ is_yes_answer(answer)
 is_no_answer(answer)
   shopt -s nocasematch
   [[ $answer =~ ^(no|n|нет|н) ]]
-
-
-#prompt-yesno() {
-#  while true; do
-#    local VALUE=$(prompt "$@")
-#
-#    case $VALUE in
-#      y | Y | yes | YES | Yes )
-#        return 0
-#        ;;
-#      n | N | no | NO | No )
-#        return 1
-#        ;;
-#    esac
-#
-#    echo "*** Please answer \"yes\" or \"no\"."
-#  done
-#}
