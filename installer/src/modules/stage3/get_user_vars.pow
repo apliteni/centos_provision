@@ -26,7 +26,7 @@ get_var(var_name, validation_method)
     variable=$(read_stdin $var_name)
     if not empty $variable
       VARS[$var_name]=$variable
-    if is_valid "${VARS[$var_name]}" $validation_method
+    if is_valid "$validation_method" "${VARS[$var_name]}"
       debug "  $var_name=$variable"
       break
     else
@@ -62,7 +62,7 @@ read_stdin(var_name)
   echo $variable
 
 
-is_valid(value, validation_method)
+is_valid(validation_method, value)
   if empty $validation_method
     true
   else
