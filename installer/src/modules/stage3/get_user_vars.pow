@@ -4,7 +4,7 @@
 get_user_vars()
   debug 'Read vars from user input'
   print_welcome
-  get_var 'ssl' '^(yes|no|да|нет)'
+  get_var 'ssl' 'yes_no'
   get_var 'license_ip'
   get_var 'license_key'
   get_var 'db_name'
@@ -14,30 +14,37 @@ get_user_vars()
   get_var 'admin_password'
 
 
-get_var(var_name, validation_regex, error_message)
+get_var(var_name, validation_method)
   print_help $var_name
   while true
     print_prompt $var_name
     variable=$(read_stdin $var_name)
     if not empty $variable
       VARS[$var_name]=$variable
-    if not empty ${VARS[$var_name]}
-    # if isset "${VARS[$var_name]}" && valid "${VARS[$var_name]}" $validation_regex
-      debug "  $var_name=$variable"
-      break
+    if not empty "${VARS[$var_name]}"
+      if valid "${VARS[$var_name]}" $validation_method
+        debug "  $var_name=$variable"
+        break
+      else
+        print_error $validation_method
     else
-      echo "*** $(translate 'errors.empty_value')"
+      print_error 'empty_value'
 
 
-#valid(value, regex)
-#  if empty "${regex}" || isset "${regex}" && value_matches_regex $value $regex
-#    true
+print_welcome()
+  print_translated "welcome"
 
 
-#value_matches_regex(value, regex)
-#  if "${value}" match "${regex}"
-#    true
+print_help(var_name)
+  print_translated "prompts.$var_name.help"
 
+
+print_prompt(var_name)
+  prompt=$(translate "prompts.$var_name")
+  prompt="$(print_with_color $prompt 'bold')"
+  if not empty ${VARS[$var_name]}
+    prompt="$prompt [${VARS[$var_name]}]"
+  echo -en "$prompt > "
 
 
 # Hack: We read from FD 3 in pipe bash mode because when reading the script from a pipe,
@@ -52,27 +59,19 @@ read_stdin(var_name)
   echo $variable
 
 
-print_welcome()
-  welcome=$(translate "welcome")
-  echo $welcome
+valid(value, validation_method)
+  empty $validation_method
 
 
-print_help(var_name)
-  help=$(translate "prompts.$var_name.help")
-  if not empty $help
-    echo $help
+print_error(error_key)
+  error=$(translate "prompt_errors.$error_key")
+  print_with_color "*** ${error}" 'red'
 
 
-print_prompt(var_name)
-  prompt=$(translate "prompts.$var_name")
-  prompt="$(print_with_color $prompt 'bold')"
-  if not empty ${VARS[$var_name]}
-    prompt="$prompt [${VARS[$var_name]}]"
-  echo -en "$prompt > "
-
-
-print_error(var_name)
-  error=$(translate "prompts.$var_name.error")
+print_translated(key)
+  message=$(translate "${key}")
+  if not empty $message
+    echo $message
 
 
 #prompt-yesno() {

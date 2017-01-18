@@ -53,7 +53,6 @@ PROVISION_DIRECTORY=centos_provision-master
 
 declare -A DICT
 
-DICT['en.errors.empty_value']='You must enter value'
 DICT['en.errors.installation_failed_header']='INSTALLATION FAILED'
 DICT['en.errors.must_be_root']='You must run this program as root.'
 DICT['en.errors.please_send_email']="Please send email to "$SUPPORT_EMAIL" with attached "$INSTALL_LOG""
@@ -61,6 +60,8 @@ DICT['en.errors.unsuccessful_run_command']='There was an error evaluating comman
 DICT['en.errors.yum_not_installed']='This installer works only on yum-based systems. Please run "$SHELLNAME" in CentOS/RHEL/Fedora distro'
 DICT['en.messages.run_command']='Evaluating command'
 DICT['en.messages.successful_install']='Everything done!'
+DICT['en.prompt_errors.empty_value']='Please enter value'
+DICT['en.prompt_errors.yes_no']='Please answer "yes" or "no"'
 DICT['en.prompts.admin_login']='Please enter keitaro admin login'
 DICT['en.prompts.admin_password']='Please enter keitaro admin password'
 DICT['en.prompts.db_name']='Please enter database name'
@@ -71,8 +72,8 @@ DICT['en.prompts.license_ip']='Please enter server IP'
 DICT['en.prompts.license_key']='Please enter license key'
 DICT['en.prompts.ssl']="Do you want to install Free SSL certificates from Let's Encrypt?"
 DICT['en.prompts.ssl.help']=$(cat <<- END
-	Installer can install Free SSL certificates from Let's Encrypt. In order to install this free certificates you must:
-	1. Agree with terms of Subscriber Agreement of Let's Encrypt (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf).
+	Installer can install Free SSL certificates from Let's Encrypt. In order to install this certificates you must:
+	1. Agree with terms of Let's Encrypt Subscriber Agreement (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf).
 	2. Have at least one domain associated with this server.
 END
 )
@@ -85,7 +86,6 @@ DICT['en.welcome']=$(cat <<- END
 END
 )
 
-DICT['ru.errors.empty_value']='Введите значение'
 DICT['ru.errors.installation_failed_header']='ОШИБКА УСТАНОВКИ'
 DICT['ru.errors.must_be_root']='Эту программу может запускать только root.'
 DICT['ru.errors.please_send_email']="Пожалуйста, отправьте email на "$SUPPORT_EMAIL" приложив "$INSTALL_LOG""
@@ -93,6 +93,8 @@ DICT['ru.errors.unsuccessful_run_command']='Ошибка выполнения к
 DICT['ru.errors.yum_not_installed']='Утановщик keitaro работает только с пакетным менеджером yum. Пожалуйста, запустите "$SHELLNAME" в CentOS/RHEL/Fedora дистрибутиве'
 DICT['ru.messages.run_command']='Выполняется команда'
 DICT['ru.messages.successful_install']='Установка завершена!'
+DICT['ru.prompt_errors.empty_value']='Введите значение'
+DICT['ru.prompt_errors.yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
 DICT['ru.prompts.admin_login']='Укажите имя администратора keitaro'
 DICT['ru.prompts.admin_password']='Укажите пароль администратора keitaro'
 DICT['ru.prompts.db_name']='Укажите имя базы данных'
@@ -101,7 +103,6 @@ DICT['ru.prompts.db_user']='Укажите пользователя базы д�
 DICT['ru.prompts.license_ip']='Укажите IP адрес сервера'
 DICT['ru.prompts.license_key']='Укажите лицензионный ключ'
 DICT['ru.prompts.ssl']="Вы хотите установить бесплатные SSL сертификаты, предоставляемые Let's Encrypt?"
-DICT['en.prompts.ssl.error']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
 DICT['ru.prompts.ssl.help']=$(cat <<- END
 	Программа установки может установить бесплатные SSL сертификаты, предоставляемые Let's Encrypt. Для этого вы должны:
 	1. Согласиться с условиями Абонентского Соглашения Let's Encrypt (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf).
@@ -115,7 +116,6 @@ DICT['ru.welcome']=$(cat <<- END
 	Эта программа поможет собрать информацию необходимую для установки Keitaro TDS на вашем сервере.
 END
 )
-
 
 
 
@@ -515,7 +515,7 @@ parse_line_from_inventory_file(){
 get_user_vars(){
   debug 'Read vars from user input'
   print_welcome
-  get_var 'ssl' '^(yes|no|да|нет)'
+  get_var 'ssl' 'yes_no'
   get_var 'license_ip'
   get_var 'license_key'
   get_var 'db_name'
@@ -528,8 +528,7 @@ get_user_vars(){
 
 get_var(){
   local var_name="${1}"
-  local validation_regex="${2}"
-  local error_message="${3}"
+  local validation_method="${2}"
   print_help "$var_name"
   while true; do
     print_prompt "$var_name"
@@ -537,45 +536,28 @@ get_var(){
     if ! empty "$variable"; then
       VARS[$var_name]=$variable
     fi
-    if ! empty ${VARS[$var_name]}; then
-    # if isset "${VARS[$var_name]}" && valid "${VARS[$var_name]}" "$validation_regex"
-      debug "  "$var_name"="$variable""
-      break
+    if ! empty "${VARS[$var_name]}"; then
+      if valid "${VARS[$var_name]}" "$validation_method"; then
+        debug "  "$var_name"="$variable""
+        break
+      else
+        print_error "$validation_method"
+      fi
     else
-      echo "*** $(translate 'errors.empty_value')"
+      print_error 'empty_value'
     fi
   done
 }
 
 
-
-
-
-
-
-read_stdin(){
-  local var_name="${1}"
-  if is_pipe_mode; then
-    read -r -u 3 variable
-  else
-    read -r variable
-  fi
-  echo "$variable"
-}
-
-
 print_welcome(){
-  welcome=$(translate "welcome")
-  echo "$welcome"
+  print_translated "welcome"
 }
 
 
 print_help(){
   local var_name="${1}"
-  help=$(translate "prompts.$var_name.help")
-  if ! empty "$help"; then
-    echo "$help"
-  fi
+  print_translated "prompts.$var_name.help"
 }
 
 
@@ -590,9 +572,37 @@ print_prompt(){
 }
 
 
-print_error(){
+read_stdin(){
   local var_name="${1}"
-  error=$(translate "prompts.$var_name.error")
+  if is_pipe_mode; then
+    read -r -u 3 variable
+  else
+    read -r variable
+  fi
+  echo "$variable"
+}
+
+
+valid(){
+  local value="${1}"
+  local validation_method="${2}"
+  empty "$validation_method"
+}
+
+
+print_error(){
+  local error_key="${1}"
+  error=$(translate "prompt_errors.$error_key")
+  print_with_color "*** ${error}" 'red'
+}
+
+
+print_translated(){
+  local key="${1}"
+  message=$(translate "${key}")
+  if ! empty "$message"; then
+    echo "$message"
+  fi
 }
 
 
