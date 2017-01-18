@@ -75,3 +75,4 @@ firewall_allowed_tcp_ports:
 
 letsencrypt_webroot_path: "{{ keitaro.path }}"
 letsencrypt_cert_domains: "{{ ssl_domains.split(',') }}"
+letsencrypt_email: "{{ ssl_email }}"
