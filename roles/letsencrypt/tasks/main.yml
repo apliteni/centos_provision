@@ -29,7 +29,7 @@
   command:
     certbot certonly --webroot --webroot-path={{letsencrypt_webroot_path}} \
                      {% for domain in letsencrypt_cert_domains %}--domain {{ domain }} {% endfor %} \
-                     --register-unsafely-without-email \
+                     {% if letsencrypt_email != '' %}--email {{ letsencrypt_email }}{% else %}--register-unsafely-without-email{% fi %} \
                      --agree-tos \
                      --non-interactive \
                      --expand
