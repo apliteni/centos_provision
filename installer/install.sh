@@ -60,6 +60,7 @@ DICT['en.errors.unsuccessful_run_command']='There was an error evaluating comman
 DICT['en.errors.yum_not_installed']='This installer works only on yum-based systems. Please run "$SHELLNAME" in CentOS/RHEL/Fedora distro'
 DICT['en.messages.run_command']='Evaluating command'
 DICT['en.messages.successful_install']='Everything done!'
+DICT['en.no']='no'
 DICT['en.prompt_errors.empty_value']='Please enter value'
 DICT['en.prompt_errors.yes_no']='Please answer "yes" or "no"'
 DICT['en.prompts.admin_login']='Please enter keitaro admin login'
@@ -78,7 +79,8 @@ DICT['en.prompts.ssl.help']=$(cat <<- END
 END
 )
 DICT['en.prompts.ssl.error']='Please answer "yes" or "no"'
-DICT['en.prompts.ssl_agree_toc']="Do you agree with terms of Let's Encrypt Subscriber Agreement?"
+DICT['en.prompts.ssl_agree_tos']="Do you agree with terms of Let's Encrypt Subscriber Agreement?"
+DICT['ru.prompts.ssl_agree_tos.help']="Let's Encrypt Subscriber Agreement located at https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf."
 DICT['en.prompts.ssl_domains']='Please enter server domains, separated by comma'
 DICT['en.welcome']=$(cat <<- END
 	Welcome to Keitaro TDS installer.
@@ -88,11 +90,12 @@ END
 
 DICT['ru.errors.installation_failed_header']='ОШИБКА УСТАНОВКИ'
 DICT['ru.errors.must_be_root']='Эту программу может запускать только root.'
-DICT['ru.errors.please_send_email']="Пожалуйста, отправьте email на "$SUPPORT_EMAIL" приложив "$INSTALL_LOG""
+DICT['ru.errors.please_send_email']="Пожалуйста, отправьте email на $SUPPORT_EMAIL приложив $INSTALL_LOG"
 DICT['ru.errors.unsuccessful_run_command']='Ошибка выполнения команды'
-DICT['ru.errors.yum_not_installed']='Утановщик keitaro работает только с пакетным менеджером yum. Пожалуйста, запустите "$SHELLNAME" в CentOS/RHEL/Fedora дистрибутиве'
+DICT['ru.errors.yum_not_installed']='Утановщик keitaro работает только с пакетным менеджером yum. Пожалуйста, запустите $SHELLNAME в CentOS/RHEL/Fedora дистрибутиве'
 DICT['ru.messages.run_command']='Выполняется команда'
 DICT['ru.messages.successful_install']='Установка завершена!'
+DICT['ru.no']='нет'
 DICT['ru.prompt_errors.empty_value']='Введите значение'
 DICT['ru.prompt_errors.yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
 DICT['ru.prompts.admin_login']='Укажите имя администратора keitaro'
@@ -109,7 +112,8 @@ DICT['ru.prompts.ssl.help']=$(cat <<- END
 	2. Иметь хотя бы один домен для этого сервера.
 END
 )
-DICT['ru.prompts.ssl_agree_toc']="Вы согласны с условиями Абонентского Соглашения Let's Encrypt?"
+DICT['ru.prompts.ssl_agree_tos']="Вы согласны с условиями Абонентского Соглашения Let's Encrypt?"
+DICT['ru.prompts.ssl_agree_tos.help']="Абонентское Соглашение Let's Encrypt находится по адресу https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf."
 DICT['ru.prompts.ssl_domains']='Укажите список доменов через запятую'
 DICT['ru.welcome']=$(cat <<- END
 	Добро пожаловать в программу установки Keitaro TDS.
@@ -463,29 +467,37 @@ assert_yum_installed(){
 
 
 
-generate_password(){
-  LC_ALL=C tr -cd '[:alnum:]' < /dev/urandom | head -c16
-}
-
-
 declare -A VARS
-
-VARS['ssl']='no'
-VARS['ssl_agree_toc']='no'
-VARS['db_name']='keitaro'
-VARS['db_user']='keitaro'
-VARS['db_password']=$(generate_password)
-VARS['admin_login']='admin'
-VARS['admin_password']=$(generate_password)
 
 PASSWORD_LENGTH=16
 
 
 stage3(){
+  setup_vars
   read_inventory_file
   get_user_vars
   write_inventory_file
 }
+
+
+
+setup_vars(){
+  VARS['ssl']=$(translate 'no')
+  VARS['ssl_agree_tos']=$(translate 'no')
+  VARS['db_name']='keitaro'
+  VARS['db_user']='keitaro'
+  VARS['db_password']=$(generate_password)
+  VARS['admin_login']='admin'
+  VARS['admin_password']=$(generate_password)
+}
+
+
+generate_password(){
+  LC_ALL=C tr -cd '[:alnum:]' < /dev/urandom | head -c16
+}
+
+
+
 
 
 
@@ -516,6 +528,12 @@ get_user_vars(){
   debug 'Read vars from user input'
   print_welcome
   get_var 'ssl' 'yes_no'
+  if is_yes_answer ${VARS['ssl']}; then
+    get_var 'ssl_agree_tos' 'yes_no'
+    if is_yes_answer ${VARS['ssl_agree_tos']}; then
+      get_var 'ssl_domains'
+    fi
+  fi
   get_var 'license_ip'
   get_var 'license_key'
   get_var 'db_name'
@@ -541,6 +559,7 @@ get_var(){
         debug "  "$var_name"="$variable""
         break
       else
+        VARS[$var_name]=''
         print_error "$validation_method"
       fi
     else
@@ -612,7 +631,7 @@ print_translated(){
 
 validate_yes_no(){
   local value="${1}"
-  is_yes_answer  "$value" || is_no_answer "$value"
+  is_yes_answer "$value" || is_no_answer "$value"
 }
 
 

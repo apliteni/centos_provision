@@ -1,24 +1,13 @@
 #!/usr/bin/env powscript
 
 
-generate_password()
-  LC_ALL=C tr -cd '[:alnum:]' < /dev/urandom | head -c16
-
-
 VARS={}
-
-VARS['ssl']='no'
-VARS['ssl_agree_toc']='no'
-VARS['db_name']='keitaro'
-VARS['db_user']='keitaro'
-VARS['db_password']=$(generate_password)
-VARS['admin_login']='admin'
-VARS['admin_password']=$(generate_password)
 
 PASSWORD_LENGTH=16
 
 
 stage3()
+  setup_vars
   read_inventory_file
   get_user_vars
   write_inventory_file
