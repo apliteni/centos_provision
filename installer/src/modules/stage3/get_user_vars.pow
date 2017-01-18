@@ -60,7 +60,10 @@ read_stdin(var_name)
 
 
 valid(value, validation_method)
-  empty $validation_method
+  if empty $validation_method
+    true
+  else
+    eval "validate_${validation_method}" $value
 
 
 print_error(error_key)
@@ -72,6 +75,20 @@ print_translated(key)
   message=$(translate "${key}")
   if not empty $message
     echo $message
+
+
+validate_yes_no(value)
+  is_yes_answer $value || is_no_answer $value
+
+
+is_yes_answer(answer)
+  shopt -s nocasematch
+  [[ $answer =~ ^(yes|y|да|д) ]]
+
+
+is_no_answer(answer)
+  shopt -s nocasematch
+  [[ $answer =~ ^(no|n|нет|н) ]]
 
 
 #prompt-yesno() {

@@ -586,7 +586,11 @@ read_stdin(){
 valid(){
   local value="${1}"
   local validation_method="${2}"
-  empty "$validation_method"
+  if empty "$validation_method"; then
+    true
+  else
+    eval "validate_${validation_method}" "$value"
+  fi
 }
 
 
@@ -603,6 +607,26 @@ print_translated(){
   if ! empty "$message"; then
     echo "$message"
   fi
+}
+
+
+validate_yes_no(){
+  local value="${1}"
+  is_yes_answer  "$value" || is_no_answer "$value"
+}
+
+
+is_yes_answer(){
+  local answer="${1}"
+  shopt -s nocasematch
+  [[ "$answer" =~ ^(yes|y|да|д) ]]
+}
+
+
+is_no_answer(){
+  local answer="${1}"
+  shopt -s nocasematch
+  [[ "$answer" =~ ^(no|n|нет|н) ]]
 }
 
 
