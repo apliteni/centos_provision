@@ -10,4 +10,4 @@ license_key=keitaro
 admin_login=admin
 admin_password=admin
 connection=ssh
-site_domains=www.site.keitaro24.ru,site.keitaro24.ru
+ssl_domains=www.site.keitaro24.ru,site.keitaro24.ru
