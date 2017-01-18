@@ -32,15 +32,14 @@ Edit file ```hosts.txt```
     [app:vars]
     ansible_ssh_user=SSH_LOGIN
     ansible_ssh_pass=SSH_PASSWORD
-    db_name = DB_NAME
-    db_user = DB_USER
-    db_password = DB_PASSWORD
-    license_ip = LICENSE_IP
-    license_key = LICENSE_KEY
-    admin_login = ADMIN_LOGIN
-    admin_password = ADMIN_PASSWORD
-    letsencrypt_cert = true                                          # If you want access keitaro by https
-    site_domains = SITE_DOMAIN,SITE_DOMAIN_ALIAS1,SITE_DOMAIN_ALIAS2 # You must set this value if you want use https
+    db_name=DB_NAME
+    db_user=DB_USER
+    db_password=DB_PASSWORD
+    license_ip=LICENSE_IP
+    license_key=LICENSE_KEY
+    admin_login=ADMIN_LOGIN
+    admin_password=ADMIN_PASSWORD
+    ssl_domains=DOMAIN1,DOMAIN2     # If you want to use Free SSL certs from Let's Encrypt
 
 Run 
 
