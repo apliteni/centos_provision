@@ -82,6 +82,7 @@ DICT['en.prompts.ssl.error']='Please answer "yes" or "no"'
 DICT['en.prompts.ssl_agree_tos']="Do you agree with terms of Let's Encrypt Subscriber Agreement?"
 DICT['ru.prompts.ssl_agree_tos.help']="Let's Encrypt Subscriber Agreement located at https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf."
 DICT['en.prompts.ssl_domains']='Please enter server domains, separated by comma'
+DICT['en.prompts.ssl_email']='Please enter your email'
 DICT['en.welcome']=$(cat <<- END
 	Welcome to Keitaro TDS installer.
 	This installer will guide you through the steps required to install Keitaro TDS on your server.
@@ -115,6 +116,7 @@ END
 DICT['ru.prompts.ssl_agree_tos']="Вы согласны с условиями Абонентского Соглашения Let's Encrypt?"
 DICT['ru.prompts.ssl_agree_tos.help']="Абонентское Соглашение Let's Encrypt находится по адресу https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf."
 DICT['ru.prompts.ssl_domains']='Укажите список доменов через запятую'
+DICT['ru.prompts.ssl_email']='Укажите email'
 DICT['ru.welcome']=$(cat <<- END
 	Добро пожаловать в программу установки Keitaro TDS.
 	Эта программа поможет собрать информацию необходимую для установки Keitaro TDS на вашем сервере.
@@ -660,6 +662,10 @@ write_inventory_file(){
   print_line_to_inventory_file "localhost connection=local"
   print_line_to_inventory_file
   print_line_to_inventory_file "[server:vars]"
+  print_line_to_inventory_file "ssl="${VARS['ssl']}""
+  print_line_to_inventory_file "ssl_agree_tos="${VARS['ssl_agree_tos']}""
+  print_line_to_inventory_file "ssl_domains="${VARS['ssl_domains']}""
+  print_line_to_inventory_file "ssl_email="${VARS['ssl_email']}""
   print_line_to_inventory_file "license_ip="${VARS['license_ip']}""
   print_line_to_inventory_file "license_key="${VARS['license_key']}""
   print_line_to_inventory_file "db_name="${VARS['db_name']}""
