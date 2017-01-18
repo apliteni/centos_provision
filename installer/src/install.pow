@@ -22,6 +22,7 @@ require 'modules/stage1/set_ui_lang.pow'
 require "modules/stage2.pow"
 require "modules/stage2/asserts.pow"
 require "modules/stage3.pow"
+require "modules/stage3/setup_vars.pow"
 require "modules/stage3/read_inventory_file.pow"
 require "modules/stage3/get_user_vars.pow"
 require "modules/stage3/write_inventory_file.pow"

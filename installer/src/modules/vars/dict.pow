@@ -9,6 +9,7 @@ DICT['en.errors.unsuccessful_run_command']='There was an error evaluating comman
 DICT['en.errors.yum_not_installed']='This installer works only on yum-based systems. Please run $SHELLNAME in CentOS/RHEL/Fedora distro'
 DICT['en.messages.run_command']='Evaluating command'
 DICT['en.messages.successful_install']='Everything done!'
+DICT['en.no']='no'
 DICT['en.prompt_errors.empty_value']='Please enter value'
 DICT['en.prompt_errors.yes_no']='Please answer "yes" or "no"'
 DICT['en.prompts.admin_login']='Please enter keitaro admin login'
@@ -27,7 +28,8 @@ DICT['en.prompts.ssl.help']=$(cat <<- END
 END
 )
 DICT['en.prompts.ssl.error']='Please answer "yes" or "no"'
-DICT['en.prompts.ssl_agree_toc']="Do you agree with terms of Let's Encrypt Subscriber Agreement?"
+DICT['en.prompts.ssl_agree_tos']="Do you agree with terms of Let's Encrypt Subscriber Agreement?"
+DICT['ru.prompts.ssl_agree_tos.help']="Let's Encrypt Subscriber Agreement located at https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf."
 DICT['en.prompts.ssl_domains']='Please enter server domains, separated by comma'
 DICT['en.welcome']=$(cat <<- END
 	Welcome to Keitaro TDS installer.
@@ -42,6 +44,7 @@ DICT['ru.errors.unsuccessful_run_command']='Ошибка выполнения к
 DICT['ru.errors.yum_not_installed']='Утановщик keitaro работает только с пакетным менеджером yum. Пожалуйста, запустите $SHELLNAME в CentOS/RHEL/Fedora дистрибутиве'
 DICT['ru.messages.run_command']='Выполняется команда'
 DICT['ru.messages.successful_install']='Установка завершена!'
+DICT['ru.no']='нет'
 DICT['ru.prompt_errors.empty_value']='Введите значение'
 DICT['ru.prompt_errors.yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
 DICT['ru.prompts.admin_login']='Укажите имя администратора keitaro'
@@ -58,7 +61,8 @@ DICT['ru.prompts.ssl.help']=$(cat <<- END
 	2. Иметь хотя бы один домен для этого сервера.
 END
 )
-DICT['ru.prompts.ssl_agree_toc']="Вы согласны с условиями Абонентского Соглашения Let's Encrypt?"
+DICT['ru.prompts.ssl_agree_tos']="Вы согласны с условиями Абонентского Соглашения Let's Encrypt?"
+DICT['ru.prompts.ssl_agree_tos.help']="Абонентское Соглашение Let's Encrypt находится по адресу https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf."
 DICT['ru.prompts.ssl_domains']='Укажите список доменов через запятую'
 DICT['ru.welcome']=$(cat <<- END
 	Добро пожаловать в программу установки Keitaro TDS.

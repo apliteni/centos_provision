@@ -5,6 +5,10 @@ get_user_vars()
   debug 'Read vars from user input'
   print_welcome
   get_var 'ssl' 'yes_no'
+  if is_yes_answer ${VARS['ssl']}
+    get_var 'ssl_agree_tos' 'yes_no'
+    if is_yes_answer ${VARS['ssl_agree_tos']}
+      get_var 'ssl_domains'
   get_var 'license_ip'
   get_var 'license_key'
   get_var 'db_name'
@@ -26,6 +30,7 @@ get_var(var_name, validation_method)
         debug "  $var_name=$variable"
         break
       else
+        VARS[$var_name]=''
         print_error $validation_method
     else
       print_error 'empty_value'
