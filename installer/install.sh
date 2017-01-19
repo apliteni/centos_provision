@@ -241,26 +241,16 @@ run_command(){
   if isset "$PRESERVE"; then
     debug "Actual running disabled"
   else
-    bash -c "set -euo pipefail; ($command) &>> "$INSTALL_LOG"" & pid=$!
-    print_dots_while_alive "$pid"
-    handle_failed_process "$pid"
+    bash -c "set -euo pipefail; ($command)" | tee "$INSTALL_LOG"
+    if [[ $? -ne 0 ]]; then
+      handle_failed_process "$pid"
+    fi
   fi
-}
-
-print_dots_while_alive(){
-  local pid="${1}"
-  while kill -0 "$pid" 2>/dev/null; do
-    echo -n  "."
-    sleep 1
-  done
-  echo
 }
 
 handle_failed_process(){
   local pid="${1}"
-  if ! wait "$pid"; then
-    fail "$(translate 'errors.unsuccessful_run_command') '$command'\n$(translate 'errors.please_send_email')"
-  fi
+  fail "$(translate 'errors.unsuccessful_run_command') '$command'\n$(translate 'errors.please_send_email')"
 }
 
 
