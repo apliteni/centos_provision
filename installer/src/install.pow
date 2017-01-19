@@ -31,6 +31,7 @@ require "modules/stage4/install_ansible.pow"
 require "modules/stage5.pow"
 require "modules/stage5/download_provision.pow"
 require "modules/stage5/run_ansible_playbook.pow"
+require "modules/stage5/show_successful_install_message.pow"
 
 
 # We wrap the entire script in a big function which we only call at the very end, in order to

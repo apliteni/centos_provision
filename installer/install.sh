@@ -723,9 +723,17 @@ run_ansible_playbook(){
 }
 
 
+
 show_successful_install_message(){
   print_with_color "$(translate 'messages.successful_install')" 'green'
-  print_with_color "http://${VARS['license_ip']}/admin" 'light.green'
+  if isset "${VARS['ssl_domains']}"; then
+    protocol='https'
+    domain=$(expr match ${VARS['ssl_domains']} '\([^,]*\)')
+  else
+    protocol='http'
+    domain="${VARS['license_ip']}"
+  fi
+  print_with_color "${protocol}://${domain}/admin" 'light.green'
   colored_login=$(print_with_color "${VARS['admin_login']}" 'light.green')
   colored_password=$(print_with_color "${VARS['admin_password']}" 'light.green')
   echo -e "login: ${colored_login}"
