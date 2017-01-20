@@ -3,24 +3,51 @@
 
 get_user_vars()
   debug 'Read vars from user input'
-  get_var 'license_ip'
-  get_var 'license_key'
-  get_var 'db_name'
-  get_var 'db_user'
-  get_var 'db_password'
-  get_var 'admin_login'
-  get_var 'admin_password'
+  print_welcome
+  get_var 'ssl' 'validate_yes_no'
+  if is_yes_answer ${VARS['ssl']}
+    get_var 'ssl_agree_tos' 'validate_yes_no'
+    if is_yes_answer ${VARS['ssl_agree_tos']}
+      get_var 'ssl_domains' 'validate_presence'
+      get_var 'ssl_email'
+  get_var 'license_ip' 'validate_presence'
+  get_var 'license_key' 'validate_presence'
+  get_var 'db_name' 'validate_presence'
+  get_var 'db_user' 'validate_presence'
+  get_var 'db_password' 'validate_presence'
+  get_var 'admin_login' 'validate_presence'
+  get_var 'admin_password' 'validate_presence'
 
 
-get_var(var_name)
+get_var(var_name, validation_method)
+  print_help $var_name
   while true
     print_prompt $var_name
     variable=$(read_stdin $var_name)
     if not empty $variable
       VARS[$var_name]=$variable
-    if not empty ${VARS[$var_name]}
+    if is_valid "$validation_method" "${VARS[$var_name]}"
       debug "  $var_name=$variable"
       break
+    else
+      VARS[$var_name]=''
+      print_error $validation_method
+
+
+print_welcome()
+  print_translated "welcome"
+
+
+print_help(var_name)
+  print_translated "prompts.$var_name.help"
+
+
+print_prompt(var_name)
+  prompt=$(translate "prompts.$var_name")
+  prompt="$(print_with_color $prompt 'bold')"
+  if not empty ${VARS[$var_name]}
+    prompt="$prompt [${VARS[$var_name]}]"
+  echo -en "$prompt > "
 
 
 # Hack: We read from FD 3 in pipe bash mode because when reading the script from a pipe,
@@ -35,9 +62,37 @@ read_stdin(var_name)
   echo $variable
 
 
-print_prompt(var_name)
-  prompt=$(translate "prompts.$var_name")
-  prompt="$(print_with_color $prompt 'bold')"
-  if not empty ${VARS[$var_name]}
-    prompt="$prompt [${VARS[$var_name]}]"
-  echo -en "$prompt > "
+is_valid(validation_method, value)
+  if empty $validation_method
+    true
+  else
+    eval $validation_method $value
+
+
+print_error(error_key)
+  error=$(translate "prompt_errors.$error_key")
+  print_with_color "*** ${error}" 'red'
+
+
+print_translated(key)
+  message=$(translate "${key}")
+  if not empty $message
+    echo $message
+
+
+validate_presence(value)
+  isset $value
+
+
+validate_yes_no(value)
+  (is_yes_answer $value || is_no_answer $value)
+
+
+is_yes_answer(answer)
+  shopt -s nocasematch
+  [[ $answer =~ ^(yes|y|да|д) ]]
+
+
+is_no_answer(answer)
+  shopt -s nocasematch
+  [[ $answer =~ ^(no|n|нет|н) ]]

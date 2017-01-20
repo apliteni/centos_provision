@@ -35,7 +35,6 @@ nginx_vhosts:
     charset: utf-8
     error_log: /var/log/nginx/error.log
     extra_parameters: |
-
       location ~* \.(jpg|jpeg|gif|png|js|css|txt|zip|ico|gz|csv)$ {
         expires 10d;
       }
@@ -67,7 +66,6 @@ nginx_vhosts:
         access_log /var/log/nginx/admin.access.log combined buffer=16k;
       }
 
-
 # Firewall
 firewall_allowed_tcp_ports:
   - 22
@@ -75,3 +73,7 @@ firewall_allowed_tcp_ports:
   - 80
   - 3333 # friendhosting ssh
   - 1500 # isp manager
+
+letsencrypt_webroot_path: "{{ keitaro.path }}"
+letsencrypt_cert_domains: "{{ ssl_domains.split(',') }}"
+letsencrypt_email: "{{ ssl_email | default('') }}"

@@ -15,18 +15,19 @@
 
 - name: Install Keitaro TDS
   tags: keitaro
-  shell: |
-    cd {{ keitaro.path }} && \
-    sudo -u {{os_user}} php install.php install \
-        --ip={{ license_ip }}  \
-        --key={{ license_key }} \
-        --db-user={{ db_user }} \
-        --db-name={{ db_name }} \
-        --db-password='{{ db_password }}' \
-        --admin-login={{ admin_login }} \
-        --admin-password='{{ admin_password }}' \
-        --draft-storage=redis \
-        --cache-storage=redis
+  command: |
+      /usr/bin/php install.php install --ip={{ license_ip }} \
+                                       --key={{ license_key }} \
+                                       --db-user={{ db_user }} \
+                                       --db-name={{ db_name }} \
+                                       --db-password='{{ db_password }}' \
+                                       --admin-login={{ admin_login }} \
+                                       --admin-password='{{ admin_password }}' \
+                                       --draft-storage=redis \
+                                       --cache-storage=redis
+  args:
+    chdir: "{{ keitaro.path }}"
+  become_user: "{{ os_user }}"
   register: command_result
   failed_when: "'Installation Finished' not in command_result.stdout"
 

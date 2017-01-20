@@ -29,3 +29,4 @@
     - {role: 'monit'}
     - {role: 'geerlingguy.firewall', tags: 'firewall'}
     - {role: 'keitaro'}
+    - {role: 'letsencrypt', tags: 'ssl', when: ssl_domains is defined and ssl_domains != ''}

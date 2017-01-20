@@ -2,5 +2,4 @@
 
 
 stage4()
-  download_provision
-  run_ansible_playbook
+  install_ansible_if_not_installed

@@ -28,7 +28,7 @@ class Installer
       self.values = content
                       .split(LINES_DIVIDER)
                       .grep(/#{VALUES_DIVIDER}/)
-                      .map { |line| line.split(VALUES_DIVIDER) }
+                      .map { |line| k, v = line.split(VALUES_DIVIDER); [k, v] }
                       .to_h
     end
 
@@ -136,7 +136,7 @@ class Installer
         prompt = stdout_chunk.split("\n").last
 
         if prompt =~ / > $/
-          key = prompt.match(/[[[:alnum:]]\s]+/)[0].strip
+          key = prompt.match(/[^>]+/)[0].gsub(/\[.*\]/, '').strip
           if prompts_with_values.key?(key)
             stdin.puts(prompts_with_values[key])
           else
