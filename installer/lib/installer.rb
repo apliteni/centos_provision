@@ -54,15 +54,15 @@ class Installer
     @inventory = Inventory.new
   end
 
-  def call
-    Dir.mktmpdir('', '/tmp') do |current_dir|
-      Dir.chdir(current_dir) do
-        write_to_inventory(stored_values)
-
-        invoke_installer_cmd(current_dir)
-
-        read_inventory
+  def call(current_dir: nil)
+    if current_dir.nil?
+      Dir.mktmpdir('', '/tmp') do |current_dir|
+        Dir.chdir(current_dir) do
+          run_in_dir(current_dir)
+        end
       end
+    else
+      run_in_dir(current_dir)
     end
   end
 
@@ -71,6 +71,12 @@ class Installer
   end
 
   private
+
+  def run_in_dir(current_dir)
+    write_to_inventory(stored_values)
+    invoke_installer_cmd(current_dir)
+    read_inventory
+  end
 
   def write_to_inventory(stored_values)
     Inventory.write_to_file(INVENTORY_FILE, stored_values)

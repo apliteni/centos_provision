@@ -365,4 +365,51 @@ RSpec.describe 'installer.sh' do
 
     it_behaves_like 'should exit with error', 'You must run this program as root'
   end
+
+  describe 'log files' do
+    around do |example|
+      Dir.mktmpdir('', '/tmp') do |current_dir|
+        Dir.chdir(current_dir) do
+          @current_dir = current_dir
+          example.run
+        end
+      end
+    end
+
+    shared_examples_for 'should create' do |filename|
+      specify do
+        installer.call(current_dir: @current_dir)
+        expect(File).to be_exists(filename)
+      end
+    end
+
+    shared_examples_for 'should move old install.log to' do |newname|
+      specify do
+        old_content = IO.read('install.log')
+        installer.call(current_dir: @current_dir)
+        expect(IO.read(newname)).to eq(old_content)
+      end
+    end
+
+    context 'log files does not exists' do
+      it_behaves_like 'should create', 'install.log'
+    end
+
+    context 'install.log exists' do
+      before { IO.write('install.log', 'some log') }
+
+      it_behaves_like 'should create', 'install.log'
+
+      it_behaves_like 'should move old install.log to', 'install.log.1'
+    end
+
+    context 'install.log, install.log.1 exists' do
+      before { IO.write('install.log', 'some log') }
+      before { IO.write('install.log.1', 'some log.1') }
+
+      it_behaves_like 'should create', 'install.log'
+
+      it_behaves_like 'should move old install.log to', 'install.log.2'
+    end
+  end
 end
