@@ -19,3 +19,4 @@ if ${SHELLNAME} == 'bash'
 else
   SCRIPT_NAME=${SHELLNAME}
   SELF_COMMAND="${SCRIPT_NAME} ${COMMAND_ARGS}"
+  SELF_COMMAND=${SELF_COMMAND/% /}                  # Remove possible trailing space

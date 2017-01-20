@@ -18,4 +18,4 @@ wait_while_alive(pid)
 
 handle_failed_process(pid)
   if ! wait $pid
-    fail "$(translate 'errors.run_command.fail') '$command'\n$(translate 'errors.run_command.see_logs')"
+    fail "$(translate 'errors.run_command.fail') '$command'\n$(translate 'errors.run_command.fail_extra')"
