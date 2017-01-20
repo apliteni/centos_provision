@@ -157,19 +157,19 @@ END
 init_log(){
   if [ -f ${INSTALL_LOG} ]; then
     name_for_old_log=$(get_name_for_old_log ${INSTALL_LOG})
-    mv ${INSTALL_LOG}
-    debug "Old log ${INSTALL_LOG} moved to"
+    mv ${INSTALL_LOG} "$name_for_old_log"
+    debug "Old log ${INSTALL_LOG} moved to "$name_for_old_log""
   fi
 }
 
+
 get_name_for_old_log(){
   local basename="${1}"
-  old_suffix=$(/bin/ls "${basename}.*" | grep -oP '\d+$' | sort | tail -1)
-  if [[ "$old_suffix" == "" ]]; then
-    current_suffix=0
-  else
-    current_suffix=$(expr "$old_suffix" + 1)
+  old_suffix=0
+  if [ -f ${basename}.1 ]; then
+    old_suffix=$(ls ${basename}.* | grep -oP '\d+$' | sort | tail -1)
   fi
+  current_suffix=$(expr "$old_suffix" + 1)
   echo "$basename".$current_suffix
 }
 
