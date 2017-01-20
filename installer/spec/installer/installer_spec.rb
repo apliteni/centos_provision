@@ -353,8 +353,10 @@ RSpec.describe 'installer.sh' do
     context 'unsuccessfil installation' do
       let(:command_stubs) { {curl: '/bin/true', tar: '/bin/true', 'ansible-playbook': '/bin/false'} }
 
-      it_behaves_like 'should exit with error',
-                      /There was an error .* log in install\.\d{8}\.\d{6}\.log/m
+      it_behaves_like 'should exit with error', /There was an error evaluating command 'ansible-playbook/
+      it_behaves_like 'should exit with error', /Installation log saved to install\.\d{8}\.\d{6}\.log/
+      it_behaves_like 'should exit with error', /Configuration settings saved to hosts.txt/
+      it_behaves_like 'should exit with error', /You can rerun 'install.sh'/
     end
   end
 
