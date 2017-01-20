@@ -66,6 +66,7 @@ if [[ ${SHELLNAME} == 'bash' ]]; then
 else
   SCRIPT_NAME=${SHELLNAME}
   SELF_COMMAND="${SCRIPT_NAME} ${COMMAND_ARGS}"
+  SELF_COMMAND=${SELF_COMMAND/% /}                  # Remove possible trailing space
 fi
 
 
@@ -74,8 +75,11 @@ declare -A DICT
 DICT['en.errors.installation_failed_header']='INSTALLATION FAILED'
 DICT['en.errors.must_be_root']='You must run this program as root.'
 DICT['en.errors.run_command.fail']='There was an error evaluating command'
-DICT['en.errors.run_command.see_logs']="You can found installation log in ${INSTALL_LOG}"
-DICT['en.errors.run_command.try_to_run']="Your configuration settings saved to ${INVENTORY_FILE}"
+DICT['en.errors.run_command.fail_extra']=$(cat <<- END
+	Installation log saved to ${INSTALL_LOG}. Configuration settings saved to ${INVENTORY_FILE}.
+	You can rerun '${SELF_COMMAND}' with saved settings after resolving installation problems.
+END
+)
 DICT['en.errors.yum_not_installed']='This installer works only on yum-based systems. Please run this programm in CentOS/RHEL/Fedora distro'
 DICT['en.messages.run_command']='Evaluating command'
 DICT['en.messages.successful_install']='Everything done!'
@@ -112,7 +116,11 @@ END
 DICT['ru.errors.installation_failed_header']='ОШИБКА УСТАНОВКИ'
 DICT['ru.errors.must_be_root']='Эту программу может запускать только root.'
 DICT['ru.errors.run_command.fail']='Ошибка выполнения команды'
-DICT['ru.errors.run_command.see_logs']="Вы можете ознакомиться с журналом установки в ${INSTALL_LOG}"
+DICT['ru.errors.run_command.fail_extra']=$(cat <<- END
+	Журнал установки сохранён в ${INSTALL_LOG}. Настройки сохранены в ${INVENTORY_FILE}.
+	Вы можете повторно запустить '${SELF_COMMAND}' с этими настройками после устранения возникших проблем.
+END
+)
 DICT['ru.errors.yum_not_installed']='Утановщик keitaro работает только с пакетным менеджером yum. Пожалуйста, запустите эту программу в CentOS/RHEL/Fedora дистрибутиве'
 DICT['ru.messages.run_command']='Выполняется команда'
 DICT['ru.messages.successful_install']='Установка завершена!'
@@ -276,7 +284,7 @@ wait_while_alive(){
 handle_failed_process(){
   local pid="${1}"
   if ! wait "$pid"; then
-    fail "$(translate 'errors.run_command.fail') '$command'\n$(translate 'errors.run_command.see_logs')"
+    fail "$(translate 'errors.run_command.fail') '$command'\n$(translate 'errors.run_command.fail_extra')"
   fi
 }
 
