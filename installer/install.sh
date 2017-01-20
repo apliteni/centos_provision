@@ -46,7 +46,6 @@ values ()
 
 
 INSTALL_LOG="install.$(date -u +'%Y%m%d.%H%M%S').log"
-SUPPORT_EMAIL=support@keitarotds.com
 INVENTORY_FILE=hosts.txt
 PROVISION_DIRECTORY=centos_provision-master
 
@@ -55,8 +54,8 @@ declare -A DICT
 
 DICT['en.errors.installation_failed_header']='INSTALLATION FAILED'
 DICT['en.errors.must_be_root']='You must run this program as root.'
-DICT['en.errors.please_send_email']="Please send email to "$SUPPORT_EMAIL" with attached "$INSTALL_LOG""
-DICT['en.errors.unsuccessful_run_command']='There was an error evaluating command'
+DICT['en.errors.run_command.fail']='There was an error evaluating command'
+DICT['en.errors.run_command.see_logs']="You can found installation log in "$INSTALL_LOG""
 DICT['en.errors.yum_not_installed']='This installer works only on yum-based systems. Please run "$SHELLNAME" in CentOS/RHEL/Fedora distro'
 DICT['en.messages.run_command']='Evaluating command'
 DICT['en.messages.successful_install']='Everything done!'
@@ -92,8 +91,8 @@ END
 
 DICT['ru.errors.installation_failed_header']='ОШИБКА УСТАНОВКИ'
 DICT['ru.errors.must_be_root']='Эту программу может запускать только root.'
-DICT['ru.errors.please_send_email']="Пожалуйста, отправьте email на $SUPPORT_EMAIL приложив $INSTALL_LOG"
-DICT['ru.errors.unsuccessful_run_command']='Ошибка выполнения команды'
+DICT['ru.errors.run_command.fail']='Ошибка выполнения команды'
+DICT['ru.errors.run_command.see_logs']="Вы можете ознакомиться с журналом установки в $INSTALL_LOG"
 DICT['ru.errors.yum_not_installed']='Утановщик keitaro работает только с пакетным менеджером yum. Пожалуйста, запустите $SHELLNAME в CentOS/RHEL/Fedora дистрибутиве'
 DICT['ru.messages.run_command']='Выполняется команда'
 DICT['ru.messages.successful_install']='Установка завершена!'
@@ -257,7 +256,7 @@ wait_while_alive(){
 handle_failed_process(){
   local pid="${1}"
   if ! wait "$pid"; then
-    fail "$(translate 'errors.unsuccessful_run_command') '$command'\n$(translate 'errors.please_send_email')"
+    fail "$(translate 'errors.run_command.fail') '$command'\n$(translate 'errors.run_command.see_logs')"
   fi
 }
 
