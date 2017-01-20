@@ -354,7 +354,7 @@ RSpec.describe 'installer.sh' do
       let(:command_stubs) { {curl: '/bin/true', tar: '/bin/true', 'ansible-playbook': '/bin/false'} }
 
       it_behaves_like 'should exit with error',
-                      /There was an error .* send email to support@keitarotds.com/m
+                      /There was an error .* log in install\.\d{8}\.\d{6}\.log/m
     end
   end
 
