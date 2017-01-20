@@ -1,0 +1,16 @@
+#!/usr/bin/env powscript
+
+
+init_log()
+  if [ -f ${INSTALL_LOG} ]
+    name_for_old_log=$(get_name_for_old_log ${INSTALL_LOG})
+    mv ${INSTALL_LOG}
+    debug "Old log ${INSTALL_LOG} moved to"
+
+get_name_for_old_log(basename)
+  old_suffix=$(/bin/ls "${basename}.*" | grep -oP '\d+$' | sort | tail -1)
+  if $old_suffix == ""
+    current_suffix=0
+  else
+    current_suffix=$(expr $old_suffix + 1)
+  echo $basename.$current_suffix
