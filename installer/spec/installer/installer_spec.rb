@@ -18,6 +18,7 @@ RSpec.describe 'installer.sh' do
   let(:prompts) do
     {
       en: {
+        ssl: "Do you want to install Free SSL certificates from Let's Encrypt?",
         license_ip: 'Please enter server IP',
         license_key: 'Please enter license key',
         db_name: 'Please enter database name',
@@ -27,6 +28,7 @@ RSpec.describe 'installer.sh' do
         admin_password: 'Please enter keitaro admin password'
       },
       ru: {
+        ssl: "Вы хотите установить бесплатные SSL сертификаты, предоставляемые Let's Encrypt?",
         license_ip: 'Укажите IP адрес сервера',
         license_key: 'Укажите лицензионный ключ',
         db_name: 'Укажите имя базы данных',
@@ -40,6 +42,7 @@ RSpec.describe 'installer.sh' do
 
   let(:user_values) do
     {
+      ssl: 'no',
       license_ip: '8.8.8.8',
       license_key: 'WWWW-XXXX-YYYY-ZZZZ',
       db_name: 'keitarodb',
@@ -52,6 +55,7 @@ RSpec.describe 'installer.sh' do
 
   let(:en_prompts_with_values) do
     {
+      prompts[:en][:ssl] => user_values[:ssl],
       prompts[:en][:license_ip] => user_values[:license_ip],
       prompts[:en][:license_key] => user_values[:license_key],
       prompts[:en][:db_name] => user_values[:db_name],
@@ -64,6 +68,7 @@ RSpec.describe 'installer.sh' do
 
   let(:ru_prompts_with_values) do
     {
+      prompts[:ru][:ssl] => user_values[:ssl],
       prompts[:ru][:license_ip] => user_values[:license_ip],
       prompts[:ru][:license_key] => user_values[:license_key],
       prompts[:ru][:db_name] => user_values[:db_name],

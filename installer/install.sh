@@ -28,14 +28,14 @@ on ()
     done
 }
 
-isset () 
-{ 
-    [[ ! "${#1}" == 0 ]] && return 0 || return 1
-}
-
 empty () 
 { 
     [[ "${#1}" == 0 ]] && return 0 || return 1
+}
+
+isset () 
+{ 
+    [[ ! "${#1}" == 0 ]] && return 0 || return 1
 }
 
 values () 
@@ -53,36 +53,77 @@ PROVISION_DIRECTORY=centos_provision-master
 
 declare -A DICT
 
-DICT['en.prompts.license_key']='Please enter license key'
-DICT['en.prompts.db_name']='Please enter database name'
-DICT['en.prompts.db_user']='Please enter database user name'
-DICT['en.prompts.db_password']='Please enter database user password'
-DICT['en.prompts.admin_login']='Please enter keitaro admin login'
-DICT['en.prompts.admin_password']='Please enter keitaro admin password'
-DICT['en.prompts.license_ip']='Please enter server IP'
-DICT['en.prompts.license_ip']='Please enter server IP'
-DICT['en.messages.run_command']='Evaluating command'
-DICT['en.messages.successful_install']='Everything done!'
 DICT['en.errors.installation_failed_header']='INSTALLATION FAILED'
 DICT['en.errors.must_be_root']='You must run this program as root.'
-DICT['en.errors.unsuccessful_run_command']='There was an error evaluating command'
 DICT['en.errors.please_send_email']="Please send email to "$SUPPORT_EMAIL" with attached "$INSTALL_LOG""
+DICT['en.errors.unsuccessful_run_command']='There was an error evaluating command'
 DICT['en.errors.yum_not_installed']='This installer works only on yum-based systems. Please run "$SHELLNAME" in CentOS/RHEL/Fedora distro'
+DICT['en.messages.run_command']='Evaluating command'
+DICT['en.messages.successful_install']='Everything done!'
+DICT['en.no']='no'
+DICT['en.prompt_errors.validate_presence']='Please enter value'
+DICT['en.prompt_errors.validate_yes_no']='Please answer "yes" or "no"'
+DICT['en.prompts.admin_login']='Please enter keitaro admin login'
+DICT['en.prompts.admin_password']='Please enter keitaro admin password'
+DICT['en.prompts.db_name']='Please enter database name'
+DICT['en.prompts.db_password']='Please enter database user password'
+DICT['en.prompts.db_user']='Please enter database user name'
+DICT['en.prompts.license_ip']='Please enter server IP'
+DICT['en.prompts.license_ip']='Please enter server IP'
+DICT['en.prompts.license_key']='Please enter license key'
+DICT['en.prompts.ssl']="Do you want to install Free SSL certificates from Let's Encrypt?"
+DICT['en.prompts.ssl.help']=$(cat <<- END
+	Installer can install Free SSL certificates from Let's Encrypt. In order to install this certificates you must:
+	1. Agree with terms of Let's Encrypt Subscriber Agreement (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf).
+	2. Have at least one domain associated with this server.
+END
+)
+DICT['en.prompts.ssl.error']='Please answer "yes" or "no"'
+DICT['en.prompts.ssl_agree_tos']="Do you agree with terms of Let's Encrypt Subscriber Agreement?"
+DICT['en.prompts.ssl_agree_tos.help']="Let's Encrypt Subscriber Agreement located at https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf."
+DICT['en.prompts.ssl_domains']='Please enter server domains, separated by comma'
+DICT['en.prompts.ssl_email']='Please enter your email (you can left this field empty)'
+DICT['en.prompts.ssl_email.help']='You can obtain SSL certificate with no email address. This is strongly discouraged, because in the event of key loss or LetsEncrypt account compromise you will irrevocably lose access to your LetsEncrypt account. You will also be unable to receive notice about impending expiration or revocation of your certificates.'
+DICT['en.welcome']=$(cat <<- END
+	Welcome to Keitaro TDS installer.
+	This installer will guide you through the steps required to install Keitaro TDS on your server.
+END
+)
 
-DICT['ru.prompts.license_ip']='Укажите IP адрес сервера'
-DICT['ru.prompts.license_key']='Укажите лицензионный ключ'
-DICT['ru.prompts.db_name']='Укажите имя базы данных'
-DICT['ru.prompts.db_user']='Укажите пользователя базы данных'
-DICT['ru.prompts.db_password']='Укажите пароль пользователя базы данных'
-DICT['ru.prompts.admin_login']='Укажите имя администратора keitaro'
-DICT['ru.prompts.admin_password']='Укажите пароль администратора keitaro'
-DICT['ru.messages.run_command']='Выполняется команда'
-DICT['ru.messages.successful_install']='Установка завершена!'
 DICT['ru.errors.installation_failed_header']='ОШИБКА УСТАНОВКИ'
 DICT['ru.errors.must_be_root']='Эту программу может запускать только root.'
+DICT['ru.errors.please_send_email']="Пожалуйста, отправьте email на $SUPPORT_EMAIL приложив $INSTALL_LOG"
 DICT['ru.errors.unsuccessful_run_command']='Ошибка выполнения команды'
-DICT['ru.errors.please_send_email']="Пожалуйста, отправьте email на "$SUPPORT_EMAIL" приложив "$INSTALL_LOG""
-DICT['ru.errors.yum_not_installed']='Утановщик keitaro работает только с пакетным менеджером yum. Пожалуйста, запустите "$SHELLNAME" в CentOS/RHEL/Fedora дистрибутиве'
+DICT['ru.errors.yum_not_installed']='Утановщик keitaro работает только с пакетным менеджером yum. Пожалуйста, запустите $SHELLNAME в CentOS/RHEL/Fedora дистрибутиве'
+DICT['ru.messages.run_command']='Выполняется команда'
+DICT['ru.messages.successful_install']='Установка завершена!'
+DICT['ru.no']='нет'
+DICT['ru.prompt_errors.validate_presence']='Введите значение'
+DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
+DICT['ru.prompts.admin_login']='Укажите имя администратора keitaro'
+DICT['ru.prompts.admin_password']='Укажите пароль администратора keitaro'
+DICT['ru.prompts.db_name']='Укажите имя базы данных'
+DICT['ru.prompts.db_password']='Укажите пароль пользователя базы данных'
+DICT['ru.prompts.db_user']='Укажите пользователя базы данных'
+DICT['ru.prompts.license_ip']='Укажите IP адрес сервера'
+DICT['ru.prompts.license_key']='Укажите лицензионный ключ'
+DICT['ru.prompts.ssl']="Вы хотите установить бесплатные SSL сертификаты, предоставляемые Let's Encrypt?"
+DICT['ru.prompts.ssl.help']=$(cat <<- END
+	Программа установки может установить бесплатные SSL сертификаты, предоставляемые Let's Encrypt. Для этого вы должны:
+	1. Согласиться с условиями Абонентского Соглашения Let's Encrypt (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf).
+	2. Иметь хотя бы один домен для этого сервера.
+END
+)
+DICT['ru.prompts.ssl_agree_tos']="Вы согласны с условиями Абонентского Соглашения Let's Encrypt?"
+DICT['ru.prompts.ssl_agree_tos.help']="Абонентское Соглашение Let's Encrypt находится по адресу https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf."
+DICT['ru.prompts.ssl_domains']='Укажите список доменов через запятую'
+DICT['ru.prompts.ssl_email']='Укажите email (можно не указывать)'
+DICT['ru.prompts.ssl_email.help']='Вы можете получить SSL сертификат без указания email адреса. Однако LetsEncrypt настоятельно рекомендует указать его, так как в случае потери ключа или компрометации LetsEncrypt аккаунта вы полностью потеряете доступ к своему LetsEncrypt аккаунту. Без email вы также не сможете получить уведомление о предстоящем истечении срока действия или отзыве сертификата'
+DICT['ru.welcome']=$(cat <<- END
+	Добро пожаловать в программу установки Keitaro TDS.
+	Эта программа поможет собрать информацию необходимую для установки Keitaro TDS на вашем сервере.
+END
+)
 
 
 
@@ -229,8 +270,6 @@ translate(){
   i18n_key=$UI_LANG.$key
   if isset ${DICT[$i18n_key]}; then
     echo "${DICT[$i18n_key]}"
-  else
-    echo "$i18n_key"
   fi
 }
 
@@ -401,10 +440,10 @@ detect_language_from_var(){
 }
 
 
+
 stage2(){
   assert_caller_root
   assert_yum_installed
-  install_ansible_if_not_installed
 }
 
 
@@ -432,14 +471,29 @@ assert_yum_installed(){
 
 
 
-install_ansible_if_not_installed(){
-  if ! is_installed ansible; then
-    debug "Try to install ansible"
-    install_package epel-release
-    install_package ansible
-  fi
+declare -A VARS
+
+PASSWORD_LENGTH=16
+
+
+stage3(){
+  setup_vars
+  read_inventory_file
+  get_user_vars
+  write_inventory_file
 }
 
+
+
+setup_vars(){
+  VARS['ssl']=$(translate 'no')
+  VARS['ssl_agree_tos']=$(translate 'no')
+  VARS['db_name']='keitaro'
+  VARS['db_user']='keitaro'
+  VARS['db_password']=$(generate_password)
+  VARS['admin_login']='admin'
+  VARS['admin_password']=$(generate_password)
+}
 
 
 generate_password(){
@@ -447,24 +501,7 @@ generate_password(){
 }
 
 
-declare -A VARS
 
-VARS['license_ip']=''
-VARS['license_key']=''
-VARS['db_name']='keitaro'
-VARS['db_user']='keitaro'
-VARS['db_password']=$(generate_password)
-VARS['admin_login']='admin'
-VARS['admin_password']=$(generate_password)
-
-PASSWORD_LENGTH=16
-
-
-stage3(){
-  read_inventory_file
-  get_user_vars
-  write_inventory_file
-}
 
 
 
@@ -493,40 +530,54 @@ parse_line_from_inventory_file(){
 
 get_user_vars(){
   debug 'Read vars from user input'
-  get_var 'license_ip'
-  get_var 'license_key'
-  get_var 'db_name'
-  get_var 'db_user'
-  get_var 'db_password'
-  get_var 'admin_login'
-  get_var 'admin_password'
+  print_welcome
+  get_var 'ssl' 'validate_yes_no'
+  if is_yes_answer ${VARS['ssl']}; then
+    get_var 'ssl_agree_tos' 'validate_yes_no'
+    if is_yes_answer ${VARS['ssl_agree_tos']}; then
+      get_var 'ssl_domains' 'validate_presence'
+      get_var 'ssl_email'
+    fi
+  fi
+  get_var 'license_ip' 'validate_presence'
+  get_var 'license_key' 'validate_presence'
+  get_var 'db_name' 'validate_presence'
+  get_var 'db_user' 'validate_presence'
+  get_var 'db_password' 'validate_presence'
+  get_var 'admin_login' 'validate_presence'
+  get_var 'admin_password' 'validate_presence'
 }
 
 
 get_var(){
   local var_name="${1}"
+  local validation_method="${2}"
+  print_help "$var_name"
   while true; do
     print_prompt "$var_name"
     variable=$(read_stdin "$var_name")
     if ! empty "$variable"; then
       VARS[$var_name]=$variable
     fi
-    if ! empty ${VARS[$var_name]}; then
+    if is_valid "$validation_method" "${VARS[$var_name]}"; then
       debug "  "$var_name"="$variable""
       break
+    else
+      VARS[$var_name]=''
+      print_error "$validation_method"
     fi
   done
 }
 
 
-read_stdin(){
+print_welcome(){
+  print_translated "welcome"
+}
+
+
+print_help(){
   local var_name="${1}"
-  if is_pipe_mode; then
-    read -r -u 3 variable
-  else
-    read -r variable
-  fi
-  echo "$variable"
+  print_translated "prompts.$var_name.help"
 }
 
 
@@ -541,6 +592,70 @@ print_prompt(){
 }
 
 
+read_stdin(){
+  local var_name="${1}"
+  if is_pipe_mode; then
+    read -r -u 3 variable
+  else
+    read -r variable
+  fi
+  echo "$variable"
+}
+
+
+is_valid(){
+  local validation_method="${1}"
+  local value="${2}"
+  if empty "$validation_method"; then
+    true
+  else
+    eval "$validation_method" "$value"
+  fi
+}
+
+
+print_error(){
+  local error_key="${1}"
+  error=$(translate "prompt_errors.$error_key")
+  print_with_color "*** ${error}" 'red'
+}
+
+
+print_translated(){
+  local key="${1}"
+  message=$(translate "${key}")
+  if ! empty "$message"; then
+    echo "$message"
+  fi
+}
+
+
+validate_presence(){
+  local value="${1}"
+  isset "$value"
+}
+
+
+validate_yes_no(){
+  local value="${1}"
+  (is_yes_answer "$value" || is_no_answer "$value")
+}
+
+
+is_yes_answer(){
+  local answer="${1}"
+  shopt -s nocasematch
+  [[ "$answer" =~ ^(yes|y|да|д) ]]
+}
+
+
+is_no_answer(){
+  local answer="${1}"
+  shopt -s nocasematch
+  [[ "$answer" =~ ^(no|n|нет|н) ]]
+}
+
+
 
 write_inventory_file(){
   debug "Write inventory file"
@@ -549,6 +664,10 @@ write_inventory_file(){
   print_line_to_inventory_file "localhost connection=local"
   print_line_to_inventory_file
   print_line_to_inventory_file "[server:vars]"
+  print_line_to_inventory_file "ssl="${VARS['ssl']}""
+  print_line_to_inventory_file "ssl_agree_tos="${VARS['ssl_agree_tos']}""
+  print_line_to_inventory_file "ssl_domains="${VARS['ssl_domains']}""
+  print_line_to_inventory_file "ssl_email="${VARS['ssl_email']}""
   print_line_to_inventory_file "license_ip="${VARS['license_ip']}""
   print_line_to_inventory_file "license_key="${VARS['license_key']}""
   print_line_to_inventory_file "db_name="${VARS['db_name']}""
@@ -568,6 +687,22 @@ print_line_to_inventory_file(){
 
 
 stage4(){
+  install_ansible_if_not_installed
+}
+
+
+
+install_ansible_if_not_installed(){
+  if ! is_installed ansible; then
+    debug "Try to install ansible"
+    install_package epel-release
+    install_package ansible
+  fi
+}
+
+
+
+stage5(){
   download_provision
   run_ansible_playbook
 }
@@ -588,9 +723,17 @@ run_ansible_playbook(){
 }
 
 
+
 show_successful_install_message(){
   print_with_color "$(translate 'messages.successful_install')" 'green'
-  print_with_color "http://${VARS['license_ip']}/admin" 'light.green'
+  if isset "${VARS['ssl_domains']}"; then
+    protocol='https'
+    domain=$(expr match ${VARS['ssl_domains']} '\([^,]*\)')
+  else
+    protocol='http'
+    domain="${VARS['license_ip']}"
+  fi
+  print_with_color "${protocol}://${domain}/admin" 'light.green'
   colored_login=$(print_with_color "${VARS['admin_login']}" 'light.green')
   colored_password=$(print_with_color "${VARS['admin_password']}" 'light.green')
   echo -e "login: ${colored_login}"
@@ -606,12 +749,14 @@ install(){
   stage0 "$@"
   debug "Starting stage 1: initial script setup"
   stage1 "$@"
-  debug "Starting stage 2: check/install required sofware"
+  debug "Starting stage 2: make some asserts"
   stage2
   debug "Starting stage 3: write inventory file"
   stage3
-  debug "Starting stage 4: run ansible playbook"
+  debug "Starting stage 4: install ansible"
   stage4
+  debug "Starting stage 5: run ansible playbook"
+  stage5
 }
 
 install "$@"
