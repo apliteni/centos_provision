@@ -45,7 +45,7 @@ values ()
 
 
 
-INSTALL_LOG="install.$(date -u +'%Y%m%d.%H%M%S').log"
+INSTALL_LOG="install.log"
 INVENTORY_FILE=hosts.txt
 PROVISION_DIRECTORY=centos_provision-master
 SCRIPT_NAME="install.sh"
@@ -151,6 +151,27 @@ DICT['ru.welcome']=$(cat <<- END
 	Эта программа поможет собрать информацию необходимую для установки Keitaro TDS на вашем сервере.
 END
 )
+
+
+
+init_log(){
+  if [ -f ${INSTALL_LOG} ]; then
+    name_for_old_log=$(get_name_for_old_log ${INSTALL_LOG})
+    mv ${INSTALL_LOG}
+    debug "Old log ${INSTALL_LOG} moved to"
+  fi
+}
+
+get_name_for_old_log(){
+  local basename="${1}"
+  old_suffix=$(/bin/ls "${basename}.*" | grep -oP '\d+$' | sort | tail -1)
+  if [[ "$old_suffix" == "" ]]; then
+    current_suffix=0
+  else
+    current_suffix=$(expr "$old_suffix" + 1)
+  fi
+  echo "$basename".$current_suffix
+}
 
 
 
@@ -770,6 +791,7 @@ show_successful_install_message(){
 
 
 install(){
+  init_log
   debug "Starting stage 0: log basic info"
   stage0 "$@"
   debug "Starting stage 1: initial script setup"

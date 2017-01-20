@@ -3,6 +3,7 @@
 
 require "modules/vars/common.pow"
 require "modules/vars/dict.pow"
+require "modules/common/init_log.pow"
 require "modules/common/cleanup.pow"
 require "modules/common/debug.pow"
 require "modules/common/fail.pow"
@@ -39,6 +40,7 @@ require "modules/stage5/show_successful_install_message.pow"
 # the problem described in this blog post:
 #   http://blog.existentialize.com/dont-pipe-to-your-shell.html
 install()
+  init_log
   debug "Starting stage 0: log basic info"
   stage0 $@
   debug "Starting stage 1: initial script setup"

@@ -1,6 +1,6 @@
 #!/usr/bin/env powscript
 
-INSTALL_LOG="install.$(date -u +'%Y%m%d.%H%M%S').log"
+INSTALL_LOG="install.log"
 INVENTORY_FILE=hosts.txt
 PROVISION_DIRECTORY=centos_provision-master
 SCRIPT_NAME="install.sh"
