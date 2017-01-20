@@ -2,5 +2,5 @@
 
 
 stage0()
-  debug "Run with arguments: '$@'"
+  debug "Run: ${SELF_COMMAND}"
   debug "Current date time: $(date +'%Y-%m-%d %H:%M:%S %:z')"

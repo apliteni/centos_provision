@@ -8,16 +8,14 @@ run_command(command)
   if isset $PRESERVE
     debug "Actual running disabled"
   else
-    bash -c "set -euo pipefail; ($command) &>> $INSTALL_LOG" & pid=$!
-    print_dots_while_alive $pid
+    bash -c "set -euo pipefail; ($command) | tee $INSTALL_LOG" & pid=$!
+    wait_while_alive $pid
     handle_failed_process $pid
 
-print_dots_while_alive(pid)
+wait_while_alive(pid)
   while kill -0 $pid 2>/dev/null
-    echo -n  "."
     sleep 1
-  echo
 
 handle_failed_process(pid)
   if ! wait $pid
-    fail "$(translate 'errors.unsuccessful_run_command') '$command'\n$(translate 'errors.please_send_email')"
+    fail "$(translate 'errors.run_command.fail') '$command'\n$(translate 'errors.run_command.fail_extra')"
