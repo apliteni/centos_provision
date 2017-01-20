@@ -4,9 +4,13 @@ DICT={}
 
 DICT['en.errors.installation_failed_header']='INSTALLATION FAILED'
 DICT['en.errors.must_be_root']='You must run this program as root.'
-DICT['en.errors.please_send_email']="Please send email to $SUPPORT_EMAIL with attached $INSTALL_LOG"
-DICT['en.errors.unsuccessful_run_command']='There was an error evaluating command'
-DICT['en.errors.yum_not_installed']='This installer works only on yum-based systems. Please run $SHELLNAME in CentOS/RHEL/Fedora distro'
+DICT['en.errors.run_command.fail']='There was an error evaluating command'
+DICT['en.errors.run_command.fail_extra']=$(cat <<- END
+	Installation log saved to ${INSTALL_LOG}. Configuration settings saved to ${INVENTORY_FILE}.
+	You can rerun '${SELF_COMMAND}' with saved settings after resolving installation problems.
+END
+)
+DICT['en.errors.yum_not_installed']='This installer works only on yum-based systems. Please run this programm in CentOS/RHEL/Fedora distro'
 DICT['en.messages.run_command']='Evaluating command'
 DICT['en.messages.successful_install']='Everything done!'
 DICT['en.no']='no'
@@ -41,9 +45,13 @@ END
 
 DICT['ru.errors.installation_failed_header']='ОШИБКА УСТАНОВКИ'
 DICT['ru.errors.must_be_root']='Эту программу может запускать только root.'
-DICT['ru.errors.please_send_email']="Пожалуйста, отправьте email на $SUPPORT_EMAIL приложив $INSTALL_LOG"
-DICT['ru.errors.unsuccessful_run_command']='Ошибка выполнения команды'
-DICT['ru.errors.yum_not_installed']='Утановщик keitaro работает только с пакетным менеджером yum. Пожалуйста, запустите $SHELLNAME в CentOS/RHEL/Fedora дистрибутиве'
+DICT['ru.errors.run_command.fail']='Ошибка выполнения команды'
+DICT['ru.errors.run_command.fail_extra']=$(cat <<- END
+	Журнал установки сохранён в ${INSTALL_LOG}. Настройки сохранены в ${INVENTORY_FILE}.
+	Вы можете повторно запустить '${SELF_COMMAND}' с этими настройками после устранения возникших проблем.
+END
+)
+DICT['ru.errors.yum_not_installed']='Утановщик keitaro работает только с пакетным менеджером yum. Пожалуйста, запустите эту программу в CentOS/RHEL/Fedora дистрибутиве'
 DICT['ru.messages.run_command']='Выполняется команда'
 DICT['ru.messages.successful_install']='Установка завершена!'
 DICT['ru.no']='нет'
