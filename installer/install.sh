@@ -293,7 +293,6 @@ run_command(){
     bash -c "set -euo pipefail; ($command) | tee "$INSTALL_LOG"" & pid=$!
     trap terminate_child_process SIGHUP SIGINT SIGTERM
     wait_while_alive "$pid"
-    handle_failed_child_process
   fi
   trap clean_up SIGHUP SIGINT SIGTERM
 }
@@ -301,7 +300,7 @@ run_command(){
 
 terminate_child_process(){
   kill -TERM "$pid"
-  handle_failed_child_process
+  wait_while_alive "$pid"
 }
 
 
@@ -310,10 +309,12 @@ wait_while_alive(){
   while kill -0 "$pid" 2>/dev/null; do
     sleep 1
   done
+  handle_failed_child_process "$pid"
 }
 
 
 handle_failed_child_process(){
+  local pid="${1}"
   if ! wait "$pid"; then
     fail "$(translate 'errors.run_command.fail') '$command'\n$(translate 'errors.run_command.fail_extra')"
   fi
