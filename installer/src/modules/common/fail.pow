@@ -5,5 +5,5 @@ fail(message)
   print_err "*** $(translate errors.installation_failed_header) ***" 'red'
   print_err $message 'red'
   print_err
-  cleanup
+  clean_up
   exit 1

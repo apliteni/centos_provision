@@ -13,6 +13,3 @@ setup_vars()
 
 generate_password()
   LC_ALL=C tr -cd '[:alnum:]' < /dev/urandom | head -c16
-
-
-
