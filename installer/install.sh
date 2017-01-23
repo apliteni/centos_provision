@@ -577,14 +577,7 @@ parse_line_from_inventory_file(){
 get_user_vars(){
   debug 'Read vars from user input'
   print_welcome
-  get_var 'ssl' 'validate_yes_no'
-  if is_yes_answer ${VARS['ssl']}; then
-    get_var 'ssl_agree_tos' 'validate_yes_no'
-    if is_yes_answer ${VARS['ssl_agree_tos']}; then
-      get_var 'ssl_domains' 'validate_presence'
-      get_var 'ssl_email'
-    fi
-  fi
+  get_user_ssl_vars
   get_var 'license_ip' 'validate_presence'
   get_var 'license_key' 'validate_presence'
   get_var 'db_name' 'validate_presence'
@@ -593,6 +586,21 @@ get_user_vars(){
   get_var 'admin_login' 'validate_presence'
   get_var 'admin_password' 'validate_presence'
 }
+
+
+get_user_ssl_vars(){
+  VARS['ssl_certificate']='self-signed'
+  get_var 'ssl' 'validate_yes_no'
+  if is_yes_answer ${VARS['ssl']}; then
+    get_var 'ssl_agree_tos' 'validate_yes_no'
+    if is_yes_answer ${VARS['ssl_agree_tos']}; then
+      VARS['ssl_certificate']='letsencrypt'
+      get_var 'ssl_domains' 'validate_presence'
+      get_var 'ssl_email'
+    fi
+  fi
+}
+
 
 
 get_var(){
@@ -711,6 +719,7 @@ write_inventory_file(){
   print_line_to_inventory_file
   print_line_to_inventory_file "[server:vars]"
   print_line_to_inventory_file "ssl="${VARS['ssl']}""
+  print_line_to_inventory_file "ssl_certificate="${VARS['ssl_certificate']}""
   print_line_to_inventory_file "ssl_agree_tos="${VARS['ssl_agree_tos']}""
   print_line_to_inventory_file "ssl_domains="${VARS['ssl_domains']}""
   print_line_to_inventory_file "ssl_email="${VARS['ssl_email']}""

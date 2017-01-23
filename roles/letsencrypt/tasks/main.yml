@@ -3,10 +3,10 @@
 - include: install_certbot.yml
 
 - include: generate_letsencrypt_certs.yml
-  when: ssl_domains is defined and ssl_domains != ''
+  when: ssl_certificate == 'letsencrypt'
 
 - include: generate_selfsigned_certs.yml
-  when: ssl_domains is not defined or ssl_domains == ''
+  when: ssl_certificate == 'self-signed'
 
 - include: generate_dhparam.yml
 
