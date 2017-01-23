@@ -181,9 +181,6 @@ clean_up(){
     debug "Remove ${PROVISION_DIRECTORY}"
     rm -rf "$PROVISION_DIRECTORY"
   fi
-  if isset "$CHILD_PID"; then
-    kill "$CHILD_PID"#
-  fi
 }
 
 
@@ -293,12 +290,20 @@ run_command(){
   if isset "$PRESERVE"; then
     debug "Actual running disabled"
   else
-    bash -c "set -euo pipefail; ($command) | tee "$INSTALL_LOG"" & CHILD_PID=$!
-    wait_while_alive "$CHILD_PID"
-    handle_failed_process "$CHILD_PID"
+    bash -c "set -euo pipefail; ($command) | tee "$INSTALL_LOG"" & pid=$!
+    trap terminate_child_process SIGHUP SIGINT SIGTERM
+    wait_while_alive "$pid"
+    handle_failed_child_process
   fi
-  CHILD_PID=""
+  trap clean_up SIGHUP SIGINT SIGTERM
 }
+
+
+terminate_child_process(){
+  kill -TERM "$pid"
+  handle_failed_child_process
+}
+
 
 wait_while_alive(){
   local pid="${1}"
@@ -307,8 +312,8 @@ wait_while_alive(){
   done
 }
 
-handle_failed_process(){
-  local pid="${1}"
+
+handle_failed_child_process(){
   if ! wait "$pid"; then
     fail "$(translate 'errors.run_command.fail') '$command'\n$(translate 'errors.run_command.fail_extra')"
   fi
