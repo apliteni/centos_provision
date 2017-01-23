@@ -1,7 +1,9 @@
 #!/usr/bin/env powscript
 
 
-cleanup()
+clean_up()
   if [ -d $PROVISION_DIRECTORY ]
     debug "Remove ${PROVISION_DIRECTORY}"
     rm -rf $PROVISION_DIRECTORY
+  if isset $CHILD_PID
+    kill $CHILD_PID

@@ -4,7 +4,7 @@
 require "modules/vars/common.pow"
 require "modules/vars/dict.pow"
 require "modules/common/init_log.pow"
-require "modules/common/cleanup.pow"
+require "modules/common/clean_up.pow"
 require "modules/common/debug.pow"
 require "modules/common/fail.pow"
 require "modules/common/install_package.pow"
@@ -41,6 +41,7 @@ require "modules/stage5/show_successful_install_message.pow"
 #   http://blog.existentialize.com/dont-pipe-to-your-shell.html
 install()
   init_log
+  trap clean_up SIGHUP SIGINT SIGTERM
   debug "Starting stage 0: log basic info"
   stage0 $@
   debug "Starting stage 1: initial script setup"

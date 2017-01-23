@@ -50,6 +50,7 @@ INVENTORY_FILE=hosts.txt
 PROVISION_DIRECTORY=centos_provision-master
 SCRIPT_NAME="install.sh"
 INSTALLER_URL="https://keitarotds.com/install.sh"
+CHILD_PID=""
 
 if ! empty ${@}; then
   SELF_COMMAND_ARGS=${@}
@@ -175,10 +176,13 @@ get_name_for_old_log(){
 
 
 
-cleanup(){
+clean_up(){
   if [ -d "$PROVISION_DIRECTORY" ]; then
     debug "Remove ${PROVISION_DIRECTORY}"
     rm -rf "$PROVISION_DIRECTORY"
+  fi
+  if isset "$CHILD_PID"; then
+    kill "$CHILD_PID"#
   fi
 }
 
@@ -199,7 +203,7 @@ fail(){
   print_err "*** $(translate errors.installation_failed_header) ***" 'red'
   print_err "$message" 'red'
   print_err
-  cleanup
+  clean_up
   exit 1
 }
 
@@ -289,10 +293,11 @@ run_command(){
   if isset "$PRESERVE"; then
     debug "Actual running disabled"
   else
-    bash -c "set -euo pipefail; ($command) | tee "$INSTALL_LOG"" & pid=$!
-    wait_while_alive "$pid"
-    handle_failed_process "$pid"
+    bash -c "set -euo pipefail; ($command) | tee "$INSTALL_LOG"" & CHILD_PID=$!
+    wait_while_alive "$CHILD_PID"
+    handle_failed_process "$CHILD_PID"
   fi
+  CHILD_PID=""
 }
 
 wait_while_alive(){
@@ -548,9 +553,6 @@ generate_password(){
 
 
 
-
-
-
 read_inventory_file(){
   if [ -f "$INVENTORY_FILE" ]; then
     debug "Inventory file found, read defaults from it"
@@ -773,7 +775,7 @@ download_provision(){
 
 run_ansible_playbook(){
   run_command "ansible-playbook -vvv -i ${INVENTORY_FILE} ${PROVISION_DIRECTORY}/playbook.yml"
-  cleanup
+  clean_up
   show_successful_install_message
 }
 
@@ -801,6 +803,7 @@ show_successful_install_message(){
 
 install(){
   init_log
+  trap clean_up SIGHUP SIGINT SIGTERM
   debug "Starting stage 0: log basic info"
   stage0 "$@"
   debug "Starting stage 1: initial script setup"
