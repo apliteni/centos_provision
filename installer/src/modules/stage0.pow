@@ -2,5 +2,6 @@
 
 
 stage0()
-  debug "Run: ${SELF_COMMAND}"
+  debug "Command: ${SELF_COMMAND}"
+  debug "User ID: $EUID"
   debug "Current date time: $(date +'%Y-%m-%d %H:%M:%S %:z')"
