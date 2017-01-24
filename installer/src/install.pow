@@ -48,7 +48,7 @@ install()
   stage1 $@
   debug "Starting stage 2: make some asserts"
   stage2
-  debug "Starting stage 3: write inventory file"
+  debug "Starting stage 3: generate inventory file"
   stage3
   debug "Starting stage 4: install ansible"
   stage4
