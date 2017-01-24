@@ -193,11 +193,18 @@ debug(){
 
 fail(){
   local message="${1}"
-  print_err "*** $(translate errors.installation_failed_header) ***" 'red'
-  print_err "$message" 'red'
+  log_and_print_err "*** $(translate errors.installation_failed_header) ***"
+  log_and_print_err "$message"
   print_err
   clean_up
   exit 1
+}
+
+
+log_and_print_err(){
+  local message="${1}"
+  print_err "$message" 'red'
+  debug "$message" 'red'
 }
 
 
@@ -286,11 +293,10 @@ run_command(){
   if isset "$PRESERVE"; then
     debug "Actual running disabled"
   else
-    evaluated_command="(set -o pipefail && (${command}) | tee -a ${INSTALL_LOG})"
+    evaluated_command="(set -o pipefail && (${command}) 2>&1 | tee -a ${INSTALL_LOG})"
     debug "Real command: ${evaluated_command}"
     if ! eval "${evaluated_command}"; then
       message="$(translate 'errors.run_command.fail') '$command'\n$(translate 'errors.run_command.fail_extra')"
-      debug "$message" 'red'
       fail "$message"
     fi
   fi
@@ -553,7 +559,7 @@ parse_line_from_inventory_file(){
   if [[ "$line" =~ = ]]; then
     IFS="=" read var_name value <<< "$line"
     VARS[$var_name]=$value
-    debug "  "$var_name"=${VARS[$var_name]}"
+    debug "  "$var_name"=${VARS[$var_name]}" 'light.blue'
   fi
 }
 
@@ -599,7 +605,7 @@ get_var(){
       VARS[$var_name]=$variable
     fi
     if is_valid "$validation_method" "${VARS[$var_name]}"; then
-      debug "  "$var_name"="$variable""
+      debug "  "$var_name"="$variable"" 'light.blue'
       break
     else
       VARS[$var_name]=''
@@ -720,7 +726,7 @@ write_inventory_file(){
 
 print_line_to_inventory_file(){
   local line="${1}"
-  debug "  "$line""
+  debug "  "$line"" 'light.blue'
   echo "$line" >> "$INVENTORY_FILE"
 }
 
@@ -793,7 +799,7 @@ install(){
   stage1 "$@"
   debug "Starting stage 2: make some asserts"
   stage2
-  debug "Starting stage 3: write inventory file"
+  debug "Starting stage 3: generate inventory file"
   stage3
   debug "Starting stage 4: install ansible"
   stage4

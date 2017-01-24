@@ -14,4 +14,4 @@ parse_line_from_inventory_file(line)
   if $line match =
     IFS="=" read var_name value <<< $line
     VARS[$var_name]=$value
-    debug "  $var_name=${VARS[$var_name]}"
+    debug "  $var_name=${VARS[$var_name]}" 'light.blue'

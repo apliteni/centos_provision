@@ -23,5 +23,5 @@ write_inventory_file()
 
 
 print_line_to_inventory_file(line)
-  debug "  $line"
+  debug "  $line" 'light.blue'
   echo "$line" >> $INVENTORY_FILE

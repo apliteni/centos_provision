@@ -34,7 +34,7 @@ get_var(var_name, validation_method)
     if not empty $variable
       VARS[$var_name]=$variable
     if is_valid "$validation_method" "${VARS[$var_name]}"
-      debug "  $var_name=$variable"
+      debug "  $var_name=$variable" 'light.blue'
       break
     else
       VARS[$var_name]=''
