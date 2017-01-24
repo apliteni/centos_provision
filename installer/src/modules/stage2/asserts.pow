@@ -4,12 +4,12 @@
 assert_caller_root()
   debug 'Ensure script has been running by root'
   if isset $SKIP_CHECKS
-    debug "OK, skip actual checking of current user"
+    debug "SKIP: actual checking of current user"
   else
     if $EUID = 0
-      debug 'OK, current user is root'
+      debug 'OK: current user is root'
     else
-      debug 'NOK, current user is not root'
+      debug 'NOK: current user is not root'
       fail "$(translate errors.must_be_root)"
 
 
