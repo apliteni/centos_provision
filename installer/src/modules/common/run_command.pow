@@ -8,23 +8,9 @@ run_command(command)
   if isset $PRESERVE
     debug "Actual running disabled"
   else
-    bash -c "set -euo pipefail; ($command) | tee $INSTALL_LOG" & pid=$!
-    trap terminate_child_process SIGHUP SIGINT SIGTERM
-    wait_while_alive $pid
-  trap clean_up SIGHUP SIGINT SIGTERM
-
-
-terminate_child_process()
-  kill -TERM $pid
-  wait_while_alive $pid
-
-
-wait_while_alive(pid)
-  while kill -0 $pid 2>/dev/null
-    sleep 1
-  handle_failed_child_process $pid
-
-
-handle_failed_child_process(pid)
-  if ! wait $pid
-    fail "$(translate 'errors.run_command.fail') '$command'\n$(translate 'errors.run_command.fail_extra')"
+    evaluated_command="(set -o pipefail && (${command}) | tee -a ${INSTALL_LOG})"
+    debug "Real command: ${evaluated_command}"
+    if ! eval "${evaluated_command}"
+      message="$(translate 'errors.run_command.fail') '$command'\n$(translate 'errors.run_command.fail_extra')"
+      debug $message 'red'
+      fail $message

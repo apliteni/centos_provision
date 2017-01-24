@@ -90,6 +90,13 @@ RSpec.describe 'installer.sh' do
                   command_stubs: command_stubs
   end
 
+  shared_examples_for 'should print to log' do |expected_text|
+    it "prints to stdout #{expected_text.inspect}" do
+      installer.call(current_dir: @current_dir)
+      expect(installer.log).to match(expected_text)
+    end
+  end
+
   shared_examples_for 'should print to stdout' do |expected_text|
     it "prints to stdout #{expected_text.inspect}" do
       installer.call
@@ -123,7 +130,7 @@ RSpec.describe 'installer.sh' do
     context 'with `-v` args' do
       let(:args) { '-v' }
 
-      it_behaves_like 'should print to stdout', 'Verbose mode: on'
+      it_behaves_like 'should print to log', 'Verbose mode: on'
     end
 
     context 'with `-l` option' do
@@ -133,13 +140,13 @@ RSpec.describe 'installer.sh' do
       context 'with `en` value' do
         let(:lang) { 'en' }
 
-        it_behaves_like 'should print to stdout', 'Language: en'
+        it_behaves_like 'should print to log', 'Language: en'
       end
 
       context 'with `ru` value' do
         let(:lang) { 'ru' }
 
-        it_behaves_like 'should print to stdout', 'Language: ru'
+        it_behaves_like 'should print to log', 'Language: ru'
       end
 
       context 'with unsupported value' do
@@ -156,25 +163,25 @@ RSpec.describe 'installer.sh' do
       context 'LANG=ru_RU.UTF-8' do
         let(:env) { {LANG: 'ru_RU.UTF-8'} }
 
-        it_behaves_like 'should print to stdout', 'Language: ru'
+        it_behaves_like 'should print to log', 'Language: ru'
       end
 
       context 'LANG=ru_UA.UTF-8' do
         let(:env) { {LANG: 'ru_UA.UTF-8'} }
 
-        it_behaves_like 'should print to stdout', 'Language: ru'
+        it_behaves_like 'should print to log', 'Language: ru'
       end
 
       context 'LANG=en_US.UTF-8' do
         let(:env) { {LANG: 'en_US.UTF-8'} }
 
-        it_behaves_like 'should print to stdout', 'Language: en'
+        it_behaves_like 'should print to log', 'Language: en'
       end
 
       context 'LANG=de_DE.UTF-8' do
         let(:env) { {LANG: 'de_DE.UTF-8'} }
 
-        it_behaves_like 'should print to stdout', 'Language: en'
+        it_behaves_like 'should print to log', 'Language: en'
       end
     end
   end
@@ -312,8 +319,8 @@ RSpec.describe 'installer.sh' do
     context 'yum presented, ansible presented' do
       let(:docker_image) { 'ansible/centos7-ansible' }
 
-      it_behaves_like 'should print to stdout', "Try to found yum\nOK"
-      it_behaves_like 'should print to stdout', "Try to found ansible\nOK"
+      it_behaves_like 'should print to log', "Try to found yum\nOK"
+      it_behaves_like 'should print to log', "Try to found ansible\nOK"
       it_behaves_like 'should not print to stdout', 'Execute command: yum install -y ansible'
 
       it_behaves_like 'should install keitarotds'
@@ -322,8 +329,8 @@ RSpec.describe 'installer.sh' do
     context 'yum presented, ansible not presented' do
       let(:docker_image) { 'centos' }
 
-      it_behaves_like 'should print to stdout', "Try to found yum\nOK"
-      it_behaves_like 'should print to stdout', "Try to found ansible\nNOK"
+      it_behaves_like 'should print to log', "Try to found yum\nOK"
+      it_behaves_like 'should print to log', "Try to found ansible\nNOK"
       it_behaves_like 'should print to stdout', 'yum install -y epel-release'
       it_behaves_like 'should print to stdout', 'yum install -y ansible'
 
@@ -333,7 +340,7 @@ RSpec.describe 'installer.sh' do
     context 'yum not presented' do
       let(:docker_image) { 'ubuntu' }
 
-      it_behaves_like 'should print to stdout', "Try to found yum\nNOK"
+      it_behaves_like 'should print to log', "Try to found yum\nNOK"
       it_behaves_like 'should exit with error', 'This installer works only on yum-based systems'
     end
   end

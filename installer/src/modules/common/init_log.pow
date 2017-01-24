@@ -4,9 +4,10 @@
 init_log()
   if [ -f ${INSTALL_LOG} ]
     name_for_old_log=$(get_name_for_old_log ${INSTALL_LOG})
-    mv ${INSTALL_LOG} $name_for_old_log
+    mv $INSTALL_LOG $name_for_old_log
     debug "Old log ${INSTALL_LOG} moved to $name_for_old_log"
-
+  else
+    debug "${INSTALL_LOG} created"
 
 get_name_for_old_log(basename)
   old_suffix=0
