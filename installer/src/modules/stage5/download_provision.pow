@@ -2,5 +2,5 @@
 
 
 download_provision()
-  release_url=https://github.com/keitarocorp/centos_provision/archive/master.tar.gz
+  release_url="https://github.com/keitarocorp/centos_provision/archive/master.tar.gz"
   run_command "curl -sSL $release_url | tar xz"

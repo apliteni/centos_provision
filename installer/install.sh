@@ -52,21 +52,15 @@ SCRIPT_NAME="install.sh"
 INSTALLER_URL="https://keitarotds.com/install.sh"
 CHILD_PID=""
 
-if ! empty ${@}; then
-  SELF_COMMAND_ARGS=${@}
-else
-  SELF_COMMAND_ARGS=""
-fi
-
 if [[ ${SHELLNAME} == 'bash' ]]; then
-  if ! empty ${SELF_COMMAND_ARGS}; then
-    SELF_COMMAND="curl -sSL "$INSTALLER_URL" | bash -s -- ${SELF_COMMAND_ARGS}"
+  if ! empty ${@}; then
+    SELF_COMMAND="curl -sSL "$INSTALLER_URL" | bash -s -- ${@}"
   else
     SELF_COMMAND="curl -sSL "$INSTALLER_URL" | bash"
   fi
 else
   SCRIPT_NAME=${SHELLNAME}
-  SELF_COMMAND="${SCRIPT_NAME} ${COMMAND_ARGS}"
+  SELF_COMMAND="${SCRIPT_NAME} ${@}"
   SELF_COMMAND=${SELF_COMMAND/% /}                  # Remove possible trailing space
 fi
 
@@ -158,11 +152,12 @@ END
 init_log(){
   if [ -f ${INSTALL_LOG} ]; then
     name_for_old_log=$(get_name_for_old_log ${INSTALL_LOG})
-    mv ${INSTALL_LOG} "$name_for_old_log"
+    mv "$INSTALL_LOG" "$name_for_old_log"
     debug "Old log ${INSTALL_LOG} moved to "$name_for_old_log""
+  else
+    debug "${INSTALL_LOG} created"
   fi
 }
-
 
 get_name_for_old_log(){
   local basename="${1}"
@@ -187,10 +182,11 @@ clean_up(){
 
 debug(){
   local message="${1}"
-  if [[ "$VERBOSE" == "true" ]]; then
-    print_with_color "$message" 'light.green'
+  local color="${2}"
+  if empty "$color"; then
+    color='light.green'
   fi
-  print_with_color "$message" 'light.green' >> "$INSTALL_LOG"
+  print_with_color "$message" "$color" >> "$INSTALL_LOG"
 }
 
 
@@ -218,12 +214,12 @@ is_installed(){
   local command="${1}"
   debug "Try to found "$command""
   if isset "$SKIP_CHECKS"; then
-    debug "OK, skip actual checking of '$command' presence"
+    debug "SKIP: actual checking of '$command' presence"
   else
     if [[ $(sh -c "command -v "$command" -gt /dev/null") ]]; then
-      debug "OK, "$command" found"
+      debug "OK: "$command" found"
     else
-      debug "NOK, "$command" not found"
+      debug "NOK: "$command" not found"
       return 1
     fi
   fi
@@ -290,33 +286,13 @@ run_command(){
   if isset "$PRESERVE"; then
     debug "Actual running disabled"
   else
-    bash -c "set -euo pipefail; ($command) | tee "$INSTALL_LOG"" & pid=$!
-    trap terminate_child_process SIGHUP SIGINT SIGTERM
-    wait_while_alive "$pid"
-  fi
-  trap clean_up SIGHUP SIGINT SIGTERM
-}
-
-
-terminate_child_process(){
-  kill -TERM "$pid"
-  wait_while_alive "$pid"
-}
-
-
-wait_while_alive(){
-  local pid="${1}"
-  while kill -0 "$pid" 2>/dev/null; do
-    sleep 1
-  done
-  handle_failed_child_process "$pid"
-}
-
-
-handle_failed_child_process(){
-  local pid="${1}"
-  if ! wait "$pid"; then
-    fail "$(translate 'errors.run_command.fail') '$command'\n$(translate 'errors.run_command.fail_extra')"
+    evaluated_command="(set -o pipefail && (${command}) | tee -a ${INSTALL_LOG})"
+    debug "Real command: ${evaluated_command}"
+    if ! eval "${evaluated_command}"; then
+      message="$(translate 'errors.run_command.fail') '$command'\n$(translate 'errors.run_command.fail_extra')"
+      debug "$message" 'red'
+      fail "$message"
+    fi
   fi
 }
 
@@ -333,7 +309,8 @@ translate(){
 
 
 stage0(){
-  debug "Run: ${SELF_COMMAND}"
+  debug "Command: ${SELF_COMMAND}"
+  debug "User ID: "$EUID""
   debug "Current date time: $(date +'%Y-%m-%d %H:%M:%S %:z')"
 }
 
@@ -508,12 +485,12 @@ stage2(){
 assert_caller_root(){
   debug 'Ensure script has been running by root'
   if isset "$SKIP_CHECKS"; then
-    debug "OK, skip actual checking of current user"
+    debug "SKIP: actual checking of current user"
   else
     if [[ "$EUID" = 0 ]]; then
-      debug 'OK, current user is root'
+      debug 'OK: current user is root'
     else
-      debug 'NOK, current user is not root'
+      debug 'NOK: current user is not root'
       fail "$(translate errors.must_be_root)"
     fi
   fi
@@ -773,7 +750,7 @@ stage5(){
 
 
 download_provision(){
-  release_url=https://github.com/keitarocorp/centos_provision/archive/master.tar.gz
+  release_url="https://github.com/keitarocorp/centos_provision/archive/master.tar.gz"
   run_command "curl -sSL "$release_url" | tar xz"
 }
 
