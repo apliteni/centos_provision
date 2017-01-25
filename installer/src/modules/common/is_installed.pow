@@ -4,10 +4,10 @@
 is_installed(command)
   debug "Try to found $command"
   if isset $SKIP_CHECKS
-    debug "OK, skip actual checking of '$command' presence"
+    debug "SKIP: actual checking of '$command' presence"
   else
     if $(sh -c "command -v $command > /dev/null")
-      debug "OK, $command found"
+      debug "OK: $command found"
     else
-      debug "NOK, $command not found"
+      debug "NOK: $command not found"
       return 1

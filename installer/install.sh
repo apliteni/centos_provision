@@ -45,27 +45,22 @@ values ()
 
 
 
-INSTALL_LOG="install.$(date -u +'%Y%m%d.%H%M%S').log"
+INSTALL_LOG="install.log"
 INVENTORY_FILE=hosts.txt
 PROVISION_DIRECTORY=centos_provision-master
 SCRIPT_NAME="install.sh"
 INSTALLER_URL="https://keitarotds.com/install.sh"
-
-if ! empty ${@}; then
-  SELF_COMMAND_ARGS=${@}
-else
-  SELF_COMMAND_ARGS=""
-fi
+CHILD_PID=""
 
 if [[ ${SHELLNAME} == 'bash' ]]; then
-  if ! empty ${SELF_COMMAND_ARGS}; then
-    SELF_COMMAND="curl -sSL "$INSTALLER_URL" | bash -s -- ${SELF_COMMAND_ARGS}"
+  if ! empty ${@}; then
+    SELF_COMMAND="curl -sSL "$INSTALLER_URL" | bash -s -- ${@}"
   else
     SELF_COMMAND="curl -sSL "$INSTALLER_URL" | bash"
   fi
 else
   SCRIPT_NAME=${SHELLNAME}
-  SELF_COMMAND="${SCRIPT_NAME} ${COMMAND_ARGS}"
+  SELF_COMMAND="${SCRIPT_NAME} ${@}"
   SELF_COMMAND=${SELF_COMMAND/% /}                  # Remove possible trailing space
 fi
 
@@ -154,7 +149,29 @@ END
 
 
 
-cleanup(){
+init_log(){
+  if [ -f ${INSTALL_LOG} ]; then
+    name_for_old_log=$(get_name_for_old_log ${INSTALL_LOG})
+    mv "$INSTALL_LOG" "$name_for_old_log"
+    debug "Old log ${INSTALL_LOG} moved to "$name_for_old_log""
+  else
+    debug "${INSTALL_LOG} created"
+  fi
+}
+
+get_name_for_old_log(){
+  local basename="${1}"
+  old_suffix=0
+  if [ -f ${basename}.1 ]; then
+    old_suffix=$(ls ${basename}.* | grep -oP '\d+$' | sort | tail -1)
+  fi
+  current_suffix=$(expr "$old_suffix" + 1)
+  echo "$basename".$current_suffix
+}
+
+
+
+clean_up(){
   if [ -d "$PROVISION_DIRECTORY" ]; then
     debug "Remove ${PROVISION_DIRECTORY}"
     rm -rf "$PROVISION_DIRECTORY"
@@ -165,21 +182,29 @@ cleanup(){
 
 debug(){
   local message="${1}"
-  if [[ "$VERBOSE" == "true" ]]; then
-    print_with_color "$message" 'light.green'
+  local color="${2}"
+  if empty "$color"; then
+    color='light.green'
   fi
-  print_with_color "$message" 'light.green' >> "$INSTALL_LOG"
+  print_with_color "$message" "$color" >> "$INSTALL_LOG"
 }
 
 
 
 fail(){
   local message="${1}"
-  print_err "*** $(translate errors.installation_failed_header) ***" 'red'
-  print_err "$message" 'red'
+  log_and_print_err "*** $(translate errors.installation_failed_header) ***"
+  log_and_print_err "$message"
   print_err
-  cleanup
+  clean_up
   exit 1
+}
+
+
+log_and_print_err(){
+  local message="${1}"
+  print_err "$message" 'red'
+  debug "$message" 'red'
 }
 
 
@@ -196,12 +221,12 @@ is_installed(){
   local command="${1}"
   debug "Try to found "$command""
   if isset "$SKIP_CHECKS"; then
-    debug "OK, skip actual checking of '$command' presence"
+    debug "SKIP: actual checking of '$command' presence"
   else
     if [[ $(sh -c "command -v "$command" -gt /dev/null") ]]; then
-      debug "OK, "$command" found"
+      debug "OK: "$command" found"
     else
-      debug "NOK, "$command" not found"
+      debug "NOK: "$command" not found"
       return 1
     fi
   fi
@@ -268,23 +293,12 @@ run_command(){
   if isset "$PRESERVE"; then
     debug "Actual running disabled"
   else
-    bash -c "set -euo pipefail; ($command) | tee "$INSTALL_LOG"" & pid=$!
-    wait_while_alive "$pid"
-    handle_failed_process "$pid"
-  fi
-}
-
-wait_while_alive(){
-  local pid="${1}"
-  while kill -0 "$pid" 2>/dev/null; do
-    sleep 1
-  done
-}
-
-handle_failed_process(){
-  local pid="${1}"
-  if ! wait "$pid"; then
-    fail "$(translate 'errors.run_command.fail') '$command'\n$(translate 'errors.run_command.fail_extra')"
+    evaluated_command="(set -o pipefail && (${command}) 2>&1 | tee -a ${INSTALL_LOG})"
+    debug "Real command: ${evaluated_command}"
+    if ! eval "${evaluated_command}"; then
+      message="$(translate 'errors.run_command.fail') '$command'\n$(translate 'errors.run_command.fail_extra')"
+      fail "$message"
+    fi
   fi
 }
 
@@ -301,7 +315,8 @@ translate(){
 
 
 stage0(){
-  debug "Run: ${SELF_COMMAND}"
+  debug "Command: ${SELF_COMMAND}"
+  debug "User ID: "$EUID""
   debug "Current date time: $(date +'%Y-%m-%d %H:%M:%S %:z')"
 }
 
@@ -476,12 +491,12 @@ stage2(){
 assert_caller_root(){
   debug 'Ensure script has been running by root'
   if isset "$SKIP_CHECKS"; then
-    debug "OK, skip actual checking of current user"
+    debug "SKIP: actual checking of current user"
   else
     if [[ "$EUID" = 0 ]]; then
-      debug 'OK, current user is root'
+      debug 'OK: current user is root'
     else
-      debug 'NOK, current user is not root'
+      debug 'NOK: current user is not root'
       fail "$(translate errors.must_be_root)"
     fi
   fi
@@ -527,9 +542,6 @@ generate_password(){
 
 
 
-
-
-
 read_inventory_file(){
   if [ -f "$INVENTORY_FILE" ]; then
     debug "Inventory file found, read defaults from it"
@@ -547,7 +559,7 @@ parse_line_from_inventory_file(){
   if [[ "$line" =~ = ]]; then
     IFS="=" read var_name value <<< "$line"
     VARS[$var_name]=$value
-    debug "  "$var_name"=${VARS[$var_name]}"
+    debug "  "$var_name"=${VARS[$var_name]}" 'light.blue'
   fi
 }
 
@@ -556,14 +568,7 @@ parse_line_from_inventory_file(){
 get_user_vars(){
   debug 'Read vars from user input'
   print_welcome
-  get_var 'ssl' 'validate_yes_no'
-  if is_yes_answer ${VARS['ssl']}; then
-    get_var 'ssl_agree_tos' 'validate_yes_no'
-    if is_yes_answer ${VARS['ssl_agree_tos']}; then
-      get_var 'ssl_domains' 'validate_presence'
-      get_var 'ssl_email'
-    fi
-  fi
+  get_user_ssl_vars
   get_var 'license_ip' 'validate_presence'
   get_var 'license_key' 'validate_presence'
   get_var 'db_name' 'validate_presence'
@@ -572,6 +577,21 @@ get_user_vars(){
   get_var 'admin_login' 'validate_presence'
   get_var 'admin_password' 'validate_presence'
 }
+
+
+get_user_ssl_vars(){
+  VARS['ssl_certificate']='self-signed'
+  get_var 'ssl' 'validate_yes_no'
+  if is_yes_answer ${VARS['ssl']}; then
+    get_var 'ssl_agree_tos' 'validate_yes_no'
+    if is_yes_answer ${VARS['ssl_agree_tos']}; then
+      VARS['ssl_certificate']='letsencrypt'
+      get_var 'ssl_domains' 'validate_presence'
+      get_var 'ssl_email'
+    fi
+  fi
+}
+
 
 
 get_var(){
@@ -585,7 +605,7 @@ get_var(){
       VARS[$var_name]=$variable
     fi
     if is_valid "$validation_method" "${VARS[$var_name]}"; then
-      debug "  "$var_name"="$variable""
+      debug "  "$var_name"="$variable"" 'light.blue'
       break
     else
       VARS[$var_name]=''
@@ -690,6 +710,7 @@ write_inventory_file(){
   print_line_to_inventory_file
   print_line_to_inventory_file "[server:vars]"
   print_line_to_inventory_file "ssl="${VARS['ssl']}""
+  print_line_to_inventory_file "ssl_certificate="${VARS['ssl_certificate']}""
   print_line_to_inventory_file "ssl_agree_tos="${VARS['ssl_agree_tos']}""
   print_line_to_inventory_file "ssl_domains="${VARS['ssl_domains']}""
   print_line_to_inventory_file "ssl_email="${VARS['ssl_email']}""
@@ -705,7 +726,7 @@ write_inventory_file(){
 
 print_line_to_inventory_file(){
   local line="${1}"
-  debug "  "$line""
+  debug "  "$line"" 'light.blue'
   echo "$line" >> "$INVENTORY_FILE"
 }
 
@@ -735,7 +756,7 @@ stage5(){
 
 
 download_provision(){
-  release_url=https://github.com/keitarocorp/centos_provision/archive/master.tar.gz
+  release_url="https://github.com/keitarocorp/centos_provision/archive/master.tar.gz"
   run_command "curl -sSL "$release_url" | tar xz"
 }
 
@@ -743,7 +764,7 @@ download_provision(){
 
 run_ansible_playbook(){
   run_command "ansible-playbook -vvv -i ${INVENTORY_FILE} ${PROVISION_DIRECTORY}/playbook.yml"
-  cleanup
+  clean_up
   show_successful_install_message
 }
 
@@ -770,13 +791,15 @@ show_successful_install_message(){
 
 
 install(){
+  init_log
+  trap clean_up SIGHUP SIGINT SIGTERM
   debug "Starting stage 0: log basic info"
   stage0 "$@"
   debug "Starting stage 1: initial script setup"
   stage1 "$@"
   debug "Starting stage 2: make some asserts"
   stage2
-  debug "Starting stage 3: write inventory file"
+  debug "Starting stage 3: generate inventory file"
   stage3
   debug "Starting stage 4: install ansible"
   stage4

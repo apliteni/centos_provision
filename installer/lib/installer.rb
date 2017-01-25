@@ -12,6 +12,7 @@ class Installer
   INSTALLER_ROOT = File.expand_path(File.dirname(__FILE__) + '/../')
   INSTALLER_CMD = 'install.sh'
   INVENTORY_FILE = 'hosts.txt'
+  LOG_FILE = 'install.log'
 
   class Inventory
     attr_reader :values
@@ -46,7 +47,7 @@ class Installer
   end
 
   attr_accessor :env, :args, :prompts_with_values, :stored_values, :docker_image, :command_stubs
-  attr_reader :stdout, :stderr, :ret_value, :inventory
+  attr_reader :stdout, :stderr, :log, :ret_value, :inventory
 
   def initialize(env: {}, args: '', prompts_with_values: {}, stored_values: {}, docker_image: nil, command_stubs: {})
     @env, @args, @prompts_with_values, @stored_values, @docker_image, @command_stubs =
@@ -54,15 +55,15 @@ class Installer
     @inventory = Inventory.new
   end
 
-  def call
-    Dir.mktmpdir('', '/tmp') do |current_dir|
-      Dir.chdir(current_dir) do
-        write_to_inventory(stored_values)
-
-        invoke_installer_cmd(current_dir)
-
-        read_inventory
+  def call(current_dir: nil)
+    if current_dir.nil?
+      Dir.mktmpdir('', '/tmp') do |current_dir|
+        Dir.chdir(current_dir) do
+          run_in_dir(current_dir)
+        end
       end
+    else
+      run_in_dir(current_dir)
     end
   end
 
@@ -72,13 +73,19 @@ class Installer
 
   private
 
+  def run_in_dir(current_dir)
+    write_to_inventory(stored_values)
+    invoke_installer_cmd(current_dir)
+    read_inventory
+    read_log
+  end
+
   def write_to_inventory(stored_values)
     Inventory.write_to_file(INVENTORY_FILE, stored_values)
   end
 
   def invoke_installer_cmd(current_dir)
     FileUtils.copy("#{INSTALLER_ROOT}/#{INSTALLER_CMD}", current_dir)
-
 
     Open3.popen3(*installer_cmd(current_dir)) do |stdin, stdout, stderr, wait_thr|
       stdout.sync = true
@@ -93,6 +100,10 @@ class Installer
 
   def read_inventory
     inventory.read_from_file(INVENTORY_FILE) if ret_value.success?
+  end
+
+  def read_log
+    @log = without_formatting(IO.read(LOG_FILE))
   end
 
   def installer_cmd(current_dir)

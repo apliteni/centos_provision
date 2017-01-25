@@ -1,0 +1,26 @@
+---
+
+- name: Install packages
+  package:
+    name: certbot
+    state: installed
+
+- name: Create letsencrypt directories
+  file:
+     path: "{{ item }}"
+     state: directory
+     owner: "{{ os_user }}"
+     mode: 0755
+  with_items:
+    - /etc/letsencrypt
+    - /etc/nginx/ssl
+    - /var/lib/letsencrypt
+    - /var/log/letsencrypt
+
+- name: Schedule renewal cert task
+  cron:
+    name: Renew Let's Encrypt certs
+    job: certbot renew --allow-subset-of-names --quiet
+    hour: "{{ ansible_date_time.hour }}"
+    minute: "{{ ansible_date_time.minute }}"
+    user: "{{ os_user }}"
