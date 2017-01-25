@@ -5,7 +5,6 @@ INVENTORY_FILE=hosts.txt
 PROVISION_DIRECTORY=centos_provision-master
 SCRIPT_NAME="install.sh"
 INSTALLER_URL="https://keitarotds.com/install.sh"
-CHILD_PID=""
 
 if ${SHELLNAME} == 'bash'
   if not empty ${@}
