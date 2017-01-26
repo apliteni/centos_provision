@@ -3,6 +3,7 @@
 
 get_user_vars()
   debug 'Read vars from user input'
+  hack_stdin_if_pipe_mode
   print_welcome
   get_user_ssl_vars
   get_var 'license_ip' 'validate_presence'
@@ -14,6 +15,10 @@ get_user_vars()
   get_var 'admin_password' 'validate_presence'
 
 
+print_welcome()
+  print_translated "welcome"
+
+
 get_user_ssl_vars()
   VARS['ssl_certificate']='self-signed'
   get_var 'ssl' 'validate_yes_no'
@@ -23,7 +28,6 @@ get_user_ssl_vars()
       VARS['ssl_certificate']='letsencrypt'
       get_var 'ssl_domains' 'validate_presence'
       get_var 'ssl_email'
-
 
 
 get_var(var_name, validation_method)
@@ -39,10 +43,6 @@ get_var(var_name, validation_method)
     else
       VARS[$var_name]=''
       print_error $validation_method
-
-
-print_welcome()
-  print_translated "welcome"
 
 
 print_help(var_name)

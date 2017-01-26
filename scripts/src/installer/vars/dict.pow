@@ -2,7 +2,7 @@
 
 DICT={}
 
-DICT['en.errors.installation_failed_header']='INSTALLATION FAILED'
+DICT['en.errors.failure']='INSTALLATION FAILED'
 DICT['en.errors.must_be_root']='You must run this program as root.'
 DICT['en.errors.run_command.fail']='There was an error evaluating command'
 DICT['en.errors.run_command.fail_extra']=$(cat <<- END
@@ -43,7 +43,7 @@ DICT['en.welcome']=$(cat <<- END
 END
 )
 
-DICT['ru.errors.installation_failed_header']='ОШИБКА УСТАНОВКИ'
+DICT['ru.errors.failure']='ОШИБКА УСТАНОВКИ'
 DICT['ru.errors.must_be_root']='Эту программу может запускать только root.'
 DICT['ru.errors.run_command.fail']='Ошибка выполнения команды'
 DICT['ru.errors.run_command.fail_extra']=$(cat <<- END

@@ -8,8 +8,6 @@ parse_options()
         PRESERVE=true
       case s
         SKIP_CHECKS=true
-      case v
-        VERBOSE=true
       case l
         switch $OPTARG
           case en

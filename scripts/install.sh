@@ -50,7 +50,6 @@ INVENTORY_FILE=hosts.txt
 PROVISION_DIRECTORY=centos_provision-master
 SCRIPT_NAME="install.sh"
 INSTALLER_URL="https://keitarotds.com/install.sh"
-CHILD_PID=""
 
 if [[ ${SHELLNAME} == 'bash' ]]; then
   if ! empty ${@}; then
@@ -67,7 +66,7 @@ fi
 
 declare -A DICT
 
-DICT['en.errors.installation_failed_header']='INSTALLATION FAILED'
+DICT['en.errors.failure']='INSTALLATION FAILED'
 DICT['en.errors.must_be_root']='You must run this program as root.'
 DICT['en.errors.run_command.fail']='There was an error evaluating command'
 DICT['en.errors.run_command.fail_extra']=$(cat <<- END
@@ -108,7 +107,7 @@ DICT['en.welcome']=$(cat <<- END
 END
 )
 
-DICT['ru.errors.installation_failed_header']='ОШИБКА УСТАНОВКИ'
+DICT['ru.errors.failure']='ОШИБКА УСТАНОВКИ'
 DICT['ru.errors.must_be_root']='Эту программу может запускать только root.'
 DICT['ru.errors.run_command.fail']='Ошибка выполнения команды'
 DICT['ru.errors.run_command.fail_extra']=$(cat <<- END
@@ -149,6 +148,35 @@ END
 
 
 
+debug(){
+  local message="${1}"
+  local color="${2}"
+  if empty "$color"; then
+    color='light.green'
+  fi
+  print_with_color "$message" "$color" >> "$INSTALL_LOG"
+}
+
+
+
+fail(){
+  local message="${1}"
+  log_and_print_err "*** $(translate errors.failure) ***"
+  log_and_print_err "$message"
+  print_err
+  clean_up
+  exit 1
+}
+
+
+log_and_print_err(){
+  local message="${1}"
+  print_err "$message" 'red'
+  debug "$message" 'red'
+}
+
+
+
 init_log(){
   if [ -f ${INSTALL_LOG} ]; then
     name_for_old_log=$(get_name_for_old_log ${INSTALL_LOG})
@@ -167,75 +195,6 @@ get_name_for_old_log(){
   fi
   current_suffix=$(expr "$old_suffix" + 1)
   echo "$basename".$current_suffix
-}
-
-
-
-clean_up(){
-  if [ -d "$PROVISION_DIRECTORY" ]; then
-    debug "Remove ${PROVISION_DIRECTORY}"
-    rm -rf "$PROVISION_DIRECTORY"
-  fi
-}
-
-
-
-debug(){
-  local message="${1}"
-  local color="${2}"
-  if empty "$color"; then
-    color='light.green'
-  fi
-  print_with_color "$message" "$color" >> "$INSTALL_LOG"
-}
-
-
-
-fail(){
-  local message="${1}"
-  log_and_print_err "*** $(translate errors.installation_failed_header) ***"
-  log_and_print_err "$message"
-  print_err
-  clean_up
-  exit 1
-}
-
-
-log_and_print_err(){
-  local message="${1}"
-  print_err "$message" 'red'
-  debug "$message" 'red'
-}
-
-
-
-install_package(){
-  local package="${1}"
-  run_command "yum install -y "$package""
-}
-
-
-
-
-is_installed(){
-  local command="${1}"
-  debug "Try to found "$command""
-  if isset "$SKIP_CHECKS"; then
-    debug "SKIP: actual checking of '$command' presence"
-  else
-    if [[ $(sh -c "command -v "$command" -gt /dev/null") ]]; then
-      debug "OK: "$command" found"
-    else
-      debug "NOK: "$command" not found"
-      return 1
-    fi
-  fi
-}
-
-
-
-is_pipe_mode(){
-  [ "${SHELLNAME}" == 'bash' ]
 }
 
 
@@ -314,10 +273,53 @@ translate(){
 
 
 
+clean_up(){
+  if [ -d "$PROVISION_DIRECTORY" ]; then
+    debug "Remove ${PROVISION_DIRECTORY}"
+    rm -rf "$PROVISION_DIRECTORY"
+  fi
+}
+
+
+
+install_package(){
+  local package="${1}"
+  run_command "yum install -y "$package""
+}
+
+
+
+
+is_installed(){
+  local command="${1}"
+  debug "Try to found "$command""
+  if isset "$SKIP_CHECKS"; then
+    debug "SKIP: actual checking of '$command' presence"
+  else
+    if [[ $(sh -c "command -v "$command" -gt /dev/null") ]]; then
+      debug "OK: "$command" found"
+    else
+      debug "NOK: "$command" not found"
+      return 1
+    fi
+  fi
+}
+
+
+
+is_pipe_mode(){
+  [ "${SHELLNAME}" == 'bash' ]
+}
+
+
+
 stage0(){
+  init_log
+  debug "Starting stage 0: log basic info"
   debug "Command: ${SELF_COMMAND}"
   debug "User ID: "$EUID""
   debug "Current date time: $(date +'%Y-%m-%d %H:%M:%S %:z')"
+  trap clean_up SIGHUP SIGINT SIGTERM
 }
 
 
@@ -325,25 +327,7 @@ stage0(){
 stage1(){
   parse_options "$@"
   set_ui_lang
-  print_debug_info
-  hack_stdin_if_pipe_mode
 }
-
-
-hack_stdin_if_pipe_mode(){
-  if is_pipe_mode; then
-    debug 'Detected pipe bash mode. Stdin hack enabled'
-    hack_stdin
-  else
-    debug "Can't detect pipe bash mode. Stdin hack disabled"
-  fi
-}
-
-
-hack_stdin(){
-  exec 3<&1
-}
-
 
 
 
@@ -355,9 +339,6 @@ parse_options(){
         ;;
       s)
         SKIP_CHECKS=true
-        ;;
-      v)
-        VERBOSE=true
         ;;
       l)
         case $OPTARG in
@@ -443,17 +424,11 @@ en_usage(){
 
 
 
-print_debug_info(){
-  debug "Verbose mode: on"
-  debug "Language: ${UI_LANG}"
-}
-
-
-
 set_ui_lang(){
   if empty "$UI_LANG"; then
     UI_LANG=$(detect_language)
   fi
+  debug "Language: ${UI_LANG}"
 }
 
 
@@ -525,48 +500,9 @@ stage3(){
 
 
 
-setup_vars(){
-  VARS['ssl']=$(translate 'no')
-  VARS['ssl_agree_tos']=$(translate 'no')
-  VARS['db_name']='keitaro'
-  VARS['db_user']='keitaro'
-  VARS['db_password']=$(generate_password)
-  VARS['admin_login']='admin'
-  VARS['admin_password']=$(generate_password)
-}
-
-
-generate_password(){
-  LC_ALL=C tr -cd '[:alnum:]' < /dev/urandom | head -c16
-}
-
-
-
-read_inventory_file(){
-  if [ -f "$INVENTORY_FILE" ]; then
-    debug "Inventory file found, read defaults from it"
-    while IFS="" read -r line; do
-      parse_line_from_inventory_file "$line"
-    done <   $INVENTORY_FILE
-  else
-    debug "Inventory file not found"
-  fi
-}
-
-
-parse_line_from_inventory_file(){
-  local line="${1}"
-  if [[ "$line" =~ = ]]; then
-    IFS="=" read var_name value <<< "$line"
-    VARS[$var_name]=$value
-    debug "  "$var_name"=${VARS[$var_name]}" 'light.blue'
-  fi
-}
-
-
-
 get_user_vars(){
   debug 'Read vars from user input'
+  hack_stdin_if_pipe_mode
   print_welcome
   get_user_ssl_vars
   get_var 'license_ip' 'validate_presence'
@@ -576,6 +512,11 @@ get_user_vars(){
   get_var 'db_password' 'validate_presence'
   get_var 'admin_login' 'validate_presence'
   get_var 'admin_password' 'validate_presence'
+}
+
+
+print_welcome(){
+  print_translated "welcome"
 }
 
 
@@ -591,7 +532,6 @@ get_user_ssl_vars(){
     fi
   fi
 }
-
 
 
 get_var(){
@@ -612,11 +552,6 @@ get_var(){
       print_error "$validation_method"
     fi
   done
-}
-
-
-print_welcome(){
-  print_translated "welcome"
 }
 
 
@@ -702,6 +637,46 @@ is_no_answer(){
 
 
 
+read_inventory_file(){
+  if [ -f "$INVENTORY_FILE" ]; then
+    debug "Inventory file found, read defaults from it"
+    while IFS="" read -r line; do
+      parse_line_from_inventory_file "$line"
+    done <   $INVENTORY_FILE
+  else
+    debug "Inventory file not found"
+  fi
+}
+
+
+parse_line_from_inventory_file(){
+  local line="${1}"
+  if [[ "$line" =~ = ]]; then
+    IFS="=" read var_name value <<< "$line"
+    VARS[$var_name]=$value
+    debug "  "$var_name"=${VARS[$var_name]}" 'light.blue'
+  fi
+}
+
+
+
+setup_vars(){
+  VARS['ssl']=$(translate 'no')
+  VARS['ssl_agree_tos']=$(translate 'no')
+  VARS['db_name']='keitaro'
+  VARS['db_user']='keitaro'
+  VARS['db_password']=$(generate_password)
+  VARS['admin_login']='admin'
+  VARS['admin_password']=$(generate_password)
+}
+
+
+generate_password(){
+  LC_ALL=C tr -cd '[:alnum:]' < /dev/urandom | head -c16
+}
+
+
+
 write_inventory_file(){
   debug "Write inventory file"
   echo -n > "$INVENTORY_FILE"
@@ -729,6 +704,22 @@ print_line_to_inventory_file(){
   debug "  "$line"" 'light.blue'
   echo "$line" >> "$INVENTORY_FILE"
 }
+
+
+hack_stdin_if_pipe_mode(){
+  if is_pipe_mode; then
+    debug 'Detected pipe bash mode. Stdin hack enabled'
+    hack_stdin
+  else
+    debug "Can't detect pipe bash mode. Stdin hack disabled"
+  fi
+}
+
+
+hack_stdin(){
+  exec 3<&1
+}
+
 
 
 
@@ -791,9 +782,6 @@ show_successful_install_message(){
 
 
 install(){
-  init_log
-  trap clean_up SIGHUP SIGINT SIGTERM
-  debug "Starting stage 0: log basic info"
   stage0 "$@"
   debug "Starting stage 1: initial script setup"
   stage1 "$@"

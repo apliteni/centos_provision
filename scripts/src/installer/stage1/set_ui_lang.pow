@@ -4,6 +4,7 @@
 set_ui_lang()
   if empty $UI_LANG
     UI_LANG=$(detect_language)
+  debug "Language: ${UI_LANG}"
 
 
 detect_language()
