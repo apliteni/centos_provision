@@ -127,15 +127,9 @@ RSpec.describe 'installer.sh' do
       it_behaves_like 'should exit with error', "Usage: #{Installer::INSTALLER_CMD}"
     end
 
-    context 'with `-v` args' do
-      let(:args) { '-v' }
-
-      it_behaves_like 'should print to log', 'Verbose mode: on'
-    end
-
     context 'with `-l` option' do
       let(:env) { {LANG: 'C'} }
-      let(:args) { "-v -l #{lang}" }
+      let(:args) { "-l #{lang}" }
 
       context 'with `en` value' do
         let(:lang) { 'en' }
@@ -158,8 +152,6 @@ RSpec.describe 'installer.sh' do
 
     # TODO: Detect language from LC_MESSAGES
     describe 'detects language from LANG environment variable' do
-      let(:args) { '-v' } # Switch on verbose mode for testing purposes
-
       context 'LANG=ru_RU.UTF-8' do
         let(:env) { {LANG: 'ru_RU.UTF-8'} }
 
@@ -304,7 +296,7 @@ RSpec.describe 'installer.sh' do
 
   context 'without actual installing software' do
     let(:env) { {LANG: 'C'} }
-    let(:args) { '-vp' }
+    let(:args) { '-p' }
 
     before(:all) { `docker rm keitaro_installer_test &>/dev/null` }
 
