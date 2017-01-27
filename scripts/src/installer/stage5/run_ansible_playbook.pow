@@ -4,4 +4,4 @@
 run_ansible_playbook()
   run_command "ansible-playbook -vvv -i ${INVENTORY_FILE} ${PROVISION_DIRECTORY}/playbook.yml"
   clean_up
-  show_successful_install_message
+  show_successful_message

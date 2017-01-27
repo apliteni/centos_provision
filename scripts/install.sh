@@ -69,6 +69,29 @@ fi
 
 
 
+declare -A DICT
+
+DICT['en.errors.failure']='PROGRAM FAILED'
+DICT['en.errors.must_be_root']='You must run this program as root.'
+DICT['en.errors.run_command.fail']='There was an error evaluating command'
+DICT['en.errors.run_command.fail_extra']=''
+DICT['en.messages.run_command']='Evaluating command'
+DICT['en.messages.successful']='Everything done!'
+DICT['en.no']='no'
+DICT['en.prompt_errors.validate_presence']='Please enter value'
+DICT['en.prompt_errors.validate_yes_no']='Please answer "yes" or "no"'
+
+DICT['ru.errors.failure']='ОШИБКА ВЫПОЛНЕНИЯ ПРОГРАММЫ'
+DICT['ru.errors.must_be_root']='Эту программу может запускать только root.'
+DICT['ru.errors.run_command.fail']='Ошибка выполнения команды'
+DICT['ru.errors.run_command.fail_extra']=''
+DICT['ru.messages.run_command']='Выполняется команда'
+DICT['ru.messages.successful']='Программа успешно завершена!'
+DICT['ru.no']='нет'
+DICT['ru.prompt_errors.validate_presence']='Введите значение'
+DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
+
+
 
 debug(){
   local message="${1}"
@@ -238,22 +261,13 @@ INVENTORY_FILE=hosts.txt
 PROVISION_DIRECTORY=centos_provision-master
 
 
-declare -A DICT
 
-DICT['en.errors.failure']='INSTALLATION FAILED'
-DICT['en.errors.must_be_root']='You must run this program as root.'
-DICT['en.errors.run_command.fail']='There was an error evaluating command'
 DICT['en.errors.run_command.fail_extra']=$(cat <<- END
 	Installation log saved to ${SCRIPT_LOG}. Configuration settings saved to ${INVENTORY_FILE}.
 	You can rerun '${SCRIPT_COMMAND}' with saved settings after resolving installation problems.
 END
 )
 DICT['en.errors.yum_not_installed']='This installer works only on yum-based systems. Please run this programm in CentOS/RHEL/Fedora distro'
-DICT['en.messages.run_command']='Evaluating command'
-DICT['en.messages.successful_install']='Everything done!'
-DICT['en.no']='no'
-DICT['en.prompt_errors.validate_presence']='Please enter value'
-DICT['en.prompt_errors.validate_yes_no']='Please answer "yes" or "no"'
 DICT['en.prompts.admin_login']='Please enter keitaro admin login'
 DICT['en.prompts.admin_password']='Please enter keitaro admin password'
 DICT['en.prompts.db_name']='Please enter database name'
@@ -281,20 +295,12 @@ DICT['en.welcome']=$(cat <<- END
 END
 )
 
-DICT['ru.errors.failure']='ОШИБКА УСТАНОВКИ'
-DICT['ru.errors.must_be_root']='Эту программу может запускать только root.'
-DICT['ru.errors.run_command.fail']='Ошибка выполнения команды'
 DICT['ru.errors.run_command.fail_extra']=$(cat <<- END
 	Журнал установки сохранён в ${SCRIPT_LOG}. Настройки сохранены в ${INVENTORY_FILE}.
 	Вы можете повторно запустить '${SCRIPT_COMMAND}' с этими настройками после устранения возникших проблем.
 END
 )
 DICT['ru.errors.yum_not_installed']='Утановщик keitaro работает только с пакетным менеджером yum. Пожалуйста, запустите эту программу в CentOS/RHEL/Fedora дистрибутиве'
-DICT['ru.messages.run_command']='Выполняется команда'
-DICT['ru.messages.successful_install']='Установка завершена!'
-DICT['ru.no']='нет'
-DICT['ru.prompt_errors.validate_presence']='Введите значение'
-DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
 DICT['ru.prompts.admin_login']='Укажите имя администратора keitaro'
 DICT['ru.prompts.admin_password']='Укажите пароль администратора keitaro'
 DICT['ru.prompts.db_name']='Укажите имя базы данных'
@@ -797,6 +803,7 @@ install(){
   stage4
   stage5
 }
+
 
 install "$@"
 

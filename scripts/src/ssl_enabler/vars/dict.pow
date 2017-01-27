@@ -1,0 +1,6 @@
+#!/usr/bin/env powscript
+
+
+DICT['en.errors.run_command.fail_extra']="Evaluating log saved to ${SCRIPT_LOG}. Please rerun '${SCRIPT_COMMAND}' after resolving installation problems."
+
+DICT['ru.errors.run_command.fail_extra']="Журнал выполнения сохранён в ${SCRIPT_LOG}. Пожалуйста запустите '${SCRIPT_COMMAND}' после устранения возникших проблем."

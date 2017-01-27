@@ -1,38 +1,29 @@
 #!/usr/bin/env powscript
 
+
 PROGRAM_NAME="enable-ssl"
 
-require "ssl_enabler/vars/common.pow"
-require "ssl_enabler/vars/dict.pow"
-require "shared/common/debug.pow"
-require "shared/common/fail.pow"
-require "shared/common/init_log.pow"
-require "shared/common/print_err.pow"
-require "shared/common/print_with_color.pow"
-require "shared/common/run_command.pow"
-require "shared/common/translate.pow"
-require "ssl_enabler/common/clean_up.pow"
-require "ssl_enabler/common/install_package.pow"
-require "ssl_enabler/common/is_installed.pow"
-require "ssl_enabler/common/is_pipe_mode.pow"
-require "shared/stage0.pow"
-require "ssl_enabler/stage1.pow"
-require "ssl_enabler/stage1/parse_options.pow"
-require "ssl_enabler/stage1/set_ui_lang.pow"
-require "ssl_enabler/stage2.pow"
-require "ssl_enabler/stage2/asserts.pow"
-require "ssl_enabler/stage3.pow"
-require "ssl_enabler/stage3/get_user_vars.pow"
-require "ssl_enabler/stage3/read_inventory_file.pow"
-require "ssl_enabler/stage3/setup_vars.pow"
-require "ssl_enabler/stage3/write_inventory_file.pow"
-require 'installer/stage3/hack_stdin.pow'
-require "ssl_enabler/stage4.pow"
-require "ssl_enabler/stage4/install_ansible.pow"
-require "ssl_enabler/stage5.pow"
-require "ssl_enabler/stage5/download_provision.pow"
-require "ssl_enabler/stage5/run_ansible_playbook.pow"
-require "ssl_enabler/stage5/show_successful_install_message.pow"
+require 'ssl_enabler/program_name.pow'
+require 'shared/vars/common.pow'
+require 'shared/vars/dict.pow'
+require 'shared/common/debug.pow'
+require 'shared/common/fail.pow'
+require 'shared/common/init_log.pow'
+require 'shared/common/print_err.pow'
+require 'shared/common/print_with_color.pow'
+require 'shared/common/run_command.pow'
+require 'shared/common/translate.pow'
+require 'ssl_enabler/vars/common.pow'
+require 'ssl_enabler/vars/dict.pow'
+require 'shared/stage0.pow'
+require 'ssl_enabler/stage1.pow'
+require 'ssl_enabler/stage1/parse_options.pow'
+require 'ssl_enabler/stage1/set_ui_lang.pow'
+require 'ssl_enabler/stage2.pow'
+require 'ssl_enabler/stage2/asserts.pow'
+require 'ssl_enabler/stage3.pow'
+require 'ssl_enabler/stage3/run_certbot.pow'
+require 'ssl_enabler/stage3/show_successful_message.pow'
 
 
 # We wrap the entire script in a big function which we only call at the very end, in order to
@@ -43,8 +34,7 @@ enable_ssl()
   stage0 $@
   stage1 $@
   stage2
-  stage3
-  stage4
-  stage5
+  stage3 $@
+
 
 enable_ssl $@

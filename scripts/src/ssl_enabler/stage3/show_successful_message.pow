@@ -1,8 +1,8 @@
 #!/usr/bin/env powscript
 
 
-show_successful_install_message()
-  print_with_color "$(translate 'messages.successful_install')" 'green'
+show_successful_message()
+  print_with_color "$(translate 'messages.successful')" 'green'
   if isset "${VARS['ssl_domains']}"
     protocol='https'
     domain=$(expr match ${VARS['ssl_domains']} '\([^,]*\)')
