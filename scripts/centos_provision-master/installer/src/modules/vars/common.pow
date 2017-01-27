@@ -1,0 +1,17 @@
+#!/usr/bin/env powscript
+
+INSTALL_LOG="install.log"
+INVENTORY_FILE=hosts.txt
+PROVISION_DIRECTORY=centos_provision-master
+SCRIPT_NAME="install.sh"
+INSTALLER_URL="https://keitarotds.com/install.sh"
+
+if ${SHELLNAME} == 'bash'
+  if not empty ${@}
+    SELF_COMMAND="curl -sSL $INSTALLER_URL | bash -s -- ${@}"
+  else
+    SELF_COMMAND="curl -sSL $INSTALLER_URL | bash"
+else
+  SCRIPT_NAME=${SHELLNAME}
+  SELF_COMMAND="${SCRIPT_NAME} ${@}"
+  SELF_COMMAND=${SELF_COMMAND/% /}                  # Remove possible trailing space

@@ -1,0 +1,15 @@
+#!/usr/bin/env powscript
+
+
+run_command(command)
+  debug "Evaluating command: ${command}"
+  run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
+  echo -e "$run_command_message '$command'"
+  if isset $PRESERVE
+    debug "Actual running disabled"
+  else
+    evaluated_command="(set -o pipefail && (${command}) 2>&1 | tee -a ${INSTALL_LOG})"
+    debug "Real command: ${evaluated_command}"
+    if ! eval "${evaluated_command}"
+      message="$(translate 'errors.run_command.fail') '$command'\n$(translate 'errors.run_command.fail_extra')"
+      fail $message

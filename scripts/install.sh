@@ -75,6 +75,7 @@ DICT['en.errors.failure']='PROGRAM FAILED'
 DICT['en.errors.must_be_root']='You must run this program as root.'
 DICT['en.errors.run_command.fail']='There was an error evaluating command'
 DICT['en.errors.run_command.fail_extra']=''
+DICT['en.errors.terminated']='Terminated by user'
 DICT['en.messages.run_command']='Evaluating command'
 DICT['en.messages.successful']='Everything done!'
 DICT['en.no']='no'
@@ -85,11 +86,104 @@ DICT['ru.errors.failure']='ОШИБКА ВЫПОЛНЕНИЯ ПРОГРАММЫ'
 DICT['ru.errors.must_be_root']='Эту программу может запускать только root.'
 DICT['ru.errors.run_command.fail']='Ошибка выполнения команды'
 DICT['ru.errors.run_command.fail_extra']=''
+DICT['ru.errors.terminated']='Выполнение прервано'
 DICT['ru.messages.run_command']='Выполняется команда'
 DICT['ru.messages.successful']='Программа успешно завершена!'
 DICT['ru.no']='нет'
 DICT['ru.prompt_errors.validate_presence']='Введите значение'
 DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
+
+
+
+run_command(){
+  local command="${1}"
+  debug "Evaluating command: ${command}"
+  run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
+  echo -e "$run_command_message '$command'"
+  if isset "$PRESERVE"; then
+    debug "Actual running disabled"
+  else
+    evaluated_command="(set -o pipefail && (${command}) 2>&1 | tee -a ${SCRIPT_LOG})"
+    debug "Real command: ${evaluated_command}"
+    if ! eval "${evaluated_command}"; then
+      message="$(translate 'errors.run_command.fail') '$command'\n$(translate 'errors.run_command.fail_extra')"
+      fail "$message"
+    fi
+  fi
+}
+
+
+
+translate(){
+  local key="${1}"
+  i18n_key=$UI_LANG.$key
+  if isset ${DICT[$i18n_key]}; then
+    echo "${DICT[$i18n_key]}"
+  fi
+}
+
+
+
+set_ui_lang(){
+  if empty "$UI_LANG"; then
+    UI_LANG=$(detect_language)
+  fi
+  debug "Language: ${UI_LANG}"
+}
+
+
+detect_language(){
+  if ! empty "$LC_ALL"; then
+    detect_language_from_var "$LC_ALL"
+  else
+    if ! empty "$LC_MESSAGES"; then
+      detect_language_from_var "$LC_MESSAGES"
+    else
+      detect_language_from_var "$LANG"
+    fi
+  fi
+}
+
+
+detect_language_from_var(){
+  local lang_value="${1}"
+  if [[ "$lang_value" =~ ^ru_[[:alpha:]]+\.UTF-8$ ]]; then
+    echo ru
+  else
+    echo en
+  fi
+}
+
+
+
+install_package(){
+  local package="${1}"
+  run_command "yum install -y "$package""
+}
+
+
+
+
+is_installed(){
+  local command="${1}"
+  debug "Try to found "$command""
+  if isset "$SKIP_CHECKS"; then
+    debug "SKIP: actual checking of '$command' presence"
+  else
+    if [[ $(sh -c "command -v "$command" -gt /dev/null") ]]; then
+      debug "OK: "$command" found"
+    else
+      debug "NOK: "$command" not found"
+      return 1
+    fi
+  fi
+}
+
+
+
+clean_up(){
+  debug 'called clean_up()'
+}
 
 
 
@@ -122,6 +216,17 @@ log_and_print_err(){
 
 
 
+init(){
+  init_log
+  debug "Starting init stage: log basic info"
+  debug "Command: ${SCRIPT_COMMAND}"
+  debug "User ID: "$EUID""
+  debug "Current date time: $(date +'%Y-%m-%d %H:%M:%S %:z')"
+  trap on_exit SIGHUP SIGINT SIGTERM
+}
+
+
+
 init_log(){
   if [ -f ${SCRIPT_LOG} ]; then
     name_for_old_log=$(get_name_for_old_log ${SCRIPT_LOG})
@@ -140,6 +245,14 @@ get_name_for_old_log(){
   fi
   current_suffix=$(expr "$old_suffix" + 1)
   echo "$basename".$current_suffix
+}
+
+
+
+on_exit(){
+  echo
+  clean_up
+  fail "$(translate 'errors.terminated')"
 }
 
 
@@ -186,75 +299,6 @@ print_with_color(){
   fi
 }
 
-
-
-
-run_command(){
-  local command="${1}"
-  debug "Evaluating command: ${command}"
-  run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
-  echo -e "$run_command_message '$command'"
-  if isset "$PRESERVE"; then
-    debug "Actual running disabled"
-  else
-    evaluated_command="(set -o pipefail && (${command}) 2>&1 | tee -a ${SCRIPT_LOG})"
-    debug "Real command: ${evaluated_command}"
-    if ! eval "${evaluated_command}"; then
-      message="$(translate 'errors.run_command.fail') '$command'\n$(translate 'errors.run_command.fail_extra')"
-      fail "$message"
-    fi
-  fi
-}
-
-
-
-translate(){
-  local key="${1}"
-  i18n_key=$UI_LANG.$key
-  if isset ${DICT[$i18n_key]}; then
-    echo "${DICT[$i18n_key]}"
-  fi
-}
-
-
-
-clean_up(){
-  if [ -d "$PROVISION_DIRECTORY" ]; then
-    debug "Remove ${PROVISION_DIRECTORY}"
-    rm -rf "$PROVISION_DIRECTORY"
-  fi
-}
-
-
-
-install_package(){
-  local package="${1}"
-  run_command "yum install -y "$package""
-}
-
-
-
-
-is_installed(){
-  local command="${1}"
-  debug "Try to found "$command""
-  if isset "$SKIP_CHECKS"; then
-    debug "SKIP: actual checking of '$command' presence"
-  else
-    if [[ $(sh -c "command -v "$command" -gt /dev/null") ]]; then
-      debug "OK: "$command" found"
-    else
-      debug "NOK: "$command" not found"
-      return 1
-    fi
-  fi
-}
-
-
-
-is_pipe_mode(){
-  [ "${SHELLNAME}" == 'bash' ]
-}
 
 
 INVENTORY_FILE=hosts.txt
@@ -325,17 +369,6 @@ DICT['ru.welcome']=$(cat <<- END
 	Эта программа поможет собрать информацию необходимую для установки Keitaro TDS на вашем сервере.
 END
 )
-
-
-
-stage0(){
-  init_log
-  debug "Starting stage 0: log basic info"
-  debug "Command: ${SCRIPT_COMMAND}"
-  debug "User ID: "$EUID""
-  debug "Current date time: $(date +'%Y-%m-%d %H:%M:%S %:z')"
-  trap clean_up SIGHUP SIGINT SIGTERM
-}
 
 
 
@@ -434,38 +467,6 @@ en_usage(){
 
 
 
-set_ui_lang(){
-  if empty "$UI_LANG"; then
-    UI_LANG=$(detect_language)
-  fi
-  debug "Language: ${UI_LANG}"
-}
-
-
-detect_language(){
-  if ! empty "$LC_ALL"; then
-    detect_language_from_var "$LC_ALL"
-  else
-    if ! empty "$LC_MESSAGES"; then
-      detect_language_from_var "$LC_MESSAGES"
-    else
-      detect_language_from_var "$LANG"
-    fi
-  fi
-}
-
-
-detect_language_from_var(){
-  local lang_value="${1}"
-  if [[ "$lang_value" =~ ^ru_[[:alpha:]]+\.UTF-8$ ]]; then
-    echo ru
-  else
-    echo en
-  fi
-}
-
-
-
 stage2(){
   debug "Starting stage 2: make some asserts"
   assert_caller_root
@@ -508,6 +509,12 @@ stage3(){
   read_inventory_file
   get_user_vars
   write_inventory_file
+}
+
+
+
+is_pipe_mode(){
+  [ "${SHELLNAME}" == 'bash' ]
 }
 
 
@@ -770,13 +777,13 @@ download_provision(){
 run_ansible_playbook(){
   run_command "ansible-playbook -vvv -i ${INVENTORY_FILE} ${PROVISION_DIRECTORY}/playbook.yml"
   clean_up
-  show_successful_install_message
+  show_successful_message
 }
 
 
 
-show_successful_install_message(){
-  print_with_color "$(translate 'messages.successful_install')" 'green'
+show_successful_message(){
+  print_with_color "$(translate 'messages.successful')" 'green'
   if isset "${VARS['ssl_domains']}"; then
     protocol='https'
     domain=$(expr match ${VARS['ssl_domains']} '\([^,]*\)')
@@ -795,8 +802,13 @@ show_successful_install_message(){
 
 
 
+
+
+
+
+
 install(){
-  stage0 "$@"
+  init "$@"
   stage1 "$@"
   stage2
   stage3

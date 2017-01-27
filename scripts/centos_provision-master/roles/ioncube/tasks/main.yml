@@ -1,0 +1,10 @@
+---
+- name: Install ioncube loader
+  yum: name={{item}}
+  with_items:
+    - "{{php_version}}-php-ioncube-loader"
+
+- name: Restart php-fpm
+  service:
+    name: "{{php_version}}-php-fpm"
+    state: restarted

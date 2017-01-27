@@ -1,0 +1,4 @@
+---
+letsencrypt_cert_domains: []
+letsencrypt_webroot_path: /var/www
+letsencrypt_email:

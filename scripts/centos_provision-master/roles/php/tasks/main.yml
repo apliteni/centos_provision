@@ -1,0 +1,59 @@
+---
+- name: install php extensions
+  yum: name={{item}}
+  with_items:
+    - "{{php_version}}"
+    - "{{php_version}}-php-fpm"
+    - "{{php_version}}-php-devel"
+    - "{{php_version}}-php-mysqlnd"
+    - "{{php_version}}-php-opcache"
+    - "{{php_version}}-php-pecl-redis"
+    - "{{php_version}}-php-mbstring"
+    - "{{php_version}}-php-pear"
+    - "{{php_version}}-php-xml"
+    - "{{php_version}}-php-pecl-zip"
+
+- name: link some php files (php5)
+  when: php_version < 'php70'
+  file:
+    src: "{{item.from}}"
+    dest: "{{item.to}}"
+    state: link
+  with_items:
+    - {from: "/usr/bin/{{php_version}}", to: '/usr/bin/php'}
+    - {from: "/opt/remi/{{php_version}}/root/bin/php-config", to: '/usr/bin/php-config'}
+    - {from: "/opt/remi/{{php_version}}/root/etc/", to: '/etc/php'}
+    - {from: "/opt/remi/{{php_version}}/root/var/log/php-fpm/", to: '/var/log/php-fpm'}
+
+- name: link some php files (php7)
+  when: php_version >= 'php70'
+  file:
+    src: "{{item.from}}"
+    dest: "{{item.to}}"
+    state: link
+  with_items:
+    - {from: "/usr/bin/{{php_version}}", to: '/usr/bin/php'}
+    - {from: "/opt/remi/{{php_version}}/root/bin/php-config", to: '/usr/bin/php-config'}
+    - {from: "/etc/opt/remi/{{php_version}}", to: '/etc/php'}
+
+- name: increase memory_limit
+  lineinfile:
+    dest: /etc/php/php.ini
+    regexp: ^memory_limit
+    line: memory_limit={{php_memory_limit}}
+
+- name: upload a pool config
+  template:
+    src: "www.conf.j2"
+    dest: "/etc/php/php-fpm.d/www.conf"
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - restart php-fpm
+
+- name: run php-fpm
+  service:
+    name="{{php_version}}-php-fpm"
+    state=started
+    enabled=yes
