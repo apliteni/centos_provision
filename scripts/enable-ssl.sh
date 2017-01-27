@@ -14,7 +14,7 @@ shopt -s extglob               # regular expressions
 path="$(pwd)"
 selfpath="$( dirname "$(readlink -f "$0")" )"
 tmpfile="/tmp/$(basename $0).tmp.$(whoami)"
-echo 'compile error: couldn't find required file: install/vars/common.pow'; exit 1;
+echo 'compile error: couldn't find required file: ssl_enabler/vars/common.pow'; exit 1;
 
 # wait for all async child processes (because "await ... then" is used in powscript)
 [[ $ASYNC == 1 ]] && wait
