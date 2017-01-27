@@ -1,0 +1,6 @@
+#!/usr/bin/env powscript
+
+
+stage2()
+  assert_caller_root
+  assert_yum_installed

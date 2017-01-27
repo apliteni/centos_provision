@@ -1,0 +1,10 @@
+#!/usr/bin/env powscript
+
+
+init()
+  init_log
+  debug "Starting init stage: log basic info"
+  debug "Command: ${SCRIPT_COMMAND}"
+  debug "User ID: $EUID"
+  debug "Current date time: $(date +'%Y-%m-%d %H:%M:%S %:z')"
+  trap on_exit SIGHUP SIGINT SIGTERM

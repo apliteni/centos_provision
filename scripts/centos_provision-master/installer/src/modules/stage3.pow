@@ -1,0 +1,13 @@
+#!/usr/bin/env powscript
+
+
+VARS={}
+
+PASSWORD_LENGTH=16
+
+
+stage3()
+  setup_vars
+  read_inventory_file
+  get_user_vars
+  write_inventory_file

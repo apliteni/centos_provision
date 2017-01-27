@@ -1,5 +1,8 @@
-test: compile
+test: clean compile
 	rspec spec
+
+clean:
+	rm -f {install,enable-ssl}.log*
 
 compile: compile_installer compile_ssl_enabler
 

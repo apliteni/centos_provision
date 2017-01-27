@@ -1,0 +1,14 @@
+#!/usr/bin/env powscript
+
+
+fail(message)
+  log_and_print_err "*** $(translate errors.installation_failed_header) ***"
+  log_and_print_err $message
+  print_err
+  clean_up
+  exit 1
+
+
+log_and_print_err(message)
+  print_err $message 'red'
+  debug $message 'red'

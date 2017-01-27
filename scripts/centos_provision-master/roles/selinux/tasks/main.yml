@@ -1,0 +1,10 @@
+---
+- name: Detect /etc/selinux/config exists
+  stat: path=/etc/selinux/config
+  register: selinux_config
+
+- name: Set selinux permissive
+  selinux:
+    policy=targeted
+    state=permissive
+  when: selinux_config.stat.exists

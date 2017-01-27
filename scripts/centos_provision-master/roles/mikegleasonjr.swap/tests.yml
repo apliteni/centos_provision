@@ -1,0 +1,15 @@
+---
+- hosts: all
+  sudo: true
+
+  roles:
+    - role: .
+
+  tasks:
+    - name: Retrieve swap summary
+      command: swapon -s -e
+      changed_when: false
+      register: summary
+    - name: Check that the swap is added
+      assert:
+        that: summary.stdout|search("{{ swap_location }} ")

@@ -1,0 +1,58 @@
+#!/usr/bin/env powscript
+
+
+require "modules/vars/common.pow"
+require "modules/vars/dict.pow"
+require "modules/common/init_log.pow"
+require "modules/common/clean_up.pow"
+require "modules/common/debug.pow"
+require "modules/common/fail.pow"
+require "modules/common/install_package.pow"
+require "modules/common/is_installed.pow"
+require "modules/common/is_pipe_mode.pow"
+require "modules/common/print_err.pow"
+require "modules/common/print_with_color.pow"
+require "modules/common/run_command.pow"
+require "modules/common/translate.pow"
+require "modules/stage0.pow"
+require "modules/stage1.pow"
+require 'modules/stage1/hack_stdin.pow'
+require 'modules/stage1/parse_options.pow'
+require 'modules/stage1/print_debug_info.pow'
+require 'modules/stage1/set_ui_lang.pow'
+require "modules/stage2.pow"
+require "modules/stage2/asserts.pow"
+require "modules/stage3.pow"
+require "modules/stage3/setup_vars.pow"
+require "modules/stage3/read_inventory_file.pow"
+require "modules/stage3/get_user_vars.pow"
+require "modules/stage3/write_inventory_file.pow"
+require "modules/stage4.pow"
+require "modules/stage4/install_ansible.pow"
+require "modules/stage5.pow"
+require "modules/stage5/download_provision.pow"
+require "modules/stage5/run_ansible_playbook.pow"
+require "modules/stage5/show_successful_install_message.pow"
+
+
+# We wrap the entire script in a big function which we only call at the very end, in order to
+# protect against the possibility of the connection dying mid-script. This protects us against
+# the problem described in this blog post:
+#   http://blog.existentialize.com/dont-pipe-to-your-shell.html
+install()
+  init_log
+  trap clean_up SIGHUP SIGINT SIGTERM
+  debug "Starting stage 0: log basic info"
+  stage0 $@
+  debug "Starting stage 1: initial script setup"
+  stage1 $@
+  debug "Starting stage 2: make some asserts"
+  stage2
+  debug "Starting stage 3: generate inventory file"
+  stage3
+  debug "Starting stage 4: install ansible"
+  stage4
+  debug "Starting stage 5: run ansible playbook"
+  stage5
+
+install $@

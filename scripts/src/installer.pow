@@ -1,40 +1,46 @@
 #!/usr/bin/env powscript
 
 
-require 'installer/program_name.pow'
+require 'const/installer/program_name.pow'
+
 require 'shared/vars/common.pow'
 require 'shared/vars/dict.pow'
-require 'shared/common/debug.pow'
-require 'shared/common/fail.pow'
-require 'shared/common/init_log.pow'
-require 'shared/common/print_err.pow'
-require 'shared/common/print_with_color.pow'
-require 'shared/common/run_command.pow'
-require 'shared/common/translate.pow'
-require 'installer/common/clean_up.pow'
-require 'installer/common/install_package.pow'
-require 'installer/common/is_installed.pow'
-require 'installer/common/is_pipe_mode.pow'
-require 'installer/vars/common.pow'
-require 'installer/vars/dict.pow'
-require 'shared/stage0.pow'
-require 'installer/stage1.pow'
-require 'installer/stage1/parse_options.pow'
-require 'installer/stage1/set_ui_lang.pow'
-require 'installer/stage2.pow'
-require 'installer/stage2/asserts.pow'
-require 'installer/stage3.pow'
-require 'installer/stage3/get_user_vars.pow'
-require 'installer/stage3/read_inventory_file.pow'
-require 'installer/stage3/setup_vars.pow'
-require 'installer/stage3/write_inventory_file.pow'
-require 'installer/stage3/hack_stdin.pow'
-require 'installer/stage4.pow'
-require 'installer/stage4/install_ansible.pow'
-require 'installer/stage5.pow'
-require 'installer/stage5/download_provision.pow'
-require 'installer/stage5/run_ansible_playbook.pow'
-require 'installer/stage5/show_successful_message.pow'
+
+require 'lib/command/run_command.pow'
+require 'lib/i18n/translate.pow'
+require 'lib/i18n/set_ui_lang.pow'
+require 'lib/install/install_package.pow'
+require 'lib/install/is_installed.pow'
+require 'lib/system/clean_up.pow'
+require 'lib/system/debug.pow'
+require 'lib/system/fail.pow'
+require 'lib/system/init.pow'
+require 'lib/system/init_log.pow'
+require 'lib/system/on_exit.pow'
+require 'lib/system/print_err.pow'
+require 'lib/system/print_with_color.pow'
+
+
+require 'app/installer/vars/common.pow'
+require 'app/installer/vars/dict.pow'
+
+require 'app/installer/stage1.pow'
+require 'app/installer/stage1/parse_options.pow'
+require 'app/installer/stage2.pow'
+require 'app/installer/stage2/asserts.pow'
+require 'app/installer/stage3.pow'
+require 'app/installer/stage3/is_pipe_mode.pow'
+require 'app/installer/stage3/get_user_vars.pow'
+require 'app/installer/stage3/read_inventory_file.pow'
+require 'app/installer/stage3/setup_vars.pow'
+require 'app/installer/stage3/write_inventory_file.pow'
+require 'app/installer/stage3/hack_stdin.pow'
+require 'app/installer/stage4.pow'
+require 'app/installer/stage4/install_ansible.pow'
+require 'app/installer/stage5.pow'
+require 'app/installer/stage5/download_provision.pow'
+require 'app/installer/stage5/run_ansible_playbook.pow'
+require 'app/installer/stage5/show_successful_message.pow'
 
 
 # We wrap the entire script in a big function which we only call at the very end, in order to
@@ -42,7 +48,7 @@ require 'installer/stage5/show_successful_message.pow'
 # the problem described in this blog post:
 #   http://blog.existentialize.com/dont-pipe-to-your-shell.html
 install()
-  stage0 $@
+  init $@
   stage1 $@
   stage2
   stage3

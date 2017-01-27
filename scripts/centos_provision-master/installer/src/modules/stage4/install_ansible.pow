@@ -1,0 +1,8 @@
+#!/usr/bin/env powscript
+
+
+install_ansible_if_not_installed()
+  if ! is_installed ansible
+    debug "Try to install ansible"
+    install_package epel-release
+    install_package ansible

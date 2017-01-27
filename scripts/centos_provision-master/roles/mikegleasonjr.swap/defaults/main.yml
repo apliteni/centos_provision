@@ -1,0 +1,6 @@
+---
+swap_size: "{{ ansible_memtotal_mb }}M"
+swap_location: /swap
+swap_sysctl_tweaks:
+  vm.vfs_cache_pressure: "50"
+  vm.swappiness: "10"
