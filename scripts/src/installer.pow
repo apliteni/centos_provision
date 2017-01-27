@@ -1,8 +1,8 @@
 #!/usr/bin/env powscript
 
 
-require "installer/vars/common.pow"
-require "installer/vars/dict.pow"
+require "installer/program_name.pow"
+require "shared/vars/common.pow"
 require "shared/common/debug.pow"
 require "shared/common/fail.pow"
 require "shared/common/init_log.pow"
@@ -14,6 +14,8 @@ require "installer/common/clean_up.pow"
 require "installer/common/install_package.pow"
 require "installer/common/is_installed.pow"
 require "installer/common/is_pipe_mode.pow"
+require "installer/vars/common.pow"
+require "installer/vars/dict.pow"
 require "shared/stage0.pow"
 require "installer/stage1.pow"
 require "installer/stage1/parse_options.pow"

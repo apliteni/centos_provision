@@ -23,6 +23,11 @@ empty ()
     [[ "${#1}" == 0 ]] && return 0 || return 1
 }
 
+isset () 
+{ 
+    [[ ! "${#1}" == 0 ]] && return 0 || return 1
+}
+
 on () 
 { 
     func="$1";
@@ -33,11 +38,6 @@ on ()
     done
 }
 
-isset () 
-{ 
-    [[ ! "${#1}" == 0 ]] && return 0 || return 1
-}
-
 values () 
 { 
     echo "$2"
@@ -45,107 +45,28 @@ values ()
 
 
 
-SCRIPT_LOG="install.log"
-INVENTORY_FILE=hosts.txt
-PROVISION_DIRECTORY=centos_provision-master
-SCRIPT_NAME="install.sh"
-SCRIPT_URL="https://keitarotds.com/install.sh"
 
-if [[ ${SHELLNAME} == 'bash' ]]; then
+PROGRAM_NAME='install'
+
+
+SCRIPT_NAME="${PROGRAM_NAME}.sh"
+SCRIPT_URL="https://keitarotds.com/${PROGRAM_NAME}.sh"
+SCRIPT_LOG="${PROGRAM_NAME}.log"
+
+if [[ "${SHELLNAME}" == 'bash' ]]; then
   if ! empty ${@}; then
     SCRIPT_COMMAND="curl -sSL "$SCRIPT_URL" | bash -s -- ${@}"
   else
     SCRIPT_COMMAND="curl -sSL "$SCRIPT_URL" | bash"
   fi
 else
-  SCRIPT_NAME=${SHELLNAME}
-  COMMAND="${SCRIPT_NAME} ${@}"
-  COMMAND=${COMMAND/% /}                  # Remove possible trailing space
-  SCRIPT_COMMAND=${COMMAND}
+  if ! empty ${@}; then
+    SCRIPT_COMMAND="${SHELLNAME} ${@}"
+  else
+    SCRIPT_COMMAND="${SHELLNAME}"
+  fi
 fi
 
-
-declare -A DICT
-
-DICT['en.errors.installer']='INSTALLATION FAILED'
-DICT['en.errors.must_be_root']='You must run this program as root.'
-DICT['en.errors.run_command.fail']='There was an error evaluating command'
-DICT['en.errors.run_command.fail_extra']=$(cat <<- END
-	Installation log saved to ${SCRIPT_LOG}. Configuration settings saved to ${INVENTORY_FILE}.
-	You can rerun '${SCRIPT_COMMAND}' with saved settings after resolving installation problems.
-END
-)
-DICT['en.errors.yum_not_installed']='This installer works only on yum-based systems. Please run this programm in CentOS/RHEL/Fedora distro'
-DICT['en.messages.run_command']='Evaluating command'
-DICT['en.messages.successful_install']='Everything done!'
-DICT['en.no']='no'
-DICT['en.prompt_errors.validate_presence']='Please enter value'
-DICT['en.prompt_errors.validate_yes_no']='Please answer "yes" or "no"'
-DICT['en.prompts.admin_login']='Please enter keitaro admin login'
-DICT['en.prompts.admin_password']='Please enter keitaro admin password'
-DICT['en.prompts.db_name']='Please enter database name'
-DICT['en.prompts.db_password']='Please enter database user password'
-DICT['en.prompts.db_user']='Please enter database user name'
-DICT['en.prompts.license_ip']='Please enter server IP'
-DICT['en.prompts.license_ip']='Please enter server IP'
-DICT['en.prompts.license_key']='Please enter license key'
-DICT['en.prompts.ssl']="Do you want to install Free SSL certificates from Let's Encrypt?"
-DICT['en.prompts.ssl.help']=$(cat <<- END
-	Installer can install Free SSL certificates from Let's Encrypt. In order to install this certificates you must:
-	1. Agree with terms of Let's Encrypt Subscriber Agreement (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf).
-	2. Have at least one domain associated with this server.
-END
-)
-DICT['en.prompts.ssl.error']='Please answer "yes" or "no"'
-DICT['en.prompts.ssl_agree_tos']="Do you agree with terms of Let's Encrypt Subscriber Agreement?"
-DICT['en.prompts.ssl_agree_tos.help']="Let's Encrypt Subscriber Agreement located at https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf."
-DICT['en.prompts.ssl_domains']='Please enter server domains, separated by comma'
-DICT['en.prompts.ssl_email']='Please enter your email (you can left this field empty)'
-DICT['en.prompts.ssl_email.help']='You can obtain SSL certificate with no email address. This is strongly discouraged, because in the event of key loss or LetsEncrypt account compromise you will irrevocably lose access to your LetsEncrypt account. You will also be unable to receive notice about impending expiration or revocation of your certificates.'
-DICT['en.welcome']=$(cat <<- END
-	Welcome to Keitaro TDS installer.
-	This installer will guide you through the steps required to install Keitaro TDS on your server.
-END
-)
-
-DICT['ru.errors.installer']='ОШИБКА УСТАНОВКИ'
-DICT['ru.errors.must_be_root']='Эту программу может запускать только root.'
-DICT['ru.errors.run_command.fail']='Ошибка выполнения команды'
-DICT['ru.errors.run_command.fail_extra']=$(cat <<- END
-	Журнал установки сохранён в ${SCRIPT_LOG}. Настройки сохранены в ${INVENTORY_FILE}.
-	Вы можете повторно запустить '${SCRIPT_COMMAND}' с этими настройками после устранения возникших проблем.
-END
-)
-DICT['ru.errors.yum_not_installed']='Утановщик keitaro работает только с пакетным менеджером yum. Пожалуйста, запустите эту программу в CentOS/RHEL/Fedora дистрибутиве'
-DICT['ru.messages.run_command']='Выполняется команда'
-DICT['ru.messages.successful_install']='Установка завершена!'
-DICT['ru.no']='нет'
-DICT['ru.prompt_errors.validate_presence']='Введите значение'
-DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
-DICT['ru.prompts.admin_login']='Укажите имя администратора keitaro'
-DICT['ru.prompts.admin_password']='Укажите пароль администратора keitaro'
-DICT['ru.prompts.db_name']='Укажите имя базы данных'
-DICT['ru.prompts.db_password']='Укажите пароль пользователя базы данных'
-DICT['ru.prompts.db_user']='Укажите пользователя базы данных'
-DICT['ru.prompts.license_ip']='Укажите IP адрес сервера'
-DICT['ru.prompts.license_key']='Укажите лицензионный ключ'
-DICT['ru.prompts.ssl']="Вы хотите установить бесплатные SSL сертификаты, предоставляемые Let's Encrypt?"
-DICT['ru.prompts.ssl.help']=$(cat <<- END
-	Программа установки может установить бесплатные SSL сертификаты, предоставляемые Let's Encrypt. Для этого вы должны:
-	1. Согласиться с условиями Абонентского Соглашения Let's Encrypt (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf).
-	2. Иметь хотя бы один домен для этого сервера.
-END
-)
-DICT['ru.prompts.ssl_agree_tos']="Вы согласны с условиями Абонентского Соглашения Let's Encrypt?"
-DICT['ru.prompts.ssl_agree_tos.help']="Абонентское Соглашение Let's Encrypt находится по адресу https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf."
-DICT['ru.prompts.ssl_domains']='Укажите список доменов через запятую'
-DICT['ru.prompts.ssl_email']='Укажите email (можно не указывать)'
-DICT['ru.prompts.ssl_email.help']='Вы можете получить SSL сертификат без указания email адреса. Однако LetsEncrypt настоятельно рекомендует указать его, так как в случае потери ключа или компрометации LetsEncrypt аккаунта вы полностью потеряете доступ к своему LetsEncrypt аккаунту. Без email вы также не сможете получить уведомление о предстоящем истечении срока действия или отзыве сертификата'
-DICT['ru.welcome']=$(cat <<- END
-	Добро пожаловать в программу установки Keitaro TDS.
-	Эта программа поможет собрать информацию необходимую для установки Keitaro TDS на вашем сервере.
-END
-)
 
 
 
@@ -313,6 +234,93 @@ is_pipe_mode(){
 }
 
 
+INVENTORY_FILE=hosts.txt
+PROVISION_DIRECTORY=centos_provision-master
+
+
+declare -A DICT
+
+DICT['en.errors.failure']='INSTALLATION FAILED'
+DICT['en.errors.must_be_root']='You must run this program as root.'
+DICT['en.errors.run_command.fail']='There was an error evaluating command'
+DICT['en.errors.run_command.fail_extra']=$(cat <<- END
+	Installation log saved to ${SCRIPT_LOG}. Configuration settings saved to ${INVENTORY_FILE}.
+	You can rerun '${SCRIPT_COMMAND}' with saved settings after resolving installation problems.
+END
+)
+DICT['en.errors.yum_not_installed']='This installer works only on yum-based systems. Please run this programm in CentOS/RHEL/Fedora distro'
+DICT['en.messages.run_command']='Evaluating command'
+DICT['en.messages.successful_install']='Everything done!'
+DICT['en.no']='no'
+DICT['en.prompt_errors.validate_presence']='Please enter value'
+DICT['en.prompt_errors.validate_yes_no']='Please answer "yes" or "no"'
+DICT['en.prompts.admin_login']='Please enter keitaro admin login'
+DICT['en.prompts.admin_password']='Please enter keitaro admin password'
+DICT['en.prompts.db_name']='Please enter database name'
+DICT['en.prompts.db_password']='Please enter database user password'
+DICT['en.prompts.db_user']='Please enter database user name'
+DICT['en.prompts.license_ip']='Please enter server IP'
+DICT['en.prompts.license_ip']='Please enter server IP'
+DICT['en.prompts.license_key']='Please enter license key'
+DICT['en.prompts.ssl']="Do you want to install Free SSL certificates from Let's Encrypt?"
+DICT['en.prompts.ssl.help']=$(cat <<- END
+	Installer can install Free SSL certificates from Let's Encrypt. In order to install this certificates you must:
+	1. Agree with terms of Let's Encrypt Subscriber Agreement (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf).
+	2. Have at least one domain associated with this server.
+END
+)
+DICT['en.prompts.ssl.error']='Please answer "yes" or "no"'
+DICT['en.prompts.ssl_agree_tos']="Do you agree with terms of Let's Encrypt Subscriber Agreement?"
+DICT['en.prompts.ssl_agree_tos.help']="Let's Encrypt Subscriber Agreement located at https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf."
+DICT['en.prompts.ssl_domains']='Please enter server domains, separated by comma'
+DICT['en.prompts.ssl_email']='Please enter your email (you can left this field empty)'
+DICT['en.prompts.ssl_email.help']='You can obtain SSL certificate with no email address. This is strongly discouraged, because in the event of key loss or LetsEncrypt account compromise you will irrevocably lose access to your LetsEncrypt account. You will also be unable to receive notice about impending expiration or revocation of your certificates.'
+DICT['en.welcome']=$(cat <<- END
+	Welcome to Keitaro TDS installer.
+	This installer will guide you through the steps required to install Keitaro TDS on your server.
+END
+)
+
+DICT['ru.errors.failure']='ОШИБКА УСТАНОВКИ'
+DICT['ru.errors.must_be_root']='Эту программу может запускать только root.'
+DICT['ru.errors.run_command.fail']='Ошибка выполнения команды'
+DICT['ru.errors.run_command.fail_extra']=$(cat <<- END
+	Журнал установки сохранён в ${SCRIPT_LOG}. Настройки сохранены в ${INVENTORY_FILE}.
+	Вы можете повторно запустить '${SCRIPT_COMMAND}' с этими настройками после устранения возникших проблем.
+END
+)
+DICT['ru.errors.yum_not_installed']='Утановщик keitaro работает только с пакетным менеджером yum. Пожалуйста, запустите эту программу в CentOS/RHEL/Fedora дистрибутиве'
+DICT['ru.messages.run_command']='Выполняется команда'
+DICT['ru.messages.successful_install']='Установка завершена!'
+DICT['ru.no']='нет'
+DICT['ru.prompt_errors.validate_presence']='Введите значение'
+DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
+DICT['ru.prompts.admin_login']='Укажите имя администратора keitaro'
+DICT['ru.prompts.admin_password']='Укажите пароль администратора keitaro'
+DICT['ru.prompts.db_name']='Укажите имя базы данных'
+DICT['ru.prompts.db_password']='Укажите пароль пользователя базы данных'
+DICT['ru.prompts.db_user']='Укажите пользователя базы данных'
+DICT['ru.prompts.license_ip']='Укажите IP адрес сервера'
+DICT['ru.prompts.license_key']='Укажите лицензионный ключ'
+DICT['ru.prompts.ssl']="Вы хотите установить бесплатные SSL сертификаты, предоставляемые Let's Encrypt?"
+DICT['ru.prompts.ssl.help']=$(cat <<- END
+	Программа установки может установить бесплатные SSL сертификаты, предоставляемые Let's Encrypt. Для этого вы должны:
+	1. Согласиться с условиями Абонентского Соглашения Let's Encrypt (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf).
+	2. Иметь хотя бы один домен для этого сервера.
+END
+)
+DICT['ru.prompts.ssl_agree_tos']="Вы согласны с условиями Абонентского Соглашения Let's Encrypt?"
+DICT['ru.prompts.ssl_agree_tos.help']="Абонентское Соглашение Let's Encrypt находится по адресу https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf."
+DICT['ru.prompts.ssl_domains']='Укажите список доменов через запятую'
+DICT['ru.prompts.ssl_email']='Укажите email (можно не указывать)'
+DICT['ru.prompts.ssl_email.help']='Вы можете получить SSL сертификат без указания email адреса. Однако LetsEncrypt настоятельно рекомендует указать его, так как в случае потери ключа или компрометации LetsEncrypt аккаунта вы полностью потеряете доступ к своему LetsEncrypt аккаунту. Без email вы также не сможете получить уведомление о предстоящем истечении срока действия или отзыве сертификата'
+DICT['ru.welcome']=$(cat <<- END
+	Добро пожаловать в программу установки Keitaro TDS.
+	Эта программа поможет собрать информацию необходимую для установки Keitaro TDS на вашем сервере.
+END
+)
+
+
 
 stage0(){
   init_log
@@ -334,7 +342,7 @@ stage1(){
 
 
 parse_options(){
-  while getopts ":hpvsl:" opt; do
+  while getopts ":hpsl:" opt; do
     case $opt in
       p)
         PRESERVE=true
@@ -386,16 +394,13 @@ usage(){
 ru_usage(){
   print_err "$SCRIPT_NAME устанавливает Keitaro TDS"
   print_err
-  print_err "Использование: "$SCRIPT_NAME" [-psv] [-l en|ru]"
+  print_err "Использование: "$SCRIPT_NAME" [-ps] [-l en|ru]"
   print_err
   print_err "  -p"
   print_err "    С опцией -p (preserve installation) "$SCRIPT_NAME" не запускает установочные команды. Вместо этого текс команд будет показан на экране."
   print_err
   print_err "  -s"
   print_err "    С опцией -s (skip checks) "$SCRIPT_NAME" не будет проверять присутствие yum/ansible в системе, не будет проверять факт запуска из под root."
-  print_err
-  print_err "  -v"
-  print_err "    С опцией -v (verbose mode) "$SCRIPT_NAME" будет выводить детальную информацию оп процессе установки."
   print_err
   print_err "  -l <lang>"
   print_err "    "$SCRIPT_NAME" определяет язык через установленные переменные окружения LANG/LC_MESSAGES/LC_ALL, однако вы можете явно задать язык при помощи параметра -l."
@@ -407,16 +412,13 @@ ru_usage(){
 en_usage(){
   print_err "$SCRIPT_NAME installs Keitaro TDS"
   print_err
-  print_err "Usage: "$SCRIPT_NAME" [-psv] [-l en|ru]"
+  print_err "Usage: "$SCRIPT_NAME" [-ps] [-l en|ru]"
   print_err
   print_err "  -p"
   print_err "    The -p (preserve installation) option causes "$SCRIPT_NAME" to preserve the invoking of installation commands. Installation commands will be printed to stdout instead."
   print_err
   print_err "  -s"
   print_err "    The -s (skip checks) option causes "$SCRIPT_NAME" to skip checks of yum/ansible presence, skip check root running"
-  print_err
-  print_err "  -v"
-  print_err "    The -v (verbose mode) option causes "$SCRIPT_NAME" to display more verbose information of installation process."
   print_err
   print_err "  -l <lang>"
   print_err "    By default "$SCRIPT_NAME" tries to detect language from LANG/LC_MESSAGES/LC_ALL environment variables, but you can explicitly set language with -l option."

@@ -1,18 +1,4 @@
 #!/usr/bin/env powscript
 
-SCRIPT_LOG="install.log"
 INVENTORY_FILE=hosts.txt
 PROVISION_DIRECTORY=centos_provision-master
-SCRIPT_NAME="install.sh"
-SCRIPT_URL="https://keitarotds.com/install.sh"
-
-if ${SHELLNAME} == 'bash'
-  if not empty ${@}
-    SCRIPT_COMMAND="curl -sSL $SCRIPT_URL | bash -s -- ${@}"
-  else
-    SCRIPT_COMMAND="curl -sSL $SCRIPT_URL | bash"
-else
-  SCRIPT_NAME=${SHELLNAME}
-  COMMAND="${SCRIPT_NAME} ${@}"
-  COMMAND=${COMMAND/% /}                  # Remove possible trailing space
-  SCRIPT_COMMAND=${COMMAND}

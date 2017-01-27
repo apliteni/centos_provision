@@ -1,5 +1,6 @@
 #!/usr/bin/env powscript
 
+PROGRAM_NAME="enable-ssl"
 
 require "ssl_enabler/vars/common.pow"
 require "ssl_enabler/vars/dict.pow"
