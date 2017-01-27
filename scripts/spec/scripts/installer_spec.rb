@@ -182,7 +182,7 @@ RSpec.describe 'installer.sh' do
     # `-s` option disables yum/ansible checks
     # `-p` option disables invoking install commands
 
-    let(:args) { '-spvl en' }
+    let(:args) { '-spl en' }
 
     shared_examples_for 'field without default' do |field|
       context 'field not stored in inventory' do
