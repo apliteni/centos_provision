@@ -1,11 +1,11 @@
 #!/usr/bin/env powscript
 
-SCRIPT_LOG="install.log"
+SCRIPT_LOG="enable-ssl.log"
+SCRIPT_NAME="enable-ssl.sh"
+SCRIPT_URL="https://keitarotds.com/enable-ssl.sh"
 INVENTORY_FILE=hosts.txt
-PROVISION_DIRECTORY=centos_provision-master
-SCRIPT_NAME="install.sh"
-SCRIPT_URL="https://keitarotds.com/install.sh"
 
+PROVISION_DIRECTORY=centos_provision-master
 if ${SHELLNAME} == 'bash'
   if not empty ${@}
     SCRIPT_COMMAND="curl -sSL $SCRIPT_URL | bash -s -- ${@}"

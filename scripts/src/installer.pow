@@ -40,15 +40,10 @@ require "installer/stage5/show_successful_install_message.pow"
 #   http://blog.existentialize.com/dont-pipe-to-your-shell.html
 install()
   stage0 $@
-  debug "Starting stage 1: initial script setup"
   stage1 $@
-  debug "Starting stage 2: make some asserts"
   stage2
-  debug "Starting stage 3: generate inventory file"
   stage3
-  debug "Starting stage 4: install ansible"
   stage4
-  debug "Starting stage 5: run ansible playbook"
   stage5
 
 install $@

@@ -45,33 +45,34 @@ values ()
 
 
 
-INSTALL_LOG="install.log"
+SCRIPT_LOG="install.log"
 INVENTORY_FILE=hosts.txt
 PROVISION_DIRECTORY=centos_provision-master
 SCRIPT_NAME="install.sh"
-INSTALLER_URL="https://keitarotds.com/install.sh"
+SCRIPT_URL="https://keitarotds.com/install.sh"
 
 if [[ ${SHELLNAME} == 'bash' ]]; then
   if ! empty ${@}; then
-    SELF_COMMAND="curl -sSL "$INSTALLER_URL" | bash -s -- ${@}"
+    SCRIPT_COMMAND="curl -sSL "$SCRIPT_URL" | bash -s -- ${@}"
   else
-    SELF_COMMAND="curl -sSL "$INSTALLER_URL" | bash"
+    SCRIPT_COMMAND="curl -sSL "$SCRIPT_URL" | bash"
   fi
 else
   SCRIPT_NAME=${SHELLNAME}
-  SELF_COMMAND="${SCRIPT_NAME} ${@}"
-  SELF_COMMAND=${SELF_COMMAND/% /}                  # Remove possible trailing space
+  COMMAND="${SCRIPT_NAME} ${@}"
+  COMMAND=${COMMAND/% /}                  # Remove possible trailing space
+  SCRIPT_COMMAND=${COMMAND}
 fi
 
 
 declare -A DICT
 
-DICT['en.errors.failure']='INSTALLATION FAILED'
+DICT['en.errors.installer']='INSTALLATION FAILED'
 DICT['en.errors.must_be_root']='You must run this program as root.'
 DICT['en.errors.run_command.fail']='There was an error evaluating command'
 DICT['en.errors.run_command.fail_extra']=$(cat <<- END
-	Installation log saved to ${INSTALL_LOG}. Configuration settings saved to ${INVENTORY_FILE}.
-	You can rerun '${SELF_COMMAND}' with saved settings after resolving installation problems.
+	Installation log saved to ${SCRIPT_LOG}. Configuration settings saved to ${INVENTORY_FILE}.
+	You can rerun '${SCRIPT_COMMAND}' with saved settings after resolving installation problems.
 END
 )
 DICT['en.errors.yum_not_installed']='This installer works only on yum-based systems. Please run this programm in CentOS/RHEL/Fedora distro'
@@ -107,12 +108,12 @@ DICT['en.welcome']=$(cat <<- END
 END
 )
 
-DICT['ru.errors.failure']='ОШИБКА УСТАНОВКИ'
+DICT['ru.errors.installer']='ОШИБКА УСТАНОВКИ'
 DICT['ru.errors.must_be_root']='Эту программу может запускать только root.'
 DICT['ru.errors.run_command.fail']='Ошибка выполнения команды'
 DICT['ru.errors.run_command.fail_extra']=$(cat <<- END
-	Журнал установки сохранён в ${INSTALL_LOG}. Настройки сохранены в ${INVENTORY_FILE}.
-	Вы можете повторно запустить '${SELF_COMMAND}' с этими настройками после устранения возникших проблем.
+	Журнал установки сохранён в ${SCRIPT_LOG}. Настройки сохранены в ${INVENTORY_FILE}.
+	Вы можете повторно запустить '${SCRIPT_COMMAND}' с этими настройками после устранения возникших проблем.
 END
 )
 DICT['ru.errors.yum_not_installed']='Утановщик keitaro работает только с пакетным менеджером yum. Пожалуйста, запустите эту программу в CentOS/RHEL/Fedora дистрибутиве'
@@ -154,7 +155,7 @@ debug(){
   if empty "$color"; then
     color='light.green'
   fi
-  print_with_color "$message" "$color" >> "$INSTALL_LOG"
+  print_with_color "$message" "$color" >> "$SCRIPT_LOG"
 }
 
 
@@ -178,12 +179,12 @@ log_and_print_err(){
 
 
 init_log(){
-  if [ -f ${INSTALL_LOG} ]; then
-    name_for_old_log=$(get_name_for_old_log ${INSTALL_LOG})
-    mv "$INSTALL_LOG" "$name_for_old_log"
-    debug "Old log ${INSTALL_LOG} moved to "$name_for_old_log""
+  if [ -f ${SCRIPT_LOG} ]; then
+    name_for_old_log=$(get_name_for_old_log ${SCRIPT_LOG})
+    mv "$SCRIPT_LOG" "$name_for_old_log"
+    debug "Old log ${SCRIPT_LOG} moved to "$name_for_old_log""
   else
-    debug "${INSTALL_LOG} created"
+    debug "${SCRIPT_LOG} created"
   fi
 }
 
@@ -252,7 +253,7 @@ run_command(){
   if isset "$PRESERVE"; then
     debug "Actual running disabled"
   else
-    evaluated_command="(set -o pipefail && (${command}) 2>&1 | tee -a ${INSTALL_LOG})"
+    evaluated_command="(set -o pipefail && (${command}) 2>&1 | tee -a ${SCRIPT_LOG})"
     debug "Real command: ${evaluated_command}"
     if ! eval "${evaluated_command}"; then
       message="$(translate 'errors.run_command.fail') '$command'\n$(translate 'errors.run_command.fail_extra')"
@@ -316,7 +317,7 @@ is_pipe_mode(){
 stage0(){
   init_log
   debug "Starting stage 0: log basic info"
-  debug "Command: ${SELF_COMMAND}"
+  debug "Command: ${SCRIPT_COMMAND}"
   debug "User ID: "$EUID""
   debug "Current date time: $(date +'%Y-%m-%d %H:%M:%S %:z')"
   trap clean_up SIGHUP SIGINT SIGTERM
@@ -325,6 +326,7 @@ stage0(){
 
 
 stage1(){
+  debug "Starting stage 1: initial script setup"
   parse_options "$@"
   set_ui_lang
 }
@@ -457,6 +459,7 @@ detect_language_from_var(){
 
 
 stage2(){
+  debug "Starting stage 2: make some asserts"
   assert_caller_root
   assert_yum_installed
 }
@@ -492,6 +495,7 @@ PASSWORD_LENGTH=16
 
 
 stage3(){
+  debug "Starting stage 3: generate inventory file"
   setup_vars
   read_inventory_file
   get_user_vars
@@ -724,6 +728,7 @@ hack_stdin(){
 
 
 stage4(){
+  debug "Starting stage 4: install ansible"
   install_ansible_if_not_installed
 }
 
@@ -740,6 +745,7 @@ install_ansible_if_not_installed(){
 
 
 stage5(){
+  debug "Starting stage 5: run ansible playbook"
   download_provision
   run_ansible_playbook
 }
@@ -783,15 +789,10 @@ show_successful_install_message(){
 
 install(){
   stage0 "$@"
-  debug "Starting stage 1: initial script setup"
   stage1 "$@"
-  debug "Starting stage 2: make some asserts"
   stage2
-  debug "Starting stage 3: generate inventory file"
   stage3
-  debug "Starting stage 4: install ansible"
   stage4
-  debug "Starting stage 5: run ansible playbook"
   stage5
 }
 

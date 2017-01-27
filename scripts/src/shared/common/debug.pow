@@ -4,4 +4,4 @@
 debug(message, color)
   if empty $color
     color='light.green'
-  print_with_color $message $color >> $INSTALL_LOG
+  print_with_color $message $color >> $SCRIPT_LOG

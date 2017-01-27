@@ -1,58 +1,49 @@
 #!/usr/bin/env powscript
 
 
-require "install/vars/common.pow"
-require "install/vars/dict.pow"
-require "install/common/init_log.pow"
-require "install/common/clean_up.pow"
-require "install/common/debug.pow"
-require "install/common/fail.pow"
-require "install/common/install_package.pow"
-require "install/common/is_installed.pow"
-require "install/common/is_pipe_mode.pow"
-require "install/common/print_err.pow"
-require "install/common/print_with_color.pow"
-require "install/common/run_command.pow"
-require "install/common/translate.pow"
-require "install/stage0.pow"
-require "install/stage1.pow"
-require 'install/stage1/hack_stdin.pow'
-require 'install/stage1/parse_options.pow'
-require 'install/stage1/print_debug_info.pow'
-require 'install/stage1/set_ui_lang.pow'
-require "install/stage2.pow"
-require "install/stage2/asserts.pow"
-require "install/stage3.pow"
-require "install/stage3/setup_vars.pow"
-require "install/stage3/read_inventory_file.pow"
-require "install/stage3/get_user_vars.pow"
-require "install/stage3/write_inventory_file.pow"
-require "install/stage4.pow"
-require "install/stage4/install_ansible.pow"
-require "install/stage5.pow"
-require "install/stage5/download_provision.pow"
-require "install/stage5/run_ansible_playbook.pow"
-require "install/stage5/show_successful_install_message.pow"
+require "ssl_enabler/vars/common.pow"
+require "ssl_enabler/vars/dict.pow"
+require "shared/common/debug.pow"
+require "shared/common/fail.pow"
+require "shared/common/init_log.pow"
+require "shared/common/print_err.pow"
+require "shared/common/print_with_color.pow"
+require "shared/common/run_command.pow"
+require "shared/common/translate.pow"
+require "ssl_enabler/common/clean_up.pow"
+require "ssl_enabler/common/install_package.pow"
+require "ssl_enabler/common/is_installed.pow"
+require "ssl_enabler/common/is_pipe_mode.pow"
+require "shared/stage0.pow"
+require "ssl_enabler/stage1.pow"
+require "ssl_enabler/stage1/parse_options.pow"
+require "ssl_enabler/stage1/set_ui_lang.pow"
+require "ssl_enabler/stage2.pow"
+require "ssl_enabler/stage2/asserts.pow"
+require "ssl_enabler/stage3.pow"
+require "ssl_enabler/stage3/get_user_vars.pow"
+require "ssl_enabler/stage3/read_inventory_file.pow"
+require "ssl_enabler/stage3/setup_vars.pow"
+require "ssl_enabler/stage3/write_inventory_file.pow"
+require 'installer/stage3/hack_stdin.pow'
+require "ssl_enabler/stage4.pow"
+require "ssl_enabler/stage4/install_ansible.pow"
+require "ssl_enabler/stage5.pow"
+require "ssl_enabler/stage5/download_provision.pow"
+require "ssl_enabler/stage5/run_ansible_playbook.pow"
+require "ssl_enabler/stage5/show_successful_install_message.pow"
 
 
 # We wrap the entire script in a big function which we only call at the very end, in order to
 # protect against the possibility of the connection dying mid-script. This protects us against
 # the problem described in this blog post:
 #   http://blog.existentialize.com/dont-pipe-to-your-shell.html
-install()
-  init_log
-  trap clean_up SIGHUP SIGINT SIGTERM
-  debug "Starting stage 0: log basic info"
+enable_ssl()
   stage0 $@
-  debug "Starting stage 1: initial script setup"
   stage1 $@
-  debug "Starting stage 2: make some asserts"
   stage2
-  debug "Starting stage 3: generate inventory file"
   stage3
-  debug "Starting stage 4: install ansible"
   stage4
-  debug "Starting stage 5: run ansible playbook"
   stage5
 
-install $@
+enable_ssl $@
