@@ -2,11 +2,9 @@
 
 
 run_certbot()
-  echo $@
   certbot_command="certbot certonly --webroot --webroot-path=${WEBROOT_PATH} --agree-tos --non-interactive --expand"
-  while ${#}
-    certbot_command="${certbot_command} --domain ${1}"
-    shift
+  for domain in "${DOMAINS[@]}"
+    certbot_command="${certbot_command} --domain ${domain}"
   if isset $EMAIL
     certbot_command="${certbot_command} --email ${EMAIL}"
   else

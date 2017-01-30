@@ -2,6 +2,6 @@
 
 
 translate(key)
-  i18n_key=$UI_LANG.$key
+  local i18n_key=$UI_LANG.$key
   if isset ${DICT[$i18n_key]}
     echo $DICT[$i18n_key]

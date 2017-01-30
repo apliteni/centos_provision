@@ -12,6 +12,8 @@ require 'app/ssl_enabler/vars/dict.pow'
 
 require 'lib/i18n/translate.pow'
 require 'lib/i18n/set_ui_lang.pow'
+
+require 'lib/system/clean_up.pow'
 require 'lib/system/debug.pow'
 require 'lib/system/fail.pow'
 require 'lib/system/init.pow'
@@ -25,6 +27,7 @@ require 'app/ssl_enabler/stage1/parse_options.pow'
 require 'app/ssl_enabler/stage2.pow'
 require 'app/ssl_enabler/stage2/asserts.pow'
 require 'app/ssl_enabler/stage3.pow'
+require 'app/ssl_enabler/stage3/make_cert_links.pow'
 require 'app/ssl_enabler/stage3/run_certbot.pow'
 require 'app/ssl_enabler/stage3/show_successful_message.pow'
 
@@ -37,7 +40,7 @@ enable_ssl()
   init $@
   stage1 $@
   stage2
-  stage3 $@
+  stage3
 
 
 enable_ssl $@

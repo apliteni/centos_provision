@@ -1,3 +1,4 @@
 #!/usr/bin/env powscript
 
 WEBROOT_PATH=/var/www/keitaro
+DOMAINS=[]

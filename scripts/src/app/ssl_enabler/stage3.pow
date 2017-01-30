@@ -3,5 +3,5 @@
 
 stage3()
   debug "Starting stage 3: run certbot"
-  run_certbot ${@}
+  run_certbot
   make_cert_links

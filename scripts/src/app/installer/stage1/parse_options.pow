@@ -30,7 +30,7 @@ parse_options()
 
 usage()
   set_ui_lang
-  if $UI_LANG = 'ru'
+  if $UI_LANG == 'ru'
     ru_usage
   else
     en_usage
