@@ -1,5 +1,0 @@
-#!/usr/bin/env powscript
-
-
-is_pipe_mode()
-  [ "${SHELLNAME}" == 'bash' ]

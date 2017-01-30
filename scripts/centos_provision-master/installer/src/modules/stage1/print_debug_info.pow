@@ -1,6 +1,0 @@
-#!/usr/bin/env powscript
-
-
-print_debug_info()
-  debug "Verbose mode: on"
-  debug "Language: ${UI_LANG}"

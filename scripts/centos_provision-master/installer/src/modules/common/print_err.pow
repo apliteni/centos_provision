@@ -1,5 +1,0 @@
-#!/usr/bin/env powscript
-
-
-print_err(message, color)
-  print_with_color $message $color >&2
