@@ -3,27 +3,30 @@
 
 PROGRAM_NAME="enable-ssl"
 
-require 'ssl_enabler/program_name.pow'
+require 'shared/vars/ssl_enabler_program_name.pow'
 require 'shared/vars/common.pow'
 require 'shared/vars/dict.pow'
-require 'lib/common/log/init_log.pow'
-require 'lib/common/i18n/translate.pow'
-require 'lib/common/print/debug.pow'
-require 'lib/common/print/print_err.pow'
-require 'lib/common/print/print_with_color.pow'
-require 'shared/common/fail.pow'
-require 'shared/common/run_command.pow'
-require 'ssl_enabler/vars/common.pow'
-require 'ssl_enabler/vars/dict.pow'
-require 'shared/stage0.pow'
-require 'ssl_enabler/stage1.pow'
-require 'ssl_enabler/stage1/parse_options.pow'
-require 'ssl_enabler/stage1/set_ui_lang.pow'
-require 'ssl_enabler/stage2.pow'
-require 'ssl_enabler/stage2/asserts.pow'
-require 'ssl_enabler/stage3.pow'
-require 'ssl_enabler/stage3/run_certbot.pow'
-require 'ssl_enabler/stage3/show_successful_message.pow'
+
+require 'app/ssl_enabler/vars/common.pow'
+require 'app/ssl_enabler/vars/dict.pow'
+
+require 'lib/i18n/translate.pow'
+require 'lib/i18n/set_ui_lang.pow'
+require 'lib/system/debug.pow'
+require 'lib/system/fail.pow'
+require 'lib/system/init.pow'
+require 'lib/system/init_log.pow'
+require 'lib/system/print_err.pow'
+require 'lib/system/print_with_color.pow'
+require 'lib/system/run_command.pow'
+
+require 'app/ssl_enabler/stage1.pow'
+require 'app/ssl_enabler/stage1/parse_options.pow'
+require 'app/ssl_enabler/stage2.pow'
+require 'app/ssl_enabler/stage2/asserts.pow'
+require 'app/ssl_enabler/stage3.pow'
+require 'app/ssl_enabler/stage3/run_certbot.pow'
+require 'app/ssl_enabler/stage3/show_successful_message.pow'
 
 
 # We wrap the entire script in a big function which we only call at the very end, in order to
@@ -31,7 +34,7 @@ require 'ssl_enabler/stage3/show_successful_message.pow'
 # the problem described in this blog post:
 #   http://blog.existentialize.com/dont-pipe-to-your-shell.html
 enable_ssl()
-  stage0 $@
+  init $@
   stage1 $@
   stage2
   stage3 $@

@@ -95,35 +95,6 @@ DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет
 
 
 
-run_command(){
-  local command="${1}"
-  debug "Evaluating command: ${command}"
-  run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
-  echo -e "$run_command_message '$command'"
-  if isset "$PRESERVE"; then
-    debug "Actual running disabled"
-  else
-    evaluated_command="(set -o pipefail && (${command}) 2>&1 | tee -a ${SCRIPT_LOG})"
-    debug "Real command: ${evaluated_command}"
-    if ! eval "${evaluated_command}"; then
-      message="$(translate 'errors.run_command.fail') '$command'\n$(translate 'errors.run_command.fail_extra')"
-      fail "$message"
-    fi
-  fi
-}
-
-
-
-translate(){
-  local key="${1}"
-  i18n_key=$UI_LANG.$key
-  if isset ${DICT[$i18n_key]}; then
-    echo "${DICT[$i18n_key]}"
-  fi
-}
-
-
-
 set_ui_lang(){
   if empty "$UI_LANG"; then
     UI_LANG=$(detect_language)
@@ -151,6 +122,16 @@ detect_language_from_var(){
     echo ru
   else
     echo en
+  fi
+}
+
+
+
+translate(){
+  local key="${1}"
+  i18n_key=$UI_LANG.$key
+  if isset ${DICT[$i18n_key]}; then
+    echo "${DICT[$i18n_key]}"
   fi
 }
 
@@ -301,6 +282,25 @@ print_with_color(){
 
 
 
+
+run_command(){
+  local command="${1}"
+  debug "Evaluating command: ${command}"
+  run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
+  echo -e "$run_command_message '$command'"
+  if isset "$PRESERVE"; then
+    debug "Actual running disabled"
+  else
+    evaluated_command="(set -o pipefail && (${command}) 2>&1 | tee -a ${SCRIPT_LOG})"
+    debug "Real command: ${evaluated_command}"
+    if ! eval "${evaluated_command}"; then
+      message="$(translate 'errors.run_command.fail') '$command'\n$(translate 'errors.run_command.fail_extra')"
+      fail "$message"
+    fi
+  fi
+}
+
+
 INVENTORY_FILE=hosts.txt
 PROVISION_DIRECTORY=centos_provision-master
 
@@ -369,6 +369,15 @@ DICT['ru.welcome']=$(cat <<- END
 	Эта программа поможет собрать информацию необходимую для установки Keitaro TDS на вашем сервере.
 END
 )
+
+
+
+clean_up(){
+  if [ -d "$PROVISION_DIRECTORY" ]; then
+    debug "Remove ${PROVISION_DIRECTORY}"
+    rm -rf "$PROVISION_DIRECTORY"
+  fi
+}
 
 
 
