@@ -85,6 +85,7 @@ DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет
 
 
 WEBROOT_PATH=/var/www/keitaro
+declare -a DOMAINS
 
 
 
@@ -96,7 +97,7 @@ DICT['ru.errors.run_command.fail_extra']="Журнал выполнения со
 
 translate(){
   local key="${1}"
-  i18n_key=$UI_LANG.$key
+  local i18n_key=$UI_LANG.$key
   if isset ${DICT[$i18n_key]}; then
     echo "${DICT[$i18n_key]}"
   fi
@@ -132,6 +133,12 @@ detect_language_from_var(){
   else
     echo en
   fi
+}
+
+
+
+clean_up(){
+  debug 'called clean_up()'
 }
 
 
@@ -307,6 +314,18 @@ parse_options(){
         ;;
     esac
   done
+  shift $((OPTIND-1))
+  if [[ ${#} == 0 ]]; then
+    usage
+    exit 1
+  else
+    while [[ ${#} -gt 0 ]]; do
+      if [[ ! "${1}" =~ ^(-) ]]; then
+        DOMAINS+=("${1}")
+      fi
+      shift
+    done
+  fi
 }
 
 
@@ -321,36 +340,36 @@ usage(){
 
 
 ru_usage(){
-  print_err "$SCRIPT_NAME устанавливает Keitaro TDS"
+  print_err "$SCRIPT_NAME подключает SSL сертификат от Let's Encrypt для указанных доменов Keitaro TDS"
   print_err
-  print_err "Использование: "$SCRIPT_NAME" [-ps] [-l en|ru]"
+  print_err "Использование: "$SCRIPT_NAME" [-ps] [-l en|ru] domain1.tld [domain2.tld] ..."
   print_err
   print_err "  -p"
-  print_err "    С опцией -p (preserve installation) "$SCRIPT_NAME" не запускает установочные команды. Вместо этого текст команд будет показан на экране."
+  print_err "    С опцией -p (preserve commands running) "$SCRIPT_NAME" не выполняет установочные команды. Вместо этого текст команд будет показан на экране."
   print_err
   print_err "  -s"
-  print_err "    С опцией -s (skip checks) "$SCRIPT_NAME" не будет проверять присутствие yum/ansible в системе, не будет проверять факт запуска из под root."
+  print_err "    С опцией -s (skip checks) "$SCRIPT_NAME" не будет проверять присутствие нужных программ в системе, не будет проверять факт запуска из под root."
   print_err
   print_err "  -l <lang>"
-  print_err "    "$SCRIPT_NAME" определяет язык через установленные переменные окружения LANG/LC_MESSAGES/LC_ALL, однако вы можете явно задать язык при помощи параметра -l."
+  print_err "    "$SCRIPT_NAME" определяет язык через установленные переменные окружения LANG/LC_MESSAGES/LC_ALL, однако язык может быть явно задан помощи параметра -l."
   print_err "    На данный момент поддерживаются значения en и ru (для английского и русского языков)."
   print_err
 }
 
 
 en_usage(){
-  print_err "$SCRIPT_NAME installs Keitaro TDS"
+  print_err "$SCRIPT_NAME generates Let's Encrypt SSL for the specified domains of Keitaro TDS"
   print_err
-  print_err "Usage: "$SCRIPT_NAME" [-ps] [-l en|ru]"
+  print_err "Usage: "$SCRIPT_NAME" [-ps] [-l en|ru] domain1.tld [domain2.tld] ..."
   print_err
   print_err "  -p"
-  print_err "    The -p (preserve installation) option causes "$SCRIPT_NAME" to preserve the invoking of installation commands. Installation commands will be printed to stdout instead."
+  print_err "    The -p (preserve commands running) option causes "$SCRIPT_NAME" to preserve the invoking of installation commands. Installation commands will be printed to stdout instead."
   print_err
   print_err "  -s"
-  print_err "    The -s (skip checks) option causes "$SCRIPT_NAME" to skip checks of yum/ansible presence, skip check root running"
+  print_err "    The -s (skip checks) option causes "$SCRIPT_NAME" to skip checks of required programs presence, skip check root running"
   print_err
   print_err "  -l <lang>"
-  print_err "    By default "$SCRIPT_NAME" tries to detect language from LANG/LC_MESSAGES/LC_ALL environment variables, but you can explicitly set language with -l option."
+  print_err "    By default "$SCRIPT_NAME" tries to detect language from LANG/LC_MESSAGES/LC_ALL environment variables, but language can be explicitly set  with -l option."
   print_err "    Only en and ru (for English and Russian) values supported now."
   print_err
 }
@@ -388,18 +407,22 @@ assert_yum_installed(){
 
 stage3(){
   debug "Starting stage 3: run certbot"
-  run_certbot ${@}
+  run_certbot
   make_cert_links
 }
 
 
 
+make_cert_links(){
+  debug "make_cert_links"
+}
+
+
+
 run_certbot(){
-  echo "$@"
   certbot_command="certbot certonly --webroot --webroot-path=${WEBROOT_PATH} --agree-tos --non-interactive --expand"
-  while [[ ${#} ]]; do
-    certbot_command="${certbot_command} --domain ${1}"
-    shift
+  for domain in "${DOMAINS[@]}"; do
+    certbot_command="${certbot_command} --domain ${domain}"
   done
   if isset "$EMAIL"; then
     certbot_command="${certbot_command} --email ${EMAIL}"
@@ -414,18 +437,6 @@ run_certbot(){
 
 show_successful_message(){
   print_with_color "$(translate 'messages.successful')" 'green'
-  if isset "${VARS['ssl_domains']}"; then
-    protocol='https'
-    domain=$(expr match ${VARS['ssl_domains']} '\([^,]*\)')
-  else
-    protocol='http'
-    domain="${VARS['license_ip']}"
-  fi
-  print_with_color "${protocol}://${domain}/admin" 'light.green'
-  colored_login=$(print_with_color "${VARS['admin_login']}" 'light.green')
-  colored_password=$(print_with_color "${VARS['admin_password']}" 'light.green')
-  echo -e "login: ${colored_login}"
-  echo -e "password: ${colored_password}"
 }
 
 
@@ -437,11 +448,12 @@ PROGRAM_NAME="enable-ssl"
 
 
 
+
 enable_ssl(){
   init "$@"
   stage1 "$@"
   stage2
-  stage3 "$@"
+  stage3
 }
 
 
