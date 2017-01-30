@@ -58,7 +58,6 @@ nginx_vhosts:
       }
 
       location / {
-        access_log off;
         try_files $uri $uri/ /index.php?$args;
       }
 
