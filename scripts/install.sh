@@ -67,6 +67,7 @@ else
   fi
 fi
 
+declare -A VARS
 
 
 declare -A DICT
@@ -136,6 +137,28 @@ translate(){
 }
 
 
+hack_stdin_if_pipe_mode(){
+  if is_pipe_mode; then
+    debug 'Detected pipe bash mode. Stdin hack enabled'
+    hack_stdin
+  else
+    debug "Can't detect pipe bash mode. Stdin hack disabled"
+  fi
+}
+
+
+hack_stdin(){
+  exec 3<&1
+}
+
+
+
+
+is_pipe_mode(){
+  [ "${SHELLNAME}" == 'bash' ]
+}
+
+
 
 install_package(){
   local package="${1}"
@@ -158,12 +181,6 @@ is_installed(){
       return 1
     fi
   fi
-}
-
-
-
-clean_up(){
-  debug 'called clean_up()'
 }
 
 
@@ -327,7 +344,6 @@ DICT['en.prompts.ssl.help']=$(cat <<- END
 	2. Have at least one domain associated with this server.
 END
 )
-DICT['en.prompts.ssl.error']='Please answer "yes" or "no"'
 DICT['en.prompts.ssl_agree_tos']="Do you agree with terms of Let's Encrypt Subscriber Agreement?"
 DICT['en.prompts.ssl_agree_tos.help']="Let's Encrypt Subscriber Agreement located at https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf."
 DICT['en.prompts.ssl_domains']='Please enter server domains, separated by comma'
@@ -507,9 +523,6 @@ assert_yum_installed(){
 
 
 
-declare -A VARS
-
-PASSWORD_LENGTH=16
 
 
 stage3(){
@@ -518,12 +531,6 @@ stage3(){
   read_inventory_file
   get_user_vars
   write_inventory_file
-}
-
-
-
-is_pipe_mode(){
-  [ "${SHELLNAME}" == 'bash' ]
 }
 
 
@@ -689,6 +696,7 @@ parse_line_from_inventory_file(){
 
 
 setup_vars(){
+  declare -A   VARS
   VARS['ssl']=$(translate 'no')
   VARS['ssl_agree_tos']=$(translate 'no')
   VARS['db_name']='keitaro'
@@ -700,7 +708,8 @@ setup_vars(){
 
 
 generate_password(){
-  LC_ALL=C tr -cd '[:alnum:]' < /dev/urandom | head -c16
+  local PASSWORD_LENGTH=16
+  LC_ALL=C tr -cd '[:alnum:]' < /dev/urandom | head -c${PASSWORD_LENGTH}
 }
 
 
@@ -732,22 +741,6 @@ print_line_to_inventory_file(){
   debug "  "$line"" 'light.blue'
   echo "$line" >> "$INVENTORY_FILE"
 }
-
-
-hack_stdin_if_pipe_mode(){
-  if is_pipe_mode; then
-    debug 'Detected pipe bash mode. Stdin hack enabled'
-    hack_stdin
-  else
-    debug "Can't detect pipe bash mode. Stdin hack disabled"
-  fi
-}
-
-
-hack_stdin(){
-  exec 3<&1
-}
-
 
 
 
@@ -806,8 +799,6 @@ show_successful_message(){
   echo -e "login: ${colored_login}"
   echo -e "password: ${colored_password}"
 }
-
-
 
 
 

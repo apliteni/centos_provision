@@ -2,6 +2,7 @@
 
 
 setup_vars()
+  VARS={}
   VARS['ssl']=$(translate 'no')
   VARS['ssl_agree_tos']=$(translate 'no')
   VARS['db_name']='keitaro'
@@ -12,4 +13,5 @@ setup_vars()
 
 
 generate_password()
-  LC_ALL=C tr -cd '[:alnum:]' < /dev/urandom | head -c16
+  local PASSWORD_LENGTH=16
+  LC_ALL=C tr -cd '[:alnum:]' < /dev/urandom | head -c${PASSWORD_LENGTH}

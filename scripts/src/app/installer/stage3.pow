@@ -1,9 +1,6 @@
 #!/usr/bin/env powscript
 
 
-VARS={}
-
-PASSWORD_LENGTH=16
 
 
 stage3()

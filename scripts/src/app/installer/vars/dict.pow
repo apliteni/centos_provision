@@ -22,7 +22,6 @@ DICT['en.prompts.ssl.help']=$(cat <<- END
 	2. Have at least one domain associated with this server.
 END
 )
-DICT['en.prompts.ssl.error']='Please answer "yes" or "no"'
 DICT['en.prompts.ssl_agree_tos']="Do you agree with terms of Let's Encrypt Subscriber Agreement?"
 DICT['en.prompts.ssl_agree_tos.help']="Let's Encrypt Subscriber Agreement located at https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf."
 DICT['en.prompts.ssl_domains']='Please enter server domains, separated by comma'
