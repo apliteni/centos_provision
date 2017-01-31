@@ -2,51 +2,17 @@ require 'open3'
 require 'tmpdir'
 require 'active_support'
 
-class Installer
-  INSTALLER_ROOT = File.expand_path(File.dirname(__FILE__) + '/../')
-  INSTALLER_CMD = 'install.sh'
-  INVENTORY_FILE = 'hosts.txt'
-  LOG_FILE = 'install.log'
+class SslEnabler
+  SSL_ENABLER_ROOT = File.expand_path(File.dirname(__FILE__) + '/../')
+  SSL_ENABLER_CMD = 'enable-ssl.sh'
+  LOG_FILE = 'enable-ssl.log'
 
-  class Inventory
-    attr_reader :values
+  attr_accessor :env, :args, :prompts_with_values, :docker_image, :command_stubs
+  attr_reader :stdout, :stderr, :log, :ret_value
 
-    LINES_DIVIDER = "\n"
-    VALUES_DIVIDER = '='
-
-    def initialize(values: {})
-      self.values = values
-    end
-
-    def read_from_file(file)
-      content = IO.read(file)
-      self.values = content
-                      .split(LINES_DIVIDER)
-                      .grep(/#{VALUES_DIVIDER}/)
-                      .map { |line| k, v = line.split(VALUES_DIVIDER); [k, v] }
-                      .to_h
-    end
-
-    def self.write_to_file(file, values)
-      strings = values
-                  .map { |key, value| [key, value] }
-                  .map { |array| array.join(VALUES_DIVIDER) }
-                  .push('')
-      IO.write(file, strings.join(LINES_DIVIDER))
-    end
-
-    def values=(values)
-      @values = values.map { |k, v| [k.to_sym, v] }.to_h
-    end
-  end
-
-  attr_accessor :env, :args, :prompts_with_values, :stored_values, :docker_image, :command_stubs
-  attr_reader :stdout, :stderr, :log, :ret_value, :inventory
-
-  def initialize(env: {}, args: '', prompts_with_values: {}, stored_values: {}, docker_image: nil, command_stubs: {})
-    @env, @args, @prompts_with_values, @stored_values, @docker_image, @command_stubs =
-      env, args, prompts_with_values, stored_values, docker_image, command_stubs
-    @inventory = Inventory.new
+  def initialize(env: {}, args: '', prompts_with_values: {}, docker_image: nil, command_stubs: {})
+    @env, @args, @prompts_with_values, @docker_image, @command_stubs =
+      env, args, prompts_with_values, docker_image, command_stubs
   end
 
   def call(current_dir: nil)
@@ -68,20 +34,14 @@ class Installer
   private
 
   def run_in_dir(current_dir)
-    write_to_inventory(stored_values)
-    invoke_installer_cmd(current_dir)
-    read_inventory
+    invoke_ssl_enabler_cmd(current_dir)
     read_log
   end
 
-  def write_to_inventory(stored_values)
-    Inventory.write_to_file(INVENTORY_FILE, stored_values)
-  end
+  def invoke_ssl_enabler_cmd(current_dir)
+    FileUtils.copy("#{SSL_ENABLER_ROOT}/#{SSL_ENABLER_CMD}", current_dir)
 
-  def invoke_installer_cmd(current_dir)
-    FileUtils.copy("#{INSTALLER_ROOT}/#{INSTALLER_CMD}", current_dir)
-
-    Open3.popen3(*installer_cmd(current_dir)) do |stdin, stdout, stderr, wait_thr|
+    Open3.popen3(*ssl_enabler_cmd(current_dir)) do |stdin, stdout, stderr, wait_thr|
       stdout.sync = true
       stdin.sync = true
 
@@ -92,22 +52,18 @@ class Installer
     end
   end
 
-  def read_inventory
-    inventory.read_from_file(INVENTORY_FILE) if ret_value.success?
-  end
-
   def read_log
     @log = without_formatting(IO.read(LOG_FILE))
   end
 
-  def installer_cmd(current_dir)
+  def ssl_enabler_cmd(current_dir)
     if docker_image
-      docker_run = "docker run #{docker_env} --name keitaro_installer_test -i --rm -v #{current_dir}:/data -w /data #{docker_image}"
-      commands = make_command_stubs + ["./#{INSTALLER_CMD} #{args}"]
+      docker_run = "docker run #{docker_env} --name keitaro_ssl_enabler_test -i --rm -v #{current_dir}:/data -w /data #{docker_image}"
+      commands = make_command_stubs + ["./#{SSL_ENABLER_CMD} #{args}"]
       %Q{#{docker_run} sh -c '#{commands.join(' && ')}'}
     else
       raise "Cann't stub fake commands in real system. Please use docker mode." if command_stubs.any?
-      [stringified_env, "#{current_dir}/#{INSTALLER_CMD} #{args}"]
+      [stringified_env, "#{current_dir}/#{SSL_ENABLER_CMD} #{args}"]
     end
   end
 
@@ -171,7 +127,7 @@ class Installer
 end
 
 begin
-  unless Installer.docker_installed?
+  unless SslEnabler.docker_installed?
     puts 'You need to install the docker for running this specs'
   end
 end
