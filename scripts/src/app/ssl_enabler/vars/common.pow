@@ -1,4 +1,6 @@
 #!/usr/bin/env powscript
 
-WEBROOT_PATH=/var/www/keitaro
 DOMAINS=[]
+NGINX_ROOT_PATH="/etc/nginx"
+NGINX_VHOSTS_CONF="${NGINX_ROOT_PATH}/conf.d/vhosts.conf"
+WEBROOT_PATH="/var/www/keitaro"

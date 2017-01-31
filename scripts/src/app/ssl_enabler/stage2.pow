@@ -3,3 +3,5 @@
 
 stage2()
   debug "Starting stage 2: make some asserts"
+  assert_certbot_installed
+  assert_nginx_configured

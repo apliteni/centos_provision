@@ -13,6 +13,32 @@ assert_caller_root()
       fail "$(translate errors.must_be_root)"
 
 
-assert_yum_installed()
-  if ! is_installed 'yum'
-    fail "$(translate errors.yum_not_installed)"
+assert_certbot_installed()
+  if ! is_installed 'certbot'
+    fail "$(translate 'errors.reinstall_keitaro_ssl')"
+
+
+assert_nginx_configured()
+  if ! is_nginx_properly_configured
+    fail "$(translate 'errors.reinstall_keitaro_ssl')"
+
+
+is_nginx_properly_configured()
+  is_vhosts_installed && is_ssl_configured
+
+is_vhosts_conf_installed()
+  debug "Checking ${NGINX_VHOSTS_CONF} existence"
+  if [ -f "${NGINX_VHOSTS_CONF}" ]
+    debug "OK: ${NGINX_VHOSTS_CONF} exists"
+  else
+    debug "NOK: ${NGINX_VHOSTS_CONF} does not exist"
+
+
+is_ssl_configured()
+  local ssl_root="${NGINX_ROOT_PATH}/ssl"
+  debug "Checking ssl params in ${NGINX_VHOSTS_CONF}"
+  if grep -q -e "ssl_certificate #{ssl_root}/cert.pem;" -e "ssl_certificate_key ${ssl_root}/privkey.pem;" "${NGINX_VHOSTS_CONF}"
+    debug "OK: it seems like ${NGINX_VHOSTS_CONF} is properly configured"
+  else
+    debug "NOK: ${NGINX_VHOSTS_CONF} is not properly configured"
+
