@@ -57,6 +57,7 @@ else
   fi
 fi
 
+declare -A VARS
 
 
 declare -A DICT
@@ -84,136 +85,160 @@ DICT['ru.prompt_errors.validate_presence']='Введите значение'
 DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
 
 
-WEBROOT_PATH=/var/www/keitaro
 declare -a DOMAINS
+NGINX_ROOT_PATH="/etc/nginx"
+NGINX_VHOSTS_CONF="${NGINX_ROOT_PATH}/conf.d/vhosts.conf"
+WEBROOT_PATH="/var/www/keitaro"
 
 
 
 DICT['en.errors.run_command.fail_extra']="Evaluating log saved to ${SCRIPT_LOG}. Please rerun '${SCRIPT_COMMAND}' after resolving installation problems."
+DICT['en.prompts.ssl.help']=$(cat <<- END
+	Installer can install Free SSL certificates from Let's Encrypt. In order to install this certificates you must:
+	1. Agree with terms of Let's Encrypt Subscriber Agreement (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf).
+	2. Have at least one domain associated with this server.
+END
+)
+DICT['en.prompts.ssl_agree_tos']="Do you agree with terms of Let's Encrypt Subscriber Agreement?"
+DICT['en.prompts.ssl_agree_tos.help']="Let's Encrypt Subscriber Agreement located at https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf."
+DICT['en.prompts.ssl_domains']='Please enter server domains, separated by comma'
+DICT['en.prompts.ssl_email']='Please enter your email (you can left this field empty)'
+DICT['en.prompts.ssl_email.help']='You can obtain SSL certificate with no email address. This is strongly discouraged, because in the event of key loss or LetsEncrypt account compromise you will irrevocably lose access to your LetsEncrypt account. You will also be unable to receive notice about impending expiration or revocation of your certificates.'
+DICT['en.welcome']="This program installs Free SSL certificates from Let's Encrypt"
 
 DICT['ru.errors.run_command.fail_extra']="Журнал выполнения сохранён в ${SCRIPT_LOG}. Пожалуйста запустите '${SCRIPT_COMMAND}' после устранения возникших проблем."
+DICT['ru.prompts.ssl.help']=$(cat <<- END
+	Программа установки может установить бесплатные SSL сертификаты, предоставляемые Let's Encrypt. Для этого вы должны:
+	1. Согласиться с условиями Абонентского Соглашения Let's Encrypt (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf).
+	2. Иметь хотя бы один домен для этого сервера.
+END
+)
+DICT['ru.prompts.ssl_agree_tos']="Вы согласны с условиями Абонентского Соглашения Let's Encrypt?"
+DICT['ru.welcome']="Эта программа установит бесплатные SSL сертификаты, предоставляемые Let's Encrypt"
 
 
 
-translate(){
-  local key="${1}"
-  local i18n_key=$UI_LANG.$key
-  if isset ${DICT[$i18n_key]}; then
-    echo "${DICT[$i18n_key]}"
-  fi
-}
-
-
-
-set_ui_lang(){
-  if empty "$UI_LANG"; then
+set_ui_lang()
+  if empty $UI_LANG
     UI_LANG=$(detect_language)
-  fi
   debug "Language: ${UI_LANG}"
-}
 
 
-detect_language(){
-  if ! empty "$LC_ALL"; then
-    detect_language_from_var "$LC_ALL"
+detect_language()
+  if not empty $LC_ALL
+    detect_language_from_var $LC_ALL
   else
-    if ! empty "$LC_MESSAGES"; then
-      detect_language_from_var "$LC_MESSAGES"
+    if not empty $LC_MESSAGES
+      detect_language_from_var $LC_MESSAGES
     else
-      detect_language_from_var "$LANG"
-    fi
-  fi
-}
+      detect_language_from_var $LANG
 
 
-detect_language_from_var(){
-  local lang_value="${1}"
-  if [[ "$lang_value" =~ ^ru_[[:alpha:]]+\.UTF-8$ ]]; then
+detect_language_from_var(lang_value)
+  if $lang_value match ^ru_[[:alpha:]]+\.UTF-8$
     echo ru
   else
     echo en
-  fi
-}
 
 
 
-clean_up(){
+translate(key)
+  local i18n_key=$UI_LANG.$key
+  if isset ${DICT[$i18n_key]}
+    echo $DICT[$i18n_key]
+
+
+
+is_installed(command)
+  debug "Try to found $command"
+  if isset $SKIP_CHECKS
+    debug "SKIP: actual checking of '$command' presence"
+  else
+    if $(sh -c "command -v $command > /dev/null")
+      debug "OK: $command found"
+    else
+      debug "NOK: $command not found"
+      return 1
+
+
+hack_stdin_if_pipe_mode()
+  if is_pipe_mode
+    debug 'Detected pipe bash mode. Stdin hack enabled'
+    hack_stdin
+  else
+    debug "Can't detect pipe bash mode. Stdin hack disabled"
+
+
+hack_stdin()
+  exec 3<&1
+
+
+
+
+is_pipe_mode()
+  [ "${SHELLNAME}" == 'bash' ]
+
+
+
+clean_up()
   debug 'called clean_up()'
-}
 
 
 
-debug(){
-  local message="${1}"
-  local color="${2}"
-  if empty "$color"; then
+debug(message, color)
+  if empty $color
     color='light.green'
-  fi
-  print_with_color "$message" "$color" >> "$SCRIPT_LOG"
-}
+  print_with_color $message $color >> $SCRIPT_LOG
 
 
 
-fail(){
-  local message="${1}"
+fail(message)
   log_and_print_err "*** $(translate errors.failure) ***"
-  log_and_print_err "$message"
+  log_and_print_err $message
   print_err
   clean_up
   exit 1
-}
 
 
-log_and_print_err(){
-  local message="${1}"
-  print_err "$message" 'red'
-  debug "$message" 'red'
-}
+log_and_print_err(message)
+  print_err $message 'red'
+  debug $message 'red'
 
 
 
-init(){
+init()
   init_log
   debug "Starting init stage: log basic info"
   debug "Command: ${SCRIPT_COMMAND}"
-  debug "User ID: "$EUID""
+  debug "User ID: $EUID"
   debug "Current date time: $(date +'%Y-%m-%d %H:%M:%S %:z')"
   trap on_exit SIGHUP SIGINT SIGTERM
-}
 
 
 
-init_log(){
-  if [ -f ${SCRIPT_LOG} ]; then
+init_log()
+  if [ -f ${SCRIPT_LOG} ]
     name_for_old_log=$(get_name_for_old_log ${SCRIPT_LOG})
-    mv "$SCRIPT_LOG" "$name_for_old_log"
-    debug "Old log ${SCRIPT_LOG} moved to "$name_for_old_log""
+    mv $SCRIPT_LOG $name_for_old_log
+    debug "Old log ${SCRIPT_LOG} moved to $name_for_old_log"
   else
     debug "${SCRIPT_LOG} created"
-  fi
-}
 
-get_name_for_old_log(){
-  local basename="${1}"
+get_name_for_old_log(basename)
   old_suffix=0
-  if [ -f ${basename}.1 ]; then
+  if [ -f ${basename}.1 ]
     old_suffix=$(ls ${basename}.* | grep -oP '\d+$' | sort | tail -1)
-  fi
-  current_suffix=$(expr "$old_suffix" + 1)
-  echo "$basename".$current_suffix
-}
+  current_suffix=$(expr $old_suffix + 1)
+  echo $basename.$current_suffix
 
 
 
-print_err(){
-  local message="${1}"
-  local color="${2}"
-  print_with_color "$message" "$color" >&2
-}
+print_err(message, color)
+  print_with_color $message $color >&2
 
 
 
-declare -A COLOR_CODE
+COLOR_CODE={}
 
 COLOR_CODE['bold']=1
 
@@ -236,228 +261,342 @@ COLOR_CODE['light.grey']=37
 RESET_FORMATTING='\e[0m'
 
 
-print_with_color(){
-  local message="${1}"
-  local color="${2}"
-  if ! empty "$color"; then
+print_with_color(message, color)
+  if ! empty $color
     escape_sequence="\e[${COLOR_CODE[$color]}m"
     echo -e "${escape_sequence}${message}${RESET_FORMATTING}"
   else
-    echo "$message"
-  fi
-}
+    echo $message
 
 
 
 
-run_command(){
-  local command="${1}"
+run_command(command)
   debug "Evaluating command: ${command}"
   run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
   echo -e "$run_command_message '$command'"
-  if isset "$PRESERVE"; then
+  if isset $PRESERVE
     debug "Actual running disabled"
   else
     evaluated_command="(set -o pipefail && (${command}) 2>&1 | tee -a ${SCRIPT_LOG})"
     debug "Real command: ${evaluated_command}"
-    if ! eval "${evaluated_command}"; then
+    if ! eval "${evaluated_command}"
       message="$(translate 'errors.run_command.fail') '$command'\n$(translate 'errors.run_command.fail_extra')"
-      fail "$message"
-    fi
-  fi
-}
+      fail $message
 
 
 
-stage1(){
+stage1()
   debug "Starting stage 1: initial script setup"
-  parse_options "$@"
+  parse_options $@
   set_ui_lang
-}
 
 
 
-parse_options(){
-  while getopts ":hpsl:" opt; do
-    case $opt in
-      p)
+parse_options()
+  while getopts ":hpsl:" opt
+    switch $opt
+      case p
         PRESERVE=true
-        ;;
-      s)
+      case s
         SKIP_CHECKS=true
-        ;;
-      l)
-        case $OPTARG in
-          en)
+      case l
+        switch $OPTARG
+          case en
             UI_LANG=en
-            ;;
-          ru)
+          case ru
             UI_LANG=ru
-            ;;
-          *)
+          case *
             print_err "Specified language \"$OPTARG\" is not supported"
             exit 1
-            ;;
-        esac
-        ;;
-      :)
+      case :
         print_err "Option -$OPTARG requires an argument."
         exit 1
-        ;;
-      h)
+      case h
         usage
         exit 0
-        ;;
-      \?)
+      case \?
         usage
         exit 1
-        ;;
-    esac
-  done
   shift $((OPTIND-1))
-  if [[ ${#} == 0 ]]; then
+  if ${#} == 0
     usage
     exit 1
   else
-    while [[ ${#} -gt 0 ]]; do
-      if [[ ! "${1}" =~ ^(-) ]]; then
-        DOMAINS+=("${1}")
-      fi
+    while ${#} > 0
+      if not "${1}" match ^(-)
+        DOMAINS+="${1}"
       shift
-    done
-  fi
-}
 
 
-usage(){
+usage()
   set_ui_lang
-  if [[ "$UI_LANG" = 'ru' ]]; then
+  if $UI_LANG = 'ru'
     ru_usage
   else
     en_usage
-  fi
-}
 
 
-ru_usage(){
+ru_usage()
   print_err "$SCRIPT_NAME подключает SSL сертификат от Let's Encrypt для указанных доменов Keitaro TDS"
   print_err
-  print_err "Использование: "$SCRIPT_NAME" [-ps] [-l en|ru] domain1.tld [domain2.tld] ..."
+  print_err "Использование: $SCRIPT_NAME [-ps] [-l en|ru] domain1.tld [domain2.tld] ..."
   print_err
   print_err "  -p"
-  print_err "    С опцией -p (preserve commands running) "$SCRIPT_NAME" не выполняет установочные команды. Вместо этого текст команд будет показан на экране."
+  print_err "    С опцией -p (preserve commands running) $SCRIPT_NAME не выполняет установочные команды. Вместо этого текст команд будет показан на экране."
   print_err
   print_err "  -s"
-  print_err "    С опцией -s (skip checks) "$SCRIPT_NAME" не будет проверять присутствие нужных программ в системе, не будет проверять факт запуска из под root."
+  print_err "    С опцией -s (skip checks) $SCRIPT_NAME не будет проверять присутствие нужных программ в системе, не будет проверять факт запуска из под root."
   print_err
   print_err "  -l <lang>"
-  print_err "    "$SCRIPT_NAME" определяет язык через установленные переменные окружения LANG/LC_MESSAGES/LC_ALL, однако язык может быть явно задан помощи параметра -l."
+  print_err "    $SCRIPT_NAME определяет язык через установленные переменные окружения LANG/LC_MESSAGES/LC_ALL, однако язык может быть явно задан помощи параметра -l."
   print_err "    На данный момент поддерживаются значения en и ru (для английского и русского языков)."
   print_err
-}
 
 
-en_usage(){
+en_usage()
   print_err "$SCRIPT_NAME generates Let's Encrypt SSL for the specified domains of Keitaro TDS"
   print_err
-  print_err "Usage: "$SCRIPT_NAME" [-ps] [-l en|ru] domain1.tld [domain2.tld] ..."
+  print_err "Usage: $SCRIPT_NAME [-ps] [-l en|ru] domain1.tld [domain2.tld] ..."
   print_err
   print_err "  -p"
-  print_err "    The -p (preserve commands running) option causes "$SCRIPT_NAME" to preserve the invoking of installation commands. Installation commands will be printed to stdout instead."
+  print_err "    The -p (preserve commands running) option causes $SCRIPT_NAME to preserve the invoking of installation commands. Installation commands will be printed to stdout instead."
   print_err
   print_err "  -s"
-  print_err "    The -s (skip checks) option causes "$SCRIPT_NAME" to skip checks of required programs presence, skip check root running"
+  print_err "    The -s (skip checks) option causes $SCRIPT_NAME to skip checks of required programs presence, skip check root running"
   print_err
   print_err "  -l <lang>"
-  print_err "    By default "$SCRIPT_NAME" tries to detect language from LANG/LC_MESSAGES/LC_ALL environment variables, but language can be explicitly set  with -l option."
+  print_err "    By default $SCRIPT_NAME tries to detect language from LANG/LC_MESSAGES/LC_ALL environment variables, but language can be explicitly set  with -l option."
   print_err "    Only en and ru (for English and Russian) values supported now."
   print_err
-}
 
 
 
-stage2(){
+stage2()
   debug "Starting stage 2: make some asserts"
-}
+  assert_certbot_installed
+  assert_nginx_configured
 
 
 
-assert_caller_root(){
+assert_caller_root()
   debug 'Ensure script has been running by root'
-  if isset "$SKIP_CHECKS"; then
+  if isset $SKIP_CHECKS
     debug "SKIP: actual checking of current user"
   else
-    if [[ "$EUID" = 0 ]]; then
+    if $EUID = 0
       debug 'OK: current user is root'
     else
       debug 'NOK: current user is not root'
       fail "$(translate errors.must_be_root)"
-    fi
-  fi
-}
 
 
-assert_yum_installed(){
-  if ! is_installed 'yum'; then
-    fail "$(translate errors.yum_not_installed)"
-  fi
-}
+assert_certbot_installed()
+  if ! is_installed 'certbot'
+    fail "$(translate 'errors.reinstall_keitaro_ssl')"
+
+
+assert_nginx_configured()
+  if ! is_nginx_properly_configured
+    fail "$(translate 'errors.reinstall_keitaro_ssl')"
+
+
+is_nginx_properly_configured()
+  is_vhosts_installed && is_ssl_configured
+
+is_vhosts_conf_installed()
+  debug "Checking ${NGINX_VHOSTS_CONF} existence"
+  if [ -f "${NGINX_VHOSTS_CONF}" ]
+    debug "OK: ${NGINX_VHOSTS_CONF} exists"
+  else
+    debug "NOK: ${NGINX_VHOSTS_CONF} does not exist"
+
+
+is_ssl_configured()
+  local ssl_root="${NGINX_ROOT_PATH}/ssl"
+  debug "Checking ssl params in ${NGINX_VHOSTS_CONF}"
+  if grep -q -e "ssl_certificate #{ssl_root}/cert.pem;" -e "ssl_certificate_key ${ssl_root}/privkey.pem;" "${NGINX_VHOSTS_CONF}"
+    debug "OK: it seems like ${NGINX_VHOSTS_CONF} is properly configured"
+  else
+    debug "NOK: ${NGINX_VHOSTS_CONF} is not properly configured"
 
 
 
-stage3(){
+
+stage3()
+  debug "Starting stage 3: get user vars"
+  get_user_vars
+
+
+
+get_user_vars()
+  debug 'Read vars from user input'
+  hack_stdin_if_pipe_mode
+  print_welcome
+  get_user_ssl_vars
+
+
+print_welcome()
+  print_translated "welcome"
+
+
+get_user_ssl_vars()
+  VARS['ssl_certificate']='self-signed'
+  get_var 'ssl' 'validate_yes_no'
+  if is_yes_answer ${VARS['ssl']}
+    get_var 'ssl_agree_tos' 'validate_yes_no'
+    if is_yes_answer ${VARS['ssl_agree_tos']}
+      VARS['ssl_certificate']='letsencrypt'
+      get_var 'ssl_domains' 'validate_presence'
+      get_var 'ssl_email'
+
+
+get_var(var_name, validation_method)
+  print_help $var_name
+  while true
+    print_prompt $var_name
+    variable=$(read_stdin $var_name)
+    if not empty $variable
+      VARS[$var_name]=$variable
+    if is_valid "$validation_method" "${VARS[$var_name]}"
+      debug "  $var_name=$variable" 'light.blue'
+      break
+    else
+      VARS[$var_name]=''
+      print_error $validation_method
+
+
+print_help(var_name)
+  print_translated "prompts.$var_name.help"
+
+
+print_prompt(var_name)
+  prompt=$(translate "prompts.$var_name")
+  prompt="$(print_with_color $prompt 'bold')"
+  if not empty ${VARS[$var_name]}
+    prompt="$prompt [${VARS[$var_name]}]"
+  echo -en "$prompt > "
+
+
+read_stdin(var_name)
+  if is_pipe_mode
+    read -r -u 3 variable
+  else
+    read -r variable
+  echo $variable
+
+
+is_valid(validation_method, value)
+  if empty $validation_method
+    true
+  else
+    eval $validation_method $value
+
+
+print_error(error_key)
+  error=$(translate "prompt_errors.$error_key")
+  print_with_color "*** ${error}" 'red'
+
+
+print_translated(key)
+  message=$(translate "${key}")
+  if not empty $message
+    echo $message
+
+
+validate_presence(value)
+  isset $value
+
+
+validate_yes_no(value)
+  (is_yes_answer $value || is_no_answer $value)
+
+
+is_yes_answer(answer)
+  shopt -s nocasematch
+  [[ $answer =~ ^(yes|y|да|д) ]]
+
+
+is_no_answer(answer)
+  shopt -s nocasematch
+  [[ $answer =~ ^(no|n|нет|н) ]]
+
+
+
+stage3()
   debug "Starting stage 3: run certbot"
   run_certbot
   make_cert_links
-}
 
 
 
-make_cert_links(){
+make_cert_links()
   debug "make_cert_links"
-}
 
 
 
-run_certbot(){
+run_certbot()
   certbot_command="certbot certonly --webroot --webroot-path=${WEBROOT_PATH} --agree-tos --non-interactive --expand"
-  for domain in "${DOMAINS[@]}"; do
+  for domain in "${DOMAINS[@]}"
     certbot_command="${certbot_command} --domain ${domain}"
-  done
-  if isset "$EMAIL"; then
+  if isset $EMAIL
     certbot_command="${certbot_command} --email ${EMAIL}"
   else
     certbot_command="${certbot_command} --register-unsafely-without-email"
-  fi
   run_command "${certbot_command}"
   show_successful_message
-}
 
 
 
-show_successful_message(){
+show_successful_message()
   print_with_color "$(translate 'messages.successful')" 'green'
-}
 
 
 
 PROGRAM_NAME="enable-ssl"
 
+require 'shared/vars/ssl_enabler_program_name.pow'
+require 'shared/vars/common.pow'
+require 'shared/vars/dict.pow'
+
+require 'app/ssl_enabler/vars/common.pow'
+require 'app/ssl_enabler/vars/dict.pow'
+
+require 'lib/i18n/set_ui_lang.pow'
+require 'lib/i18n/translate.pow'
+require 'lib/install/is_installed.pow'
+require 'lib/io/hack_stdin.pow'
+require 'lib/io/is_pipe_mode.pow'
+require 'lib/system/clean_up.pow'
+require 'lib/system/debug.pow'
+require 'lib/system/fail.pow'
+require 'lib/system/init.pow'
+require 'lib/system/init_log.pow'
+require 'lib/system/print_err.pow'
+require 'lib/system/print_with_color.pow'
+require 'lib/system/run_command.pow'
+
+require 'app/ssl_enabler/stage1.pow'
+require 'app/ssl_enabler/stage1/parse_options.pow'
+require 'app/ssl_enabler/stage2.pow'
+require 'app/ssl_enabler/stage2/asserts.pow'
+require 'app/ssl_enabler/stage3.pow'
+require 'app/ssl_enabler/stage3/get_user_vars.pow'
+require 'app/ssl_enabler/stage4.pow'
+require 'app/ssl_enabler/stage4/make_cert_links.pow'
+require 'app/ssl_enabler/stage4/run_certbot.pow'
+require 'app/ssl_enabler/stage4/show_successful_message.pow'
 
 
-
-
-
-
-enable_ssl(){
-  init "$@"
-  stage1 "$@"
+enable_ssl()
+  init $@
+  stage1 $@
   stage2
   stage3
-}
+  stage4
 
 
-enable_ssl "$@"
+enable_ssl $@
 
 # wait for all async child processes (because "await ... then" is used in powscript)
 [[ $ASYNC == 1 ]] && wait
