@@ -1,7 +1,9 @@
 #!/usr/bin/env powscript
 
+KEITARO_URL="https://keitarotds.com"
+
 SCRIPT_NAME="${PROGRAM_NAME}.sh"
-SCRIPT_URL="https://keitarotds.com/${PROGRAM_NAME}.sh"
+SCRIPT_URL="${KEITARO_URL}/${PROGRAM_NAME}.sh"
 SCRIPT_LOG="${PROGRAM_NAME}.log"
 
 if "${SHELLNAME}" == 'bash'

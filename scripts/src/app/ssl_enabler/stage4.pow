@@ -1,7 +1,7 @@
 #!/usr/bin/env powscript
 
 
-stage3()
+stage4()
   debug "Starting stage 3: run certbot"
   run_certbot
   make_cert_links

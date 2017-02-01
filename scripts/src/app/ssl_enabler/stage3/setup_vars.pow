@@ -2,5 +2,4 @@
 
 
 setup_vars()
-  VARS={}
   VARS['ssl_agree_tos']=$(translate 'no')

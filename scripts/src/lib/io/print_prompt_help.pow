@@ -1,0 +1,5 @@
+#!/usr/bin/env powscript
+
+
+print_prompt_help(var_name)
+  print_translated "prompts.$var_name.help"

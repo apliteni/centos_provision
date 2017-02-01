@@ -24,21 +24,31 @@ assert_nginx_configured()
 
 
 is_nginx_properly_configured()
-  is_vhosts_installed && is_ssl_configured
+  is_vhosts_conf_installed && is_ssl_configured
 
 is_vhosts_conf_installed()
   debug "Checking ${NGINX_VHOSTS_CONF} existence"
+  if isset $SKIP_CHECKS
+    debug "SKIP: аctual check of ${NGINX_VHOSTS_CONF} existence disabled"
+    return 0
   if [ -f "${NGINX_VHOSTS_CONF}" ]
     debug "OK: ${NGINX_VHOSTS_CONF} exists"
+    return 0
   else
     debug "NOK: ${NGINX_VHOSTS_CONF} does not exist"
+    return 1
 
 
 is_ssl_configured()
   local ssl_root="${NGINX_ROOT_PATH}/ssl"
   debug "Checking ssl params in ${NGINX_VHOSTS_CONF}"
+  if isset $SKIP_CHECKS
+    debug "SKIP: аctual check of ssl params in ${NGINX_VHOSTS_CONF} disabled"
+    return 0
   if grep -q -e "ssl_certificate #{ssl_root}/cert.pem;" -e "ssl_certificate_key ${ssl_root}/privkey.pem;" "${NGINX_VHOSTS_CONF}"
     debug "OK: it seems like ${NGINX_VHOSTS_CONF} is properly configured"
+    return 0
   else
     debug "NOK: ${NGINX_VHOSTS_CONF} is not properly configured"
+    return 1
 

@@ -2,7 +2,6 @@
 
 
 setup_vars()
-  VARS={}
   VARS['ssl']=$(translate 'no')
   VARS['ssl_agree_tos']=$(translate 'no')
   VARS['db_name']='keitaro'
