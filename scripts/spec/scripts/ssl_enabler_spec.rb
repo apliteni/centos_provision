@@ -12,9 +12,11 @@ RSpec.describe 'ssl_enabler.sh' do
     {
       en: {
         ssl_agree_tos: "Do you agree with terms of Let's Encrypt Subscriber Agreement?",
+        ssl_email: 'Please enter your email (you can left this field empty)',
       },
       ru: {
-        ssl_agree_tos: "Вы согласны с условиями Абонентского Соглашения Let's Encrypt?"
+        ssl_agree_tos: "Вы согласны с условиями Абонентского Соглашения Let's Encrypt?",
+        ssl_email: 'Укажите email (можно не указывать)',
       }
     }
   end
@@ -22,18 +24,21 @@ RSpec.describe 'ssl_enabler.sh' do
   let(:user_values) do
     {
       ssl_agree_tos: 'yes',
+      ssl_email: '',
     }
   end
 
   let(:en_prompts_with_values) do
     {
       prompts[:en][:ssl_agree_tos] => user_values[:ssl_agree_tos],
+      prompts[:en][:ssl_email] => user_values[:ssl_email],
     }
   end
 
   let(:ru_prompts_with_values) do
     {
       prompts[:ru][:ssl_agree_tos] => user_values[:ssl_agree_tos],
+      prompts[:ru][:ssl_email] => user_values[:ssl_email],
     }
   end
 
