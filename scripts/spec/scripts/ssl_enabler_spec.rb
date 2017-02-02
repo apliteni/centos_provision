@@ -1,9 +1,9 @@
 require 'spec_helper'
 
 RSpec.describe 'ssl_enabler.sh' do
+  let(:env) { {LANG: 'C'} }
   let(:options) { '' }
   let(:args) { options + ' ' + domains.join(' ') }
-  let(:env) { {} }
   let(:docker_image) { nil }
   let(:command_stubs) { {} }
   let(:commands) { [] }
@@ -96,22 +96,18 @@ RSpec.describe 'ssl_enabler.sh' do
 
   describe 'invoked' do
     context 'with wrong options' do
-      let(:env) { {LANG: 'C'} }
       let(:options) { '-x' }
 
       it_behaves_like 'should exit with error', "Usage: #{SslEnabler::SSL_ENABLER_CMD}"
     end
 
     context 'without domains' do
-      let(:env) { {LANG: 'C'} }
-
       let(:domains) { [] }
 
       it_behaves_like 'should exit with error', "Usage: #{SslEnabler::SSL_ENABLER_CMD}"
     end
 
     context 'with `-l` option' do
-      let(:env) { {LANG: 'C'} }
       let(:options) { "-l #{lang}" }
 
       context 'with `en` value' do
@@ -185,7 +181,6 @@ RSpec.describe 'ssl_enabler.sh' do
   end
 
   context 'without actual running commands' do
-    let(:env) { {LANG: 'C'} }
     let(:options) { '-p ' }
 
     before(:all) { `docker rm keitaro_ssl_enabler_test &>/dev/null` }
@@ -254,8 +249,6 @@ RSpec.describe 'ssl_enabler.sh' do
   end
 
   describe 'enable-ssl result' do
-    let(:env) { {LANG: 'C'} }
-
     let(:docker_image) { 'centos' }
 
     let(:commands) { make_properly_nginx_conf_commands }
@@ -277,9 +270,23 @@ RSpec.describe 'ssl_enabler.sh' do
     end
   end
 
-  describe 'check running under non-root' do
-    let(:env) { {LANG: 'C'} }
+  context 'email specified' do
+    let(:options) { '-s -p -e some.mail@example.com' }
 
+    it_behaves_like 'should not print to stdout', 'Please enter your email'
+
+    it_behaves_like 'should print to stdout', /certbot certonly .* --email some.mail@example.com/
+  end
+
+  context 'without email option specified' do
+    let(:options) { '-s -p -w' }
+
+    it_behaves_like 'should not print to stdout', 'Please enter your email'
+
+    it_behaves_like 'should print to stdout', /certbot certonly .* --register-unsafely-without-email/
+  end
+
+  describe 'check running under non-root' do
     it_behaves_like 'should exit with error', 'You must run this program as root'
   end
 

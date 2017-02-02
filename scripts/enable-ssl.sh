@@ -497,7 +497,7 @@ stage1(){
 
 
 parse_options(){
-  while getopts ":hpsl:" opt; do
+  while getopts ":hpsl:e:w" opt; do
     case $opt in
       p)
         PRESERVE=true
@@ -518,6 +518,12 @@ parse_options(){
             exit 1
             ;;
         esac
+        ;;
+      e)
+        VARS['ssl_email']="${OPTARG}"
+        ;;
+      w)
+        SKIP_SSL_EMAIL=true
         ;;
       :)
         print_err "Option -$OPTARG requires an argument."
@@ -561,7 +567,7 @@ usage(){
 ru_usage(){
   print_err "$SCRIPT_NAME подключает SSL сертификат от Let's Encrypt для указанных доменов Keitaro TDS"
   print_err
-  print_err "Использование: "$SCRIPT_NAME" [-ps] [-l en|ru] domain1.tld [domain2.tld] ..."
+  print_err "Использование: "$SCRIPT_NAME" [-ps] [-l en|ru] [-e some.email@example.org] domain1.tld [domain2.tld] ..."
   print_err
   print_err "  -p"
   print_err "    С опцией -p (preserve commands running) "$SCRIPT_NAME" не выполняет установочные команды. Вместо этого текст команд будет показан на экране."
@@ -572,6 +578,9 @@ ru_usage(){
   print_err "  -l <lang>"
   print_err "    "$SCRIPT_NAME" определяет язык через установленные переменные окружения LANG/LC_MESSAGES/LC_ALL, однако язык может быть явно задан помощи параметра -l."
   print_err "    На данный момент поддерживаются значения en и ru (для английского и русского языков)."
+  print_err
+  print_err "  -e <email>"
+  print_err "    Адрес электронной почты исползуемый для регистрации при получении бесплатных SSL сертификатов. Let's Encrypt"
   print_err
 }
 
@@ -590,6 +599,9 @@ en_usage(){
   print_err "  -l <lang>"
   print_err "    By default "$SCRIPT_NAME" tries to detect language from LANG/LC_MESSAGES/LC_ALL environment variables, but language can be explicitly set  with -l option."
   print_err "    Only en and ru (for English and Russian) values supported now."
+  print_err
+  print_err "  -e <email>"
+  print_err "    Email used for registration while getting Free SSL Let's Encrypt certificates."
   print_err
 }
 
@@ -664,8 +676,11 @@ get_user_vars(){
   hack_stdin_if_pipe_mode
   get_user_var 'ssl_agree_tos' 'validate_yes_no'
   if is_yes_answer ${VARS['ssl_agree_tos']}; then
-    echo $(is_yes_answer ${VARS['ssl_agree_tos']})
-    get_user_var 'ssl_email'
+    if [[ "$SKIP_SSL_EMAIL" ]]; then
+      debug "Do not request SSL email due appropriate option specified"
+    else
+      get_user_var 'ssl_email'
+    fi
   else
     fail "$(translate 'prompts.ssl_agree_tos.help')"
   fi
@@ -698,8 +713,8 @@ run_certbot(){
   for domain in "${DOMAINS[@]}"; do
     certbot_command="${certbot_command} --domain ${domain}"
   done
-  if isset "$EMAIL"; then
-    certbot_command="${certbot_command} --email ${EMAIL}"
+  if isset "${VARS['ssl_email']}"; then
+    certbot_command="${certbot_command} --email ${VARS['ssl_email']}"
   else
     certbot_command="${certbot_command} --register-unsafely-without-email"
   fi
