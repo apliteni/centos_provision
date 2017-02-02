@@ -6,7 +6,9 @@ get_user_vars()
   hack_stdin_if_pipe_mode
   get_user_var 'ssl_agree_tos' 'validate_yes_no'
   if is_yes_answer ${VARS['ssl_agree_tos']}
-    echo $(is_yes_answer ${VARS['ssl_agree_tos']})
-    get_user_var 'ssl_email'
+    if $SKIP_SSL_EMAIL
+      debug "Do not request SSL email due appropriate option specified"
+    else
+      get_user_var 'ssl_email'
   else
     fail "$(translate 'prompts.ssl_agree_tos.help')"
