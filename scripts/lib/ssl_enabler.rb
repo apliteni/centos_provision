@@ -6,13 +6,14 @@ class SslEnabler
   SSL_ENABLER_ROOT = File.expand_path(File.dirname(__FILE__) + '/../')
   SSL_ENABLER_CMD = 'enable-ssl.sh'
   LOG_FILE = 'enable-ssl.log'
+  DOCKER_WORKING_DIR = '/data'
 
-  attr_accessor :env, :args, :prompts_with_values, :docker_image, :command_stubs
+  attr_accessor :env, :args, :prompts_with_values, :docker_image, :command_stubs, :commands
   attr_reader :stdout, :stderr, :log, :ret_value
 
-  def initialize(env: {}, args: '', prompts_with_values: {}, docker_image: nil, command_stubs: {})
-    @env, @args, @prompts_with_values, @docker_image, @command_stubs =
-      env, args, prompts_with_values, docker_image, command_stubs
+  def initialize(env: {}, args: '', prompts_with_values: {}, docker_image: nil, command_stubs: {}, commands: [])
+    @env, @args, @prompts_with_values, @docker_image, @command_stubs, @commands =
+      env, args, prompts_with_values, docker_image, command_stubs, commands
   end
 
   def call(current_dir: nil)
@@ -53,16 +54,20 @@ class SslEnabler
   end
 
   def read_log
-    @log = without_formatting(IO.read(LOG_FILE))
+    if File.exist?(LOG_FILE)
+      @log = without_formatting(IO.read(LOG_FILE))
+    else
+      raise "There was an error running '#{SSL_ENABLER_CMD}': '#{@stderr}'"
+    end
   end
 
   def ssl_enabler_cmd(current_dir)
     if docker_image
-      docker_run = "docker run #{docker_env} --name keitaro_ssl_enabler_test -i --rm -v #{current_dir}:/data -w /data #{docker_image}"
-      commands = make_command_stubs + ["./#{SSL_ENABLER_CMD} #{args}"]
-      %Q{#{docker_run} sh -c '#{commands.join(' && ')}'}
+      docker_run = "docker run #{docker_env} --name keitaro_ssl_enabler_test -i --rm -v #{current_dir}:#{DOCKER_WORKING_DIR} -w #{DOCKER_WORKING_DIR} #{docker_image}"
+      runtime_commands = make_command_stubs + commands + ["./#{SSL_ENABLER_CMD} #{args}"]
+      %Q{#{docker_run} sh -c '#{runtime_commands.join(' && ')}'}
     else
-      raise "Cann't stub fake commands in real system. Please use docker mode." if command_stubs.any?
+      raise "Cann't stub fake commands in real system. Please use docker mode." if command_stubs.any? || commands.any?
       [stringified_env, "#{current_dir}/#{SSL_ENABLER_CMD} #{args}"]
     end
   end

@@ -6,7 +6,15 @@ RSpec.describe 'ssl_enabler.sh' do
   let(:env) { {} }
   let(:docker_image) { nil }
   let(:command_stubs) { {} }
+  let(:commands) { [] }
   let(:domains) { %w[domain1.tld] }
+  let(:nginx_conf) { "ssl_certificate /etc/nginx/cert.pem;\nssl_certificate_key /etc/nginx/ssl/privkey.pem;" }
+  let(:make_properly_nginx_conf_commands) do
+    [
+      'mkdir -p /etc/nginx/conf.d',
+      %Q{echo -e "#{nginx_conf}"> /etc/nginx/conf.d/vhosts.conf}
+    ]
+  end
 
   let(:prompts) do
     {
@@ -46,16 +54,19 @@ RSpec.describe 'ssl_enabler.sh' do
 
   let(:ssl_enabler) do
     SslEnabler.new env: env,
-                  args: args,
-                  prompts_with_values: prompts_with_values,
-                  docker_image: docker_image,
-                  command_stubs: command_stubs
+                   args: args,
+                   prompts_with_values: prompts_with_values,
+                   docker_image: docker_image,
+                   command_stubs: command_stubs,
+                   commands: commands
   end
 
-  shared_examples_for 'should print to log' do |expected_text|
-    it "prints to stdout #{expected_text.inspect}" do
+  shared_examples_for 'should print to log' do |expected_texts|
+    it "prints to stdout #{expected_texts.inspect}" do
       ssl_enabler.call(current_dir: @current_dir)
-      expect(ssl_enabler.log).to match(expected_text)
+      [*expected_texts].each do |expected_text|
+        expect(ssl_enabler.log).to match(expected_text)
+      end
     end
   end
 
@@ -73,11 +84,13 @@ RSpec.describe 'ssl_enabler.sh' do
     end
   end
 
-  shared_examples_for 'should exit with error' do |expected_text|
-    it 'exits with error' do
+  shared_examples_for 'should exit with error' do |error_texts|
+    it "exits with error #{error_texts.inspect}" do
       ssl_enabler.call
       expect(ssl_enabler.ret_value).not_to be_success
-      expect(ssl_enabler.stderr).to match(expected_text)
+      [*error_texts].each do |error_text|
+        expect(ssl_enabler.stderr).to match(error_text)
+      end
     end
   end
 
@@ -103,7 +116,6 @@ RSpec.describe 'ssl_enabler.sh' do
 
       context 'with `en` value' do
         let(:lang) { 'en' }
-
         it_behaves_like 'should print to log', 'Language: en'
       end
 
@@ -167,7 +179,7 @@ RSpec.describe 'ssl_enabler.sh' do
     describe 'should show default value' do
       it 'stdout contains prompt with default value' do
         ssl_enabler.call
-        expect(ssl_enabler.stdout).to match(/#{prompts[:en][:ssl_agree_tos]} \[no\] >/)
+        expect(ssl_enabler.stdout).to include("#{prompts[:en][:ssl_agree_tos]} [no] >")
       end
     end
   end
@@ -183,34 +195,70 @@ RSpec.describe 'ssl_enabler.sh' do
                       'certbot certonly --webroot'
     end
 
-    context 'certbot installed, nginx configured properly' do
-      let(:docker_image) { 'ansible/centos7-ansible' }
+    context 'certbot is installed, nginx is configured properly' do
+      let(:docker_image) { 'centos' }
 
-      it_behaves_like 'should print to log', "Try to found certbot\nOK"
+      let(:command_stubs) { {certbot: '/bin/true'} }
+
+      let(:commands) { make_properly_nginx_conf_commands }
+
+      it_behaves_like 'should print to log', [
+        "Try to found certbot\nOK",
+        "Checking /etc/nginx/conf.d/vhosts.conf existence\nOK",
+        "Checking ssl params in /etc/nginx/conf.d/vhosts.conf\nOK"
+      ]
 
       it_behaves_like 'should enable ssl for Keitaro TDS'
     end
 
-    context 'certbot not installed, nginx configured properly' do
+    context 'certbot is not installed, nginx is configured properly' do
       let(:docker_image) { 'centos' }
+
+      let(:commands) { make_properly_nginx_conf_commands }
 
       it_behaves_like 'should print to log', "Try to found certbot\nNOK"
 
-      it_behaves_like 'should enable ssl for Keitaro TDS'
+      it_behaves_like 'should exit with error', 'Nginx settings of your Keitaro TDS installation does not properly configured'
     end
 
-    context 'certbot installed, nginx not configured properly' do
-      let(:docker_image) { 'ubuntu' }
+    context 'certbot is installed, vhosts.conf is absent' do
+      let(:docker_image) { 'centos' }
 
-      it_behaves_like 'should print to log', "Try to found yum\nNOK"
-      it_behaves_like 'should exit with error', 'This ssl_enabler works only on yum-based systems'
+      let(:command_stubs) { {certbot: '/bin/true'} }
+
+      it_behaves_like 'should print to log', [
+        "Try to found certbot\nOK",
+        "Checking /etc/nginx/conf.d/vhosts.conf existence\nNOK",
+      ]
+
+      it_behaves_like 'should exit with error', 'Nginx settings of your Keitaro TDS installation does not properly configured'
+    end
+
+    context 'certbot is installed, nginx is not configured properly' do
+      let(:docker_image) { 'centos' }
+
+      let(:nginx_conf) { "listen 80;" }
+
+      let(:commands) { make_properly_nginx_conf_commands }
+
+      let(:command_stubs) { {certbot: '/bin/true'} }
+
+      it_behaves_like 'should print to log', [
+        "Try to found certbot\nOK",
+        "Checking /etc/nginx/conf.d/vhosts.conf existence\nOK",
+        "Checking ssl params in /etc/nginx/conf.d/vhosts.conf\nNOK"
+      ]
+
+      it_behaves_like 'should exit with error', 'Nginx settings of your Keitaro TDS installation does not properly configured'
     end
   end
 
   describe 'enable-ssl result' do
     let(:env) { {LANG: 'C'} }
 
-    let(:docker_image) { 'ansible/centos7-ansible' }
+    let(:docker_image) { 'centos' }
+
+    let(:commands) { make_properly_nginx_conf_commands }
 
     context 'successful running certbot' do
       let(:command_stubs) { {certbot: '/bin/true'} }
@@ -219,11 +267,13 @@ RSpec.describe 'ssl_enabler.sh' do
     end
 
     context 'unsuccessful running certbot' do
-      let(:command_stubs) { {certbot: '/bin/false', tar: '/bin/true', 'ansible-playbook': '/bin/false'} }
+      let(:command_stubs) { {certbot: '/bin/false'} }
 
-      it_behaves_like 'should exit with error', /There was an error evaluating command 'certbot/
-      it_behaves_like 'should exit with error', /Running log saved to enable-ssl.log/
-      it_behaves_like 'should exit with error', /You can rerun 'enable-ssl.sh'/
+      it_behaves_like 'should exit with error', [
+                                                  "There was an error evaluating command 'certbot",
+                                                  'Evaluating log saved to enable-ssl.log',
+                                                  "Please rerun 'enable-ssl.sh domain1.tld'"
+                                                ]
     end
   end
 

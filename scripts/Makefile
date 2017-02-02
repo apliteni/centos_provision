@@ -1,5 +1,5 @@
 test: clean compile
-	rspec spec/scripts/ssl_enabler_spec.rb
+	rspec spec/scripts/ssl_enabler_spec.rb spec/scripts/installer_spec.rb
 
 clean:
 	rm -f {install,enable-ssl}.log*

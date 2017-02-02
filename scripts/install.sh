@@ -103,6 +103,34 @@ DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет
 
 
 
+assert_caller_root(){
+  debug 'Ensure script has been running by root'
+  if isset "$SKIP_CHECKS"; then
+    debug "SKIP: actual checking of current user"
+  else
+    if [[ "$EUID" = 0 ]]; then
+      debug 'OK: current user is root'
+    else
+      debug 'NOK: current user is not root'
+      fail "$(translate errors.must_be_root)"
+    fi
+  fi
+}
+
+
+
+assert_installed(){
+  local program="${1}"
+  local error="${2}"
+  if ! is_installed "$program"; then
+    fail "$(translate ${error})"
+  fi
+}
+
+
+
+
+
 set_ui_lang(){
   if empty "$UI_LANG"; then
     UI_LANG=$(detect_language)
@@ -625,30 +653,7 @@ en_usage(){
 stage2(){
   debug "Starting stage 2: make some asserts"
   assert_caller_root
-  assert_yum_installed
-}
-
-
-
-assert_caller_root(){
-  debug 'Ensure script has been running by root'
-  if isset "$SKIP_CHECKS"; then
-    debug "SKIP: actual checking of current user"
-  else
-    if [[ "$EUID" = 0 ]]; then
-      debug 'OK: current user is root'
-    else
-      debug 'NOK: current user is not root'
-      fail "$(translate errors.must_be_root)"
-    fi
-  fi
-}
-
-
-assert_yum_installed(){
-  if ! is_installed 'yum'; then
-    fail "$(translate errors.yum_not_installed)"
-  fi
+  assert_installed 'yum' 'errors.yum_not_installed'
 }
 
 
