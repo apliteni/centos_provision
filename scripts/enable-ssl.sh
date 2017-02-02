@@ -116,6 +116,34 @@ DICT['ru.prompts.ssl_email.help']='Вы можете получить SSL сер
 
 
 
+assert_caller_root(){
+  debug 'Ensure script has been running by root'
+  if isset "$SKIP_CHECKS"; then
+    debug "SKIP: actual checking of current user"
+  else
+    if [[ "$EUID" = 0 ]]; then
+      debug 'OK: current user is root'
+    else
+      debug 'NOK: current user is not root'
+      fail "$(translate errors.must_be_root)"
+    fi
+  fi
+}
+
+
+
+assert_installed(){
+  local program="${1}"
+  local error="${2}"
+  if ! is_installed "$program"; then
+    fail "$(translate ${error})"
+  fi
+}
+
+
+
+
+
 set_ui_lang(){
   if empty "$UI_LANG"; then
     UI_LANG=$(detect_language)
@@ -561,32 +589,11 @@ en_usage(){
 
 stage2(){
   debug "Starting stage 2: make some asserts"
-  assert_certbot_installed
+  assert_caller_root
+  assert_installed 'certbot' 'errors.reinstall_keitaro_ssl'
   assert_nginx_configured
 }
 
-
-
-assert_caller_root(){
-  debug 'Ensure script has been running by root'
-  if isset "$SKIP_CHECKS"; then
-    debug "SKIP: actual checking of current user"
-  else
-    if [[ "$EUID" = 0 ]]; then
-      debug 'OK: current user is root'
-    else
-      debug 'NOK: current user is not root'
-      fail "$(translate errors.must_be_root)"
-    fi
-  fi
-}
-
-
-assert_certbot_installed(){
-  if ! is_installed 'certbot'; then
-    fail "$(translate 'errors.reinstall_keitaro_ssl')"
-  fi
-}
 
 
 assert_nginx_configured(){
@@ -628,6 +635,7 @@ is_ssl_configured(){
     return 0
   else
     debug "NOK: ${NGINX_VHOSTS_CONF} is not properly configured"
+    debug "Content of ${NGINX_VHOSTS_CONF}:\n$(cat ${NGINX_VHOSTS_CONF} | sed 's/^/  /g')"
     return 1
   fi
 }

@@ -11,8 +11,3 @@ assert_caller_root()
     else
       debug 'NOK: current user is not root'
       fail "$(translate errors.must_be_root)"
-
-
-assert_yum_installed()
-  if ! is_installed 'yum'
-    fail "$(translate errors.yum_not_installed)"

@@ -1,23 +1,6 @@
 #!/usr/bin/env powscript
 
 
-assert_caller_root()
-  debug 'Ensure script has been running by root'
-  if isset $SKIP_CHECKS
-    debug "SKIP: actual checking of current user"
-  else
-    if $EUID = 0
-      debug 'OK: current user is root'
-    else
-      debug 'NOK: current user is not root'
-      fail "$(translate errors.must_be_root)"
-
-
-assert_certbot_installed()
-  if ! is_installed 'certbot'
-    fail "$(translate 'errors.reinstall_keitaro_ssl')"
-
-
 assert_nginx_configured()
   if ! is_nginx_properly_configured
     fail "$(translate 'errors.reinstall_keitaro_ssl')"
@@ -50,5 +33,6 @@ is_ssl_configured()
     return 0
   else
     debug "NOK: ${NGINX_VHOSTS_CONF} is not properly configured"
+    debug "Content of ${NGINX_VHOSTS_CONF}:\n$(cat ${NGINX_VHOSTS_CONF} | sed 's/^/  /g')"
     return 1
 

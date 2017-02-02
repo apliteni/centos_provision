@@ -3,5 +3,6 @@
 
 stage2()
   debug "Starting stage 2: make some asserts"
-  assert_certbot_installed
+  assert_caller_root
+  assert_installed 'certbot' 'errors.reinstall_keitaro_ssl'
   assert_nginx_configured
