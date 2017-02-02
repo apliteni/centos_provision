@@ -110,7 +110,7 @@ DICT['en.prompts.ssl_email.help']='You can obtain SSL certificate with no email 
 DICT['ru.errors.reinstall_keitaro_ssl']="Настройки Nginx вашей Keitaro TDS отконфигурированы неправильно. Пожалуйста выполните перенастройку Nginx выполнив команду '${RECONFIGURE_COMMAND}'"
 DICT['ru.errors.run_command.fail_extra']="Журнал выполнения сохранён в ${SCRIPT_LOG}. Пожалуйста запустите '${SCRIPT_COMMAND}' после устранения возникших проблем."
 DICT['ru.prompts.ssl_agree_tos']="Вы согласны с условиями Абонентского Соглашения Let's Encrypt?"
-DICT['ru.prompts.ssl.agrre_tos.help']="Для получения бесплатных SSL сертификатов Let's Encrypt вы должны согласиться с условиями Абонентского Соглашения Let's Encrypt (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf)."
+DICT['ru.prompts.ssl_agree_tos.help']="Для получения бесплатных SSL сертификатов Let's Encrypt вы должны согласиться с условиями Абонентского Соглашения Let's Encrypt (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf)."
 DICT['ru.prompts.ssl_email']='Укажите email (можно не указывать)'
 DICT['ru.prompts.ssl_email.help']='Вы можете получить SSL сертификат без указания email адреса. Однако LetsEncrypt настоятельно рекомендует указать его, так как в случае потери ключа или компрометации LetsEncrypt аккаунта вы полностью потеряете доступ к своему LetsEncrypt аккаунту. Без email вы также не сможете получить уведомление о предстоящем истечении срока действия или отзыве сертификата'
 
@@ -402,6 +402,14 @@ get_name_for_old_log(){
   fi
   current_suffix=$(expr "$old_suffix" + 1)
   echo "$basename".$current_suffix
+}
+
+
+
+on_exit(){
+  echo
+  clean_up
+  fail "$(translate 'errors.terminated')"
 }
 
 
