@@ -1,0 +1,7 @@
+#!/usr/bin/env powscript
+
+print_prompt_error(error_key)
+  error=$(translate "prompt_errors.$error_key")
+  print_with_color "*** ${error}" 'red'
+
+

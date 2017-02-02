@@ -1,0 +1,5 @@
+#!/usr/bin/env powscript
+
+
+make_cert_links()
+  debug "make_cert_links"

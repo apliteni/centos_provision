@@ -1,0 +1,7 @@
+#!/usr/bin/env powscript
+
+
+print_translated(key)
+  message=$(translate "${key}")
+  if not empty $message
+    echo $message

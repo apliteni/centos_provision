@@ -1,6 +1,0 @@
-#!/usr/bin/env powscript
-
-
-stage5()
-  download_provision
-  run_ansible_playbook

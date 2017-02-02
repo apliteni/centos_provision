@@ -1,0 +1,7 @@
+#!/usr/bin/env powscript
+
+
+stage2()
+  debug "Starting stage 2: make some asserts"
+  assert_caller_root
+  assert_installed 'yum' 'errors.yum_not_installed'

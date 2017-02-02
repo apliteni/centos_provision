@@ -1,0 +1,16 @@
+#!/usr/bin/env powscript
+
+
+get_user_var(var_name, validation_method)
+  print_prompt_help $var_name
+  while true
+    print_prompt $var_name
+    variable="$(read_stdin)"
+    if not empty $variable
+      VARS[$var_name]="${variable}"
+    if is_valid "$validation_method" "${VARS[$var_name]}"
+      debug "  ${var_name}=${variable}" 'light.blue'
+      break
+    else
+      VARS[$var_name]=''
+      print_prompt_error $validation_method

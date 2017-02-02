@@ -1,0 +1,7 @@
+#!/usr/bin/env powscript
+
+
+stage5()
+  debug "Starting stage 5: run ansible playbook"
+  download_provision
+  run_ansible_playbook

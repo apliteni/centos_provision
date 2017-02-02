@@ -1,5 +1,0 @@
-#!/usr/bin/env powscript
-
-
-stage4()
-  install_ansible_if_not_installed

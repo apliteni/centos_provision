@@ -1,0 +1,38 @@
+#!/usr/bin/env powscript
+
+
+# Hack: We read from FD 3 in pipe bash mode because when reading the script from a pipe,
+#   FD 0 is the script, not the terminal. We checked above that FD 1 (stdout) is in fact
+#   a terminal and then dup it to FD 3, thus we can input from FD 3 here.
+# Source: https://install.sandstorm.io
+read_stdin()
+  if is_pipe_mode
+    read -r -u 3 variable
+  else
+    read -r variable
+  echo $variable
+
+
+is_valid(validation_method, value)
+  if empty $validation_method
+    true
+  else
+    eval $validation_method $value
+
+
+validate_presence(value)
+  isset $value
+
+
+validate_yes_no(value)
+  (is_yes_answer $value || is_no_answer $value)
+
+
+is_yes_answer(answer)
+  shopt -s nocasematch
+  [[ $answer =~ ^(yes|y|да|д) ]]
+
+
+is_no_answer(answer)
+  shopt -s nocasematch
+  [[ $answer =~ ^(no|n|нет|н) ]]

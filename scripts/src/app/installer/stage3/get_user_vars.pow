@@ -1,0 +1,26 @@
+#!/usr/bin/env powscript
+
+
+get_user_vars()
+  debug 'Read vars from user input'
+  hack_stdin_if_pipe_mode
+  print_translated "welcome"
+  get_user_ssl_vars
+  get_user_var 'license_ip' 'validate_presence'
+  get_user_var 'license_key' 'validate_presence'
+  get_user_var 'db_name' 'validate_presence'
+  get_user_var 'db_user' 'validate_presence'
+  get_user_var 'db_password' 'validate_presence'
+  get_user_var 'admin_login' 'validate_presence'
+  get_user_var 'admin_password' 'validate_presence'
+
+
+get_user_ssl_vars()
+  VARS['ssl_certificate']='self-signed'
+  get_user_var 'ssl' 'validate_yes_no'
+  if is_yes_answer ${VARS['ssl']}
+    get_user_var 'ssl_agree_tos' 'validate_yes_no'
+    if is_yes_answer ${VARS['ssl_agree_tos']}
+      VARS['ssl_certificate']='letsencrypt'
+      get_user_var 'ssl_domains' 'validate_presence'
+      get_user_var 'ssl_email'

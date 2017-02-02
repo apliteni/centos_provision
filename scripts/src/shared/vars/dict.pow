@@ -1,0 +1,25 @@
+#!/usr/bin/env powscript
+
+DICT={}
+
+DICT['en.errors.failure']='PROGRAM FAILED'
+DICT['en.errors.must_be_root']='You must run this program as root.'
+DICT['en.errors.run_command.fail']='There was an error evaluating command'
+DICT['en.errors.run_command.fail_extra']=''
+DICT['en.errors.terminated']='Terminated by user'
+DICT['en.messages.run_command']='Evaluating command'
+DICT['en.messages.successful']='Everything done!'
+DICT['en.no']='no'
+DICT['en.prompt_errors.validate_presence']='Please enter value'
+DICT['en.prompt_errors.validate_yes_no']='Please answer "yes" or "no"'
+
+DICT['ru.errors.failure']='ОШИБКА ВЫПОЛНЕНИЯ ПРОГРАММЫ'
+DICT['ru.errors.must_be_root']='Эту программу может запускать только root.'
+DICT['ru.errors.run_command.fail']='Ошибка выполнения команды'
+DICT['ru.errors.run_command.fail_extra']=''
+DICT['ru.errors.terminated']='Выполнение прервано'
+DICT['ru.messages.run_command']='Выполняется команда'
+DICT['ru.messages.successful']='Программа успешно завершена!'
+DICT['ru.no']='нет'
+DICT['ru.prompt_errors.validate_presence']='Введите значение'
+DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
