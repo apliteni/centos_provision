@@ -585,6 +585,9 @@ ru_usage(){
   print_err "  -e <email>"
   print_err "    Адрес электронной почты исползуемый для регистрации при получении бесплатных SSL сертификатов. Let's Encrypt"
   print_err
+  print_err "  -w"
+  print_err "    C опцией -w (without email) "$SCRIPT_NAME" не будет запрашивать у пользователя адрес электронной почты."
+  print_err
 }
 
 
@@ -605,6 +608,9 @@ en_usage(){
   print_err
   print_err "  -e <email>"
   print_err "    Email used for registration while getting Free SSL Let's Encrypt certificates."
+  print_err
+  print_err "  -w"
+  print_err "    The -w (without email) option causes "$SCRIPT_NAME" to skip email request."
   print_err
 }
 
