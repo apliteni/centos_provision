@@ -1,9 +1,3 @@
-require 'pathname'
-ENV['BUNDLE_GEMFILE'] ||= File.expand_path('../../Gemfile', Pathname.new(__FILE__).realpath)
-
-require 'rubygems'
-require 'bundler/setup'
-
 require 'open3'
 require 'tmpdir'
 require 'active_support'
