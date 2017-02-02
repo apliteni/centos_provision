@@ -209,12 +209,12 @@ get_user_var(){
   print_prompt_help "$var_name"
   while true; do
     print_prompt "$var_name"
-    variable=$(read_stdin "$var_name")
+    variable="$(read_stdin)"
     if ! empty "$variable"; then
-      VARS[$var_name]=$variable
+      VARS[$var_name]="${variable}"
     fi
     if is_valid "$validation_method" "${VARS[$var_name]}"; then
-      debug "  "$var_name"="$variable"" 'light.blue'
+      debug "  ${var_name}=${variable}" 'light.blue'
       break
     else
       VARS[$var_name]=''
@@ -276,7 +276,6 @@ print_prompt_help(){
 
 
 read_stdin(){
-  local var_name="${1}"
   if is_pipe_mode; then
     read -r -u 3 variable
   else

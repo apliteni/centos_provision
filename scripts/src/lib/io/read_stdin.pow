@@ -5,7 +5,7 @@
 #   FD 0 is the script, not the terminal. We checked above that FD 1 (stdout) is in fact
 #   a terminal and then dup it to FD 3, thus we can input from FD 3 here.
 # Source: https://install.sandstorm.io
-read_stdin(var_name)
+read_stdin()
   if is_pipe_mode
     read -r -u 3 variable
   else
