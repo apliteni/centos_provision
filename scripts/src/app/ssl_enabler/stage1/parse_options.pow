@@ -2,7 +2,7 @@
 
 
 parse_options()
-  while getopts ":hpsl:e:w" opt
+  while getopts ":hpsl:ae:w" opt
     switch $opt
       case p
         PRESERVE=true
@@ -17,8 +17,10 @@ parse_options()
           case *
             print_err "Specified language \"$OPTARG\" is not supported"
             exit 1
+      case a
+        SKIP_SSL_AGREE_TOS=true
       case e
-        VARS['ssl_email']="${OPTARG}"
+        EMAIL="${OPTARG}"
       case w
         SKIP_SSL_EMAIL=true
       case :

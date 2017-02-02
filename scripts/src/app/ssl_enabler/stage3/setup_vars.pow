@@ -1,5 +1,0 @@
-#!/usr/bin/env powscript
-
-
-setup_vars()
-  VARS['ssl_agree_tos']=$(translate 'no')

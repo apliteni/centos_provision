@@ -3,5 +3,4 @@
 
 stage3()
   debug "Starting stage 3: get user vars"
-  setup_vars
   get_user_vars

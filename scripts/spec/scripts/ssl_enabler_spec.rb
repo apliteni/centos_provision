@@ -270,6 +270,14 @@ RSpec.describe 'ssl_enabler.sh' do
     end
   end
 
+  context 'with agree LE SA option specified' do
+    let(:options) { '-s -p -a' }
+
+    it_behaves_like 'should not print to stdout', "Do you agree with terms of Let's Encrypt Subscriber Agreement?"
+
+    it_behaves_like 'should print to stdout', 'Everything done!'
+  end
+
   context 'email specified' do
     let(:options) { '-s -p -e some.mail@example.com' }
 

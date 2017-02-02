@@ -497,7 +497,7 @@ stage1(){
 
 
 parse_options(){
-  while getopts ":hpsl:e:w" opt; do
+  while getopts ":hpsl:ae:w" opt; do
     case $opt in
       p)
         PRESERVE=true
@@ -519,8 +519,11 @@ parse_options(){
             ;;
         esac
         ;;
+      a)
+        SKIP_SSL_AGREE_TOS=true
+        ;;
       e)
-        VARS['ssl_email']="${OPTARG}"
+        EMAIL="${OPTARG}"
         ;;
       w)
         SKIP_SSL_EMAIL=true
@@ -665,7 +668,6 @@ is_ssl_configured(){
 
 stage3(){
   debug "Starting stage 3: get user vars"
-  setup_vars
   get_user_vars
 }
 
@@ -674,22 +676,37 @@ stage3(){
 get_user_vars(){
   debug 'Read vars from user input'
   hack_stdin_if_pipe_mode
-  get_user_var 'ssl_agree_tos' 'validate_yes_no'
+  get_user_le_sa_agreement
   if is_yes_answer ${VARS['ssl_agree_tos']}; then
-    if [[ "$SKIP_SSL_EMAIL" ]]; then
-      debug "Do not request SSL email due appropriate option specified"
-    else
-      get_user_var 'ssl_email'
-    fi
+    get_user_email
   else
     fail "$(translate 'prompts.ssl_agree_tos.help')"
   fi
 }
 
 
+get_user_le_sa_agreement(){
+  if isset "$SKIP_SSL_AGREE_TOS"; then
+    VARS['ssl_agree_tos']='yes'
+    debug "Do not request SSL user agreement because appropriate option specified"
+  else
+    VARS['ssl_agree_tos']=$(translate 'no')
+    get_user_var 'ssl_agree_tos' 'validate_yes_no'
+  fi
+}
 
-setup_vars(){
-  VARS['ssl_agree_tos']=$(translate 'no')
+
+get_user_email(){
+  if isset "$SKIP_SSL_EMAIL"; then
+    debug "Do not request SSL email because appropriate option specified"
+  else
+    if isset "$EMAIL"; then
+      debug "Do not request SSL email because email specified by option"
+      VARS['ssl_email']="${EMAIL}"
+    else
+      get_user_var 'ssl_email'
+    fi
+  fi
 }
 
 
