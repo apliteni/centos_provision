@@ -5,3 +5,4 @@ stage4()
   debug "Starting stage 3: run certbot"
   run_certbot
   make_cert_links
+  show_successful_message

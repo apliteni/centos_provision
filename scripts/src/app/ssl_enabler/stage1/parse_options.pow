@@ -5,7 +5,7 @@ parse_options()
   while getopts ":hpsl:ae:w" opt
     switch $opt
       case p
-        PRESERVE=true
+        PRESERVE_RUNNING=true
       case s
         SKIP_CHECKS=true
       case l

@@ -461,17 +461,27 @@ print_with_color(){
 
 run_command(){
   local command="${1}"
+  local message="${2}"
   debug "Evaluating command: ${command}"
-  run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
-  echo -e "$run_command_message '$command'"
-  if isset "$PRESERVE"; then
+  if empty "$message"; then
+    run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
+    message="$run_command_message '$command'"
+  else
+    message=$(print_with_color "${message}" 'blue')
+  fi
+  echo -en "${message} . "
+  if isset "$PRESERVE_RUNNING"; then
     debug "Actual running disabled"
+    print_with_color 'SKIPPED' 'yellow'
   else
     evaluated_command="(set -o pipefail && (${command}) 2>&1 | tee -a ${SCRIPT_LOG})"
     debug "Real command: ${evaluated_command}"
     if ! eval "${evaluated_command}"; then
+      print_with_color 'NOK' 'red'
       message="$(translate 'errors.run_command.fail') '$command'\n$(translate 'errors.run_command.fail_extra')"
       fail "$message"
+    else
+      print_with_color 'OK' 'green'
     fi
   fi
 }
@@ -568,7 +578,7 @@ parse_options(){
   while getopts ":hpsl:" opt; do
     case $opt in
       p)
-        PRESERVE=true
+        PRESERVE_RUNNING=true
         ;;
       s)
         SKIP_CHECKS=true

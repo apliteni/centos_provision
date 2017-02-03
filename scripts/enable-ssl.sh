@@ -96,12 +96,16 @@ DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет
 
 declare -a DOMAINS
 NGINX_ROOT_PATH="/etc/nginx"
+NGINX_SSL_PATH="/etc/nginx/ssl"
+NGINX_SSL_CERT_PATH="${NGINX_SSL_PATH}/cert.pem"
+NGINX_SSL_PRIVKEY_PATH="${NGINX_SSL_PATH}/privkey.pem"
 NGINX_VHOSTS_CONF="${NGINX_ROOT_PATH}/conf.d/vhosts.conf"
 WEBROOT_PATH="/var/www/keitaro"
 
 
 RECONFIGURE_COMMAND="curl ${KEITARO_URL}/install.sh | bash -s -- -t ssl"
 
+DICT['en.messages.make_ssl_certs']="Making SSL certificate links"
 DICT['en.errors.reinstall_keitaro_ssl']="Nginx settings of your Keitaro TDS installation does not properly configured. Please reconfigure Nginx by evaluating command '${RECONFIGURE_COMMAND}'"
 DICT['en.errors.run_command.fail_extra']="Evaluating log saved to ${SCRIPT_LOG}. Please rerun '${SCRIPT_COMMAND}' after resolving installation problems."
 DICT['en.prompts.ssl_agree_tos']="Do you agree with terms of Let's Encrypt Subscriber Agreement?"
@@ -109,6 +113,7 @@ DICT['en.prompts.ssl_agree_tos.help']="In order to install Let's Encrypt Free SS
 DICT['en.prompts.ssl_email']='Please enter your email (you can left this field empty)'
 DICT['en.prompts.ssl_email.help']='You can obtain SSL certificate with no email address. This is strongly discouraged, because in the event of key loss or LetsEncrypt account compromise you will irrevocably lose access to your LetsEncrypt account. You will also be unable to receive notice about impending expiration or revocation of your certificates.'
 
+DICT['ru.messages.make_ssl_cert_links']="Создаются ссылки на SSL сертификаты"
 DICT['ru.errors.reinstall_keitaro_ssl']="Настройки Nginx вашей Keitaro TDS отконфигурированы неправильно. Пожалуйста выполните перенастройку Nginx выполнив команду '${RECONFIGURE_COMMAND}'"
 DICT['ru.errors.run_command.fail_extra']="Журнал выполнения сохранён в ${SCRIPT_LOG}. Пожалуйста запустите '${SCRIPT_COMMAND}' после устранения возникших проблем."
 DICT['ru.prompts.ssl_agree_tos']="Вы согласны с условиями Абонентского Соглашения Let's Encrypt?"
@@ -472,17 +477,27 @@ print_with_color(){
 
 run_command(){
   local command="${1}"
+  local message="${2}"
   debug "Evaluating command: ${command}"
-  run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
-  echo -e "$run_command_message '$command'"
-  if isset "$PRESERVE"; then
+  if empty "$message"; then
+    run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
+    message="$run_command_message '$command'"
+  else
+    message=$(print_with_color "${message}" 'blue')
+  fi
+  echo -en "${message} . "
+  if isset "$PRESERVE_RUNNING"; then
     debug "Actual running disabled"
+    print_with_color 'SKIPPED' 'yellow'
   else
     evaluated_command="(set -o pipefail && (${command}) 2>&1 | tee -a ${SCRIPT_LOG})"
     debug "Real command: ${evaluated_command}"
     if ! eval "${evaluated_command}"; then
+      print_with_color 'NOK' 'red'
       message="$(translate 'errors.run_command.fail') '$command'\n$(translate 'errors.run_command.fail_extra')"
       fail "$message"
+    else
+      print_with_color 'OK' 'green'
     fi
   fi
 }
@@ -501,7 +516,7 @@ parse_options(){
   while getopts ":hpsl:ae:w" opt; do
     case $opt in
       p)
-        PRESERVE=true
+        PRESERVE_RUNNING=true
         ;;
       s)
         SKIP_CHECKS=true
@@ -634,33 +649,34 @@ assert_nginx_configured(){
 
 
 is_nginx_properly_configured(){
-  is_vhosts_conf_installed && is_ssl_configured
+  is_exists "${NGINX_VHOSTS_CONF}" && is_exists "${NGINX_SSL_CERT_PATH}" && is_exists "${NGINX_SSL_PRIVKEY_PATH}" && is_ssl_configured
 }
 
-is_vhosts_conf_installed(){
-  debug "Checking ${NGINX_VHOSTS_CONF} existence"
+
+is_exists(){
+  local file="${1}"
+  debug "Checking ${file} existence"
   if isset "$SKIP_CHECKS"; then
-    debug "SKIP: аctual check of ${NGINX_VHOSTS_CONF} existence disabled"
+    debug "SKIP: аctual check of ${file} existence disabled"
     return 0
   fi
-  if [ -f "${NGINX_VHOSTS_CONF}" ]; then
-    debug "OK: ${NGINX_VHOSTS_CONF} exists"
+  if [ -f "${file}" ]; then
+    debug "OK: ${file} exists"
     return 0
   else
-    debug "NOK: ${NGINX_VHOSTS_CONF} does not exist"
+    debug "NOK: ${file} does not exist"
     return 1
   fi
 }
 
 
 is_ssl_configured(){
-  local ssl_root="${NGINX_ROOT_PATH}/ssl"
   debug "Checking ssl params in ${NGINX_VHOSTS_CONF}"
   if isset "$SKIP_CHECKS"; then
     debug "SKIP: аctual check of ssl params in ${NGINX_VHOSTS_CONF} disabled"
     return 0
   fi
-  if grep -q -e "ssl_certificate #{ssl_root}/cert.pem;" -e "ssl_certificate_key ${ssl_root}/privkey.pem;" "${NGINX_VHOSTS_CONF}"; then
+  if grep -q -e "ssl_certificate #{NGINX_SSL_CERT_PATH};" -e "ssl_certificate_key ${NGINX_SSL_PRIVKEY_PATH};" "${NGINX_VHOSTS_CONF}"; then
     debug "OK: it seems like ${NGINX_VHOSTS_CONF} is properly configured"
     return 0
   else
@@ -722,12 +738,19 @@ stage4(){
   debug "Starting stage 3: run certbot"
   run_certbot
   make_cert_links
+  show_successful_message
 }
 
 
 
 make_cert_links(){
-  debug "make_cert_links"
+  debug "Make certificate links"
+  local le_cert_path="/etc/letsencrypt/live/${DOMAINS[0]}/fullchain.pem"
+  local le_privkey_path="/etc/letsencrypt/live/${DOMAINS[0]}/privkey.pem"
+  local command="rm -f ${NGINX_SSL_CERT_PATH} && rm -f ${NGINX_SSL_PRIVKEY_PATH}"
+  command="${command} && ln -s ${le_cert_path} ${NGINX_SSL_CERT_PATH}"
+  command="${command} && ln -s ${le_privkey_path} ${NGINX_SSL_PRIVKEY_PATH}"
+  run_command "${command}" "$(translate "messages.make_ssl_cert_links")"
 }
 
 
@@ -743,7 +766,6 @@ run_certbot(){
     certbot_command="${certbot_command} --register-unsafely-without-email"
   fi
   run_command "${certbot_command}"
-  show_successful_message
 }
 
 

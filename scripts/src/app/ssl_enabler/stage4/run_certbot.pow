@@ -10,4 +10,3 @@ run_certbot()
   else
     certbot_command="${certbot_command} --register-unsafely-without-email"
   run_command "${certbot_command}"
-  show_successful_message
