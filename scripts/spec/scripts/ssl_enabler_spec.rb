@@ -11,7 +11,8 @@ RSpec.describe 'ssl_enabler.sh' do
   let(:nginx_conf) { "ssl_certificate /etc/nginx/cert.pem;\nssl_certificate_key /etc/nginx/ssl/privkey.pem;" }
   let(:make_properly_nginx_conf_commands) do
     [
-      'mkdir -p /etc/nginx/conf.d',
+      'mkdir -p /etc/nginx/conf.d /etc/nginx/ssl',
+      'touch /etc/nginx/ssl/{cert,privkey}.pem',
       %Q{echo -e "#{nginx_conf}"> /etc/nginx/conf.d/vhosts.conf}
     ]
   end
@@ -304,7 +305,16 @@ RSpec.describe 'ssl_enabler.sh' do
     it_behaves_like 'should exit with error', 'You must run this program as root'
   end
 
-  describe 'log files' do
+  describe 'making symlinks' do
+    let(:options) { '-s -p' }
+
+    it_behaves_like 'should print to log', 'rm -f /etc/nginx/ssl/cert.pem'
+    it_behaves_like 'should print to log', 'ln -s /etc/letsencrypt/live/domain1.tld/fullchain.pem /etc/nginx/ssl/cert.pem'
+    it_behaves_like 'should print to log', 'rm -f /etc/nginx/ssl/privkey.pem'
+    it_behaves_like 'should print to log', 'ln -s /etc/letsencrypt/live/domain1.tld/privkey.pem /etc/nginx/ssl/privkey.pem'
+  end
+
+  describe 'logging' do
     around do |example|
       Dir.mktmpdir('', '/tmp') do |current_dir|
         Dir.chdir(current_dir) do
