@@ -3,7 +3,7 @@
 
 DICT['en.errors.run_command.fail_extra']=$(cat <<- END
 	Installation log saved to ${SCRIPT_LOG}. Configuration settings saved to ${INVENTORY_FILE}.
-	You can rerun '${SCRIPT_COMMAND}' with saved settings after resolving installation problems.
+	You can rerun \`${SCRIPT_COMMAND}\` with saved settings after resolving installation problems.
 END
 )
 DICT['en.errors.yum_not_installed']='This installer works only on yum-based systems. Please run this programm in CentOS/RHEL/Fedora distro'
@@ -35,7 +35,7 @@ END
 
 DICT['ru.errors.run_command.fail_extra']=$(cat <<- END
 	Журнал установки сохранён в ${SCRIPT_LOG}. Настройки сохранены в ${INVENTORY_FILE}.
-	Вы можете повторно запустить '${SCRIPT_COMMAND}' с этими настройками после устранения возникших проблем.
+	Вы можете повторно запустить \`${SCRIPT_COMMAND}\` с этими настройками после устранения возникших проблем.
 END
 )
 DICT['ru.errors.yum_not_installed']='Утановщик keitaro работает только с пакетным менеджером yum. Пожалуйста, запустите эту программу в CentOS/RHEL/Fedora дистрибутиве'

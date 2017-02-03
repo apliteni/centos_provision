@@ -462,25 +462,56 @@ print_with_color(){
 run_command(){
   local command="${1}"
   local message="${2}"
+  local hide_output="${3}"
+  local allow_errors="${4}"
   debug "Evaluating command: ${command}"
   if empty "$message"; then
     run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
-    message="$run_command_message '$command'"
+    message="$run_command_message \`$command\`"
   else
     message=$(print_with_color "${message}" 'blue')
   fi
-  echo -e "${message}"
+  if isset "$hide_output"; then
+    echo -en "${message} . "
+  else
+    echo -e "${message}"
+  fi
   if isset "$PRESERVE_RUNNING"; then
+    print_command_status "$command" 'SKIPPED' 'yellow' "$hide_output"
     debug "Actual running disabled"
   else
-    evaluated_command="(set -o pipefail && (${command}) 2>&1 | tee -a ${SCRIPT_LOG})"
+    if isset "$hide_output"; then
+      evaluated_command="(set -o pipefail && (${command}) >> ${SCRIPT_LOG} 2>&1)"
+    else
+      evaluated_command="(set -o pipefail && (${command}) 2>&1 | tee -a ${SCRIPT_LOG})"
+    fi
     debug "Real command: ${evaluated_command}"
     if ! eval "${evaluated_command}"; then
-      message="$(translate 'errors.run_command.fail') '$command'\n$(translate 'errors.run_command.fail_extra')"
-      fail "$message"
+      print_command_status "$command" 'NOK' 'red' "$hide_output"
+      if isset "$allow_errors"; then
+        return false
+      else
+        message="$(translate 'errors.run_command.fail') \`$command\`\n$(translate 'errors.run_command.fail_extra')"
+        fail "$message"
+      fi
+    else
+      print_command_status "$command" 'OK' 'green' "$hide_output"
     fi
   fi
 }
+
+
+print_command_status(){
+  local command="${1}"
+  local status="${2}"
+  local color="${3}"
+  local hide_output="${4}"
+  debug "Command \`$command\` result: ${status}"
+  if isset "$hide_output"; then
+    print_with_color "$status" "$color"
+  fi
+}
+
 
 
 INVENTORY_FILE=hosts.txt
@@ -490,7 +521,7 @@ PROVISION_DIRECTORY=centos_provision-master
 
 DICT['en.errors.run_command.fail_extra']=$(cat <<- END
 	Installation log saved to ${SCRIPT_LOG}. Configuration settings saved to ${INVENTORY_FILE}.
-	You can rerun '${SCRIPT_COMMAND}' with saved settings after resolving installation problems.
+	You can rerun \`${SCRIPT_COMMAND}\` with saved settings after resolving installation problems.
 END
 )
 DICT['en.errors.yum_not_installed']='This installer works only on yum-based systems. Please run this programm in CentOS/RHEL/Fedora distro'
@@ -522,7 +553,7 @@ END
 
 DICT['ru.errors.run_command.fail_extra']=$(cat <<- END
 	Журнал установки сохранён в ${SCRIPT_LOG}. Настройки сохранены в ${INVENTORY_FILE}.
-	Вы можете повторно запустить '${SCRIPT_COMMAND}' с этими настройками после устранения возникших проблем.
+	Вы можете повторно запустить \`${SCRIPT_COMMAND}\` с этими настройками после устранения возникших проблем.
 END
 )
 DICT['ru.errors.yum_not_installed']='Утановщик keitaro работает только с пакетным менеджером yum. Пожалуйста, запустите эту программу в CentOS/RHEL/Fedora дистрибутиве'
