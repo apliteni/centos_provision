@@ -1,15 +1,39 @@
 #!/usr/bin/env powscript
 
 
-run_command(command)
+run_command(command, message, hide_output, allow_errors)
   debug "Evaluating command: ${command}"
-  run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
-  echo -e "$run_command_message '$command'"
-  if isset $PRESERVE
+  if empty $message
+    run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
+    message="$run_command_message \`$command\`"
+  else
+    message=$(print_with_color "${message}" 'blue')
+  if isset $hide_output
+    echo -en "${message} . "
+  else
+    echo -e "${message}"
+  if isset $PRESERVE_RUNNING
+    print_command_status $command 'SKIPPED' 'yellow' $hide_output
     debug "Actual running disabled"
   else
-    evaluated_command="(set -o pipefail && (${command}) 2>&1 | tee -a ${SCRIPT_LOG})"
+    if isset $hide_output
+      evaluated_command="(set -o pipefail && (${command}) >> ${SCRIPT_LOG} 2>&1)"
+    else
+      evaluated_command="(set -o pipefail && (${command}) 2>&1 | tee -a ${SCRIPT_LOG})"
     debug "Real command: ${evaluated_command}"
     if ! eval "${evaluated_command}"
-      message="$(translate 'errors.run_command.fail') '$command'\n$(translate 'errors.run_command.fail_extra')"
-      fail $message
+      print_command_status $command 'NOK' 'red' $hide_output
+      if isset $allow_errors
+        return 1 # false
+      else
+        message="$(translate 'errors.run_command.fail') \`$command\`\n$(translate 'errors.run_command.fail_extra')"
+        fail $message
+    else
+      print_command_status $command 'OK' 'green' $hide_output
+
+
+print_command_status(command, status, color, hide_output)
+  debug "Command \`$command\` result: ${status}"
+  if isset $hide_output
+    print_with_color $status $color
+

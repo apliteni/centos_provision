@@ -96,21 +96,39 @@ DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет
 
 declare -a DOMAINS
 NGINX_ROOT_PATH="/etc/nginx"
+NGINX_SSL_PATH="/etc/nginx/ssl"
+NGINX_SSL_CERT_PATH="${NGINX_SSL_PATH}/cert.pem"
+NGINX_SSL_PRIVKEY_PATH="${NGINX_SSL_PATH}/privkey.pem"
 NGINX_VHOSTS_CONF="${NGINX_ROOT_PATH}/conf.d/vhosts.conf"
 WEBROOT_PATH="/var/www/keitaro"
 
 
-RECONFIGURE_COMMAND="curl ${KEITARO_URL}/install.sh | bash -s -- -t ssl"
+RECONFIGURE_KEITARO_COMMAND="curl ${KEITARO_URL}/install.sh | bash"
+RECONFIGURE_KEITARO_SSL_COMMAND="curl ${KEITARO_URL}/install.sh | bash"
 
-DICT['en.errors.reinstall_keitaro_ssl']="Nginx settings of your Keitaro TDS installation does not properly configured. Please reconfigure Nginx by evaluating command '${RECONFIGURE_COMMAND}'"
-DICT['en.errors.run_command.fail_extra']="Evaluating log saved to ${SCRIPT_LOG}. Please rerun '${SCRIPT_COMMAND}' after resolving installation problems."
+DICT['en.messages.check_renewal_job']="Check that renewal job scheduled"
+DICT['en.messages.make_ssl_cert_links']="Make SSL certificate links"
+DICT['en.messages.reload_nginx']="Reload nginx"
+DICT['en.messages.renewal_job_already_scheduled']="Renewal job already scheduled"
+DICT['en.messages.schedule_renewal_job']="Schedule renewal SSL certificate cron job"
+DICT['en.messages.ssl_enabled_for_sites']="SSL certificates enabled for sites:"
+DICT['en.errors.reinstall_keitaro']="Your Keitaro TDS installation does not properly configured. Please reconfigure Keitaro TDS by evaluating command \`${RECONFIGURE_KEITARO_COMMAND}\`"
+DICT['en.errors.reinstall_keitaro_ssl']="Nginx settings of your Keitaro TDS installation does not properly configured. Please reconfigure Nginx by evaluating command \`${RECONFIGURE_KEITARO_SSL_COMMAND}\`"
+DICT['en.errors.run_command.fail_extra']="Evaluating log saved to ${SCRIPT_LOG}. Please rerun \`${SCRIPT_COMMAND}\` after resolving problems."
 DICT['en.prompts.ssl_agree_tos']="Do you agree with terms of Let's Encrypt Subscriber Agreement?"
 DICT['en.prompts.ssl_agree_tos.help']="In order to install Let's Encrypt Free SSL certificates for your Keitaro TDS you must agree with terms of Let's Encrypt Subscriber Agreement (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf)."
 DICT['en.prompts.ssl_email']='Please enter your email (you can left this field empty)'
 DICT['en.prompts.ssl_email.help']='You can obtain SSL certificate with no email address. This is strongly discouraged, because in the event of key loss or LetsEncrypt account compromise you will irrevocably lose access to your LetsEncrypt account. You will also be unable to receive notice about impending expiration or revocation of your certificates.'
 
-DICT['ru.errors.reinstall_keitaro_ssl']="Настройки Nginx вашей Keitaro TDS отконфигурированы неправильно. Пожалуйста выполните перенастройку Nginx выполнив команду '${RECONFIGURE_COMMAND}'"
-DICT['ru.errors.run_command.fail_extra']="Журнал выполнения сохранён в ${SCRIPT_LOG}. Пожалуйста запустите '${SCRIPT_COMMAND}' после устранения возникших проблем."
+DICT['ru.messages.check_renewal_job']="Проверяем наличие cron задачи обновления сертификатов"
+DICT['ru.messages.make_ssl_cert_links']="Создаются ссылки на SSL сертификаты"
+DICT['ru.messages.reload_nginx']="Перезагружаем nginx"
+DICT['ru.messages.renewal_job_already_scheduled']="Cron задача обновления сертификатов уже существует"
+DICT['ru.messages.schedule_renewal_job']="Добавляется cron задача обновления сертификатов"
+DICT['ru.messages.ssl_enabled_for_sites']="SSL сертификаты подключены для сайтов:"
+DICT['ru.errors.reinstall_keitaro']="Keitaro TDS отконфигурирована неправильно. Пожалуйста выполните перенастройку Keitaro TDS выполнив команду \`${RECONFIGURE_KEITARO_COMMAND}\`"
+DICT['ru.errors.reinstall_keitaro_ssl']="Настройки Nginx вашей Keitaro TDS отконфигурированы неправильно. Пожалуйста выполните перенастройку Nginx выполнив команду \`${RECONFIGURE_KEITARO_SSL_COMMAND}\`"
+DICT['ru.errors.run_command.fail_extra']="Журнал выполнения сохранён в ${SCRIPT_LOG}. Пожалуйста запустите \`${SCRIPT_COMMAND}\` после устранения возникших проблем."
 DICT['ru.prompts.ssl_agree_tos']="Вы согласны с условиями Абонентского Соглашения Let's Encrypt?"
 DICT['ru.prompts.ssl_agree_tos.help']="Для получения бесплатных SSL сертификатов Let's Encrypt вы должны согласиться с условиями Абонентского Соглашения Let's Encrypt (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf)."
 DICT['ru.prompts.ssl_email']='Укажите email (можно не указывать)'
@@ -472,20 +490,57 @@ print_with_color(){
 
 run_command(){
   local command="${1}"
+  local message="${2}"
+  local hide_output="${3}"
+  local allow_errors="${4}"
   debug "Evaluating command: ${command}"
-  run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
-  echo -e "$run_command_message '$command'"
-  if isset "$PRESERVE"; then
+  if empty "$message"; then
+    run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
+    message="$run_command_message \`$command\`"
+  else
+    message=$(print_with_color "${message}" 'blue')
+  fi
+  if isset "$hide_output"; then
+    echo -en "${message} . "
+  else
+    echo -e "${message}"
+  fi
+  if isset "$PRESERVE_RUNNING"; then
+    print_command_status "$command" 'SKIPPED' 'yellow' "$hide_output"
     debug "Actual running disabled"
   else
-    evaluated_command="(set -o pipefail && (${command}) 2>&1 | tee -a ${SCRIPT_LOG})"
+    if isset "$hide_output"; then
+      evaluated_command="(set -o pipefail && (${command}) >> ${SCRIPT_LOG} 2>&1)"
+    else
+      evaluated_command="(set -o pipefail && (${command}) 2>&1 | tee -a ${SCRIPT_LOG})"
+    fi
     debug "Real command: ${evaluated_command}"
     if ! eval "${evaluated_command}"; then
-      message="$(translate 'errors.run_command.fail') '$command'\n$(translate 'errors.run_command.fail_extra')"
-      fail "$message"
+      print_command_status "$command" 'NOK' 'red' "$hide_output"
+      if isset "$allow_errors"; then
+        return 1 # false
+      else
+        message="$(translate 'errors.run_command.fail') \`$command\`\n$(translate 'errors.run_command.fail_extra')"
+        fail "$message"
+      fi
+    else
+      print_command_status "$command" 'OK' 'green' "$hide_output"
     fi
   fi
 }
+
+
+print_command_status(){
+  local command="${1}"
+  local status="${2}"
+  local color="${3}"
+  local hide_output="${4}"
+  debug "Command \`$command\` result: ${status}"
+  if isset "$hide_output"; then
+    print_with_color "$status" "$color"
+  fi
+}
+
 
 
 
@@ -501,7 +556,7 @@ parse_options(){
   while getopts ":hpsl:ae:w" opt; do
     case $opt in
       p)
-        PRESERVE=true
+        PRESERVE_RUNNING=true
         ;;
       s)
         SKIP_CHECKS=true
@@ -620,6 +675,8 @@ en_usage(){
 stage2(){
   debug "Starting stage 2: make some asserts"
   assert_caller_root
+  assert_installed 'nginx' 'errors.reinstall_keitaro'
+  assert_installed 'crontab' 'errors.reinstall_keitaro'
   assert_installed 'certbot' 'errors.reinstall_keitaro_ssl'
   assert_nginx_configured
 }
@@ -634,33 +691,34 @@ assert_nginx_configured(){
 
 
 is_nginx_properly_configured(){
-  is_vhosts_conf_installed && is_ssl_configured
+  is_exists "${NGINX_VHOSTS_CONF}" && is_exists "${NGINX_SSL_CERT_PATH}" && is_exists "${NGINX_SSL_PRIVKEY_PATH}" && is_ssl_configured
 }
 
-is_vhosts_conf_installed(){
-  debug "Checking ${NGINX_VHOSTS_CONF} existence"
+
+is_exists(){
+  local file="${1}"
+  debug "Checking ${file} existence"
   if isset "$SKIP_CHECKS"; then
-    debug "SKIP: аctual check of ${NGINX_VHOSTS_CONF} existence disabled"
+    debug "SKIP: аctual check of ${file} existence disabled"
     return 0
   fi
-  if [ -f "${NGINX_VHOSTS_CONF}" ]; then
-    debug "OK: ${NGINX_VHOSTS_CONF} exists"
+  if [ -f "${file}" ]; then
+    debug "OK: ${file} exists"
     return 0
   else
-    debug "NOK: ${NGINX_VHOSTS_CONF} does not exist"
+    debug "NOK: ${file} does not exist"
     return 1
   fi
 }
 
 
 is_ssl_configured(){
-  local ssl_root="${NGINX_ROOT_PATH}/ssl"
   debug "Checking ssl params in ${NGINX_VHOSTS_CONF}"
   if isset "$SKIP_CHECKS"; then
     debug "SKIP: аctual check of ssl params in ${NGINX_VHOSTS_CONF} disabled"
     return 0
   fi
-  if grep -q -e "ssl_certificate #{ssl_root}/cert.pem;" -e "ssl_certificate_key ${ssl_root}/privkey.pem;" "${NGINX_VHOSTS_CONF}"; then
+  if grep -q -e "ssl_certificate #{NGINX_SSL_CERT_PATH};" -e "ssl_certificate_key ${NGINX_SSL_PRIVKEY_PATH};" "${NGINX_VHOSTS_CONF}"; then
     debug "OK: it seems like ${NGINX_VHOSTS_CONF} is properly configured"
     return 0
   else
@@ -719,20 +777,57 @@ get_user_email(){
 
 
 stage4(){
-  debug "Starting stage 3: run certbot"
+  debug "Starting stage 4: install LE certificates"
   run_certbot
   make_cert_links
+  add_renewal_job
+  reload_nginx
+  show_successful_message
+}
+
+
+
+add_renewal_job(){
+  debug "Add renewal certificates cron job"
+  local renew_cmd="certbot renew --allow-subset-of-names --quiet"
+  local cron_task_installed=false
+  local check_renewal_job_cmd="crontab -l -u nginx | grep '${renew_cmd}'"
+  if run_command "${check_renewal_job_cmd}" "$(translate 'messages.check_renewal_job')" "hide_output" "allow_errors"; then
+    debug "Renewal cron job already exists"
+    print_translated 'messages.renewal_job_already_scheduled'
+  else
+    debug "Renewal cron job does not exist. Adding renewal cron job"
+    local hour="$(date +'%H')"
+    local minute="$(date +'%M')"
+    local renew_job="${minute} ${hour} * * * ${renew_cmd}"
+    local schedule_renewal_job_cmd="(crontab -l -u nginx; echo \"${renew_job}\") | crontab -u nginx -"
+    run_command "${schedule_renewal_job_cmd}" "$(translate 'messages.schedule_renewal_job')" "hide_output"
+  fi
 }
 
 
 
 make_cert_links(){
-  debug "make_cert_links"
+  debug "Make certificate links"
+  local le_cert_path="/etc/letsencrypt/live/${DOMAINS[0]}/fullchain.pem"
+  local le_privkey_path="/etc/letsencrypt/live/${DOMAINS[0]}/privkey.pem"
+  local command="rm -f ${NGINX_SSL_CERT_PATH} && rm -f ${NGINX_SSL_PRIVKEY_PATH}"
+  command="${command} && ln -s ${le_cert_path} ${NGINX_SSL_CERT_PATH}"
+  command="${command} && ln -s ${le_privkey_path} ${NGINX_SSL_PRIVKEY_PATH}"
+  run_command "${command}" "$(translate 'messages.make_ssl_cert_links')" 'hide_output'
+}
+
+
+
+reload_nginx(){
+  debug "Reload nginx"
+  run_command "nginx -s reload" "$(translate 'messages.reload_nginx')" 'hide_out'
 }
 
 
 
 run_certbot(){
+  debug "Run certbot"
   certbot_command="certbot certonly --webroot --webroot-path=${WEBROOT_PATH} --agree-tos --non-interactive --expand"
   for domain in "${DOMAINS[@]}"; do
     certbot_command="${certbot_command} --domain ${domain}"
@@ -743,13 +838,16 @@ run_certbot(){
     certbot_command="${certbot_command} --register-unsafely-without-email"
   fi
   run_command "${certbot_command}"
-  show_successful_message
 }
 
 
 
 show_successful_message(){
   print_with_color "$(translate 'messages.successful')" 'green'
+  print_translated 'messages.ssl_enabled_for_sites'
+  for domain in "${DOMAINS[@]}"; do
+    print_with_color "https://${domain}/admin" 'green'
+  done
 }
 
 

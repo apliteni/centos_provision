@@ -1,0 +1,18 @@
+#!/usr/bin/env powscript
+
+
+add_renewal_job()
+  debug "Add renewal certificates cron job"
+  local renew_cmd="certbot renew --allow-subset-of-names --quiet"
+  local cron_task_installed=false
+  local check_renewal_job_cmd="crontab -l -u nginx | grep '${renew_cmd}'"
+  if run_command "${check_renewal_job_cmd}" "$(translate 'messages.check_renewal_job')" "hide_output" "allow_errors"
+    debug "Renewal cron job already exists"
+    print_translated 'messages.renewal_job_already_scheduled'
+  else
+    debug "Renewal cron job does not exist. Adding renewal cron job"
+    local hour="$(date +'%H')"
+    local minute="$(date +'%M')"
+    local renew_job="${minute} ${hour} * * * ${renew_cmd}"
+    local schedule_renewal_job_cmd="(crontab -l -u nginx; echo \"${renew_job}\") | crontab -u nginx -"
+    run_command "${schedule_renewal_job_cmd}" "$(translate 'messages.schedule_renewal_job')" "hide_output"
