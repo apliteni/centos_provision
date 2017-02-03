@@ -2,6 +2,7 @@
 
 
 run_certbot()
+  debug "Run certbot"
   certbot_command="certbot certonly --webroot --webroot-path=${WEBROOT_PATH} --agree-tos --non-interactive --expand"
   for domain in "${DOMAINS[@]}"
     certbot_command="${certbot_command} --domain ${domain}"

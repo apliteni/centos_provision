@@ -4,8 +4,9 @@ RECONFIGURE_KEITARO_COMMAND="curl ${KEITARO_URL}/install.sh | bash"
 #RECONFIGURE_KEITARO_SSL_COMMAND="curl ${KEITARO_URL}/install.sh | bash -s -- -t ssl"
 RECONFIGURE_KEITARO_SSL_COMMAND="curl ${KEITARO_URL}/install.sh | bash"
 
-DICT['en.messages.check_renewal_job']="Check that renewal job already scheduled"
-DICT['en.messages.make_ssl_certs']="Making SSL certificate links"
+DICT['en.messages.check_renewal_job']="Check that renewal job scheduled"
+DICT['en.messages.make_ssl_certs']="Make SSL certificate links"
+DICT['en.messages.reload_nginx']="Reload nginx"
 DICT['en.messages.renewal_job_already_scheduled']="Renewal job already scheduled"
 DICT['en.messages.schedule_renewal_job']="Schedule renewal SSL certificate cron job"
 DICT['en.errors.reinstall_keitaro']="Your Keitaro TDS installation does not properly configured. Please reconfigure Keitaro TDS by evaluating command \`${RECONFIGURE_KEITARO_COMMAND}\`"
@@ -16,8 +17,9 @@ DICT['en.prompts.ssl_agree_tos.help']="In order to install Let's Encrypt Free SS
 DICT['en.prompts.ssl_email']='Please enter your email (you can left this field empty)'
 DICT['en.prompts.ssl_email.help']='You can obtain SSL certificate with no email address. This is strongly discouraged, because in the event of key loss or LetsEncrypt account compromise you will irrevocably lose access to your LetsEncrypt account. You will also be unable to receive notice about impending expiration or revocation of your certificates.'
 
-DICT['ru.messages.check_renewal_job']="Проверка cron задачи обновления сертификатов"
+DICT['ru.messages.check_renewal_job']="Проверяем наличие cron задачи обновления сертификатов"
 DICT['ru.messages.make_ssl_cert_links']="Создаются ссылки на SSL сертификаты"
+DICT['ru.messages.reload_nginx']="Перезагружаем nginx"
 DICT['ru.messages.renewal_job_already_scheduled']="Cron задача обновления сертификатов уже существует"
 DICT['ru.messages.schedule_renewal_job']="Добавляется cron задача обновления сертификатов"
 DICT['ru.errors.reinstall_keitaro']="Keitaro TDS отконфигурирована неправильно. Пожалуйста выполните перенастройку Keitaro TDS выполнив команду \`${RECONFIGURE_KEITARO_COMMAND}\`"

@@ -106,8 +106,9 @@ WEBROOT_PATH="/var/www/keitaro"
 RECONFIGURE_KEITARO_COMMAND="curl ${KEITARO_URL}/install.sh | bash"
 RECONFIGURE_KEITARO_SSL_COMMAND="curl ${KEITARO_URL}/install.sh | bash"
 
-DICT['en.messages.check_renewal_job']="Check that renewal job already scheduled"
-DICT['en.messages.make_ssl_certs']="Making SSL certificate links"
+DICT['en.messages.check_renewal_job']="Check that renewal job scheduled"
+DICT['en.messages.make_ssl_certs']="Make SSL certificate links"
+DICT['en.messages.reload_nginx']="Reload nginx"
 DICT['en.messages.renewal_job_already_scheduled']="Renewal job already scheduled"
 DICT['en.messages.schedule_renewal_job']="Schedule renewal SSL certificate cron job"
 DICT['en.errors.reinstall_keitaro']="Your Keitaro TDS installation does not properly configured. Please reconfigure Keitaro TDS by evaluating command \`${RECONFIGURE_KEITARO_COMMAND}\`"
@@ -118,8 +119,9 @@ DICT['en.prompts.ssl_agree_tos.help']="In order to install Let's Encrypt Free SS
 DICT['en.prompts.ssl_email']='Please enter your email (you can left this field empty)'
 DICT['en.prompts.ssl_email.help']='You can obtain SSL certificate with no email address. This is strongly discouraged, because in the event of key loss or LetsEncrypt account compromise you will irrevocably lose access to your LetsEncrypt account. You will also be unable to receive notice about impending expiration or revocation of your certificates.'
 
-DICT['ru.messages.check_renewal_job']="Проверка cron задачи обновления сертификатов"
+DICT['ru.messages.check_renewal_job']="Проверяем наличие cron задачи обновления сертификатов"
 DICT['ru.messages.make_ssl_cert_links']="Создаются ссылки на SSL сертификаты"
+DICT['ru.messages.reload_nginx']="Перезагружаем nginx"
 DICT['ru.messages.renewal_job_already_scheduled']="Cron задача обновления сертификатов уже существует"
 DICT['ru.messages.schedule_renewal_job']="Добавляется cron задача обновления сертификатов"
 DICT['ru.errors.reinstall_keitaro']="Keitaro TDS отконфигурирована неправильно. Пожалуйста выполните перенастройку Keitaro TDS выполнив команду \`${RECONFIGURE_KEITARO_COMMAND}\`"
@@ -773,10 +775,11 @@ get_user_email(){
 
 
 stage4(){
-  debug "Starting stage 3: run certbot"
+  debug "Starting stage 4: install LE certificates"
   run_certbot
   make_cert_links
   add_renewal_job
+  reload_nginx
   show_successful_message
 }
 
@@ -787,7 +790,7 @@ add_renewal_job(){
   local renew_cmd="certbot renew --allow-subset-of-names --quiet"
   local cron_task_installed=false
   local check_renewal_job_cmd="crontab -l -u nginx | grep '${renew_cmd}'"
-  if run_command "${check_renewal_job_cmd}" "$(translate 'messages.check_cron_job')" "hide_output" "allow_errors"; then
+  if run_command "${check_renewal_job_cmd}" "$(translate 'messages.check_renewal_job')" "hide_output" "allow_errors"; then
     debug "Renewal cron job already exists"
     print_translated 'messages.renewal_job_already_scheduled'
   else
@@ -809,12 +812,20 @@ make_cert_links(){
   local command="rm -f ${NGINX_SSL_CERT_PATH} && rm -f ${NGINX_SSL_PRIVKEY_PATH}"
   command="${command} && ln -s ${le_cert_path} ${NGINX_SSL_CERT_PATH}"
   command="${command} && ln -s ${le_privkey_path} ${NGINX_SSL_PRIVKEY_PATH}"
-  run_command "${command}" "$(translate "messages.make_ssl_cert_links")"
+  run_command "${command}" "$(translate 'messages.make_ssl_cert_links')" 'hide_output'
+}
+
+
+
+reload_nginx(){
+  debug "Reload nginx"
+  run_command "nginx -s reload" "$(translate 'messages.reload_nginx')" 'hide_out'
 }
 
 
 
 run_certbot(){
+  debug "Run certbot"
   certbot_command="certbot certonly --webroot --webroot-path=${WEBROOT_PATH} --agree-tos --non-interactive --expand"
   for domain in "${DOMAINS[@]}"; do
     certbot_command="${certbot_command} --domain ${domain}"

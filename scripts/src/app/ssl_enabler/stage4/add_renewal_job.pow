@@ -6,7 +6,7 @@ add_renewal_job()
   local renew_cmd="certbot renew --allow-subset-of-names --quiet"
   local cron_task_installed=false
   local check_renewal_job_cmd="crontab -l -u nginx | grep '${renew_cmd}'"
-  if run_command "${check_renewal_job_cmd}" "$(translate 'messages.check_cron_job')" "hide_output" "allow_errors"
+  if run_command "${check_renewal_job_cmd}" "$(translate 'messages.check_renewal_job')" "hide_output" "allow_errors"
     debug "Renewal cron job already exists"
     print_translated 'messages.renewal_job_already_scheduled'
   else
