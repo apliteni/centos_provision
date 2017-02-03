@@ -2,7 +2,7 @@ require 'spec_helper'
 
 RSpec.describe 'installer.sh' do
   let(:args) { '' }
-  let(:env) { {} }
+  let(:env) { {LANG: 'C'} }
   let(:stored_values) { {} }
   let(:docker_image) { nil }
   let(:command_stubs) { {} }
@@ -111,24 +111,30 @@ RSpec.describe 'installer.sh' do
     end
   end
 
-  shared_examples_for 'should exit with error' do |expected_text|
-    it 'exits with error' do
+  shared_examples_for 'should exit with error' do |expected_texts|
+    it "exits with error #{expected_texts}" do
       installer.call
       expect(installer.ret_value).not_to be_success
-      expect(installer.stderr).to match(expected_text)
+      [*expected_texts].each do |expected_text|
+        expect(installer.stderr).to match(expected_text)
+      end
     end
+  end
+
+  describe 'checking bash pipe mode' do
+    let(:args) { '-s -p' }
+
+    it_behaves_like 'should print to log', "Can't detect pipe bash mode. Stdin hack disabled"
   end
 
   describe 'invoked' do
     context 'with wrong args' do
-      let(:env) { {LANG: 'C'} }
       let(:args) { '-x' }
 
       it_behaves_like 'should exit with error', "Usage: #{Installer::INSTALLER_CMD}"
     end
 
     context 'with `-l` option' do
-      let(:env) { {LANG: 'C'} }
       let(:args) { "-l #{lang}" }
 
       context 'with `en` value' do
@@ -295,7 +301,6 @@ RSpec.describe 'installer.sh' do
   end
 
   context 'without actual installing software' do
-    let(:env) { {LANG: 'C'} }
     let(:args) { '-p' }
 
     before(:all) { `docker rm keitaro_installer_test &>/dev/null` }
@@ -338,8 +343,6 @@ RSpec.describe 'installer.sh' do
   end
 
   describe 'installation result' do
-    let(:env) { {LANG: 'C'} }
-
     let(:docker_image) { 'ansible/centos7-ansible' }
 
     context 'successful installation' do
@@ -352,16 +355,16 @@ RSpec.describe 'installer.sh' do
     context 'unsuccessfil installation' do
       let(:command_stubs) { {curl: '/bin/true', tar: '/bin/true', 'ansible-playbook': '/bin/false'} }
 
-      it_behaves_like 'should exit with error', /There was an error evaluating command 'ansible-playbook/
-      it_behaves_like 'should exit with error', /Installation log saved to install.log/
-      it_behaves_like 'should exit with error', /Configuration settings saved to hosts.txt/
-      it_behaves_like 'should exit with error', /You can rerun 'install.sh'/
+      it_behaves_like 'should exit with error', [
+                                                  /There was an error evaluating command 'ansible-playbook/,
+                                                  /Installation log saved to install.log/,
+                                                  /Configuration settings saved to hosts.txt/,
+                                                  /You can rerun 'install.sh'/
+                                                ]
     end
   end
 
   describe 'check running under non-root' do
-    let(:env) { {LANG: 'C'} }
-
     it_behaves_like 'should exit with error', 'You must run this program as root'
   end
 

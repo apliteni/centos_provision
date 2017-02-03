@@ -7,6 +7,8 @@ class Installer
   INSTALLER_CMD = 'install.sh'
   INVENTORY_FILE = 'hosts.txt'
   LOG_FILE = 'install.log'
+  RUNNING_MODE_SCRIPT = :script
+  RUNNING_MODE_PIPE = :pipe
 
   class Inventory
     attr_reader :values
@@ -40,12 +42,20 @@ class Installer
     end
   end
 
-  attr_accessor :env, :args, :prompts_with_values, :stored_values, :docker_image, :command_stubs
+  attr_accessor :env, :args, :prompts_with_values, :stored_values, :docker_image, :command_stubs, :running_mode
   attr_reader :stdout, :stderr, :log, :ret_value, :inventory
 
-  def initialize(env: {}, args: '', prompts_with_values: {}, stored_values: {}, docker_image: nil, command_stubs: {})
-    @env, @args, @prompts_with_values, @stored_values, @docker_image, @command_stubs =
-      env, args, prompts_with_values, stored_values, docker_image, command_stubs
+  def initialize(
+      env: {},
+      args: '',
+      prompts_with_values: {},
+      stored_values: {},
+      docker_image: nil,
+      command_stubs: {},
+      running_mode: RUNNING_MODE_SCRIPT
+  )
+    @env, @args, @prompts_with_values, @stored_values, @docker_image, @command_stubs, @running_mode =
+      env, args, prompts_with_values, stored_values, docker_image, command_stubs, running_mode
     @inventory = Inventory.new
   end
 
@@ -103,12 +113,16 @@ class Installer
   def installer_cmd(current_dir)
     if docker_image
       docker_run = "docker run #{docker_env} --name keitaro_installer_test -i --rm -v #{current_dir}:/data -w /data #{docker_image}"
-      commands = make_command_stubs + ["./#{INSTALLER_CMD} #{args}"]
+      commands = make_command_stubs + [command_with_args("./#{INSTALLER_CMD}", args)]
       %Q{#{docker_run} sh -c '#{commands.join(' && ')}'}
     else
       raise "Cann't stub fake commands in real system. Please use docker mode." if command_stubs.any?
-      [stringified_env, "#{current_dir}/#{INSTALLER_CMD} #{args}"]
+      [stringified_env, command_with_args("#{current_dir}/#{INSTALLER_CMD}", args)]
     end
+  end
+
+  def docker_env
+    env.map { |key, value| "-e #{key}=#{value}" }.join(' ')
   end
 
   def make_command_stubs
@@ -117,12 +131,19 @@ class Installer
     end
   end
 
-  def docker_env
-    env.map { |key, value| "-e #{key}=#{value}" }.join(' ')
-  end
-
   def stringified_env
     env.map { |key, value| [key.to_s, value.to_s] }.to_h
+  end
+
+  def command_with_args(command, args)
+    case running_mode
+    when RUNNING_MODE_SCRIPT
+      "#{command} #{args}"
+    when RUNNING_MODE_PIPE
+      "cat #{command} | bash -s -- #{args}"
+    else
+      raise "Unknown running mode: #{running_mode}"
+    end
   end
 
   def without_formatting(output)
