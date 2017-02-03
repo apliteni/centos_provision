@@ -516,7 +516,7 @@ run_command(){
     if ! eval "${evaluated_command}"; then
       print_command_status "$command" 'NOK' 'red' "$hide_output"
       if isset "$allow_errors"; then
-        return false
+        return 1 # false
       else
         message="$(translate 'errors.run_command.fail') \`$command\`\n$(translate 'errors.run_command.fail_extra')"
         fail "$message"
