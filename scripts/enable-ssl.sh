@@ -44,13 +44,15 @@ values ()
 PROGRAM_NAME='enable-ssl'
 
 
+SHELL_NAME=$(basename "$0")
+
 KEITARO_URL="https://keitarotds.com"
 
 SCRIPT_NAME="${PROGRAM_NAME}.sh"
 SCRIPT_URL="${KEITARO_URL}/${PROGRAM_NAME}.sh"
 SCRIPT_LOG="${PROGRAM_NAME}.log"
 
-if [[ "${SHELLNAME}" == 'bash' ]]; then
+if [[ "${SHELL_NAME}" == 'bash' ]]; then
   if ! empty ${@}; then
     SCRIPT_COMMAND="curl -sSL "$SCRIPT_URL" | bash -s -- ${@}"
   else
@@ -58,9 +60,9 @@ if [[ "${SHELLNAME}" == 'bash' ]]; then
   fi
 else
   if ! empty ${@}; then
-    SCRIPT_COMMAND="${SHELLNAME} ${@}"
+    SCRIPT_COMMAND="${SHELL_NAME} ${@}"
   else
-    SCRIPT_COMMAND="${SHELLNAME}"
+    SCRIPT_COMMAND="${SHELL_NAME}"
   fi
 fi
 
@@ -242,7 +244,7 @@ hack_stdin(){
 
 
 is_pipe_mode(){
-  [ "${SHELLNAME}" == 'bash' ]
+  [ "${SHELL_NAME}" == 'bash' ]
 }
 
 
