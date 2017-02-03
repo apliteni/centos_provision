@@ -39,7 +39,8 @@ Edit file ```hosts.txt```
     license_key=LICENSE_KEY
     admin_login=ADMIN_LOGIN
     admin_password=ADMIN_PASSWORD
-    ssl_domains=DOMAIN1,DOMAIN2     # If you want to use Free SSL certs from Let's Encrypt
+    ssl_certificate=letsencrypt     # If you want to use Free SSL certs from Let's Encrypt
+    ssl_domains=DOMAIN1,DOMAIN2     # Also you need at least one domain for your server
 
 Run 
 
