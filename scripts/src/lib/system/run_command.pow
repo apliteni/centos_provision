@@ -24,7 +24,7 @@ run_command(command, message, hide_output, allow_errors)
     if ! eval "${evaluated_command}"
       print_command_status $command 'NOK' 'red' $hide_output
       if isset $allow_errors
-        return false
+        return 1 # false
       else
         message="$(translate 'errors.run_command.fail') \`$command\`\n$(translate 'errors.run_command.fail_extra')"
         fail $message
