@@ -103,18 +103,23 @@ NGINX_VHOSTS_CONF="${NGINX_ROOT_PATH}/conf.d/vhosts.conf"
 WEBROOT_PATH="/var/www/keitaro"
 
 
-RECONFIGURE_COMMAND="curl ${KEITARO_URL}/install.sh | bash -s -- -t ssl"
+RECONFIGURE_KEITARO_COMMAND="curl ${KEITARO_URL}/install.sh | bash"
+RECONFIGURE_KEITARO_SSL_COMMAND="curl ${KEITARO_URL}/install.sh | bash"
 
+DICT['en.messages.add_renewal_job']="Adding renewal SSL certificate cron job"
 DICT['en.messages.make_ssl_certs']="Making SSL certificate links"
-DICT['en.errors.reinstall_keitaro_ssl']="Nginx settings of your Keitaro TDS installation does not properly configured. Please reconfigure Nginx by evaluating command '${RECONFIGURE_COMMAND}'"
+DICT['en.errors.reinstall_keitaro']="Your Keitaro TDS installation does not properly configured. Please reconfigure Keitaro TDS by evaluating command '${RECONFIGURE_KEITARO_COMMAND}'"
+DICT['en.errors.reinstall_keitaro_ssl']="Nginx settings of your Keitaro TDS installation does not properly configured. Please reconfigure Nginx by evaluating command '${RECONFIGURE_KEITARO_SSL_COMMAND}'"
 DICT['en.errors.run_command.fail_extra']="Evaluating log saved to ${SCRIPT_LOG}. Please rerun '${SCRIPT_COMMAND}' after resolving installation problems."
 DICT['en.prompts.ssl_agree_tos']="Do you agree with terms of Let's Encrypt Subscriber Agreement?"
 DICT['en.prompts.ssl_agree_tos.help']="In order to install Let's Encrypt Free SSL certificates for your Keitaro TDS you must agree with terms of Let's Encrypt Subscriber Agreement (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf)."
 DICT['en.prompts.ssl_email']='Please enter your email (you can left this field empty)'
 DICT['en.prompts.ssl_email.help']='You can obtain SSL certificate with no email address. This is strongly discouraged, because in the event of key loss or LetsEncrypt account compromise you will irrevocably lose access to your LetsEncrypt account. You will also be unable to receive notice about impending expiration or revocation of your certificates.'
 
+DICT['ru.messages.add_renewal_job']="Добавляется cron задача обновления сертификатов"
 DICT['ru.messages.make_ssl_cert_links']="Создаются ссылки на SSL сертификаты"
-DICT['ru.errors.reinstall_keitaro_ssl']="Настройки Nginx вашей Keitaro TDS отконфигурированы неправильно. Пожалуйста выполните перенастройку Nginx выполнив команду '${RECONFIGURE_COMMAND}'"
+DICT['ru.errors.reinstall_keitaro']="Keitaro TDS отконфигурирована неправильно. Пожалуйста выполните перенастройку Keitaro TDS выполнив команду '${RECONFIGURE_KEITARO_COMMAND}'"
+DICT['ru.errors.reinstall_keitaro_ssl']="Настройки Nginx вашей Keitaro TDS отконфигурированы неправильно. Пожалуйста выполните перенастройку Nginx выполнив команду '${RECONFIGURE_KEITARO_SSL_COMMAND}'"
 DICT['ru.errors.run_command.fail_extra']="Журнал выполнения сохранён в ${SCRIPT_LOG}. Пожалуйста запустите '${SCRIPT_COMMAND}' после устранения возникших проблем."
 DICT['ru.prompts.ssl_agree_tos']="Вы согласны с условиями Абонентского Соглашения Let's Encrypt?"
 DICT['ru.prompts.ssl_agree_tos.help']="Для получения бесплатных SSL сертификатов Let's Encrypt вы должны согласиться с условиями Абонентского Соглашения Let's Encrypt (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf)."
@@ -485,19 +490,15 @@ run_command(){
   else
     message=$(print_with_color "${message}" 'blue')
   fi
-  echo -en "${message} . "
+  echo -e "${message}"
   if isset "$PRESERVE_RUNNING"; then
     debug "Actual running disabled"
-    print_with_color 'SKIPPED' 'yellow'
   else
     evaluated_command="(set -o pipefail && (${command}) 2>&1 | tee -a ${SCRIPT_LOG})"
     debug "Real command: ${evaluated_command}"
     if ! eval "${evaluated_command}"; then
-      print_with_color 'NOK' 'red'
       message="$(translate 'errors.run_command.fail') '$command'\n$(translate 'errors.run_command.fail_extra')"
       fail "$message"
-    else
-      print_with_color 'OK' 'green'
     fi
   fi
 }
@@ -635,6 +636,8 @@ en_usage(){
 stage2(){
   debug "Starting stage 2: make some asserts"
   assert_caller_root
+  assert_installed 'nginx' 'errors.reinstall_keitaro'
+  assert_installed 'crontab' 'errors.reinstall_keitaro'
   assert_installed 'certbot' 'errors.reinstall_keitaro_ssl'
   assert_nginx_configured
 }
@@ -738,7 +741,24 @@ stage4(){
   debug "Starting stage 3: run certbot"
   run_certbot
   make_cert_links
+  add_renewal_job
   show_successful_message
+}
+
+
+
+add_renewal_job(){
+  debug "Add renewal certificates cron jon"
+  local renew_cmd="certbot renew --allow-subset-of-names --quiet"
+  if crontab -l -u nginx | grep "${renew_cmd}"; then
+    debug "Renewal cron job already exists"
+  else
+    debug "Renewal cron job does not exist. Adding renewal cron job"
+    local hour=$(date +'%H')"
+    local minute=$(date +'%M')"
+    locat renew_job="${hour} ${minute} * * * ${renew_job}"
+    run_command "(crontab -l -u nginx; echo '${renew_job}') | crontab -u nginx" "$(translate 'messages.add_renewal_job')"
+  fi
 }
 
 

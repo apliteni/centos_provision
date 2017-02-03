@@ -469,19 +469,15 @@ run_command(){
   else
     message=$(print_with_color "${message}" 'blue')
   fi
-  echo -en "${message} . "
+  echo -e "${message}"
   if isset "$PRESERVE_RUNNING"; then
     debug "Actual running disabled"
-    print_with_color 'SKIPPED' 'yellow'
   else
     evaluated_command="(set -o pipefail && (${command}) 2>&1 | tee -a ${SCRIPT_LOG})"
     debug "Real command: ${evaluated_command}"
     if ! eval "${evaluated_command}"; then
-      print_with_color 'NOK' 'red'
       message="$(translate 'errors.run_command.fail') '$command'\n$(translate 'errors.run_command.fail_extra')"
       fail "$message"
-    else
-      print_with_color 'OK' 'green'
     fi
   fi
 }
