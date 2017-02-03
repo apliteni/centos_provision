@@ -1,17 +1,23 @@
 #!/usr/bin/env powscript
 
-RECONFIGURE_COMMAND="curl ${KEITARO_URL}/install.sh | bash -s -- -t ssl"
+RECONFIGURE_KEITARO_COMMAND="curl ${KEITARO_URL}/install.sh | bash"
+#RECONFIGURE_KEITARO_SSL_COMMAND="curl ${KEITARO_URL}/install.sh | bash -s -- -t ssl"
+RECONFIGURE_KEITARO_SSL_COMMAND="curl ${KEITARO_URL}/install.sh | bash"
 
+DICT['en.messages.add_renewal_job']="Adding renewal SSL certificate cron job"
 DICT['en.messages.make_ssl_certs']="Making SSL certificate links"
-DICT['en.errors.reinstall_keitaro_ssl']="Nginx settings of your Keitaro TDS installation does not properly configured. Please reconfigure Nginx by evaluating command '${RECONFIGURE_COMMAND}'"
+DICT['en.errors.reinstall_keitaro']="Your Keitaro TDS installation does not properly configured. Please reconfigure Keitaro TDS by evaluating command '${RECONFIGURE_KEITARO_COMMAND}'"
+DICT['en.errors.reinstall_keitaro_ssl']="Nginx settings of your Keitaro TDS installation does not properly configured. Please reconfigure Nginx by evaluating command '${RECONFIGURE_KEITARO_SSL_COMMAND}'"
 DICT['en.errors.run_command.fail_extra']="Evaluating log saved to ${SCRIPT_LOG}. Please rerun '${SCRIPT_COMMAND}' after resolving installation problems."
 DICT['en.prompts.ssl_agree_tos']="Do you agree with terms of Let's Encrypt Subscriber Agreement?"
 DICT['en.prompts.ssl_agree_tos.help']="In order to install Let's Encrypt Free SSL certificates for your Keitaro TDS you must agree with terms of Let's Encrypt Subscriber Agreement (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf)."
 DICT['en.prompts.ssl_email']='Please enter your email (you can left this field empty)'
 DICT['en.prompts.ssl_email.help']='You can obtain SSL certificate with no email address. This is strongly discouraged, because in the event of key loss or LetsEncrypt account compromise you will irrevocably lose access to your LetsEncrypt account. You will also be unable to receive notice about impending expiration or revocation of your certificates.'
 
+DICT['ru.messages.add_renewal_job']="Добавляется cron задача обновления сертификатов"
 DICT['ru.messages.make_ssl_cert_links']="Создаются ссылки на SSL сертификаты"
-DICT['ru.errors.reinstall_keitaro_ssl']="Настройки Nginx вашей Keitaro TDS отконфигурированы неправильно. Пожалуйста выполните перенастройку Nginx выполнив команду '${RECONFIGURE_COMMAND}'"
+DICT['ru.errors.reinstall_keitaro']="Keitaro TDS отконфигурирована неправильно. Пожалуйста выполните перенастройку Keitaro TDS выполнив команду '${RECONFIGURE_KEITARO_COMMAND}'"
+DICT['ru.errors.reinstall_keitaro_ssl']="Настройки Nginx вашей Keitaro TDS отконфигурированы неправильно. Пожалуйста выполните перенастройку Nginx выполнив команду '${RECONFIGURE_KEITARO_SSL_COMMAND}'"
 DICT['ru.errors.run_command.fail_extra']="Журнал выполнения сохранён в ${SCRIPT_LOG}. Пожалуйста запустите '${SCRIPT_COMMAND}' после устранения возникших проблем."
 DICT['ru.prompts.ssl_agree_tos']="Вы согласны с условиями Абонентского Соглашения Let's Encrypt?"
 DICT['ru.prompts.ssl_agree_tos.help']="Для получения бесплатных SSL сертификатов Let's Encrypt вы должны согласиться с условиями Абонентского Соглашения Let's Encrypt (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf)."

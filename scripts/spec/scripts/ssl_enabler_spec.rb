@@ -6,6 +6,7 @@ RSpec.describe 'ssl_enabler.sh' do
   let(:args) { options + ' ' + domains.join(' ') }
   let(:docker_image) { nil }
   let(:command_stubs) { {} }
+  let(:all_command_stubs) { {nginx: '/bin/true', certbot: '/bin/true', crontab: '/bin/true'} }
   let(:commands) { [] }
   let(:domains) { %w[domain1.tld] }
   let(:nginx_conf) { "ssl_certificate /etc/nginx/cert.pem;\nssl_certificate_key /etc/nginx/ssl/privkey.pem;" }
@@ -188,7 +189,7 @@ RSpec.describe 'ssl_enabler.sh' do
   end
 
   context 'without actual running commands' do
-    let(:options) { '-p ' }
+    let(:options) { '-p' }
 
     before(:all) { `docker rm keitaro_ssl_enabler_test &>/dev/null` }
 
@@ -197,14 +198,16 @@ RSpec.describe 'ssl_enabler.sh' do
                       'certbot certonly --webroot'
     end
 
-    context 'certbot is installed, nginx is configured properly' do
+    context 'nginx is installed, certbot is installed, crontab is installed, nginx is configured properly' do
       let(:docker_image) { 'centos' }
 
-      let(:command_stubs) { {certbot: '/bin/true'} }
+      let(:command_stubs) { all_command_stubs }
 
       let(:commands) { make_properly_nginx_conf_commands }
 
       it_behaves_like 'should print to log', [
+        "Try to found nginx\nOK",
+        "Try to found crontab\nOK",
         "Try to found certbot\nOK",
         "Checking /etc/nginx/conf.d/vhosts.conf existence\nOK",
         "Checking ssl params in /etc/nginx/conf.d/vhosts.conf\nOK"
@@ -213,10 +216,28 @@ RSpec.describe 'ssl_enabler.sh' do
       it_behaves_like 'should enable ssl for Keitaro TDS'
     end
 
-    context 'certbot is not installed, nginx is configured properly' do
+    context 'nginx is not installed' do
+      let(:docker_image) { 'centos' }
+      let(:command_stubs) { {certbot: '/bin/true', crontab: '/bin/true'} }
+
+      it_behaves_like 'should print to log', "Try to found nginx\nNOK"
+
+      it_behaves_like 'should exit with error', 'Your Keitaro TDS installation does not properly configured'
+    end
+
+    context 'crontab is not installed' do
       let(:docker_image) { 'centos' }
 
-      let(:commands) { make_properly_nginx_conf_commands }
+      let(:command_stubs) { {nginx: '/bin/true', certbot: '/bin/true'} }
+
+      it_behaves_like 'should print to log', "Try to found crontab\nNOK"
+
+      it_behaves_like 'should exit with error', 'Your Keitaro TDS installation does not properly configured'
+    end
+
+    context 'certbot is not installed' do
+      let(:docker_image) { 'centos' }
+      let(:command_stubs) { {nginx: '/bin/true', crontab: '/bin/true'} }
 
       it_behaves_like 'should print to log', "Try to found certbot\nNOK"
 
@@ -226,7 +247,7 @@ RSpec.describe 'ssl_enabler.sh' do
     context 'certbot is installed, vhosts.conf is absent' do
       let(:docker_image) { 'centos' }
 
-      let(:command_stubs) { {certbot: '/bin/true'} }
+      let(:command_stubs) { all_command_stubs }
 
       it_behaves_like 'should print to log', [
         "Try to found certbot\nOK",
@@ -236,14 +257,13 @@ RSpec.describe 'ssl_enabler.sh' do
       it_behaves_like 'should exit with error', 'Nginx settings of your Keitaro TDS installation does not properly configured'
     end
 
-    context 'certbot is installed, nginx is not configured properly' do
+    context 'programs are installed, nginx is not configured properly' do
       let(:docker_image) { 'centos' }
+      let(:command_stubs) { all_command_stubs }
 
       let(:nginx_conf) { "listen 80;" }
 
       let(:commands) { make_properly_nginx_conf_commands }
-
-      let(:command_stubs) { {certbot: '/bin/true'} }
 
       it_behaves_like 'should print to log', [
         "Try to found certbot\nOK",
@@ -257,17 +277,15 @@ RSpec.describe 'ssl_enabler.sh' do
 
   describe 'enable-ssl result' do
     let(:docker_image) { 'centos' }
-
+    let(:command_stubs) { all_command_stubs }
     let(:commands) { make_properly_nginx_conf_commands }
 
     context 'successful running certbot' do
-      let(:command_stubs) { {certbot: '/bin/true'} }
-
       it_behaves_like 'should print to stdout', /Everything done!/
     end
 
     context 'unsuccessful running certbot' do
-      let(:command_stubs) { {certbot: '/bin/false'} }
+      let(:command_stubs) { all_command_stubs.merge(certbot: '/bin/false') }
 
       it_behaves_like 'should exit with error', [
                                                   "There was an error evaluating command 'certbot",
@@ -358,6 +376,25 @@ RSpec.describe 'ssl_enabler.sh' do
       it_behaves_like 'should create', 'enable-ssl.log'
 
       it_behaves_like 'should move old enable-ssl.log to', 'enable-ssl.log.2'
+    end
+  end
+
+  describe 'adds cron task' do
+    let(:options) { '-s -p' }
+
+    it_behaves_like 'should print to log', /Adding renewal cron job/
+
+    context 'cron job already exists' do
+      let(:docker_image) { 'centos' }
+
+      let(:commands) do
+        [
+          'echo "echo certbot renew --allow-subset-of-names --quiet" > /bin/crontab',
+          'chmod a+x /bin/crontab'
+        ]
+      end
+
+      it_behaves_like 'should print to log', /Renewal cron job already exists/
     end
   end
 end
