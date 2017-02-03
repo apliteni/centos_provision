@@ -379,7 +379,7 @@ RSpec.describe 'ssl_enabler.sh' do
     end
   end
 
-  describe 'adds cron task' do
+  describe 'adding cron task' do
     let(:docker_image) { 'centos' }
     let(:command_stubs) { all_command_stubs }
     let(:commands) { make_proper_nginx_conf }
@@ -398,5 +398,11 @@ RSpec.describe 'ssl_enabler.sh' do
 
       it_behaves_like 'should print to log', /Renewal cron job already exists/
     end
+  end
+
+  describe 'reloading nginx' do
+    let(:options) { '-s -p' }
+
+    it_behaves_like 'should print to log', /nginx -s reload/
   end
 end
