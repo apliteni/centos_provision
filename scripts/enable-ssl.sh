@@ -797,8 +797,8 @@ add_renewal_job(){
     debug "Renewal cron job does not exist. Adding renewal cron job"
     local hour="$(date +'%H')"
     local minute="$(date +'%M')"
-    local renew_job="${hour} ${minute} * * * ${renew_cmd}"
-    local schedule_renewal_job_cmd="(crontab -l -u nginx; echo \"${renew_job}\") | crontab -u nginx"
+    local renew_job="${minute} ${hour} * * * ${renew_cmd}"
+    local schedule_renewal_job_cmd="(crontab -l -u nginx; echo \"${renew_job}\") | crontab -u nginx -"
     run_command "${schedule_renewal_job_cmd}" "$(translate 'messages.schedule_renewal_job')" "hide_output"
   fi
 }
