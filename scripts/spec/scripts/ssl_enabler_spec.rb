@@ -10,7 +10,7 @@ RSpec.describe 'ssl_enabler.sh' do
   let(:commands) { [] }
   let(:domains) { %w[domain1.tld] }
   let(:nginx_conf) { "ssl_certificate /etc/nginx/cert.pem;\nssl_certificate_key /etc/nginx/ssl/privkey.pem;" }
-  let(:make_properly_nginx_conf_commands) do
+  let(:make_proper_nginx_conf) do
     [
       'mkdir -p /etc/nginx/conf.d /etc/nginx/ssl',
       'touch /etc/nginx/ssl/{cert,privkey}.pem',
@@ -203,7 +203,7 @@ RSpec.describe 'ssl_enabler.sh' do
 
       let(:command_stubs) { all_command_stubs }
 
-      let(:commands) { make_properly_nginx_conf_commands }
+      let(:commands) { make_proper_nginx_conf }
 
       it_behaves_like 'should print to log', [
         "Try to found nginx\nOK",
@@ -263,7 +263,7 @@ RSpec.describe 'ssl_enabler.sh' do
 
       let(:nginx_conf) { "listen 80;" }
 
-      let(:commands) { make_properly_nginx_conf_commands }
+      let(:commands) { make_proper_nginx_conf }
 
       it_behaves_like 'should print to log', [
         "Try to found certbot\nOK",
@@ -278,7 +278,7 @@ RSpec.describe 'ssl_enabler.sh' do
   describe 'enable-ssl result' do
     let(:docker_image) { 'centos' }
     let(:command_stubs) { all_command_stubs }
-    let(:commands) { make_properly_nginx_conf_commands }
+    let(:commands) { make_proper_nginx_conf }
 
     context 'successful running certbot' do
       it_behaves_like 'should print to stdout', /Everything done!/
@@ -288,9 +288,9 @@ RSpec.describe 'ssl_enabler.sh' do
       let(:command_stubs) { all_command_stubs.merge(certbot: '/bin/false') }
 
       it_behaves_like 'should exit with error', [
-                                                  "There was an error evaluating command 'certbot",
+                                                  'There was an error evaluating command `certbot',
                                                   'Evaluating log saved to enable-ssl.log',
-                                                  "Please rerun 'enable-ssl.sh domain1.tld'"
+                                                  'Please rerun `enable-ssl.sh domain1.tld`'
                                                 ]
     end
   end
@@ -380,14 +380,16 @@ RSpec.describe 'ssl_enabler.sh' do
   end
 
   describe 'adds cron task' do
-    let(:options) { '-s -p' }
+    let(:docker_image) { 'centos' }
+    let(:command_stubs) { all_command_stubs }
+    let(:commands) { make_proper_nginx_conf }
 
     it_behaves_like 'should print to log', /Adding renewal cron job/
 
     context 'cron job already exists' do
-      let(:docker_image) { 'centos' }
 
       let(:commands) do
+        make_proper_nginx_conf +
         [
           'echo "echo certbot renew --allow-subset-of-names --quiet" > /bin/crontab',
           'chmod a+x /bin/crontab'

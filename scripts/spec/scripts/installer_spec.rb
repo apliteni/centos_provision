@@ -356,10 +356,10 @@ RSpec.describe 'installer.sh' do
       let(:command_stubs) { {curl: '/bin/true', tar: '/bin/true', 'ansible-playbook': '/bin/false'} }
 
       it_behaves_like 'should exit with error', [
-                                                  /There was an error evaluating command 'ansible-playbook/,
-                                                  /Installation log saved to install.log/,
-                                                  /Configuration settings saved to hosts.txt/,
-                                                  /You can rerun 'install.sh'/
+                                                  'There was an error evaluating command `ansible-playbook',
+                                                  'Installation log saved to install.log',
+                                                  'Configuration settings saved to hosts.txt',
+                                                  'You can rerun `install.sh`'
                                                 ]
     end
   end
