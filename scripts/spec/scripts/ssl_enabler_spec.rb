@@ -94,6 +94,12 @@ RSpec.describe 'ssl_enabler.sh' do
     end
   end
 
+  describe 'checking bash pipe mode' do
+    let(:options) { '-s -p' }
+
+    it_behaves_like 'should print to log', "Can't detect pipe bash mode. Stdin hack disabled"
+  end
+
   describe 'invoked' do
     context 'with wrong options' do
       let(:options) { '-x' }

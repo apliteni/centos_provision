@@ -1,20 +1,22 @@
 #!/usr/bin/env powscript
 
+SHELL_NAME=$(basename $0)
+
 KEITARO_URL="https://keitarotds.com"
 
 SCRIPT_NAME="${PROGRAM_NAME}.sh"
 SCRIPT_URL="${KEITARO_URL}/${PROGRAM_NAME}.sh"
 SCRIPT_LOG="${PROGRAM_NAME}.log"
 
-if "${SHELLNAME}" == 'bash'
+if "${SHELL_NAME}" == 'bash'
   if not empty ${@}
     SCRIPT_COMMAND="curl -sSL $SCRIPT_URL | bash -s -- ${@}"
   else
     SCRIPT_COMMAND="curl -sSL $SCRIPT_URL | bash"
 else
   if not empty ${@}
-    SCRIPT_COMMAND="${SHELLNAME} ${@}"
+    SCRIPT_COMMAND="${SHELL_NAME} ${@}"
   else
-    SCRIPT_COMMAND="${SHELLNAME}"
+    SCRIPT_COMMAND="${SHELL_NAME}"
 
 VARS={}
