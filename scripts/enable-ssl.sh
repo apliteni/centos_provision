@@ -111,6 +111,7 @@ DICT['en.messages.make_ssl_cert_links']="Make SSL certificate links"
 DICT['en.messages.reload_nginx']="Reload nginx"
 DICT['en.messages.renewal_job_already_scheduled']="Renewal job already scheduled"
 DICT['en.messages.schedule_renewal_job']="Schedule renewal SSL certificate cron job"
+DICT['en.messages.ssl_enabled_for_sites']="SSL certificates enabled for sites:"
 DICT['en.errors.reinstall_keitaro']="Your Keitaro TDS installation does not properly configured. Please reconfigure Keitaro TDS by evaluating command \`${RECONFIGURE_KEITARO_COMMAND}\`"
 DICT['en.errors.reinstall_keitaro_ssl']="Nginx settings of your Keitaro TDS installation does not properly configured. Please reconfigure Nginx by evaluating command \`${RECONFIGURE_KEITARO_SSL_COMMAND}\`"
 DICT['en.errors.run_command.fail_extra']="Evaluating log saved to ${SCRIPT_LOG}. Please rerun \`${SCRIPT_COMMAND}\` after resolving problems."
@@ -124,6 +125,7 @@ DICT['ru.messages.make_ssl_cert_links']="Создаются ссылки на SS
 DICT['ru.messages.reload_nginx']="Перезагружаем nginx"
 DICT['ru.messages.renewal_job_already_scheduled']="Cron задача обновления сертификатов уже существует"
 DICT['ru.messages.schedule_renewal_job']="Добавляется cron задача обновления сертификатов"
+DICT['ru.messages.ssl_enabled_for_sites']="SSL сертификаты подключены для сайтов:"
 DICT['ru.errors.reinstall_keitaro']="Keitaro TDS отконфигурирована неправильно. Пожалуйста выполните перенастройку Keitaro TDS выполнив команду \`${RECONFIGURE_KEITARO_COMMAND}\`"
 DICT['ru.errors.reinstall_keitaro_ssl']="Настройки Nginx вашей Keitaro TDS отконфигурированы неправильно. Пожалуйста выполните перенастройку Nginx выполнив команду \`${RECONFIGURE_KEITARO_SSL_COMMAND}\`"
 DICT['ru.errors.run_command.fail_extra']="Журнал выполнения сохранён в ${SCRIPT_LOG}. Пожалуйста запустите \`${SCRIPT_COMMAND}\` после устранения возникших проблем."
@@ -842,6 +844,10 @@ run_certbot(){
 
 show_successful_message(){
   print_with_color "$(translate 'messages.successful')" 'green'
+  print_translated 'messages.ssl_enabled_for_sites'
+  for domain in "${DOMAINS[@]}"; do
+    print_with_color "https://${domain}/admin" 'green'
+  done
 }
 
 
