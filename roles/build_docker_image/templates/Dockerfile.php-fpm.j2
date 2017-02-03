@@ -1,0 +1,19 @@
+FROM keitarotds/php:{{ image_version }}
+
+RUN yum install -y --enablerepo=remi {{ image_version }}-php-fpm
+
+RUN ln -s /opt/remi/{{ image_version }}/root/usr/sbin/php-fpm /usr/sbin/php-fpm
+
+RUN sed -i -e 's/^daemonize = .*/daemonize = no/' \
+              /etc/php/php-fpm.conf \
+    && sed -i -e 's/^listen = .*/listen = 0.0.0.0:9000/' \
+              -e 's/^listen.allowed_clients =/;listen.allowed_clients =/' \
+              -e 's/^;catch_workers_output = .*/catch_workers_output = yes/' \
+              -e 's|^;access\.log = .*|access.log = /proc/self/fd/2|' \
+              -e 's/^user =/;user =/' \
+              -e 's/^group =/;group =/' \
+              -e 's|^php_admin_value\[error_log\] = .*|php_admin_value[error_log] = /proc/self/fd/2|' \
+              -e 's/^;php_admin_value\[memory_limit\].*/php_admin_value[memory_limit] = 256M/' \
+              /etc/php/php-fpm.d/www.conf
+
+ENTRYPOINT ["/usr/sbin/php-fpm"]

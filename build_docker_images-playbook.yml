@@ -1,0 +1,19 @@
+---
+- name: Build an image by running ansible in a container
+  hosts: all
+
+  vars_files:
+    - vars/server.yml
+
+  vars:
+    centos_major_version: 7
+
+  roles:
+    - {role: build_docker_image, package: php, image_version: php54, docker_file_suffix: php54}
+    - {role: build_docker_image, package: php, image_version: php56}
+    - {role: build_docker_image, package: php, image_version: php70}
+    - {role: build_docker_image, package: php, image_version: php71}
+
+    - {role: build_docker_image, package: composer, image_version: php54}
+
+    - {role: build_docker_image, package: node, image_version: latest }

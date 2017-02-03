@@ -1,0 +1,23 @@
+FROM centos:{{ centos_major_version }}
+
+RUN yum install -y deltarpm epel-release \
+    && rpm -Uvh http://rpms.famillecollet.com/enterprise/remi-release-{{ centos_major_version }}.rpm \
+    && yum update -y
+
+RUN yum install -y --enablerepo=remi php \
+                                     php-devel \
+                                     php-mysqlnd \
+                                     php-pecl-redis \
+                                     php-mbstring \
+                                     php-pear \
+                                     php-xml \
+                                     php-ioncube-loader
+
+RUN sed -i -r -e 's/^;?memory_limit = .*/memory_limit={{ php_memory_limit }}/' \
+              -e 's|^;?date.timezone =.*|date.timezone = "{{ timezone }}"|' \
+              /etc/php.ini
+
+VOLUME ["/data", "/cache"]
+WORKDIR /data
+
+ENTRYPOINT ["/usr/bin/php"]
