@@ -40,7 +40,7 @@ Edit file ```hosts.txt```
     admin_login=ADMIN_LOGIN
     admin_password=ADMIN_PASSWORD
     ssl_certificate=letsencrypt     # If you want to use Free SSL certs from Let's Encrypt
-    ssl_domains=DOMAIN1,DOMAIN2     # Also you need at least one domain for your server
+    ssl_domains=DOMAIN1,DOMAIN2     # Specify server domains, separated by comma without spaces
 
 Run 
 
