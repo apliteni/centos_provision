@@ -2,11 +2,11 @@
 
 - include: install_certbot.yml
 
-- include: generate_letsencrypt_certs.yml
-  when: ssl_certificate == 'letsencrypt'
-
 - include: generate_selfsigned_certs.yml
-  when: ssl_certificate == 'self-signed'
+  when: ssl_certificate is not defined or ssl_certificate == 'self-signed'
+
+- include: generate_letsencrypt_certs.yml
+  when: ssl_certificate is defined and ssl_certificate == 'letsencrypt'
 
 - include: generate_dhparam.yml
 
