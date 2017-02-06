@@ -24,7 +24,8 @@
                                        --admin-login={{ admin_login }} \
                                        --admin-password='{{ admin_password }}' \
                                        --draft-storage=redis \
-                                       --cache-storage=redis
+                                       --cache-storage=redis \
+                                       --language={% if defined language %}{{ language }}{% else %}en{% endif %}
   args:
     chdir: "{{ keitaro.path }}"
   become_user: "{{ os_user }}"
