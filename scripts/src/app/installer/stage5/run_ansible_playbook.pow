@@ -2,6 +2,9 @@
 
 
 run_ansible_playbook()
-  run_command "ansible-playbook -vvv -i ${INVENTORY_FILE} ${PROVISION_DIRECTORY}/playbook.yml"
+  local command="ansible-playbook -vvv -i ${INVENTORY_FILE} ${PROVISION_DIRECTORY}/playbook.yml"
+  if isset $ANSIBLE_TAGS
+    command="${command} --tags ${ANSIBLE_TAGS}"
+  run_command "${command}"
   clean_up
   show_successful_message

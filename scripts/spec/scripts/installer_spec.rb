@@ -311,6 +311,13 @@ RSpec.describe 'installer.sh' do
 
       it_behaves_like 'should print to stdout',
                       "ansible-playbook -vvv -i #{Installer::INVENTORY_FILE} centos_provision-master/playbook.yml"
+
+      context '-t specified' do
+        let(:args) { '-p -t tag1,tag2' }
+
+        it_behaves_like 'should print to stdout',
+                        "ansible-playbook -vvv -i #{Installer::INVENTORY_FILE} centos_provision-master/playbook.yml --tags tag1,tag2"
+      end
     end
 
     context 'yum presented, ansible presented' do

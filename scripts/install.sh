@@ -602,7 +602,7 @@ stage1(){
 
 
 parse_options(){
-  while getopts ":hpsl:" opt; do
+  while getopts ":hpsl:t:" opt; do
     case $opt in
       p)
         PRESERVE_RUNNING=true
@@ -623,6 +623,9 @@ parse_options(){
             exit 1
             ;;
         esac
+        ;;
+      t)
+        ANSIBLE_TAGS=$OPTARG
         ;;
       :)
         print_err "Option -$OPTARG requires an argument."
@@ -654,7 +657,7 @@ usage(){
 ru_usage(){
   print_err "$SCRIPT_NAME устанавливает Keitaro TDS"
   print_err
-  print_err "Использование: "$SCRIPT_NAME" [-ps] [-l en|ru]"
+  print_err "Использование: "$SCRIPT_NAME" [-ps] [-l en|ru] [-t TAG1[,TAG2...]]"
   print_err
   print_err "  -p"
   print_err "    С опцией -p (preserve installation) "$SCRIPT_NAME" не запускает установочные команды. Вместо этого текс команд будет показан на экране."
@@ -665,6 +668,9 @@ ru_usage(){
   print_err "  -l <lang>"
   print_err "    "$SCRIPT_NAME" определяет язык через установленные переменные окружения LANG/LC_MESSAGES/LC_ALL, однако вы можете явно задать язык при помощи параметра -l."
   print_err "    На данный момент поддерживаются значения en и ru (для английского и русского языков)."
+  print_err
+  print_err "  -t <TAG1[,TAG2...]>"
+  print_err "    Запуск ansible-playbook с указанными тэгами."
   print_err
 }
 
@@ -683,6 +689,9 @@ en_usage(){
   print_err "  -l <lang>"
   print_err "    By default "$SCRIPT_NAME" tries to detect language from LANG/LC_MESSAGES/LC_ALL environment variables, but you can explicitly set language with -l option."
   print_err "    Only en and ru (for English and Russian) values supported now."
+  print_err
+  print_err "  -t <TAG1[,TAG2...]>"
+  print_err "    Runs ansible-playbook with specified tags."
   print_err
 }
 
@@ -842,7 +851,11 @@ download_provision(){
 
 
 run_ansible_playbook(){
-  run_command "ansible-playbook -vvv -i ${INVENTORY_FILE} ${PROVISION_DIRECTORY}/playbook.yml"
+  local command="ansible-playbook -vvv -i ${INVENTORY_FILE} ${PROVISION_DIRECTORY}/playbook.yml"
+  if isset "$ANSIBLE_TAGS"; then
+    command="${command} --tags ${ANSIBLE_TAGS}"
+  fi
+  run_command "${command}"
   clean_up
   show_successful_message
 }
