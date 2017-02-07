@@ -104,7 +104,7 @@ WEBROOT_PATH="/var/www/keitaro"
 
 
 RECONFIGURE_KEITARO_COMMAND="curl ${KEITARO_URL}/install.sh | bash"
-RECONFIGURE_KEITARO_SSL_COMMAND="curl ${KEITARO_URL}/install.sh | bash"
+RECONFIGURE_KEITARO_SSL_COMMAND="curl ${KEITARO_URL}/install.sh | bash -s -- -t nginx,ssl"
 
 DICT['en.messages.check_renewal_job']="Check that renewal job scheduled"
 DICT['en.messages.make_ssl_cert_links']="Make SSL certificate links"
