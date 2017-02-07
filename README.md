@@ -1,11 +1,27 @@
 # Provision CentOS for Keitaro TDS
 
-This repository contains an Ansible playbook to provision new bare servers.
+This repository contains a bash installer and an Ansible playbook to provision new bare servers.
 
 # Compatibility
  - CentOS 7, Ansible 2
 
-## Install Ansible
+# How to install
+
+## Method 1 (preferred). Use provided bash installer
+
+Connect to your CentOS server and run as root:
+
+    curl -sSL https://keitarotds.com/installer.sh | bash
+
+Installer supports two locales: English (default) and Russian. In order to use Russian locale run as root
+
+    curl -sSL https://keitarotds.com/installer.sh | bash -s -- -l ru
+
+Installer will guide you trough the setup in a few easy steps.
+
+## Method 2. Run ansible-playbook
+
+### Install Ansible
 
 For OSX
 
@@ -15,22 +31,22 @@ For Ubuntu
 
     apt-get install ansible
 
-## How to Use
-
-Download and unpack the ansible playbook
+### Download and unpack the ansible playbook
 
     wget https://github.com/keitarocorp/centos_provision/archive/master.zip
     unzip master.zip
     cd master
     cp hosts.example.txt hosts.txt
 
-Edit file ```hosts.txt```
+### Edit file ```hosts.txt```
 
-    [app]
-    YOUR_IP
+    [server]
+    SERVER_IP                       # 127.0.0.1 if you run local
     
-    [app:vars]
-    ansible_ssh_user=SSH_LOGIN
+    [server:vars]
+    connection=ssh                  # Or change to 'local'
+
+    ansible_user=SSH_LOGIN
     ansible_ssh_pass=SSH_PASSWORD
     db_name=DB_NAME
     db_user=DB_USER
@@ -41,11 +57,10 @@ Edit file ```hosts.txt```
     admin_password=ADMIN_PASSWORD
     ssl_certificate=letsencrypt     # If you want to use Free SSL certs from Let's Encrypt
     ssl_domains=DOMAIN1,DOMAIN2     # Specify server domains, separated by comma without spaces
-
-Run 
+ 
+### Run playbook
 
     ansible-playbook -i hosts.txt playbook.yml
-
 
 Answer ```yes```
 
@@ -59,11 +74,11 @@ Answer ```yes```
     Are you sure you want to continue connecting (yes/no)?
     yes
     
-## Configuration
+### Configuration
 
 Take a look to ```vars/server.yml```.
 
-## Troubleshooting
+### Troubleshooting
 
 Run ansible
 
