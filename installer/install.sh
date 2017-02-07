@@ -798,6 +798,7 @@ write_inventory_file(){
   print_line_to_inventory_file "db_password="${VARS['db_password']}""
   print_line_to_inventory_file "admin_login="${VARS['admin_login']}""
   print_line_to_inventory_file "admin_password="${VARS['admin_password']}""
+  print_line_to_inventory_file "language=${UI_LANG}"
 }
 
 
@@ -851,7 +852,7 @@ run_ansible_playbook(){
 
 show_successful_message(){
   print_with_color "$(translate 'messages.successful')" 'green'
-  if isset "${VARS['ssl_domains']}"; then
+  if [[ "${VARS['ssl_certificate']}" == 'letsencrypt' ]]; then
     protocol='https'
     domain=$(expr match "${VARS['ssl_domains']}" '\([^,]*\)')
   else

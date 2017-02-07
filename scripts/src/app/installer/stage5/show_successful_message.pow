@@ -3,7 +3,7 @@
 
 show_successful_message()
   print_with_color "$(translate 'messages.successful')" 'green'
-  if isset "${VARS['ssl_domains']}"
+  if "${VARS['ssl_certificate']}" == 'letsencrypt'
     protocol='https'
     domain=$(expr match "${VARS['ssl_domains']}" '\([^,]*\)')
   else
