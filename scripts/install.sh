@@ -468,6 +468,7 @@ run_command(){
   local message="${2}"
   local hide_output="${3}"
   local allow_errors="${4}"
+  local run_as="${5}"
   debug "Evaluating command: ${command}"
   if empty "$message"; then
     run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
@@ -484,10 +485,15 @@ run_command(){
     print_command_status "$command" 'SKIPPED' 'yellow' "$hide_output"
     debug "Actual running disabled"
   else
-    if isset "$hide_output"; then
-      evaluated_command="(set -o pipefail && (${command}) >> ${SCRIPT_LOG} 2>&1)"
+    if isset "$run_as"; then
+      evaluated_command="sudo -u '${run_as}' -c '${command}'"
     else
-      evaluated_command="(set -o pipefail && (${command}) 2>&1 | tee -a ${SCRIPT_LOG})"
+      evaluated_command="${command}"
+    fi
+    if isset "$hide_output"; then
+      evaluated_command="(set -o pipefail && (${evaluated_command}) >> ${SCRIPT_LOG} 2>&1)"
+    else
+      evaluated_command="(set -o pipefail && (${evaluated_command}) 2>&1 | tee -a ${SCRIPT_LOG})"
     fi
     debug "Real command: ${evaluated_command}"
     if ! eval "${evaluated_command}"; then
