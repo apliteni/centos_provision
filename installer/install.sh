@@ -518,6 +518,8 @@ INVENTORY_FILE=hosts.txt
 PROVISION_DIRECTORY=centos_provision-master
 
 
+SSL_ENABLER_COMMAND_EN="curl -sSL ${KEITARO_URL}/enable-ssl.sh | bash -s -- domain1.tld[,domain2.tld...]"
+SSL_ENABLER_COMMAND_RU="curl -sSL ${KEITARO_URL}/enable-ssl.sh | bash -s -- -l ru domain1.tld[,domain2.tld...]"
 
 DICT['en.errors.run_command.fail_extra']=$(cat <<- END
 	Installation log saved to ${SCRIPT_LOG}. Configuration settings saved to ${INVENTORY_FILE}.
@@ -538,6 +540,7 @@ DICT['en.prompts.ssl.help']=$(cat <<- END
 	Installer can install Free SSL certificates from Let's Encrypt. In order to install this certificates you must:
 	1. Agree with terms of Let's Encrypt Subscriber Agreement (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf).
 	2. Have at least one domain associated with this server.
+	If you don't ready install SSL certificates right now you can install they later by running \`${SSL_ENABLER_COMMAND_EN}\`.
 END
 )
 DICT['en.prompts.ssl_agree_tos']="Do you agree with terms of Let's Encrypt Subscriber Agreement?"
@@ -569,6 +572,7 @@ DICT['ru.prompts.ssl.help']=$(cat <<- END
 	Программа установки может установить бесплатные SSL сертификаты, предоставляемые Let's Encrypt. Для этого вы должны:
 	1. Согласиться с условиями Абонентского Соглашения Let's Encrypt (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf).
 	2. Иметь хотя бы один домен для этого сервера.
+	Если сейчас вы не готовы к установке SSL сертификатов, то вы можете установить их позже, запустив \`${SSL_ENABLER_COMMAND_RU}\`.
 END
 )
 DICT['ru.prompts.ssl_agree_tos']="Вы согласны с условиями Абонентского Соглашения Let's Encrypt?"
@@ -581,6 +585,8 @@ DICT['ru.welcome']=$(cat <<- END
 	Эта программа поможет собрать информацию необходимую для установки Keitaro TDS на вашем сервере.
 END
 )
+
+COMMENT_ME_IF_POWSCRIPT_DONT_COMPILE_PROJECT="'"
 
 
 
