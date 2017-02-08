@@ -1,8 +1,9 @@
 #!/usr/bin/env powscript
 
 
-run_command(command, message, hide_output, allow_errors)
+run_command(command, message, hide_output, allow_errors, run_as)
   debug "Evaluating command: ${command}"
+  debug "command: ${command}, message: ${message}, hide_output: ${hide_output}, allow_errors: ${allow_errors}, run_as: ${run_as}"
   if empty $message
     run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
     message="$run_command_message \`$command\`"
@@ -16,10 +17,14 @@ run_command(command, message, hide_output, allow_errors)
     print_command_status $command 'SKIPPED' 'yellow' $hide_output
     debug "Actual running disabled"
   else
-    if isset $hide_output
-      evaluated_command="(set -o pipefail && (${command}) >> ${SCRIPT_LOG} 2>&1)"
+    if isset $run_as
+      evaluated_command="sudo -u '${run_as}' bash -c '${command}'"
     else
-      evaluated_command="(set -o pipefail && (${command}) 2>&1 | tee -a ${SCRIPT_LOG})"
+      evaluated_command="${command}"
+    if isset $hide_output
+      evaluated_command="(set -o pipefail && (${evaluated_command}) >> ${SCRIPT_LOG} 2>&1)"
+    else
+      evaluated_command="(set -o pipefail && (${evaluated_command}) 2>&1 | tee -a ${SCRIPT_LOG})"
     debug "Real command: ${evaluated_command}"
     if ! eval "${evaluated_command}"
       print_command_status $command 'NOK' 'red' $hide_output
