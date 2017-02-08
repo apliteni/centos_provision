@@ -3,4 +3,4 @@
 
 reload_nginx()
   debug "Reload nginx"
-  run_command "nginx -s reload" "$(translate 'messages.reload_nginx')" 'hide_out'
+  run_command "nginx -s reload" "$(translate 'messages.reload_nginx')" 'hide_output'
