@@ -26,12 +26,12 @@ installing Keitaro TDS you may want to install they later.
 
 Connect to your CentOS server and run as root
 
-    curl -sSL https://keitarotds.com/enable-ssl.sh | bash -s -- -d domain1.tld[,domain2.tld...]
+    curl -sSL https://keitarotds.com/enable-ssl.sh | bash -s -- domain1.tld[,domain2.tld...]
 
 SSL certificates installer supports two locales: English (default) and Russian. In order to use Russian locale
 run as root
 
-    curl -sSL https://keitarotds.com/enable-ssl.sh | bash -s -- -l ru -d domain1.tld[,domain2.tld...]
+    curl -sSL https://keitarotds.com/enable-ssl.sh | bash -s -- -l ru domain1.tld[,domain2.tld...]
 
 ## Installation method 2. Run ansible-playbook
 
