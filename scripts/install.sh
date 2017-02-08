@@ -470,6 +470,7 @@ run_command(){
   local allow_errors="${4}"
   local run_as="${5}"
   debug "Evaluating command: ${command}"
+  debug "command: ${command}, message: ${message}, hide_output: ${hide_output}, allow_errors: ${allow_errors}, run_as: ${run_as}"
   if empty "$message"; then
     run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
     message="$run_command_message \`$command\`"
@@ -486,7 +487,7 @@ run_command(){
     debug "Actual running disabled"
   else
     if isset "$run_as"; then
-      evaluated_command="sudo -u '${run_as}' -c '${command}'"
+      evaluated_command="sudo -u '${run_as}' bash -c '${command}'"
     else
       evaluated_command="${command}"
     fi
