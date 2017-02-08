@@ -71,7 +71,7 @@ declare -A VARS
 
 declare -A DICT
 
-DICT['en.errors.failure']='PROGRAM FAILED'
+DICT['en.errors.program_failed']='PROGRAM FAILED'
 DICT['en.errors.must_be_root']='You must run this program as root.'
 DICT['en.errors.run_command.fail']='There was an error evaluating command'
 DICT['en.errors.run_command.fail_extra']=''
@@ -82,7 +82,7 @@ DICT['en.no']='no'
 DICT['en.prompt_errors.validate_presence']='Please enter value'
 DICT['en.prompt_errors.validate_yes_no']='Please answer "yes" or "no"'
 
-DICT['ru.errors.failure']='ОШИБКА ВЫПОЛНЕНИЯ ПРОГРАММЫ'
+DICT['ru.errors.program_failed']='ОШИБКА ВЫПОЛНЕНИЯ ПРОГРАММЫ'
 DICT['ru.errors.must_be_root']='Эту программу может запускать только root.'
 DICT['ru.errors.run_command.fail']='Ошибка выполнения команды'
 DICT['ru.errors.run_command.fail_extra']=''
@@ -115,9 +115,9 @@ DICT['en.messages.reload_nginx']="Reload nginx"
 DICT['en.messages.renewal_job_already_scheduled']="Renewal job already scheduled"
 DICT['en.messages.schedule_renewal_job']="Schedule renewal SSL certificate cron job"
 DICT['en.messages.ssl_enabled_for_sites']="SSL certificates enabled for sites:"
+DICT['en.errors.see_logs']="Evaluating log saved to ${SCRIPT_LOG}. Please rerun \`${SCRIPT_COMMAND}\` after resolving problems."
 DICT['en.errors.reinstall_keitaro']="Your Keitaro TDS installation does not properly configured. Please reconfigure Keitaro TDS by evaluating command \`${RECONFIGURE_KEITARO_COMMAND_EN}\`"
 DICT['en.errors.reinstall_keitaro_ssl']="Nginx settings of your Keitaro TDS installation does not properly configured. Please reconfigure Nginx by evaluating command \`${RECONFIGURE_KEITARO_SSL_COMMAND_EN}\`"
-DICT['en.errors.run_command.fail_extra']="Evaluating log saved to ${SCRIPT_LOG}. Please rerun \`${SCRIPT_COMMAND}\` after resolving problems."
 DICT['en.prompts.ssl_agree_tos']="Do you agree with terms of Let's Encrypt Subscriber Agreement?"
 DICT['en.prompts.ssl_agree_tos.help']="In order to install Let's Encrypt Free SSL certificates for your Keitaro TDS you must agree with terms of Let's Encrypt Subscriber Agreement (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf)."
 DICT['en.prompts.ssl_email']='Please enter your email (you can left this field empty)'
@@ -131,7 +131,7 @@ DICT['ru.messages.schedule_renewal_job']="Добавляется cron задач
 DICT['ru.messages.ssl_enabled_for_sites']="SSL сертификаты подключены для сайтов:"
 DICT['ru.errors.reinstall_keitaro']="Keitaro TDS отконфигурирована неправильно. Пожалуйста выполните перенастройку Keitaro TDS выполнив команду \`${RECONFIGURE_KEITARO_COMMAND_RU}\`"
 DICT['ru.errors.reinstall_keitaro_ssl']="Настройки Nginx вашей Keitaro TDS отконфигурированы неправильно. Пожалуйста выполните перенастройку Nginx выполнив команду \`${RECONFIGURE_KEITARO_SSL_COMMAND_RU}\`"
-DICT['ru.errors.run_command.fail_extra']="Журнал выполнения сохранён в ${SCRIPT_LOG}. Пожалуйста запустите \`${SCRIPT_COMMAND}\` после устранения возникших проблем."
+DICT['ru.errors.see_logs']="Журнал выполнения сохранён в ${SCRIPT_LOG}. Пожалуйста запустите \`${SCRIPT_COMMAND}\` после устранения возникших проблем."
 DICT['ru.prompts.ssl_agree_tos']="Вы согласны с условиями Абонентского Соглашения Let's Encrypt?"
 DICT['ru.prompts.ssl_agree_tos.help']="Для получения бесплатных SSL сертификатов Let's Encrypt вы должны согласиться с условиями Абонентского Соглашения Let's Encrypt (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf)."
 DICT['ru.prompts.ssl_email']='Укажите email (можно не указывать)'
@@ -159,7 +159,7 @@ assert_installed(){
   local program="${1}"
   local error="${2}"
   if ! is_installed "$program"; then
-    fail "$(translate ${error})"
+    fail "$(translate ${error})" "see_logs"
   fi
 }
 
@@ -379,8 +379,12 @@ debug(){
 
 fail(){
   local message="${1}"
-  log_and_print_err "*** $(translate errors.failure) ***"
+  local see_logs="${2}"
+  log_and_print_err "*** $(translate errors.program_failed) ***"
   log_and_print_err "$message"
+  if isset "$see_logs"; then
+    log_and_print_err "$(translate errors.see_logs)"
+  fi
   print_err
   clean_up
   exit 1
@@ -523,8 +527,7 @@ run_command(){
       if isset "$allow_errors"; then
         return 1 # false
       else
-        message="$(translate 'errors.run_command.fail') \`$command\`\n$(translate 'errors.run_command.fail_extra')"
-        fail "$message"
+        fail "$(translate 'errors.run_command.fail') \`$command\`" "see_logs"
       fi
     else
       print_command_status "$command" 'OK' 'green' "$hide_output"
@@ -688,7 +691,7 @@ stage2(){
 
 assert_nginx_configured(){
   if ! is_nginx_properly_configured; then
-    fail "$(translate 'errors.reinstall_keitaro_ssl')"
+    fail "$(translate 'errors.reinstall_keitaro_ssl')" "see_logs"
   fi
 }
 
