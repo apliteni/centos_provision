@@ -7,19 +7,33 @@ This repository contains a bash installer and an Ansible playbook to provision n
 
 # How to install
 
-## Method 1 (preferred). Use provided bash installer
+## Installation method 1 (preferred). Use provided bash installer
 
-Connect to your CentOS server and run as root:
+### Install Keitaro TDS
 
-    curl -sSL https://keitarotds.com/installer.sh | bash
+Connect to your CentOS server and run as root
+
+    curl -sSL https://keitarotds.com/install.sh | bash
 
 Installer supports two locales: English (default) and Russian. In order to use Russian locale run as root
 
-    curl -sSL https://keitarotds.com/installer.sh | bash -s -- -l ru
+    curl -sSL https://keitarotds.com/install.sh | bash -s -- -l ru
 
-Installer will guide you trough the setup in a few easy steps.
+### Install Let's Encrypt Free SSL certificates (optional)
 
-## Method 2. Run ansible-playbook
+Installer will ask you to install Free SSL certificates. If you don't want to install certificates at a time of
+installing Keitaro TDS you may want to install they later.
+
+Connect to your CentOS server and run as root
+
+    curl -sSL https://keitarotds.com/enable-ssl.sh | bash -s -- -d domain1.tld[,domain2.tld...]
+
+SSL certificates installer supports two locales: English (default) and Russian. In order to use Russian locale
+run as root
+
+    curl -sSL https://keitarotds.com/enable-ssl.sh | bash -s -- -l ru -d domain1.tld[,domain2.tld...]
+
+## Installation method 2. Run ansible-playbook
 
 ### Install Ansible
 
@@ -55,8 +69,10 @@ For Ubuntu
     license_key=LICENSE_KEY
     admin_login=ADMIN_LOGIN
     admin_password=ADMIN_PASSWORD
-    ssl_certificate=letsencrypt     # If you want to use Free SSL certs from Let's Encrypt
+    # If you want to install Let's Encrypt Free SSL certificates add the following lines
+    ssl_certificate=letsencrypt     # You must agree with terms of Let's Encrypt Subscriber Agreement (https://letsencrypt.org/docu
     ssl_domains=DOMAIN1,DOMAIN2     # Specify server domains, separated by comma without spaces
+    ssl_email=some.mail@example.com # If you want to receive warnings about your certificates from Let's Encrypt
  
 ### Run playbook
 
@@ -78,12 +94,31 @@ Answer ```yes```
 
 Take a look to ```vars/server.yml```.
 
+### Install Let's Encrypt Free SSL certificates (optional)
+
+If you don't want to install certificates at a time of installing Keitaro TDS you may want to install they later.
+In order to install certificates add the following lines to your ```hosts.txt```
+
+    ssl_certificate=letsencrypt     # You must agree with terms of Let's Enrypt Subscriber Agreement (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf)
+    ssl_domains=DOMAIN1,DOMAIN2     # Specify server domains, separated by comma without spaces
+    ssl_email=some.mail@example.com # If you want to receive warnings about your certificates from Let's Encrypt
+
+
+Then run playbook with ssl tag
+
+    ansible-playbook -i hosts.txt playbook.yml --tags ssl
+
 ### Troubleshooting
 
 Run ansible
 
     ansible-playbook -i hosts.txt playbook.yml -vvv
 
+### Troubleshooting
+
+Run ansible
+
+    ansible-playbook -i hosts.txt playbook.yml -vvv
 
 
 support@keitarotds.com
