@@ -3,6 +3,6 @@
 
 assert_installed(program, error)
   if ! is_installed $program
-    fail "$(translate ${error})"
+    fail "$(translate ${error})" "see_logs"
 
 

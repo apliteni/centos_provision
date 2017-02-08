@@ -81,7 +81,7 @@ declare -A VARS
 
 declare -A DICT
 
-DICT['en.errors.failure']='PROGRAM FAILED'
+DICT['en.errors.program_failed']='PROGRAM FAILED'
 DICT['en.errors.must_be_root']='You must run this program as root.'
 DICT['en.errors.run_command.fail']='There was an error evaluating command'
 DICT['en.errors.run_command.fail_extra']=''
@@ -92,7 +92,7 @@ DICT['en.no']='no'
 DICT['en.prompt_errors.validate_presence']='Please enter value'
 DICT['en.prompt_errors.validate_yes_no']='Please answer "yes" or "no"'
 
-DICT['ru.errors.failure']='ОШИБКА ВЫПОЛНЕНИЯ ПРОГРАММЫ'
+DICT['ru.errors.program_failed']='ОШИБКА ВЫПОЛНЕНИЯ ПРОГРАММЫ'
 DICT['ru.errors.must_be_root']='Эту программу может запускать только root.'
 DICT['ru.errors.run_command.fail']='Ошибка выполнения команды'
 DICT['ru.errors.run_command.fail_extra']=''
@@ -125,7 +125,7 @@ assert_installed(){
   local program="${1}"
   local error="${2}"
   if ! is_installed "$program"; then
-    fail "$(translate ${error})"
+    fail "$(translate ${error})" "see_logs"
   fi
 }
 
@@ -347,8 +347,12 @@ debug(){
 
 fail(){
   local message="${1}"
-  log_and_print_err "*** $(translate errors.failure) ***"
+  local see_logs="${2}"
+  log_and_print_err "*** $(translate errors.program_failed) ***"
   log_and_print_err "$message"
+  if isset "$see_logs"; then
+    log_and_print_err "$(translate errors.see_logs)"
+  fi
   print_err
   clean_up
   exit 1
@@ -491,8 +495,7 @@ run_command(){
       if isset "$allow_errors"; then
         return 1 # false
       else
-        message="$(translate 'errors.run_command.fail') \`$command\`\n$(translate 'errors.run_command.fail_extra')"
-        fail "$message"
+        fail "$(translate 'errors.run_command.fail') \`$command\`" "see_logs"
       fi
     else
       print_command_status "$command" 'OK' 'green' "$hide_output"
@@ -521,7 +524,7 @@ PROVISION_DIRECTORY=centos_provision-master
 SSL_ENABLER_COMMAND_EN="curl -sSL ${KEITARO_URL}/enable-ssl.sh | bash -s -- domain1.tld[,domain2.tld...]"
 SSL_ENABLER_COMMAND_RU="curl -sSL ${KEITARO_URL}/enable-ssl.sh | bash -s -- -l ru domain1.tld[,domain2.tld...]"
 
-DICT['en.errors.run_command.fail_extra']=$(cat <<- END
+DICT['en.errors.see_logs']=$(cat <<- END
 	Installation log saved to ${SCRIPT_LOG}. Configuration settings saved to ${INVENTORY_FILE}.
 	You can rerun \`${SCRIPT_COMMAND}\` with saved settings after resolving installation problems.
 END
@@ -554,7 +557,7 @@ DICT['en.welcome']=$(cat <<- END
 END
 )
 
-DICT['ru.errors.run_command.fail_extra']=$(cat <<- END
+DICT['ru.errors.see_logs']=$(cat <<- END
 	Журнал установки сохранён в ${SCRIPT_LOG}. Настройки сохранены в ${INVENTORY_FILE}.
 	Вы можете повторно запустить \`${SCRIPT_COMMAND}\` с этими настройками после устранения возникших проблем.
 END

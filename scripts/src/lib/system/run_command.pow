@@ -26,8 +26,7 @@ run_command(command, message, hide_output, allow_errors)
       if isset $allow_errors
         return 1 # false
       else
-        message="$(translate 'errors.run_command.fail') \`$command\`\n$(translate 'errors.run_command.fail_extra')"
-        fail $message
+        fail "$(translate 'errors.run_command.fail') \`$command\`" "see_logs"
     else
       print_command_status $command 'OK' 'green' $hide_output
 
