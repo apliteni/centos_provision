@@ -3,7 +3,7 @@
 
 assert_nginx_configured()
   if ! is_nginx_properly_configured
-    fail "$(translate 'errors.reinstall_keitaro_ssl')"
+    fail "$(translate 'errors.reinstall_keitaro_ssl')" "see_logs"
 
 
 is_nginx_properly_configured()
