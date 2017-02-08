@@ -17,6 +17,12 @@ RSpec.describe 'ssl_enabler.sh' do
       %Q{echo -e "#{nginx_conf}"> /etc/nginx/conf.d/vhosts.conf}
     ]
   end
+  let(:emulate_sudo) do
+    [
+      'echo "shift 4; bash -c \"\$@\"" > /bin/sudo',
+      'chmod a+x /bin/sudo'
+    ]
+  end
 
   let(:prompts) do
     {
@@ -64,7 +70,7 @@ RSpec.describe 'ssl_enabler.sh' do
   end
 
   shared_examples_for 'should print to log' do |expected_texts|
-    it "prints to stdout #{expected_texts.inspect}" do
+    it "prints to log #{expected_texts.inspect}" do
       ssl_enabler.call(current_dir: @current_dir)
       [*expected_texts].each do |expected_text|
         expect(ssl_enabler.log).to match(expected_text)
@@ -194,8 +200,7 @@ RSpec.describe 'ssl_enabler.sh' do
     before(:all) { `docker rm keitaro_ssl_enabler_test &>/dev/null` }
 
     shared_examples_for 'should enable ssl for Keitaro TDS' do
-      it_behaves_like 'should print to stdout',
-                      'certbot certonly --webroot'
+      it_behaves_like 'should print to stdout', 'certbot certonly --webroot'
     end
 
     context 'nginx is installed, certbot is installed, crontab is installed, nginx is configured properly' do
@@ -218,7 +223,7 @@ RSpec.describe 'ssl_enabler.sh' do
 
     context 'nginx is not installed' do
       let(:docker_image) { 'centos' }
-      let(:command_stubs) { {certbot: '/bin/true', crontab: '/bin/true'} }
+      let(:command_stubs) { {crontab: '/bin/true'} }
 
       it_behaves_like 'should print to log', "Try to found nginx\nNOK"
 
@@ -278,7 +283,7 @@ RSpec.describe 'ssl_enabler.sh' do
   describe 'enable-ssl result' do
     let(:docker_image) { 'centos' }
     let(:command_stubs) { all_command_stubs }
-    let(:commands) { make_proper_nginx_conf }
+    let(:commands) { make_proper_nginx_conf + emulate_sudo }
 
     context 'successful running certbot' do
       it_behaves_like 'should print to stdout', /Everything done!/
@@ -293,6 +298,15 @@ RSpec.describe 'ssl_enabler.sh' do
                                                   'Please rerun `enable-ssl.sh domain1.tld`'
                                                 ]
     end
+  end
+
+  describe 'run certbot as nginx' do
+    let(:docker_image) { 'centos' }
+    let(:command_stubs) { all_command_stubs }
+    let(:commands) { make_proper_nginx_conf + emulate_sudo }
+
+    it_behaves_like 'should print to log', "sudo -u 'nginx' bash -c 'certbot"
+
   end
 
   context 'with agree LE SA option specified' do
@@ -382,14 +396,14 @@ RSpec.describe 'ssl_enabler.sh' do
   describe 'adding cron task' do
     let(:docker_image) { 'centos' }
     let(:command_stubs) { all_command_stubs }
-    let(:commands) { make_proper_nginx_conf }
+    let(:commands) { make_proper_nginx_conf + emulate_sudo }
 
     it_behaves_like 'should print to log', /Adding renewal cron job/
 
     context 'cron job already exists' do
-
       let(:commands) do
         make_proper_nginx_conf +
+        emulate_sudo +
         [
           'echo "echo certbot renew --allow-subset-of-names --quiet" > /bin/crontab',
           'chmod a+x /bin/crontab'

@@ -468,7 +468,9 @@ run_command(){
   local message="${2}"
   local hide_output="${3}"
   local allow_errors="${4}"
+  local run_as="${5}"
   debug "Evaluating command: ${command}"
+  debug "command: ${command}, message: ${message}, hide_output: ${hide_output}, allow_errors: ${allow_errors}, run_as: ${run_as}"
   if empty "$message"; then
     run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
     message="$run_command_message \`$command\`"
@@ -484,10 +486,15 @@ run_command(){
     print_command_status "$command" 'SKIPPED' 'yellow' "$hide_output"
     debug "Actual running disabled"
   else
-    if isset "$hide_output"; then
-      evaluated_command="(set -o pipefail && (${command}) >> ${SCRIPT_LOG} 2>&1)"
+    if isset "$run_as"; then
+      evaluated_command="sudo -u '${run_as}' bash -c '${command}'"
     else
-      evaluated_command="(set -o pipefail && (${command}) 2>&1 | tee -a ${SCRIPT_LOG})"
+      evaluated_command="${command}"
+    fi
+    if isset "$hide_output"; then
+      evaluated_command="(set -o pipefail && (${evaluated_command}) >> ${SCRIPT_LOG} 2>&1)"
+    else
+      evaluated_command="(set -o pipefail && (${evaluated_command}) 2>&1 | tee -a ${SCRIPT_LOG})"
     fi
     debug "Real command: ${evaluated_command}"
     if ! eval "${evaluated_command}"; then
@@ -521,8 +528,8 @@ INVENTORY_FILE=hosts.txt
 PROVISION_DIRECTORY=centos_provision-master
 
 
-SSL_ENABLER_COMMAND_EN="curl -sSL ${KEITARO_URL}/enable-ssl.sh | bash -s -- domain1.tld[,domain2.tld...]"
-SSL_ENABLER_COMMAND_RU="curl -sSL ${KEITARO_URL}/enable-ssl.sh | bash -s -- -l ru domain1.tld[,domain2.tld...]"
+SSL_ENABLER_COMMAND_EN="curl -sSL ${KEITARO_URL}/enable-ssl.sh | bash -s -- domain1.tld [domain2.tld...]"
+SSL_ENABLER_COMMAND_RU="curl -sSL ${KEITARO_URL}/enable-ssl.sh | bash -s -- -l ru domain1.tld [domain2.tld...]"
 
 DICT['en.errors.see_logs']=$(cat <<- END
 	Installation log saved to ${SCRIPT_LOG}. Configuration settings saved to ${INVENTORY_FILE}.

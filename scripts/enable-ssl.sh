@@ -103,11 +103,11 @@ NGINX_VHOSTS_CONF="${NGINX_ROOT_PATH}/conf.d/vhosts.conf"
 WEBROOT_PATH="/var/www/keitaro"
 
 
-RECONFIGURE_KEITARO_COMMAND_EN="curl ${KEITARO_URL}/install.sh | bash"
-RECONFIGURE_KEITARO_SSL_COMMAND_EN="curl ${KEITARO_URL}/install.sh | bash -s -- -t nginx,ssl"
+RECONFIGURE_KEITARO_COMMAND_EN="curl -sSL ${KEITARO_URL}/install.sh | bash"
+RECONFIGURE_KEITARO_SSL_COMMAND_EN="curl -sSL ${KEITARO_URL}/install.sh | bash -s -- -t nginx,ssl"
 
-RECONFIGURE_KEITARO_COMMAND_RU="curl ${KEITARO_URL}/install.sh | bash -s -- -l ru"
-RECONFIGURE_KEITARO_SSL_COMMAND_RU="curl ${KEITARO_URL}/install.sh | bash -s -- -l ru -t nginx,ssl"
+RECONFIGURE_KEITARO_COMMAND_RU="curl -sSL ${KEITARO_URL}/install.sh | bash -s -- -l ru"
+RECONFIGURE_KEITARO_SSL_COMMAND_RU="curl -sSL ${KEITARO_URL}/install.sh | bash -s -- -l ru -t nginx,ssl"
 
 DICT['en.messages.check_renewal_job']="Check that renewal job scheduled"
 DICT['en.messages.make_ssl_cert_links']="Make SSL certificate links"
@@ -500,7 +500,9 @@ run_command(){
   local message="${2}"
   local hide_output="${3}"
   local allow_errors="${4}"
+  local run_as="${5}"
   debug "Evaluating command: ${command}"
+  debug "command: ${command}, message: ${message}, hide_output: ${hide_output}, allow_errors: ${allow_errors}, run_as: ${run_as}"
   if empty "$message"; then
     run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
     message="$run_command_message \`$command\`"
@@ -516,10 +518,15 @@ run_command(){
     print_command_status "$command" 'SKIPPED' 'yellow' "$hide_output"
     debug "Actual running disabled"
   else
-    if isset "$hide_output"; then
-      evaluated_command="(set -o pipefail && (${command}) >> ${SCRIPT_LOG} 2>&1)"
+    if isset "$run_as"; then
+      evaluated_command="sudo -u '${run_as}' bash -c '${command}'"
     else
-      evaluated_command="(set -o pipefail && (${command}) 2>&1 | tee -a ${SCRIPT_LOG})"
+      evaluated_command="${command}"
+    fi
+    if isset "$hide_output"; then
+      evaluated_command="(set -o pipefail && (${evaluated_command}) >> ${SCRIPT_LOG} 2>&1)"
+    else
+      evaluated_command="(set -o pipefail && (${evaluated_command}) 2>&1 | tee -a ${SCRIPT_LOG})"
     fi
     debug "Real command: ${evaluated_command}"
     if ! eval "${evaluated_command}"; then
@@ -820,14 +827,14 @@ make_cert_links(){
   local command="rm -f ${NGINX_SSL_CERT_PATH} && rm -f ${NGINX_SSL_PRIVKEY_PATH}"
   command="${command} && ln -s ${le_cert_path} ${NGINX_SSL_CERT_PATH}"
   command="${command} && ln -s ${le_privkey_path} ${NGINX_SSL_PRIVKEY_PATH}"
-  run_command "${command}" "$(translate 'messages.make_ssl_cert_links')" 'hide_output'
+  run_command "${command}" "$(translate 'messages.make_ssl_cert_links')" 'hide_output' '' 'nginx'
 }
 
 
 
 reload_nginx(){
   debug "Reload nginx"
-  run_command "nginx -s reload" "$(translate 'messages.reload_nginx')" 'hide_out'
+  run_command "nginx -s reload" "$(translate 'messages.reload_nginx')" 'hide_output'
 }
 
 
@@ -843,7 +850,7 @@ run_certbot(){
   else
     certbot_command="${certbot_command} --register-unsafely-without-email"
   fi
-  run_command "${certbot_command}"
+  run_command "${certbot_command}" '' '' '' 'nginx'
 }
 
 
