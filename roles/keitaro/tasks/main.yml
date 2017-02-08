@@ -30,7 +30,7 @@
     chdir: "{{ keitaro.path }}"
   become_user: "{{ os_user }}"
   register: command_result
-  failed_when: "'Installation Finished' not in command_result.stdout"
+  failed_when: "'Installation Finished' not in command_result.stdout and 'Установка завершена' not in command_result.stdout"
 
 - name: Add cron task
   tags: keitaro
