@@ -70,7 +70,7 @@ For Ubuntu
     admin_login=ADMIN_LOGIN
     admin_password=ADMIN_PASSWORD
     # If you want to install Let's Encrypt Free SSL certificates add the following lines
-    ssl_certificate=letsencrypt     # You must agree with terms of Let's Encrypt Subscriber Agreement (https://letsencrypt.org/docu
+    ssl_certificate=letsencrypt     # You must agree with terms of Let's Encrypt Subscriber Agreement (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf)
     ssl_domains=DOMAIN1,DOMAIN2     # Specify server domains, separated by comma without spaces
     ssl_email=some.mail@example.com # If you want to receive warnings about your certificates from Let's Encrypt
  
@@ -99,7 +99,7 @@ Take a look to ```vars/server.yml```.
 If you don't want to install certificates at a time of installing Keitaro TDS you may want to install they later.
 In order to install certificates add the following lines to your ```hosts.txt```
 
-    ssl_certificate=letsencrypt     # You must agree with terms of Let's Enrypt Subscriber Agreement (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf)
+    ssl_certificate=letsencrypt     # You must agree with terms of Let's Encrypt Subscriber Agreement (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf)
     ssl_domains=DOMAIN1,DOMAIN2     # Specify server domains, separated by comma without spaces
     ssl_email=some.mail@example.com # If you want to receive warnings about your certificates from Let's Encrypt
 
@@ -113,12 +113,5 @@ Then run playbook with ssl tag
 Run ansible
 
     ansible-playbook -i hosts.txt playbook.yml -vvv
-
-### Troubleshooting
-
-Run ansible
-
-    ansible-playbook -i hosts.txt playbook.yml -vvv
-
 
 support@keitarotds.com
