@@ -12,7 +12,6 @@ compile_installer:
 	sed -i '/# cleanup tmp files/,+4d' install.sh                   # remove unportable cleaning
 	sed -i 's/#$$//g' install.sh                                    # remove trailing #
 	chmod a+x install.sh
-	cp install.sh ../installer/
 
 compile_ssl_enabler:
 	powscript --compile src/ssl_enabler.pow  > enable-ssl.sh || true

@@ -59,7 +59,7 @@ END
 )
 DICT['ru.prompts.ssl_agree_tos']="Вы согласны с условиями Абонентского Соглашения Let's Encrypt?"
 DICT['ru.prompts.ssl_agree_tos.help']="Абонентское Соглашение Let's Encrypt находится по адресу https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf."
-DICT['ru.prompts.ssl_domains']='Укажите список доменов через запятую без пробелов (наример domain1.tld,domain2.tld)'
+DICT['ru.prompts.ssl_domains']='Укажите список доменов через запятую без пробелов (например domain1.tld,domain2.tld)'
 DICT['ru.prompts.ssl_email']='Укажите email (можно не указывать)'
 DICT['ru.prompts.ssl_email.help']='Вы можете получить SSL сертификат без указания email адреса. Однако LetsEncrypt настоятельно рекомендует указать его, так как в случае потери ключа или компрометации LetsEncrypt аккаунта вы полностью потеряете доступ к своему LetsEncrypt аккаунту. Без email вы также не сможете получить уведомление о предстоящем истечении срока действия или отзыве сертификата'
 DICT['ru.welcome']=$(cat <<- END
