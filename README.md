@@ -85,8 +85,8 @@ Answer ```yes```
     PLAY ***************************************************************************
     
     TASK [setup] *******************************************************************
-    paramiko: The authenticity of host '1.1.1.1' can't be established.
-    The ssh-rsa key fingerprint is 73cc4460fc715e389ecd44c0797e6f03.
+    The authenticity of host '1.1.1.1)' can't be established.
+    ECDSA key fingerprint is SHA256:g0rXmM8dG5+gefA1fW7HgkQ2S9LZjY5y2hzDguZ71y3.
     Are you sure you want to continue connecting (yes/no)?
     yes
     
