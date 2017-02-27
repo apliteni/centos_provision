@@ -107,7 +107,7 @@ class Installer
   end
 
   def read_log
-    @log = without_formatting(IO.read(LOG_FILE))
+    @log = without_formatting(IO.read(LOG_FILE)) rescue nil
   end
 
   def installer_cmd(current_dir)

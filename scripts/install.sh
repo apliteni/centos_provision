@@ -618,7 +618,7 @@ stage1(){
 
 
 parse_options(){
-  while getopts ":hpsl:t:" opt; do
+  while getopts ":hpsl:t:k:" opt; do
     case $opt in
       p)
         PRESERVE_RUNNING=true
@@ -642,6 +642,13 @@ parse_options(){
         ;;
       t)
         ANSIBLE_TAGS=$OPTARG
+        ;;
+      k)
+        if [[ "$OPTARG" -ne 6 && "$OPTARG" -ne 7 && "$OPTARG" -ne 8 ]]; then
+          print_err "Specified Keitaro TDS Release \"$OPTARG\" is not supported"
+          exit 1
+        fi
+        KEITARO_RELEASE=$OPTARG
         ;;
       :)
         print_err "Option -$OPTARG requires an argument."
@@ -681,12 +688,16 @@ ru_usage(){
   print_err "  -s"
   print_err "    С опцией -s (skip checks) "$SCRIPT_NAME" не будет проверять присутствие yum/ansible в системе, не будет проверять факт запуска из под root."
   print_err
-  print_err "  -l <lang>"
-  print_err "    "$SCRIPT_NAME" определяет язык через установленные переменные окружения LANG/LC_MESSAGES/LC_ALL, однако вы можете явно задать язык при помощи параметра -l."
+  print_err "  -l <language>"
+  print_err "    "$SCRIPT_NAME" определяет язык через установленные переменные окружения LANG/LC_MESSAGES/LC_ALL, однако вы можете явно задать язык при помощи этого параметра."
   print_err "    На данный момент поддерживаются значения en и ru (для английского и русского языков)."
   print_err
-  print_err "  -t <TAG1[,TAG2...]>"
+  print_err "  -t <tag1[,tag2...]>"
   print_err "    Запуск ansible-playbook с указанными тэгами."
+  print_err
+  print_err "  -k <keitaro_release>"
+  print_err "    "$SCRIPT_NAME" по умолчанию устанавливает текущую стабильную версию Keitaro TDS. Вы можете явно задать устанавливаемую версию через этот параметр."
+  print_err "    На данный момент поддерживаются значения 6, 7 и 8."
   print_err
 }
 
@@ -702,12 +713,16 @@ en_usage(){
   print_err "  -s"
   print_err "    The -s (skip checks) option causes "$SCRIPT_NAME" to skip checks of yum/ansible presence, skip check root running"
   print_err
-  print_err "  -l <lang>"
-  print_err "    By default "$SCRIPT_NAME" tries to detect language from LANG/LC_MESSAGES/LC_ALL environment variables, but you can explicitly set language with -l option."
+  print_err "  -l <language>"
+  print_err "    By default "$SCRIPT_NAME" tries to detect language from LANG/LC_MESSAGES/LC_ALL environment variables, but you can explicitly set language with this option."
   print_err "    Only en and ru (for English and Russian) values supported now."
   print_err
-  print_err "  -t <TAG1[,TAG2...]>"
+  print_err "  -t <tag1[,tag2...]>"
   print_err "    Runs ansible-playbook with specified tags."
+  print_err
+  print_err "  -k <keitaro_release>"
+  print_err "    By default "$SCRIPT_NAME" installs current stable Keitaro TDS. You can specify Keitaro TDS release with this option."
+  print_err "    Only 6, 7 and 8 values supported now."
   print_err
 }
 
@@ -718,8 +733,6 @@ stage2(){
   assert_caller_root
   assert_installed 'yum' 'errors.yum_not_installed'
 }
-
-
 
 
 
@@ -824,6 +837,9 @@ write_inventory_file(){
   print_line_to_inventory_file "admin_login="${VARS['admin_login']}""
   print_line_to_inventory_file "admin_password="${VARS['admin_password']}""
   print_line_to_inventory_file "language=${UI_LANG}"
+  if isset "$KEITARO_RELEASE"; then
+    print_line_to_inventory_file "kversion=$KEITARO_RELEASE"
+  fi
 }
 
 
