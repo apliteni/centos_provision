@@ -21,6 +21,8 @@ write_inventory_file()
   print_line_to_inventory_file "admin_login=$VARS['admin_login']"
   print_line_to_inventory_file "admin_password=$VARS['admin_password']"
   print_line_to_inventory_file "language=${UI_LANG}"
+  if isset $KEITARO_RELEASE
+    print_line_to_inventory_file "kversion=$KEITARO_RELEASE"
 
 
 print_line_to_inventory_file(line)
