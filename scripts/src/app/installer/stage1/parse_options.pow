@@ -80,12 +80,12 @@ en_usage()
   print_err
   print_err "  -l <language>"
   print_err "    By default $SCRIPT_NAME tries to detect language from LANG/LC_MESSAGES/LC_ALL environment variables, but you can explicitly set language with this option."
-  print_err "    Only en and ru (for English and Russian) values supported now."
+  print_err "    Only en and ru (for English and Russian) values are supported now."
   print_err
   print_err "  -t <tag1[,tag2...]>"
   print_err "    Runs ansible-playbook with specified tags."
   print_err
   print_err "  -k <keitaro_release>"
   print_err "    By default $SCRIPT_NAME installs current stable Keitaro TDS. You can specify Keitaro TDS release with this option."
-  print_err "    Only 6, 7 and 8 values supported now."
+  print_err "    Only 6, 7 and 8 values are supported now."
   print_err
