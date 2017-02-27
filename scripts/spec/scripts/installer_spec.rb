@@ -300,6 +300,27 @@ RSpec.describe 'installer.sh' do
     it_behaves_like 'password field', :admin_password
   end
 
+  describe 'inventory file' do
+    describe 'kversion field' do
+      context '-k option missed' do
+        let(:args) { '-s -p' }
+        before { installer.call }
+        it { expect(installer.inventory.values).not_to have_key(:kversion) }
+      end
+
+      context '-k specified' do
+        let(:args) { '-s -p -k 7' }
+        before { installer.call }
+        it { expect(installer.inventory.values[:kversion]).to eq('7') }
+      end
+
+      context 'specified -k with wrong value' do
+        let(:args) { '-s -p -k 9' }
+        it_behaves_like 'should exit with error', 'Specified Keitaro TDS Release "9" is not supported'
+      end
+    end
+  end
+
   context 'without actual installing software' do
     let(:args) { '-p' }
 
@@ -363,11 +384,11 @@ RSpec.describe 'installer.sh' do
       let(:command_stubs) { {curl: '/bin/true', tar: '/bin/true', 'ansible-playbook': '/bin/false'} }
 
       it_behaves_like 'should exit with error', [
-                                                  'There was an error evaluating command `ansible-playbook',
-                                                  'Installation log saved to install.log',
-                                                  'Configuration settings saved to hosts.txt',
-                                                  'You can rerun `install.sh`'
-                                                ]
+        'There was an error evaluating command `ansible-playbook',
+        'Installation log saved to install.log',
+        'Configuration settings saved to hosts.txt',
+        'You can rerun `install.sh`'
+      ]
     end
   end
 
