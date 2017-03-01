@@ -618,7 +618,7 @@ stage1(){
 
 
 parse_options(){
-  while getopts ":hpsl:t:k:" opt; do
+  while getopts ":hpsl:t:k:i:" opt; do
     case $opt in
       p)
         PRESERVE_RUNNING=true
@@ -642,6 +642,9 @@ parse_options(){
         ;;
       t)
         ANSIBLE_TAGS=$OPTARG
+        ;;
+      i)
+        ANSIBLE_IGNORE_TAGS=$OPTARG
         ;;
       k)
         if [[ "$OPTARG" -ne 6 && "$OPTARG" -ne 7 && "$OPTARG" -ne 8 ]]; then
@@ -695,6 +698,9 @@ ru_usage(){
   print_err "  -t <tag1[,tag2...]>"
   print_err "    Запуск ansible-playbook с указанными тэгами."
   print_err
+  print_err "  -i <tag1[,tag2...]>"
+  print_err "    Запуск ansible-playbook без выполнения указанных тэгов."
+  print_err
   print_err "  -k <keitaro_release>"
   print_err "    "$SCRIPT_NAME" по умолчанию устанавливает текущую стабильную версию Keitaro TDS. Вы можете явно задать устанавливаемую версию через этот параметр."
   print_err "    На данный момент поддерживаются значения 6, 7 и 8."
@@ -715,14 +721,17 @@ en_usage(){
   print_err
   print_err "  -l <language>"
   print_err "    By default "$SCRIPT_NAME" tries to detect language from LANG/LC_MESSAGES/LC_ALL environment variables, but you can explicitly set language with this option."
-  print_err "    Only en and ru (for English and Russian) values supported now."
+  print_err "    Only en and ru (for English and Russian) values are supported now."
   print_err
   print_err "  -t <tag1[,tag2...]>"
   print_err "    Runs ansible-playbook with specified tags."
   print_err
+  print_err "  -i <tag1[,tag2...]>"
+  print_err "    Runs ansible-playbook with skipping specified tags."
+  print_err
   print_err "  -k <keitaro_release>"
   print_err "    By default "$SCRIPT_NAME" installs current stable Keitaro TDS. You can specify Keitaro TDS release with this option."
-  print_err "    Only 6, 7 and 8 values supported now."
+  print_err "    Only 6, 7 and 8 values are supported now."
   print_err
 }
 
@@ -887,6 +896,9 @@ run_ansible_playbook(){
   local command="ansible-playbook -vvv -i ${INVENTORY_FILE} ${PROVISION_DIRECTORY}/playbook.yml"
   if isset "$ANSIBLE_TAGS"; then
     command="${command} --tags ${ANSIBLE_TAGS}"
+  fi
+  if isset "$ANSIBLE_IGNORE_TAGS"; then
+    command="${command} --skip-tags ${ANSIBLE_IGNORE_TAGS}"
   fi
   run_command "${command}"
   clean_up

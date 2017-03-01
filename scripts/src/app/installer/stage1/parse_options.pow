@@ -2,7 +2,7 @@
 
 
 parse_options()
-  while getopts ":hpsl:t:k:" opt
+  while getopts ":hpsl:t:k:i:" opt
     switch $opt
       case p
         PRESERVE_RUNNING=true
@@ -19,6 +19,8 @@ parse_options()
             exit 1
       case t
         ANSIBLE_TAGS=$OPTARG
+      case i
+        ANSIBLE_IGNORE_TAGS=$OPTARG
       case k
         if $OPTARG != 6 && $OPTARG != 7 && $OPTARG != 8
           print_err "Specified Keitaro TDS Release \"$OPTARG\" is not supported"
@@ -61,6 +63,9 @@ ru_usage()
   print_err "  -t <tag1[,tag2...]>"
   print_err "    Запуск ansible-playbook с указанными тэгами."
   print_err
+  print_err "  -i <tag1[,tag2...]>"
+  print_err "    Запуск ansible-playbook без выполнения указанных тэгов."
+  print_err
   print_err "  -k <keitaro_release>"
   print_err "    $SCRIPT_NAME по умолчанию устанавливает текущую стабильную версию Keitaro TDS. Вы можете явно задать устанавливаемую версию через этот параметр."
   print_err "    На данный момент поддерживаются значения 6, 7 и 8."
@@ -84,6 +89,9 @@ en_usage()
   print_err
   print_err "  -t <tag1[,tag2...]>"
   print_err "    Runs ansible-playbook with specified tags."
+  print_err
+  print_err "  -i <tag1[,tag2...]>"
+  print_err "    Runs ansible-playbook with skipping specified tags."
   print_err
   print_err "  -k <keitaro_release>"
   print_err "    By default $SCRIPT_NAME installs current stable Keitaro TDS. You can specify Keitaro TDS release with this option."
