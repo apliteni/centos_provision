@@ -20,6 +20,7 @@
 - name: Turn swap on
   command: swapon -a
   when: swap|changed
+  ignore_errors: true
 
 - name: Tweak swap sysctl variables
   sysctl:
