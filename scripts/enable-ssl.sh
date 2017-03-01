@@ -673,7 +673,7 @@ en_usage(){
   print_err
   print_err "  -l <lang>"
   print_err "    By default "$SCRIPT_NAME" tries to detect language from LANG/LC_MESSAGES/LC_ALL environment variables, but language can be explicitly set  with -l option."
-  print_err "    Only en and ru (for English and Russian) values supported now."
+  print_err "    Only en and ru (for English and Russian) values are supported now."
   print_err
   print_err "  -e <email>"
   print_err "    Email used for registration while getting Free SSL Let's Encrypt certificates."
