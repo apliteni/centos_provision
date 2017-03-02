@@ -1,6 +1,6 @@
-- name: Install config file for  settings
+- name: Install config file
   template:
-    src: mysqld.cnf.j2
+    src: etc/my.cnf.d/mysqld.cnf.j2
     dest: /etc/my.cnf.d/mysqld.cnf
   notify: restart mariadb
   tags: mariadb
