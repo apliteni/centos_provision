@@ -387,7 +387,7 @@ RSpec.describe 'installer.sh' do
                       %r{Everything done!\nhttp://8.8.8.8/admin\nlogin: admin\npassword: \w+}
     end
 
-    context 'unsuccessfil installation' do
+    context 'unsuccessful installation' do
       let(:command_stubs) { {curl: '/bin/true', tar: '/bin/true', 'ansible-playbook': '/bin/false'} }
 
       it_behaves_like 'should exit with error', [

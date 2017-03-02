@@ -881,13 +881,26 @@ stage5(){
   debug "Starting stage 5: run ansible playbook"
   download_provision
   run_ansible_playbook
+  clean_up
+  remove_inventory_file
+  show_successful_message
 }
 
 
 
 download_provision(){
+  debug "Download provision"
   release_url="https://github.com/keitarocorp/centos_provision/archive/master.tar.gz"
   run_command "curl -sSL "$release_url" | tar xz"
+}
+
+
+
+remove_inventory_file(){
+  if [ -f "${INVENTORY_FILE}" ]; then
+    debug "Remove ${INVENTORY_FILE}"
+    rm -f "${INVENTORY_FILE}"
+  fi
 }
 
 
@@ -901,8 +914,6 @@ run_ansible_playbook(){
     command="${command} --skip-tags ${ANSIBLE_IGNORE_TAGS}"
   fi
   run_command "${command}"
-  clean_up
-  show_successful_message
 }
 
 
