@@ -1,6 +1,21 @@
-- name: Install config file for  settings
-  template:
-    src: mysqld.cnf.j2
-    dest: /etc/my.cnf.d/mysqld.cnf
+- name: Remove old config file
+  file:
+    path: /etc/my.cnf.d/mysqld.cnf
+    state: absent
+
+- name: Install config files
+  copy:
+    src: "{{ item }}"
+    dest: "/{{ item }}"
   notify: restart mariadb
-  tags: mariadb
+  with_items:
+    - etc/logrotate.d/mariadb
+    - etc/my.cnf.d/mysqld-log_slow_queries.cnf
+
+- name: Install config templates
+  template:
+    src: "{{ item }}"
+    dest: "/{{ item }}"
+  notify: restart mariadb
+  with_items:
+    - etc/my.cnf.d/mysqld-optimize_performance.cnf
