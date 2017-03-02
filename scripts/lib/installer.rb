@@ -15,13 +15,22 @@ class Installer
 
     LINES_DIVIDER = "\n"
     VALUES_DIVIDER = '='
+    LOG_PRE_INVENTORY_LINE = 'Write inventory file'
+    LOG_POST_INVENTORY_LINE = 'Starting stage 4:'
+
 
     def initialize(values: {})
       self.values = values
     end
 
-    def read_from_file(file)
-      content = IO.read(file)
+    def read_from_log(log_content)
+      inventory_from_log_match = log_content.match(/#{LOG_PRE_INVENTORY_LINE}(.*)#{LOG_POST_INVENTORY_LINE}/m)
+      unless inventory_from_log_match.nil?
+        read(inventory_from_log_match[1].gsub(/^ +/, ''))
+      end
+    end
+
+    def read(content)
       self.values = content
                       .split(LINES_DIVIDER)
                       .grep(/#{VALUES_DIVIDER}/)
@@ -80,8 +89,8 @@ class Installer
   def run_in_dir(current_dir)
     write_to_inventory(stored_values)
     invoke_installer_cmd(current_dir)
-    read_inventory
     read_log
+    read_inventory
   end
 
   def write_to_inventory(stored_values)
@@ -102,12 +111,12 @@ class Installer
     end
   end
 
-  def read_inventory
-    inventory.read_from_file(INVENTORY_FILE) if ret_value.success?
+  def read_log
+    @log = without_formatting(IO.read(LOG_FILE)) if File.exist?(LOG_FILE)
   end
 
-  def read_log
-    @log = without_formatting(IO.read(LOG_FILE)) rescue nil
+  def read_inventory
+    inventory.read_from_log(log)
   end
 
   def installer_cmd(current_dir)
