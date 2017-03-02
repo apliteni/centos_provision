@@ -8,5 +8,3 @@ run_ansible_playbook()
   if isset $ANSIBLE_IGNORE_TAGS
     command="${command} --skip-tags ${ANSIBLE_IGNORE_TAGS}"
   run_command "${command}"
-  clean_up
-  show_successful_message
