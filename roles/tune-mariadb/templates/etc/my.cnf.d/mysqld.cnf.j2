@@ -1,5 +1,5 @@
 [mysqld]
 innodb_buffer_pool_size = {{ [((ansible_memtotal_mb * innodb_buffer_pool_size_factor ) | int), max_innodb_buffer_pool_size] | min }}M
 innodb_buffer_pool_instances = 1
-slow-query-log=2
-slow-query-log-file=/var/log/mariadb/mariadb.slow.log
+slow-query-log = 2
+slow-query-log-file = /var/log/mariadb/mariadb.slow.log
