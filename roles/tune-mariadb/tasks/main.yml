@@ -4,3 +4,10 @@
     dest: /etc/my.cnf.d/mysqld.cnf
   notify: restart mariadb
   tags: mariadb
+
+- name: Install logrotate config for mariadb
+  copy:
+    src: etc/logrotate.d/mariadb
+    dest: /etc/logrotate.d/mariadb
+    force: true
+  tags: mariadb
