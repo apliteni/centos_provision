@@ -2,16 +2,23 @@ require 'open3'
 require 'tmpdir'
 require 'active_support'
 
-class SslEnabler
-  SSL_ENABLER_ROOT = File.expand_path(File.dirname(__FILE__) + '/../')
-  SSL_ENABLER_CMD = 'enable-ssl.sh'
-  LOG_FILE = 'enable-ssl.log'
-  DOCKER_WORKING_DIR = '/data'
+class Script
+  attr_accessor :env, :args, :prompts_with_values, :stored_values, :docker_image, :command_stubs, :commands
+  attr_reader :stdout, :stderr, :log, :ret_value, :inventory
 
-  attr_accessor :env, :args, :prompts_with_values, :docker_image, :command_stubs, :commands
-  attr_reader :stdout, :stderr, :log, :ret_value
+  def initialize(
+    script_name:,
+    env: {},
+    args: '',
+    prompts_with_values: {},
+    docker_image: nil,
+    command_stubs: {},
+    commands: []
+  )
+    @script_name = script_name
+    @command = "#{script_name}.sh"
+    @log_file = "#{script_name}.log"
 
-  def initialize(env: {}, args: '', prompts_with_values: {}, docker_image: nil, command_stubs: {}, commands: [])
     @env, @args, @prompts_with_values, @docker_image, @command_stubs, @commands =
       env, args, prompts_with_values, docker_image, command_stubs, commands
   end
@@ -35,14 +42,14 @@ class SslEnabler
   private
 
   def run_in_dir(current_dir)
-    invoke_ssl_enabler_cmd(current_dir)
+    invoke_script_cmd(current_dir)
     read_log
   end
 
-  def invoke_ssl_enabler_cmd(current_dir)
-    FileUtils.copy("#{SSL_ENABLER_ROOT}/#{SSL_ENABLER_CMD}", current_dir)
+  def invoke_script_cmd(current_dir)
+    FileUtils.copy("#{ROOT_PATH}/#{@command}", current_dir)
 
-    Open3.popen3(*ssl_enabler_cmd(current_dir)) do |stdin, stdout, stderr, wait_thr|
+    Open3.popen3(*make_cmd(current_dir)) do |stdin, stdout, stderr, wait_thr|
       stdout.sync = true
       stdin.sync = true
 
@@ -54,22 +61,22 @@ class SslEnabler
   end
 
   def read_log
-    if File.exist?(LOG_FILE)
-      @log = without_formatting(IO.read(LOG_FILE))
+    @log = without_formatting(IO.read(@log_file)) rescue nil
+  end
+
+  def make_cmd(current_dir)
+    if docker_image
+      docker_run = "docker run #{docker_env} --name keitaro_#{@script_name}_test -i --rm -v #{current_dir}:/data -w /data #{docker_image}"
+      evaluated_commands = make_command_stubs + commands + [command_with_args("./#{@command}", args)]
+      %Q{#{docker_run} sh -c '#{evaluated_commands.join(' && ')}'}
     else
-      raise "There was an error running '#{SSL_ENABLER_CMD}': '#{@stderr}'"
+      raise "Cann't stub fake commands in real system. Please use docker mode." if command_stubs.any? || commands.any?
+      [stringified_env, command_with_args("#{current_dir}/#{@command}", args)]
     end
   end
 
-  def ssl_enabler_cmd(current_dir)
-    if docker_image
-      docker_run = "docker run #{docker_env} --name keitaro_ssl_enabler_test -i --rm -v #{current_dir}:#{DOCKER_WORKING_DIR} -w #{DOCKER_WORKING_DIR} #{docker_image}"
-      runtime_commands = make_command_stubs + commands + ["./#{SSL_ENABLER_CMD} #{args}"]
-      %Q{#{docker_run} sh -c '#{runtime_commands.join(' && ')}'}
-    else
-      raise "Cann't stub fake commands in real system. Please use docker mode." if command_stubs.any? || commands.any?
-      [stringified_env, "#{current_dir}/#{SSL_ENABLER_CMD} #{args}"]
-    end
+  def docker_env
+    env.map { |key, value| "-e #{key}=#{value}" }.join(' ')
   end
 
   def make_command_stubs
@@ -78,12 +85,12 @@ class SslEnabler
     end
   end
 
-  def docker_env
-    env.map { |key, value| "-e #{key}=#{value}" }.join(' ')
-  end
-
   def stringified_env
     env.map { |key, value| [key.to_s, value.to_s] }.to_h
+  end
+
+  def command_with_args(command, args)
+    "#{command} #{args}"
   end
 
   def without_formatting(output)
@@ -132,7 +139,7 @@ class SslEnabler
 end
 
 begin
-  unless SslEnabler.docker_installed?
+  unless Script.docker_installed?
     puts 'You need to install the docker for running this specs'
   end
 end
