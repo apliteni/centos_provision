@@ -1,13 +1,12 @@
 require 'open3'
 require 'tmpdir'
-require 'active_support'
 
 class Script
   attr_accessor :env, :args, :prompts_with_values, :stored_values, :docker_image, :command_stubs, :commands
-  attr_reader :stdout, :stderr, :log, :ret_value, :inventory
+  attr_reader :stdout, :stderr, :log, :ret_value, :script_command
 
   def initialize(
-    script_name:,
+    script_command,
     env: {},
     args: '',
     prompts_with_values: {},
@@ -15,24 +14,17 @@ class Script
     command_stubs: {},
     commands: []
   )
-    @script_name = script_name
-    @command = "#{script_name}.sh"
-    @log_file = "#{script_name}.log"
+    @script_command = script_command
+    @base_name = File.basename(script_command, '.*')
+    @log_file = "#{@base_name}.log"
 
     @env, @args, @prompts_with_values, @docker_image, @command_stubs, @commands =
       env, args, prompts_with_values, docker_image, command_stubs, commands
   end
 
-  def call(current_dir: nil)
-    if current_dir.nil?
-      Dir.mktmpdir('', '/tmp') do |current_dir|
-        Dir.chdir(current_dir) do
-          run_in_dir(current_dir)
-        end
-      end
-    else
-      run_in_dir(current_dir)
-    end
+  def call(current_dir:)
+    invoke_script_cmd(current_dir)
+    read_log
   end
 
   def self.docker_installed?
@@ -41,13 +33,8 @@ class Script
 
   private
 
-  def run_in_dir(current_dir)
-    invoke_script_cmd(current_dir)
-    read_log
-  end
-
   def invoke_script_cmd(current_dir)
-    FileUtils.copy("#{ROOT_PATH}/#{@command}", current_dir)
+    FileUtils.copy("#{ROOT_PATH}/#{@script_command}", current_dir)
 
     Open3.popen3(*make_cmd(current_dir)) do |stdin, stdout, stderr, wait_thr|
       stdout.sync = true
@@ -66,12 +53,12 @@ class Script
 
   def make_cmd(current_dir)
     if docker_image
-      docker_run = "docker run #{docker_env} --name keitaro_#{@script_name}_test -i --rm -v #{current_dir}:/data -w /data #{docker_image}"
-      evaluated_commands = make_command_stubs + commands + [command_with_args("./#{@command}", args)]
+      docker_run = "docker run #{docker_env} --name keitaro_#{@base_name}_test -i --rm -v #{current_dir}:/data -w /data #{docker_image}"
+      evaluated_commands = make_command_stubs + commands + [command_with_args("./#{@script_command}", args)]
       %Q{#{docker_run} sh -c '#{evaluated_commands.join(' && ')}'}
     else
       raise "Cann't stub fake commands in real system. Please use docker mode." if command_stubs.any? || commands.any?
-      [stringified_env, command_with_args("#{current_dir}/#{@command}", args)]
+      [stringified_env, command_with_args("#{current_dir}/#{@script_command}", args)]
     end
   end
 
@@ -89,8 +76,8 @@ class Script
     env.map { |key, value| [key.to_s, value.to_s] }.to_h
   end
 
-  def command_with_args(command, args)
-    "#{command} #{args}"
+  def command_with_args(script_command, args)
+    "#{script_command} #{args}"
   end
 
   def without_formatting(output)
