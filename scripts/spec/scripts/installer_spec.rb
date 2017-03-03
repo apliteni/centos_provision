@@ -1,6 +1,8 @@
 require 'spec_helper'
 
 RSpec.describe 'install.sh' do
+  include_context 'run script in tmp dir'
+
   let(:args) { '' }
   let(:env) { {LANG: 'C'} }
   let(:stored_values) { {} }
@@ -82,7 +84,7 @@ RSpec.describe 'install.sh' do
   let(:prompts_with_values) { en_prompts_with_values }
 
   subject(:installer) do
-    Installer.new script_name: 'install',
+    Installer.new 'install.sh',
                   env: env,
                   args: args,
                   prompts_with_values: prompts_with_values,
@@ -217,21 +219,21 @@ RSpec.describe 'install.sh' do
       let(:prompts_with_values) { ru_prompts_with_values }
 
       it 'stdout contains prompt with default value' do
-        installer.call
+        run_script
         expect(installer.stdout).to include(prompts[:ru][field])
       end
     end
 
     shared_examples_for 'should show default value' do |field, showed_value:|
       it 'stdout contains prompt with default value' do
-        installer.call
+        run_script
         expect(installer.stdout).to match(/#{prompts[:en][field]} \[#{showed_value}\] >/)
       end
     end
 
     shared_examples_for 'should not show default value' do |field|
       it 'stdout does not contain prompt with default value' do
-        installer.call
+        run_script
         expect(installer.stdout).to include("#{prompts[:en][field]} >")
       end
     end
@@ -250,7 +252,7 @@ RSpec.describe 'install.sh' do
 
     shared_examples_for 'inventory contains value' do |field, value|
       it "inventory file contains field #{field.inspect} with value #{value.inspect}" do
-        installer.call
+        run_script
         expect(installer.inventory.values[field]).to match(value)
       end
     end
@@ -274,13 +276,13 @@ RSpec.describe 'install.sh' do
     describe 'kversion field' do
       context '-k option missed' do
         let(:args) { '-s -p' }
-        before { installer.call }
+        before { run_script }
         it { expect(installer.inventory.values).not_to have_key(:kversion) }
       end
 
       context '-k specified' do
         let(:args) { '-s -p -k 7' }
-        before { installer.call }
+        before { run_script }
         it { expect(installer.inventory.values[:kversion]).to eq('7') }
       end
 
@@ -374,18 +376,10 @@ RSpec.describe 'install.sh' do
   end
 
   describe 'log files' do
-    around do |example|
-      Dir.mktmpdir('', '/tmp') do |current_dir|
-        Dir.chdir(current_dir) do
-          @current_dir = current_dir
-          example.run
-        end
-      end
-    end
 
     shared_examples_for 'should create' do |filename|
       specify do
-        installer.call(current_dir: @current_dir)
+        run_script
         expect(File).to be_exists(filename)
       end
     end
@@ -393,7 +387,7 @@ RSpec.describe 'install.sh' do
     shared_examples_for 'should move old install.log to' do |newname|
       specify do
         old_content = IO.read('install.log')
-        installer.call(current_dir: @current_dir)
+        run_script
         expect(IO.read(newname)).to eq(old_content)
       end
     end

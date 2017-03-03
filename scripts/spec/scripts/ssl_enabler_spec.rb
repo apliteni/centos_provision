@@ -1,6 +1,9 @@
 require 'spec_helper'
 
 RSpec.describe 'enable-ssl.sh' do
+  include_context 'run script in tmp dir'
+
+  let(:script_name) { 'enable-ssl.sh' }
   let(:env) { {LANG: 'C'} }
   let(:options) { '' }
   let(:args) { options + ' ' + domains.join(' ') }
@@ -61,7 +64,7 @@ RSpec.describe 'enable-ssl.sh' do
   let(:prompts_with_values) { en_prompts_with_values }
 
   subject(:ssl_enabler) do
-    Script.new script_name: 'enable-ssl',
+    Script.new script_name,
                env: env,
                args: args,
                prompts_with_values: prompts_with_values,
@@ -149,14 +152,14 @@ RSpec.describe 'enable-ssl.sh' do
       let(:prompts_with_values) { ru_prompts_with_values }
 
       it 'stdout contains prompt with default value' do
-        ssl_enabler.call
+        run_script
         expect(ssl_enabler.stdout).to include(prompts[:ru][:ssl_agree_tos])
       end
     end
 
     describe 'should show default value' do
       it 'stdout contains prompt with default value' do
-        ssl_enabler.call
+        run_script
         expect(ssl_enabler.stdout).to include("#{prompts[:en][:ssl_agree_tos]} [no] >")
       end
     end
@@ -315,18 +318,9 @@ RSpec.describe 'enable-ssl.sh' do
   end
 
   describe 'logging' do
-    around do |example|
-      Dir.mktmpdir('', '/tmp') do |current_dir|
-        Dir.chdir(current_dir) do
-          @current_dir = current_dir
-          example.run
-        end
-      end
-    end
-
     shared_examples_for 'should create' do |filename|
       specify do
-        ssl_enabler.call(current_dir: @current_dir)
+        run_script
         expect(File).to be_exists(filename)
       end
     end
@@ -334,7 +328,7 @@ RSpec.describe 'enable-ssl.sh' do
     shared_examples_for 'should move old enable-ssl.log to' do |newname|
       specify do
         old_content = IO.read('enable-ssl.log')
-        ssl_enabler.call(current_dir: @current_dir)
+        run_script
         expect(IO.read(newname)).to eq(old_content)
       end
     end

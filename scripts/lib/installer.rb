@@ -44,15 +44,13 @@ class Installer < Script
   attr_accessor :stored_values
   attr_reader :inventory
 
-  def initialize(stored_values: {}, **keyword_args)
-    super(keyword_args)
+  def initialize(script_name, stored_values: {}, **keyword_args)
+    super(script_name, keyword_args)
     @stored_values = stored_values
     @inventory = Inventory.new
   end
 
-  private
-
-  def run_in_dir(current_dir)
+  def call(current_dir:)
     Inventory.write(stored_values)
     super
     inventory.read_from_log(log)
