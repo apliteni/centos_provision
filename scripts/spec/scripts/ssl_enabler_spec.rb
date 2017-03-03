@@ -61,12 +61,13 @@ RSpec.describe 'enable-ssl.sh' do
   let(:prompts_with_values) { en_prompts_with_values }
 
   subject(:ssl_enabler) do
-    SslEnabler.new env: env,
-                   args: args,
-                   prompts_with_values: prompts_with_values,
-                   docker_image: docker_image,
-                   command_stubs: command_stubs,
-                   commands: commands
+    Script.new script_name: 'enable-ssl',
+               env: env,
+               args: args,
+               prompts_with_values: prompts_with_values,
+               docker_image: docker_image,
+               command_stubs: command_stubs,
+               commands: commands
   end
 
   describe 'checking bash pipe mode' do
@@ -79,13 +80,13 @@ RSpec.describe 'enable-ssl.sh' do
     context 'with wrong options' do
       let(:options) { '-x' }
 
-      it_behaves_like 'should exit with error', "Usage: #{SslEnabler::SSL_ENABLER_CMD}"
+      it_behaves_like 'should exit with error', 'Usage: enable-ssl.sh'
     end
 
     context 'without domains' do
       let(:domains) { [] }
 
-      it_behaves_like 'should exit with error', "Usage: #{SslEnabler::SSL_ENABLER_CMD}"
+      it_behaves_like 'should exit with error', 'Usage: enable-ssl.sh'
     end
 
     context 'with `-l` option' do

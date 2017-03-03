@@ -82,7 +82,8 @@ RSpec.describe 'install.sh' do
   let(:prompts_with_values) { en_prompts_with_values }
 
   subject(:installer) do
-    Installer.new env: env,
+    Installer.new script_name: 'install',
+                  env: env,
                   args: args,
                   prompts_with_values: prompts_with_values,
                   stored_values: stored_values,
@@ -100,7 +101,7 @@ RSpec.describe 'install.sh' do
     context 'with wrong args' do
       let(:args) { '-x' }
 
-      it_behaves_like 'should exit with error', "Usage: #{Installer::INSTALLER_CMD}"
+      it_behaves_like 'should exit with error', 'Usage: install.sh'
     end
 
     context 'with `-l` option' do
@@ -300,20 +301,20 @@ RSpec.describe 'install.sh' do
                       'curl -sSL https://github.com/keitarocorp/centos_provision/archive/master.tar.gz | tar xz'
 
       it_behaves_like 'should print to stdout',
-                      "ansible-playbook -vvv -i #{Installer::INVENTORY_FILE} centos_provision-master/playbook.yml"
+                      "ansible-playbook -vvv -i #{Installer::Inventory::INVENTORY_FILE} centos_provision-master/playbook.yml"
 
       context '-t specified' do
         let(:args) { '-p -t tag1,tag2' }
 
         it_behaves_like 'should print to stdout',
-                        "ansible-playbook -vvv -i #{Installer::INVENTORY_FILE} centos_provision-master/playbook.yml --tags tag1,tag2"
+                        "ansible-playbook -vvv -i #{Installer::Inventory::INVENTORY_FILE} centos_provision-master/playbook.yml --tags tag1,tag2"
       end
 
       context '-i specified' do
         let(:args) { '-p -i tag1,tag2' }
 
         it_behaves_like 'should print to stdout',
-                        "ansible-playbook -vvv -i #{Installer::INVENTORY_FILE} centos_provision-master/playbook.yml --skip-tags tag1,tag2"
+                        "ansible-playbook -vvv -i #{Installer::Inventory::INVENTORY_FILE} centos_provision-master/playbook.yml --skip-tags tag1,tag2"
       end
     end
 

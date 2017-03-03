@@ -10,7 +10,6 @@ require 'byebug'
 
 require 'script'
 require 'installer'
-require 'ssl_enabler'
 
 RSpec.configure do |config|
   config.expect_with :rspec do |expectations|
