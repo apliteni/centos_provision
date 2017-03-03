@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-RSpec.describe 'installer.sh' do
+RSpec.describe 'install.sh' do
   let(:args) { '' }
   let(:env) { {LANG: 'C'} }
   let(:stored_values) { {} }
@@ -81,44 +81,13 @@ RSpec.describe 'installer.sh' do
 
   let(:prompts_with_values) { en_prompts_with_values }
 
-  let(:installer) do
+  subject(:installer) do
     Installer.new env: env,
                   args: args,
                   prompts_with_values: prompts_with_values,
                   stored_values: stored_values,
                   docker_image: docker_image,
                   command_stubs: command_stubs
-  end
-
-  shared_examples_for 'should print to log' do |expected_text|
-    it "prints to stdout #{expected_text.inspect}" do
-      installer.call(current_dir: @current_dir)
-      expect(installer.log).to match(expected_text)
-    end
-  end
-
-  shared_examples_for 'should print to stdout' do |expected_text|
-    it "prints to stdout #{expected_text.inspect}" do
-      installer.call
-      expect(installer.stdout).to match(expected_text)
-    end
-  end
-
-  shared_examples_for 'should not print to stdout' do |expected_text|
-    it "does not print to stdout #{expected_text.inspect}" do
-      installer.call
-      expect(installer.stdout).not_to match(expected_text)
-    end
-  end
-
-  shared_examples_for 'should exit with error' do |expected_texts|
-    it "exits with error #{expected_texts}" do
-      installer.call
-      expect(installer.ret_value).not_to be_success
-      [*expected_texts].each do |expected_text|
-        expect(installer.stderr).to match(expected_text)
-      end
-    end
   end
 
   describe 'checking bash pipe mode' do

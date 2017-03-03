@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-RSpec.describe 'ssl_enabler.sh' do
+RSpec.describe 'enable-ssl.sh' do
   let(:env) { {LANG: 'C'} }
   let(:options) { '' }
   let(:args) { options + ' ' + domains.join(' ') }
@@ -60,46 +60,13 @@ RSpec.describe 'ssl_enabler.sh' do
 
   let(:prompts_with_values) { en_prompts_with_values }
 
-  let(:ssl_enabler) do
+  subject(:ssl_enabler) do
     SslEnabler.new env: env,
                    args: args,
                    prompts_with_values: prompts_with_values,
                    docker_image: docker_image,
                    command_stubs: command_stubs,
                    commands: commands
-  end
-
-  shared_examples_for 'should print to log' do |expected_texts|
-    it "prints to log #{expected_texts.inspect}" do
-      ssl_enabler.call(current_dir: @current_dir)
-      [*expected_texts].each do |expected_text|
-        expect(ssl_enabler.log).to match(expected_text)
-      end
-    end
-  end
-
-  shared_examples_for 'should print to stdout' do |expected_text|
-    it "prints to stdout #{expected_text.inspect}" do
-      ssl_enabler.call
-      expect(ssl_enabler.stdout).to match(expected_text)
-    end
-  end
-
-  shared_examples_for 'should not print to stdout' do |expected_text|
-    it "does not print to stdout #{expected_text.inspect}" do
-      ssl_enabler.call
-      expect(ssl_enabler.stdout).not_to match(expected_text)
-    end
-  end
-
-  shared_examples_for 'should exit with error' do |error_texts|
-    it "exits with error #{error_texts.inspect}" do
-      ssl_enabler.call
-      expect(ssl_enabler.ret_value).not_to be_success
-      [*error_texts].each do |error_text|
-        expect(ssl_enabler.stderr).to match(error_text)
-      end
-    end
   end
 
   describe 'checking bash pipe mode' do
