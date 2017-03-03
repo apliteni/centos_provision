@@ -8,8 +8,8 @@ require 'bundler/setup'
 
 require 'byebug'
 
+require 'inventory'
 require 'script'
-require 'installer'
 
 RSpec.configure do |config|
   config.expect_with :rspec do |expectations|

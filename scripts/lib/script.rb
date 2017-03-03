@@ -34,8 +34,6 @@ class Script
   private
 
   def invoke_script_cmd(current_dir)
-    FileUtils.copy("#{ROOT_PATH}/#{@script_command}", current_dir)
-
     Open3.popen3(*make_cmd(current_dir)) do |stdin, stdout, stderr, wait_thr|
       stdout.sync = true
       stdin.sync = true

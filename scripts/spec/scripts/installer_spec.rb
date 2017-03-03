@@ -3,6 +3,7 @@ require 'spec_helper'
 RSpec.describe 'install.sh' do
   include_context 'run script in tmp dir'
 
+
   let(:args) { '' }
   let(:env) { {LANG: 'C'} }
   let(:stored_values) { {} }
@@ -84,14 +85,17 @@ RSpec.describe 'install.sh' do
   let(:prompts_with_values) { en_prompts_with_values }
 
   subject(:installer) do
-    Installer.new 'install.sh',
+    Script.new 'install.sh',
                   env: env,
                   args: args,
                   prompts_with_values: prompts_with_values,
-                  stored_values: stored_values,
                   docker_image: docker_image,
                   command_stubs: command_stubs
   end
+
+  let(:inventory) { Inventory.read_from_log(subject.log) }
+
+  before { Inventory.write(stored_values) }
 
   describe 'checking bash pipe mode' do
     let(:args) { '-s -p' }
@@ -253,7 +257,7 @@ RSpec.describe 'install.sh' do
     shared_examples_for 'inventory contains value' do |field, value|
       it "inventory file contains field #{field.inspect} with value #{value.inspect}" do
         run_script
-        expect(installer.inventory.values[field]).to match(value)
+        expect(inventory.values[field]).to match(value)
       end
     end
 
@@ -277,13 +281,13 @@ RSpec.describe 'install.sh' do
       context '-k option missed' do
         let(:args) { '-s -p' }
         before { run_script }
-        it { expect(installer.inventory.values).not_to have_key(:kversion) }
+        it { expect(inventory.values).not_to have_key(:kversion) }
       end
 
       context '-k specified' do
         let(:args) { '-s -p -k 7' }
         before { run_script }
-        it { expect(installer.inventory.values[:kversion]).to eq('7') }
+        it { expect(inventory.values[:kversion]).to eq('7') }
       end
 
       context 'specified -k with wrong value' do
@@ -303,20 +307,20 @@ RSpec.describe 'install.sh' do
                       'curl -sSL https://github.com/keitarocorp/centos_provision/archive/master.tar.gz | tar xz'
 
       it_behaves_like 'should print to stdout',
-                      "ansible-playbook -vvv -i #{Installer::Inventory::INVENTORY_FILE} centos_provision-master/playbook.yml"
+                      "ansible-playbook -vvv -i #{Inventory::INVENTORY_FILE} centos_provision-master/playbook.yml"
 
       context '-t specified' do
         let(:args) { '-p -t tag1,tag2' }
 
         it_behaves_like 'should print to stdout',
-                        "ansible-playbook -vvv -i #{Installer::Inventory::INVENTORY_FILE} centos_provision-master/playbook.yml --tags tag1,tag2"
+                        "ansible-playbook -vvv -i #{Inventory::INVENTORY_FILE} centos_provision-master/playbook.yml --tags tag1,tag2"
       end
 
       context '-i specified' do
         let(:args) { '-p -i tag1,tag2' }
 
         it_behaves_like 'should print to stdout',
-                        "ansible-playbook -vvv -i #{Installer::Inventory::INVENTORY_FILE} centos_provision-master/playbook.yml --skip-tags tag1,tag2"
+                        "ansible-playbook -vvv -i #{Inventory::INVENTORY_FILE} centos_provision-master/playbook.yml --skip-tags tag1,tag2"
       end
     end
 
