@@ -2,6 +2,7 @@ require 'spec_helper'
 
 RSpec.describe 'enable-ssl.sh' do
   include_context 'run script in tmp dir'
+  include_context 'make prompts with values'
 
   let(:script_name) { 'enable-ssl.sh' }
   let(:env) { {LANG: 'C'} }
@@ -47,21 +48,7 @@ RSpec.describe 'enable-ssl.sh' do
     }
   end
 
-  let(:en_prompts_with_values) do
-    {
-      prompts[:en][:ssl_agree_tos] => user_values[:ssl_agree_tos],
-      prompts[:en][:ssl_email] => user_values[:ssl_email],
-    }
-  end
-
-  let(:ru_prompts_with_values) do
-    {
-      prompts[:ru][:ssl_agree_tos] => user_values[:ssl_agree_tos],
-      prompts[:ru][:ssl_email] => user_values[:ssl_email],
-    }
-  end
-
-  let(:prompts_with_values) { en_prompts_with_values }
+  let(:prompts_with_values) { make_prompts_with_values(:en) }
 
   subject(:ssl_enabler) do
     Script.new script_name,
@@ -149,7 +136,7 @@ RSpec.describe 'enable-ssl.sh' do
 
     describe 'should support russian prompts' do
       let(:options) { '-sp -l ru' }
-      let(:prompts_with_values) { ru_prompts_with_values }
+      let(:prompts_with_values) { make_prompts_with_values(:ru) }
 
       it 'stdout contains prompt with default value' do
         run_script

@@ -2,7 +2,7 @@ require 'spec_helper'
 
 RSpec.describe 'install.sh' do
   include_context 'run script in tmp dir'
-
+  include_context 'make prompts with values'
 
   let(:args) { '' }
   let(:env) { {LANG: 'C'} }
@@ -56,41 +56,15 @@ RSpec.describe 'install.sh' do
     }
   end
 
-  let(:en_prompts_with_values) do
-    {
-      prompts[:en][:ssl] => user_values[:ssl],
-      prompts[:en][:license_ip] => user_values[:license_ip],
-      prompts[:en][:license_key] => user_values[:license_key],
-      prompts[:en][:db_name] => user_values[:db_name],
-      prompts[:en][:db_user] => user_values[:db_user],
-      prompts[:en][:db_password] => user_values[:db_password],
-      prompts[:en][:admin_login] => user_values[:admin_login],
-      prompts[:en][:admin_password] => user_values[:admin_password],
-    }
-  end
-
-  let(:ru_prompts_with_values) do
-    {
-      prompts[:ru][:ssl] => user_values[:ssl],
-      prompts[:ru][:license_ip] => user_values[:license_ip],
-      prompts[:ru][:license_key] => user_values[:license_key],
-      prompts[:ru][:db_name] => user_values[:db_name],
-      prompts[:ru][:db_user] => user_values[:db_user],
-      prompts[:ru][:db_password] => user_values[:db_password],
-      prompts[:ru][:admin_login] => user_values[:admin_login],
-      prompts[:ru][:admin_password] => user_values[:admin_password],
-    }
-  end
-
-  let(:prompts_with_values) { en_prompts_with_values }
+  let(:prompts_with_values) { make_prompts_with_values(:en) }
 
   subject(:installer) do
     Script.new 'install.sh',
-                  env: env,
-                  args: args,
-                  prompts_with_values: prompts_with_values,
-                  docker_image: docker_image,
-                  command_stubs: command_stubs
+               env: env,
+               args: args,
+               prompts_with_values: prompts_with_values,
+               docker_image: docker_image,
+               command_stubs: command_stubs
   end
 
   let(:inventory) { Inventory.read_from_log(subject.log) }
@@ -220,7 +194,7 @@ RSpec.describe 'install.sh' do
 
     shared_examples_for 'should support russian prompts' do |field|
       let(:args) { '-sp -l ru' }
-      let(:prompts_with_values) { ru_prompts_with_values }
+      let(:prompts_with_values) { make_prompts_with_values(:ru) }
 
       it 'stdout contains prompt with default value' do
         run_script
@@ -243,13 +217,13 @@ RSpec.describe 'install.sh' do
     end
 
     shared_examples_for 'should store default value' do |field, readed_inventory_value:|
-      let(:prompts_with_values) { en_prompts_with_values.merge(prompts[:en][field] => nil) }
+      let(:prompts_with_values) { make_prompts_with_values(:en).merge(prompts[:en][field] => nil) }
 
       it_behaves_like 'inventory contains value', field, readed_inventory_value
     end
 
     shared_examples_for 'should store user value' do |field, readed_inventory_value:|
-      let(:prompts_with_values) { en_prompts_with_values.merge(prompts[:en][field] => readed_inventory_value) }
+      let(:prompts_with_values) { make_prompts_with_values(:en).merge(prompts[:en][field] => readed_inventory_value) }
 
       it_behaves_like 'inventory contains value', field, readed_inventory_value
     end
