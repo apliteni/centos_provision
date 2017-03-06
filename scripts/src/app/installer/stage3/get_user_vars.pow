@@ -18,9 +18,9 @@ get_user_vars()
 get_user_ssl_vars()
   VARS['ssl_certificate']='self-signed'
   get_user_var 'ssl' 'validate_yes_no'
-  if is_yes_answer ${VARS['ssl']}
+  if is_yes ${VARS['ssl']}
     get_user_var 'ssl_agree_tos' 'validate_yes_no'
-    if is_yes_answer ${VARS['ssl_agree_tos']}
+    if is_yes ${VARS['ssl_agree_tos']}
       VARS['ssl_certificate']='letsencrypt'
       get_user_var 'ssl_domains' 'validate_presence'
       get_user_var 'ssl_email'

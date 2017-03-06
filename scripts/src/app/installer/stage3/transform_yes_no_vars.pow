@@ -1,0 +1,7 @@
+#!/usr/bin/env powscript
+
+
+transform_yes_no_vars()
+  debug "Transform binary values to yes/no"
+  transform_to_yes_no 'ssl'
+  transform_to_yes_no 'ssl_agree_tos'

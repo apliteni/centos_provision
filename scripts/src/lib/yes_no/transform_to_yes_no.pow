@@ -1,0 +1,10 @@
+#!/usr/bin/env powscript
+
+
+transform_to_yes_no(var_name)
+  if is_no "${VARS[$var_name]}"
+    debug "Transform ${var_name}: ${VARS[$var_name]} => yes"
+    VARS[$var_name]='yes'
+  else
+    debug "Transform ${var_name}: ${VARS[$var_name]} => no"
+    VARS[$var_name]='no'

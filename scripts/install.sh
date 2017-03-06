@@ -257,56 +257,6 @@ read_stdin(){
 }
 
 
-is_valid(){
-  local validation_method="${1}"
-  local value="${2}"
-  if empty "$validation_method"; then
-    true
-  else
-    eval "$validation_method" "$value"
-  fi
-}
-
-
-validate_presence(){
-  local value="${1}"
-  isset "$value"
-}
-
-
-validate_yes_no(){
-  local value="${1}"
-  (is_yes_answer "$value" || is_no_answer "$value")
-}
-
-
-is_yes_answer(){
-  local answer="${1}"
-  shopt -s nocasematch
-  [[ "$answer" =~ ^(yes|y|да|д) ]]
-}
-
-
-is_no_answer(){
-  local answer="${1}"
-  shopt -s nocasematch
-  [[ "$answer" =~ ^(no|n|нет|н) ]]
-}
-
-
-is_yes_answer(){
-  local answer="${1}"
-  shopt -s nocasematch
-  [[ "$answer" =~ ^(yes|y|да|д) ]]
-}
-
-
-is_no_answer(){
-  local answer="${1}"
-  shopt -s nocasematch
-  [[ "$answer" =~ ^(no|n|нет|н) ]]
-}
-
 
 
 install_package(){
@@ -522,6 +472,60 @@ print_command_status(){
   fi
 }
 
+
+
+
+is_valid(){
+  local validation_method="${1}"
+  local value="${2}"
+  if empty "$validation_method"; then
+    true
+  else
+    eval "$validation_method" "$value"
+  fi
+}
+
+
+
+validate_presence(){
+  local value="${1}"
+  isset "$value"
+}
+
+
+
+is_no(){
+  local answer="${1}"
+  shopt -s nocasematch
+  [[ "$answer" =~ ^(no|n|нет|н) ]]
+}
+
+
+
+is_yes(){
+  local answer="${1}"
+  shopt -s nocasematch
+  [[ "$answer" =~ ^(yes|y|да|д) ]]
+}
+
+
+
+transform_to_yes_no(){
+  local var_name="${1}"
+  if is_no "${VARS[$var_name]}"; then
+    debug "Transform ${var_name}: ${VARS[$var_name]} => yes"
+    VARS[$var_name]='yes'
+  else
+    debug "Transform ${var_name}: ${VARS[$var_name]} => no"
+    VARS[$var_name]='no'
+  fi
+}
+
+
+validate_yes_no(){
+  local value="${1}"
+  (is_yes "$value" || is_no "$value")
+}
 
 
 INVENTORY_FILE=hosts.txt
@@ -750,6 +754,7 @@ stage3(){
   setup_vars
   read_inventory_file
   get_user_vars
+  transform_yes_no_vars
   write_inventory_file
 }
 
@@ -773,9 +778,9 @@ get_user_vars(){
 get_user_ssl_vars(){
   VARS['ssl_certificate']='self-signed'
   get_user_var 'ssl' 'validate_yes_no'
-  if is_yes_answer ${VARS['ssl']}; then
+  if is_yes ${VARS['ssl']}; then
     get_user_var 'ssl_agree_tos' 'validate_yes_no'
-    if is_yes_answer ${VARS['ssl_agree_tos']}; then
+    if is_yes ${VARS['ssl_agree_tos']}; then
       VARS['ssl_certificate']='letsencrypt'
       get_user_var 'ssl_domains' 'validate_presence'
       get_user_var 'ssl_email'
@@ -822,6 +827,14 @@ setup_vars(){
 generate_password(){
   local PASSWORD_LENGTH=16
   LC_ALL=C tr -cd '[:alnum:]' < /dev/urandom | head -c${PASSWORD_LENGTH}
+}
+
+
+
+transform_yes_no_vars(){
+  debug "Transform binary values to yes/no"
+  transform_to_yes_no 'ssl'
+  transform_to_yes_no 'ssl_agree_tos'
 }
 
 
