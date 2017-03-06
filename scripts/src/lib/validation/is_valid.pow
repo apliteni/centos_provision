@@ -6,11 +6,3 @@ is_valid(validation_method, value)
     true
   else
     eval $validation_method $value
-
-
-validate_presence(value)
-  isset $value
-
-
-validate_yes_no(value)
-  (is_yes_answer $value || is_no_answer $value)

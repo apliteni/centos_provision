@@ -1,0 +1,4 @@
+#!/usr/bin/env powscript
+
+validate_yes_no(value)
+  (is_yes $value || is_no $value)
