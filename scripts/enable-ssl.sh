@@ -308,56 +308,6 @@ read_stdin(){
 }
 
 
-is_valid(){
-  local validation_method="${1}"
-  local value="${2}"
-  if empty "$validation_method"; then
-    true
-  else
-    eval "$validation_method" "$value"
-  fi
-}
-
-
-validate_presence(){
-  local value="${1}"
-  isset "$value"
-}
-
-
-validate_yes_no(){
-  local value="${1}"
-  (is_yes_answer "$value" || is_no_answer "$value")
-}
-
-
-is_yes_answer(){
-  local answer="${1}"
-  shopt -s nocasematch
-  [[ "$answer" =~ ^(yes|y|да|д) ]]
-}
-
-
-is_no_answer(){
-  local answer="${1}"
-  shopt -s nocasematch
-  [[ "$answer" =~ ^(no|n|нет|н) ]]
-}
-
-
-is_yes_answer(){
-  local answer="${1}"
-  shopt -s nocasematch
-  [[ "$answer" =~ ^(yes|y|да|д) ]]
-}
-
-
-is_no_answer(){
-  local answer="${1}"
-  shopt -s nocasematch
-  [[ "$answer" =~ ^(no|n|нет|н) ]]
-}
-
 
 
 clean_up(){
@@ -554,6 +504,47 @@ print_command_status(){
   fi
 }
 
+
+
+
+is_valid(){
+  local validation_method="${1}"
+  local value="${2}"
+  if empty "$validation_method"; then
+    true
+  else
+    eval "$validation_method" "$value"
+  fi
+}
+
+
+
+validate_presence(){
+  local value="${1}"
+  isset "$value"
+}
+
+
+
+is_no(){
+  local answer="${1}"
+  shopt -s nocasematch
+  [[ "$answer" =~ ^(no|n|нет|н) ]]
+}
+
+
+
+is_yes(){
+  local answer="${1}"
+  shopt -s nocasematch
+  [[ "$answer" =~ ^(yes|y|да|д) ]]
+}
+
+
+validate_yes_no(){
+  local value="${1}"
+  (is_yes "$value" || is_no "$value")
+}
 
 
 
@@ -755,7 +746,7 @@ get_user_vars(){
   debug 'Read vars from user input'
   hack_stdin_if_pipe_mode
   get_user_le_sa_agreement
-  if is_yes_answer ${VARS['ssl_agree_tos']}; then
+  if is_yes ${VARS['ssl_agree_tos']}; then
     get_user_email
   else
     fail "$(translate 'prompts.ssl_agree_tos.help')"
