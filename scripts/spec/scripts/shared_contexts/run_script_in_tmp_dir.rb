@@ -10,5 +10,6 @@ RSpec.shared_context 'run script in tmp dir', run_script_in_tmp_dir: :yes  do
 
   def run_script
     subject.call(current_dir: @current_dir)
+    @inventory = Inventory.read_from_log(subject.log)
   end
 end

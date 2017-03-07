@@ -2,13 +2,10 @@ require 'spec_helper'
 
 RSpec.describe 'install.sh' do
   include_context 'run script in tmp dir'
-  include_context 'make prompts with values'
+  include_context 'build subject'
 
-  let(:args) { '' }
-  let(:env) { {LANG: 'C'} }
   let(:stored_values) { {} }
-  let(:docker_image) { nil }
-  let(:command_stubs) { {} }
+  let(:script_name) { 'install.sh' }
 
   let(:license_ip) { '8.8.8.8' }
   let(:license_key) { 'WWWW-XXXX-YYYY-ZZZZ' }
@@ -56,89 +53,25 @@ RSpec.describe 'install.sh' do
     }
   end
 
-  let(:prompts_with_values) { make_prompts_with_values(:en) }
-
-  subject(:installer) do
-    Script.new 'install.sh',
-               env: env,
-               args: args,
-               prompts_with_values: prompts_with_values,
-               docker_image: docker_image,
-               command_stubs: command_stubs
-  end
-
-  let(:inventory) { Inventory.read_from_log(subject.log) }
-
   before { Inventory.write(stored_values) }
 
-  describe 'checking bash pipe mode' do
-    let(:args) { '-s -p' }
+  it_behaves_like 'should try to detect bash pipe mode'
 
-    it_behaves_like 'should print to log', "Can't detect pipe bash mode. Stdin hack disabled"
-  end
+  it_behaves_like 'should print usage when invoked with', args: '-s -x'
 
-  describe 'invoked' do
-    context 'with wrong args' do
-      let(:args) { '-x' }
+  it_behaves_like 'should detect language'
 
-      it_behaves_like 'should exit with error', 'Usage: install.sh'
-    end
+  it_behaves_like 'should support russian prompts'
 
-    context 'with `-l` option' do
-      let(:args) { "-l #{lang}" }
+  it_behaves_like 'should not run under non-root'
 
-      context 'with `en` value' do
-        let(:lang) { 'en' }
-
-        it_behaves_like 'should print to log', 'Language: en'
-      end
-
-      context 'with `ru` value' do
-        let(:lang) { 'ru' }
-
-        it_behaves_like 'should print to log', 'Language: ru'
-      end
-
-      context 'with unsupported value' do
-        let(:lang) { 'xx' }
-
-        it_behaves_like 'should exit with error', 'Specified language "xx" is not supported'
-      end
-    end
-
-    # TODO: Detect language from LC_MESSAGES
-    describe 'detects language from LANG environment variable' do
-      context 'LANG=ru_RU.UTF-8' do
-        let(:env) { {LANG: 'ru_RU.UTF-8'} }
-
-        it_behaves_like 'should print to log', 'Language: ru'
-      end
-
-      context 'LANG=ru_UA.UTF-8' do
-        let(:env) { {LANG: 'ru_UA.UTF-8'} }
-
-        it_behaves_like 'should print to log', 'Language: ru'
-      end
-
-      context 'LANG=en_US.UTF-8' do
-        let(:env) { {LANG: 'en_US.UTF-8'} }
-
-        it_behaves_like 'should print to log', 'Language: en'
-      end
-
-      context 'LANG=de_DE.UTF-8' do
-        let(:env) { {LANG: 'de_DE.UTF-8'} }
-
-        it_behaves_like 'should print to log', 'Language: en'
-      end
-    end
-  end
+  it_behaves_like 'should rotate log files', log_file_name: 'install.log'
 
   describe 'fields' do
     # `-s` option disables yum/ansible checks
     # `-p` option disables invoking install commands
 
-    let(:args) { '-spl en' }
+    let(:options) { '-spl en' }
 
     shared_examples_for 'field without default' do |field|
       context 'field not stored in inventory' do
@@ -147,9 +80,7 @@ RSpec.describe 'install.sh' do
         it_behaves_like 'should store user value', field, readed_inventory_value: 'user.value'
       end
 
-      it_behaves_like 'should take values from previously saved inventory', field
-
-      it_behaves_like 'should support russian prompts', field
+      it_behaves_like 'should take value from previously saved inventory', field
     end
 
     shared_examples_for 'field with default' do |field, default:|
@@ -161,9 +92,7 @@ RSpec.describe 'install.sh' do
         it_behaves_like 'should store user value', field, readed_inventory_value: 'user.value'
       end
 
-      it_behaves_like 'should take values from previously saved inventory', field
-
-      it_behaves_like 'should support russian prompts', field
+      it_behaves_like 'should take value from previously saved inventory', field
     end
 
     shared_examples_for 'password field' do |field|
@@ -175,12 +104,10 @@ RSpec.describe 'install.sh' do
         it_behaves_like 'should store user value', field, readed_inventory_value: 'user.value'
       end
 
-      it_behaves_like 'should take values from previously saved inventory', field
-
-      it_behaves_like 'should support russian prompts', field
+      it_behaves_like 'should take value from previously saved inventory', field
     end
 
-    shared_examples_for 'should take values from previously saved inventory' do |field|
+    shared_examples_for 'should take value from previously saved inventory' do |field|
       context 'field stored in inventory' do
         let(:stored_values) { {field => 'stored.value'} }
 
@@ -189,30 +116,6 @@ RSpec.describe 'install.sh' do
         it_behaves_like 'should store default value', field, readed_inventory_value: 'stored.value'
 
         it_behaves_like 'should store user value', field, readed_inventory_value: 'user.value'
-      end
-    end
-
-    shared_examples_for 'should support russian prompts' do |field|
-      let(:args) { '-sp -l ru' }
-      let(:prompts_with_values) { make_prompts_with_values(:ru) }
-
-      it 'stdout contains prompt with default value' do
-        run_script
-        expect(installer.stdout).to include(prompts[:ru][field])
-      end
-    end
-
-    shared_examples_for 'should show default value' do |field, showed_value:|
-      it 'stdout contains prompt with default value' do
-        run_script
-        expect(installer.stdout).to match(/#{prompts[:en][field]} \[#{showed_value}\] >/)
-      end
-    end
-
-    shared_examples_for 'should not show default value' do |field|
-      it 'stdout does not contain prompt with default value' do
-        run_script
-        expect(installer.stdout).to include("#{prompts[:en][field]} >")
       end
     end
 
@@ -231,7 +134,7 @@ RSpec.describe 'install.sh' do
     shared_examples_for 'inventory contains value' do |field, value|
       it "inventory file contains field #{field.inspect} with value #{value.inspect}" do
         run_script
-        expect(inventory.values[field]).to match(value)
+        expect(@inventory.values[field]).to match(value)
       end
     end
 
@@ -253,26 +156,27 @@ RSpec.describe 'install.sh' do
   describe 'inventory file' do
     describe 'kversion field' do
       context '-k option missed' do
-        let(:args) { '-s -p' }
+        let(:options) { '-s -p' }
         before { run_script }
-        it { expect(inventory.values).not_to have_key(:kversion) }
+        it { expect(@inventory.values).not_to have_key(:kversion) }
       end
 
       context '-k specified' do
-        let(:args) { '-s -p -k 7' }
+        let(:options) { '-s -p -k 7' }
         before { run_script }
-        it { expect(inventory.values[:kversion]).to eq('7') }
+        it { expect(@inventory.values[:kversion]).to eq('7') }
       end
 
       context 'specified -k with wrong value' do
-        let(:args) { '-s -p -k 9' }
+        let(:options) { '-s -p -k 9' }
         it_behaves_like 'should exit with error', 'Specified Keitaro TDS Release "9" is not supported'
       end
     end
   end
 
   context 'without actual installing software' do
-    let(:args) { '-p' }
+    let(:options) { '-p' }
+    let(:docker_image) { 'centos' }
 
     before(:all) { `docker rm keitaro_installer_test &>/dev/null` }
 
@@ -284,14 +188,14 @@ RSpec.describe 'install.sh' do
                       "ansible-playbook -vvv -i #{Inventory::INVENTORY_FILE} centos_provision-master/playbook.yml"
 
       context '-t specified' do
-        let(:args) { '-p -t tag1,tag2' }
+        let(:options) { '-p -t tag1,tag2' }
 
         it_behaves_like 'should print to stdout',
                         "ansible-playbook -vvv -i #{Inventory::INVENTORY_FILE} centos_provision-master/playbook.yml --tags tag1,tag2"
       end
 
       context '-i specified' do
-        let(:args) { '-p -i tag1,tag2' }
+        let(:options) { '-p -i tag1,tag2' }
 
         it_behaves_like 'should print to stdout',
                         "ansible-playbook -vvv -i #{Inventory::INVENTORY_FILE} centos_provision-master/playbook.yml --skip-tags tag1,tag2"
@@ -299,7 +203,7 @@ RSpec.describe 'install.sh' do
     end
 
     context 'yum presented, ansible presented' do
-      let(:docker_image) { 'ansible/centos7-ansible' }
+      let(:command_stubs) { {yum: '/bin/true', ansible: '/bin/true'} }
 
       it_behaves_like 'should print to log', "Try to found yum\nOK"
       it_behaves_like 'should print to log', "Try to found ansible\nOK"
@@ -309,7 +213,7 @@ RSpec.describe 'install.sh' do
     end
 
     context 'yum presented, ansible not presented' do
-      let(:docker_image) { 'centos' }
+      let(:command_stubs) { {yum: '/bin/true'} }
 
       it_behaves_like 'should print to log', "Try to found yum\nOK"
       it_behaves_like 'should print to log', "Try to found ansible\nNOK"
@@ -320,25 +224,24 @@ RSpec.describe 'install.sh' do
     end
 
     context 'yum not presented' do
-      let(:docker_image) { 'ubuntu' }
-
+      let(:commands) { ['rm /usr/bin/yum'] }
       it_behaves_like 'should print to log', "Try to found yum\nNOK"
       it_behaves_like 'should exit with error', 'This installer works only on yum-based systems'
     end
   end
 
   describe 'installation result' do
-    let(:docker_image) { 'ansible/centos7-ansible' }
+    let(:docker_image) { 'centos' }
 
     context 'successful installation' do
-      let(:command_stubs) { {curl: '/bin/true', tar: '/bin/true', 'ansible-playbook': '/bin/true'} }
+      let(:command_stubs) { {yum: '/bin/true', ansible: '/bin/true', curl: '/bin/true', tar: '/bin/true', 'ansible-playbook': '/bin/true'} }
 
       it_behaves_like 'should print to stdout',
                       %r{Everything done!\nhttp://8.8.8.8/admin\nlogin: admin\npassword: \w+}
     end
 
     context 'unsuccessful installation' do
-      let(:command_stubs) { {curl: '/bin/true', tar: '/bin/true', 'ansible-playbook': '/bin/false'} }
+      let(:command_stubs) { {yum: '/bin/true', ansible: '/bin/true', curl: '/bin/true', tar: '/bin/true', 'ansible-playbook': '/bin/false'} }
 
       it_behaves_like 'should exit with error', [
         'There was an error evaluating command `ansible-playbook',
@@ -346,49 +249,6 @@ RSpec.describe 'install.sh' do
         'Configuration settings saved to hosts.txt',
         'You can rerun `install.sh`'
       ]
-    end
-  end
-
-  describe 'check running under non-root' do
-    it_behaves_like 'should exit with error', 'You must run this program as root'
-  end
-
-  describe 'log files' do
-
-    shared_examples_for 'should create' do |filename|
-      specify do
-        run_script
-        expect(File).to be_exists(filename)
-      end
-    end
-
-    shared_examples_for 'should move old install.log to' do |newname|
-      specify do
-        old_content = IO.read('install.log')
-        run_script
-        expect(IO.read(newname)).to eq(old_content)
-      end
-    end
-
-    context 'log files does not exists' do
-      it_behaves_like 'should create', 'install.log'
-    end
-
-    context 'install.log exists' do
-      before { IO.write('install.log', 'some log') }
-
-      it_behaves_like 'should create', 'install.log'
-
-      it_behaves_like 'should move old install.log to', 'install.log.1'
-    end
-
-    context 'install.log, install.log.1 exists' do
-      before { IO.write('install.log', 'some log') }
-      before { IO.write('install.log.1', 'some log.1') }
-
-      it_behaves_like 'should create', 'install.log'
-
-      it_behaves_like 'should move old install.log to', 'install.log.2'
     end
   end
 end
