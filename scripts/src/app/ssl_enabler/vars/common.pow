@@ -1,9 +1,6 @@
 #!/usr/bin/env powscript
 
 DOMAINS=[]
-NGINX_ROOT_PATH="/etc/nginx"
-NGINX_SSL_PATH="/etc/nginx/ssl"
+NGINX_SSL_PATH="${NGINX_ROOT_PATH}/ssl"
 NGINX_SSL_CERT_PATH="${NGINX_SSL_PATH}/cert.pem"
 NGINX_SSL_PRIVKEY_PATH="${NGINX_SSL_PATH}/privkey.pem"
-NGINX_VHOSTS_CONF="${NGINX_ROOT_PATH}/conf.d/vhosts.conf"
-WEBROOT_PATH="/var/www/keitaro"

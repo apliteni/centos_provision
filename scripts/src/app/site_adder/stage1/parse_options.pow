@@ -1,0 +1,79 @@
+#!/usr/bin/env powscript
+
+
+parse_options()
+  while getopts ":hpsl:" opt
+    switch $opt
+      case p
+        PRESERVE_RUNNING=true
+      case s
+        SKIP_CHECKS=true
+      case l
+        switch $OPTARG
+          case en
+            UI_LANG=en
+          case ru
+            UI_LANG=ru
+          case *
+            print_err "Specified language \"$OPTARG\" is not supported"
+            exit 1
+      case :
+        print_err "Option -$OPTARG requires an argument."
+        exit 1
+      case h
+        usage
+        exit 0
+      case \?
+        usage
+        exit 1
+  shift $((OPTIND-1))
+  if ${#} == 0
+    usage
+    exit 1
+  else
+    while ${#} > 0
+      if not "${1}" match ^(-)
+        DOMAINS+="${1}"
+      shift
+
+
+usage()
+  set_ui_lang
+  if $UI_LANG = 'ru'
+    ru_usage
+  else
+    en_usage
+
+
+ru_usage()
+  print_err "$SCRIPT_NAME позволяет запустить дополнительный сайт совместно с Keitaro TDS"
+  print_err
+  print_err "Использование: $SCRIPT_NAME [-ps] [-l en|ru] "
+  print_err
+  print_err "  -p"
+  print_err "    С опцией -p (preserve commands running) $SCRIPT_NAME не выполняет установочные команды. Вместо этого текст команд будет показан на экране."
+  print_err
+  print_err "  -s"
+  print_err "    С опцией -s (skip checks) $SCRIPT_NAME не будет проверять присутствие нужных программ в системе, не будет проверять факт запуска из под root."
+  print_err
+  print_err "  -l <lang>"
+  print_err "    $SCRIPT_NAME определяет язык через установленные переменные окружения LANG/LC_MESSAGES/LC_ALL, однако язык может быть явно задан помощи параметра -l."
+  print_err "    На данный момент поддерживаются значения en и ru (для английского и русского языков)."
+  print_err
+
+
+en_usage()
+  print_err "$SCRIPT_NAME allows to run additional site together with Keitaro TDS"
+  print_err
+  print_err "Usage: $SCRIPT_NAME [-ps] [-l en|ru] domain1.tld [domain2.tld] ..."
+  print_err
+  print_err "  -p"
+  print_err "    The -p (preserve commands running) option causes $SCRIPT_NAME to preserve the invoking of installation commands. Installation commands will be printed to stdout instead."
+  print_err
+  print_err "  -s"
+  print_err "    The -s (skip checks) option causes $SCRIPT_NAME to skip checks of required programs presence, skip check root running"
+  print_err
+  print_err "  -l <lang>"
+  print_err "    By default $SCRIPT_NAME tries to detect language from LANG/LC_MESSAGES/LC_ALL environment variables, but language can be explicitly set  with -l option."
+  print_err "    Only en and ru (for English and Russian) values are supported now."
+  print_err

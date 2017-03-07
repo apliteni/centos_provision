@@ -1,0 +1,10 @@
+#!/usr/bin/env powscript
+
+
+stage4()
+  debug "Starting stage 4: install LE certificates"
+  run_certbot
+  make_cert_links
+  add_renewal_job
+  reload_nginx
+  show_successful_message

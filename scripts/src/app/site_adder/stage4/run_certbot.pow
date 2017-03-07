@@ -1,0 +1,13 @@
+#!/usr/bin/env powscript
+
+
+run_certbot()
+  debug "Run certbot"
+  certbot_command="certbot certonly --webroot --webroot-path=${WEBROOT_PATH} --agree-tos --non-interactive --expand"
+  for domain in "${DOMAINS[@]}"
+    certbot_command="${certbot_command} --domain ${domain}"
+  if isset "${VARS['ssl_email']}"
+    certbot_command="${certbot_command} --email ${VARS['ssl_email']}"
+  else
+    certbot_command="${certbot_command} --register-unsafely-without-email"
+  run_command "${certbot_command}" '' '' '' 'nginx'

@@ -1,0 +1,14 @@
+#!/usr/bin/env powscript
+
+
+is_exists_directory(directory)
+  debug "Checking ${directory} directory existence"
+  if isset $SKIP_CHECKS
+    debug "SKIP: аctual check of ${directory} directory existence disabled"
+    return 0
+  if [ -f "${directory}" ]
+    debug "OK: ${directory} directory exists"
+    return 0
+  else
+    debug "NOK: ${directory} directory does not exist"
+    return 1

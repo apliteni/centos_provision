@@ -41,7 +41,7 @@ DICT['ru.errors.see_logs']=$(cat <<- END
 	Вы можете повторно запустить \`${SCRIPT_COMMAND}\` с этими настройками после устранения возникших проблем.
 END
 )
-DICT['ru.errors.yum_not_installed']='Утановщик keitaro работает только с пакетным менеджером yum. Пожалуйста, запустите эту программу в CentOS/RHEL/Fedora дистрибутиве'
+DICT['ru.errors.yum_not_installed']='Установщик keitaro работает только с пакетным менеджером yum. Пожалуйста, запустите эту программу в CentOS/RHEL/Fedora дистрибутиве'
 DICT['ru.prompts.admin_login']='Укажите имя администратора keitaro'
 DICT['ru.prompts.admin_password']='Укажите пароль администратора keitaro'
 DICT['ru.prompts.db_name']='Укажите имя базы данных'

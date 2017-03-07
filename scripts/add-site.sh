@@ -40,10 +40,6 @@ values ()
 
 
 
-
-PROGRAM_NAME='enable-ssl'
-
-
 SHELL_NAME=$(basename "$0")
 
 KEITARO_URL="https://keitarotds.com"
@@ -99,10 +95,6 @@ DICT['ru.prompt_errors.validate_presence']='Введите значение'
 DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
 
 
-declare -a DOMAINS
-NGINX_SSL_PATH="${NGINX_ROOT_PATH}/ssl"
-NGINX_SSL_CERT_PATH="${NGINX_SSL_PATH}/cert.pem"
-NGINX_SSL_PRIVKEY_PATH="${NGINX_SSL_PATH}/privkey.pem"
 
 
 RECONFIGURE_KEITARO_COMMAND_EN="curl -sSL ${KEITARO_URL}/install.sh | bash"
@@ -577,7 +569,7 @@ stage1(){
 
 
 parse_options(){
-  while getopts ":hpsl:ae:w" opt; do
+  while getopts ":hpsl:" opt; do
     case $opt in
       p)
         PRESERVE_RUNNING=true
@@ -598,15 +590,6 @@ parse_options(){
             exit 1
             ;;
         esac
-        ;;
-      a)
-        SKIP_SSL_AGREE_TOS=true
-        ;;
-      e)
-        EMAIL="${OPTARG}"
-        ;;
-      w)
-        SKIP_SSL_EMAIL=true
         ;;
       :)
         print_err "Option -$OPTARG requires an argument."
@@ -648,9 +631,9 @@ usage(){
 
 
 ru_usage(){
-  print_err "$SCRIPT_NAME подключает SSL сертификат от Let's Encrypt для указанных доменов Keitaro TDS"
+  print_err "$SCRIPT_NAME позволяет запустить дополнительный сайт совместно с Keitaro TDS"
   print_err
-  print_err "Использование: "$SCRIPT_NAME" [-ps] [-l en|ru] [-e some.email@example.org] domain1.tld [domain2.tld] ..."
+  print_err "Использование: "$SCRIPT_NAME" [-ps] [-l en|ru] "
   print_err
   print_err "  -p"
   print_err "    С опцией -p (preserve commands running) "$SCRIPT_NAME" не выполняет установочные команды. Вместо этого текст команд будет показан на экране."
@@ -662,17 +645,11 @@ ru_usage(){
   print_err "    "$SCRIPT_NAME" определяет язык через установленные переменные окружения LANG/LC_MESSAGES/LC_ALL, однако язык может быть явно задан помощи параметра -l."
   print_err "    На данный момент поддерживаются значения en и ru (для английского и русского языков)."
   print_err
-  print_err "  -e <email>"
-  print_err "    Адрес электронной почты исползуемый для регистрации при получении бесплатных SSL сертификатов. Let's Encrypt"
-  print_err
-  print_err "  -w"
-  print_err "    C опцией -w (without email) "$SCRIPT_NAME" не будет запрашивать у пользователя адрес электронной почты."
-  print_err
 }
 
 
 en_usage(){
-  print_err "$SCRIPT_NAME generates Let's Encrypt SSL for the specified domains of Keitaro TDS"
+  print_err "$SCRIPT_NAME allows to run additional site together with Keitaro TDS"
   print_err
   print_err "Usage: "$SCRIPT_NAME" [-ps] [-l en|ru] domain1.tld [domain2.tld] ..."
   print_err
@@ -685,12 +662,6 @@ en_usage(){
   print_err "  -l <lang>"
   print_err "    By default "$SCRIPT_NAME" tries to detect language from LANG/LC_MESSAGES/LC_ALL environment variables, but language can be explicitly set  with -l option."
   print_err "    Only en and ru (for English and Russian) values are supported now."
-  print_err
-  print_err "  -e <email>"
-  print_err "    Email used for registration while getting Free SSL Let's Encrypt certificates."
-  print_err
-  print_err "  -w"
-  print_err "    The -w (without email) option causes "$SCRIPT_NAME" to skip email request."
   print_err
 }
 
@@ -716,14 +687,13 @@ assert_nginx_configured(){
 
 is_nginx_properly_configured(){
   is_exists_file "${NGINX_VHOSTS_CONF}" &&
-    is_exists_file "${NGINX_SSL_CERT_PATH}" &&
-    is_exists_file "${NGINX_SSL_PRIVKEY_PATH}" &&
-    is_ssl_configured
+    is_exists_directory "${WEBROOT_PATH}" &&
+    is_keitaro_configured
   }
 
 
 is_ssl_configured(){
-  debug "Checking ssl params in ${NGINX_VHOSTS_CONF}"
+  debug "Checking keitaro params in ${NGINX_VHOSTS_CONF}"
   if isset "$SKIP_CHECKS"; then
     debug "SKIP: аctual check of ssl params in ${NGINX_VHOSTS_CONF} disabled"
     return 0
@@ -737,6 +707,7 @@ is_ssl_configured(){
     return 1
   fi
 }
+
 
 
 
@@ -860,6 +831,8 @@ show_successful_message(){
 }
 
 
+
+PROGRAM_NAME="add-site"
 
 
 
