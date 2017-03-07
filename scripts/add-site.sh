@@ -40,6 +40,10 @@ values ()
 
 
 
+
+PROGRAM_NAME='add-site'
+
+
 SHELL_NAME=$(basename "$0")
 
 KEITARO_URL="https://keitarotds.com"
@@ -69,6 +73,10 @@ fi
 
 declare -A VARS
 
+RECONFIGURE_KEITARO_COMMAND_EN="curl -sSL ${KEITARO_URL}/install.sh | bash"
+
+RECONFIGURE_KEITARO_COMMAND_RU="curl -sSL ${KEITARO_URL}/install.sh | bash -s -- -l ru"
+
 
 declare -A DICT
 
@@ -97,39 +105,18 @@ DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет
 
 
 
-RECONFIGURE_KEITARO_COMMAND_EN="curl -sSL ${KEITARO_URL}/install.sh | bash"
-RECONFIGURE_KEITARO_SSL_COMMAND_EN="curl -sSL ${KEITARO_URL}/install.sh | bash -s -- -t nginx,ssl"
-
-RECONFIGURE_KEITARO_COMMAND_RU="curl -sSL ${KEITARO_URL}/install.sh | bash -s -- -l ru"
-RECONFIGURE_KEITARO_SSL_COMMAND_RU="curl -sSL ${KEITARO_URL}/install.sh | bash -s -- -l ru -t nginx,ssl"
-
-DICT['en.messages.check_renewal_job']="Check that renewal job scheduled"
-DICT['en.messages.make_ssl_cert_links']="Make SSL certificate links"
 DICT['en.messages.reload_nginx']="Reload nginx"
-DICT['en.messages.renewal_job_already_scheduled']="Renewal job already scheduled"
-DICT['en.messages.schedule_renewal_job']="Schedule renewal SSL certificate cron job"
-DICT['en.messages.ssl_enabled_for_sites']="SSL certificates enabled for sites:"
 DICT['en.errors.see_logs']="Evaluating log saved to ${SCRIPT_LOG}. Please rerun \`${SCRIPT_COMMAND}\` after resolving problems."
 DICT['en.errors.reinstall_keitaro']="Your Keitaro TDS installation does not properly configured. Please reconfigure Keitaro TDS by evaluating command \`${RECONFIGURE_KEITARO_COMMAND_EN}\`"
-DICT['en.errors.reinstall_keitaro_ssl']="Nginx settings of your Keitaro TDS installation does not properly configured. Please reconfigure Nginx by evaluating command \`${RECONFIGURE_KEITARO_SSL_COMMAND_EN}\`"
-DICT['en.prompts.ssl_agree_tos']="Do you agree with terms of Let's Encrypt Subscriber Agreement?"
-DICT['en.prompts.ssl_agree_tos.help']="In order to install Let's Encrypt Free SSL certificates for your Keitaro TDS you must agree with terms of Let's Encrypt Subscriber Agreement (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf)."
-DICT['en.prompts.ssl_email']='Please enter your email (you can left this field empty)'
-DICT['en.prompts.ssl_email.help']='You can obtain SSL certificate with no email address. This is strongly discouraged, because in the event of key loss or LetsEncrypt account compromise you will irrevocably lose access to your LetsEncrypt account. You will also be unable to receive notice about impending expiration or revocation of your certificates.'
+DICT['en.prompts.site_domains']='Please enter domain name with aliases, separated by comma without spaces (i.e. domain1.tld,www.domain1.tld)'
+DICT['en.prompts.site_root']='Please enter site root directory'
 
-DICT['ru.messages.check_renewal_job']="Проверяем наличие cron задачи обновления сертификатов"
-DICT['ru.messages.make_ssl_cert_links']="Создаются ссылки на SSL сертификаты"
 DICT['ru.messages.reload_nginx']="Перезагружаем nginx"
-DICT['ru.messages.renewal_job_already_scheduled']="Cron задача обновления сертификатов уже существует"
-DICT['ru.messages.schedule_renewal_job']="Добавляется cron задача обновления сертификатов"
-DICT['ru.messages.ssl_enabled_for_sites']="SSL сертификаты подключены для сайтов:"
 DICT['ru.errors.reinstall_keitaro']="Keitaro TDS отконфигурирована неправильно. Пожалуйста выполните перенастройку Keitaro TDS выполнив команду \`${RECONFIGURE_KEITARO_COMMAND_RU}\`"
-DICT['ru.errors.reinstall_keitaro_ssl']="Настройки Nginx вашей Keitaro TDS отконфигурированы неправильно. Пожалуйста выполните перенастройку Nginx выполнив команду \`${RECONFIGURE_KEITARO_SSL_COMMAND_RU}\`"
 DICT['ru.errors.see_logs']="Журнал выполнения сохранён в ${SCRIPT_LOG}. Пожалуйста запустите \`${SCRIPT_COMMAND}\` после устранения возникших проблем."
-DICT['ru.prompts.ssl_agree_tos']="Вы согласны с условиями Абонентского Соглашения Let's Encrypt?"
-DICT['ru.prompts.ssl_agree_tos.help']="Для получения бесплатных SSL сертификатов Let's Encrypt вы должны согласиться с условиями Абонентского Соглашения Let's Encrypt (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf)."
-DICT['ru.prompts.ssl_email']='Укажите email (можно не указывать)'
-DICT['ru.prompts.ssl_email.help']='Вы можете получить SSL сертификат без указания email адреса. Однако LetsEncrypt настоятельно рекомендует указать его, так как в случае потери ключа или компрометации LetsEncrypt аккаунта вы полностью потеряете доступ к своему LetsEncrypt аккаунту. Без email вы также не сможете получить уведомление о предстоящем истечении срока действия или отзыве сертификата'
+DICT['ru.prompts.site_domains']='Укажите список доменное имя и список альясов через запятую без пробелов (например domain1.tld,www.domain1.tld)'
+DICT['ru.prompts.site_root']='Укажите корневую директорию сайта'
+
 
 
 
@@ -158,6 +145,24 @@ assert_installed(){
 }
 
 
+
+
+
+is_exists_directory(){
+  local directory="${1}"
+  debug "Checking ${directory} directory existence"
+  if isset "$SKIP_CHECKS"; then
+    debug "SKIP: аctual check of ${directory} directory existence disabled"
+    return 0
+  fi
+  if [ -d "${directory}" ]; then
+    debug "OK: ${directory} directory exists"
+    return 0
+  else
+    debug "NOK: ${directory} directory does not exist"
+    return 1
+  fi
+}
 
 
 
@@ -605,18 +610,6 @@ parse_options(){
         ;;
     esac
   done
-  shift $((OPTIND-1))
-  if [[ ${#} == 0 ]]; then
-    usage
-    exit 1
-  else
-    while [[ ${#} -gt 0 ]]; do
-      if [[ ! "${1}" =~ ^(-) ]]; then
-        DOMAINS+=("${1}")
-      fi
-      shift
-    done
-  fi
 }
 
 
@@ -671,8 +664,6 @@ stage2(){
   debug "Starting stage 2: make some asserts"
   assert_caller_root
   assert_installed 'nginx' 'errors.reinstall_keitaro'
-  assert_installed 'crontab' 'errors.reinstall_keitaro'
-  assert_installed 'certbot' 'errors.reinstall_keitaro_ssl'
   assert_nginx_configured
 }
 
@@ -680,7 +671,7 @@ stage2(){
 
 assert_nginx_configured(){
   if ! is_nginx_properly_configured; then
-    fail "$(translate 'errors.reinstall_keitaro_ssl')" "see_logs"
+    fail "$(translate 'errors.reinstall_keitaro')" "see_logs"
   fi
 }
 
@@ -692,13 +683,13 @@ is_nginx_properly_configured(){
   }
 
 
-is_ssl_configured(){
+is_keitaro_configured(){
   debug "Checking keitaro params in ${NGINX_VHOSTS_CONF}"
   if isset "$SKIP_CHECKS"; then
-    debug "SKIP: аctual check of ssl params in ${NGINX_VHOSTS_CONF} disabled"
+    debug "SKIP: аctual check of keitaro params in ${NGINX_VHOSTS_CONF} disabled"
     return 0
   fi
-  if grep -q -e "ssl_certificate #{NGINX_SSL_CERT_PATH};" -e "ssl_certificate_key ${NGINX_SSL_PRIVKEY_PATH};" "${NGINX_VHOSTS_CONF}"; then
+  if grep -q -e "root ${WEBROOT_PATH};" "${NGINX_VHOSTS_CONF}"; then
     debug "OK: it seems like ${NGINX_VHOSTS_CONF} is properly configured"
     return 0
   else
@@ -721,37 +712,8 @@ stage3(){
 get_user_vars(){
   debug 'Read vars from user input'
   hack_stdin_if_pipe_mode
-  get_user_le_sa_agreement
-  if is_yes ${VARS['ssl_agree_tos']}; then
-    get_user_email
-  else
-    fail "$(translate 'prompts.ssl_agree_tos.help')"
-  fi
-}
-
-
-get_user_le_sa_agreement(){
-  if isset "$SKIP_SSL_AGREE_TOS"; then
-    VARS['ssl_agree_tos']='yes'
-    debug "Do not request SSL user agreement because appropriate option specified"
-  else
-    VARS['ssl_agree_tos']=$(translate 'no')
-    get_user_var 'ssl_agree_tos' 'validate_yes_no'
-  fi
-}
-
-
-get_user_email(){
-  if isset "$SKIP_SSL_EMAIL"; then
-    debug "Do not request SSL email because appropriate option specified"
-  else
-    if isset "$EMAIL"; then
-      debug "Do not request SSL email because email specified by option"
-      VARS['ssl_email']="${EMAIL}"
-    else
-      get_user_var 'ssl_email'
-    fi
-  fi
+  get_user_var 'site_domains'
+  get_user_var 'site_root'
 }
 
 
@@ -832,14 +794,12 @@ show_successful_message(){
 
 
 
-PROGRAM_NAME="add-site"
 
 
 
 
 
-
-enable_ssl(){
+add_site(){
   init "$@"
   stage1 "$@"
   stage2
@@ -848,7 +808,7 @@ enable_ssl(){
 }
 
 
-enable_ssl "$@"
+add_site "$@"
 
 # wait for all async child processes (because "await ... then" is used in powscript)
 [[ $ASYNC == 1 ]] && wait

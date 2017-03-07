@@ -6,7 +6,7 @@ is_exists_directory(directory)
   if isset $SKIP_CHECKS
     debug "SKIP: аctual check of ${directory} directory existence disabled"
     return 0
-  if [ -f "${directory}" ]
+  if [ -d "${directory}" ]
     debug "OK: ${directory} directory exists"
     return 0
   else

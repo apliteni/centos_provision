@@ -25,3 +25,7 @@ else
     SCRIPT_COMMAND="${SHELL_NAME}"
 
 VARS={}
+
+RECONFIGURE_KEITARO_COMMAND_EN="curl -sSL ${KEITARO_URL}/install.sh | bash"
+
+RECONFIGURE_KEITARO_COMMAND_RU="curl -sSL ${KEITARO_URL}/install.sh | bash -s -- -l ru"

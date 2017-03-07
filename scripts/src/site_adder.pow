@@ -1,8 +1,7 @@
 #!/usr/bin/env powscript
 
 
-PROGRAM_NAME="add-site"
-
+require 'shared/vars/site_adder_program_name.pow'
 require 'shared/vars/common.pow'
 require 'shared/vars/dict.pow'
 
@@ -11,6 +10,7 @@ require 'app/site_adder/vars/dict.pow'
 
 require 'lib/asserts/assert_caller_root.pow'
 require 'lib/asserts/assert_installed.pow'
+require 'lib/asserts/is_exists_directory.pow'
 require 'lib/asserts/is_exists_file.pow'
 require 'lib/i18n/set_ui_lang.pow'
 require 'lib/i18n/translate.pow'
@@ -56,7 +56,7 @@ require 'app/site_adder/stage4/show_successful_message.pow'
 # protect against the possibility of the connection dying mid-script. This protects us against
 # the problem described in this blog post:
 #   http://blog.existentialize.com/dont-pipe-to-your-shell.html
-enable_ssl()
+add_site()
   init $@
   stage1 $@
   stage2
@@ -64,4 +64,4 @@ enable_ssl()
   stage4
 
 
-enable_ssl $@
+add_site $@

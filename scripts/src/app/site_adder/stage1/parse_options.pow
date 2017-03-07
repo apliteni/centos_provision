@@ -26,15 +26,6 @@ parse_options()
       case \?
         usage
         exit 1
-  shift $((OPTIND-1))
-  if ${#} == 0
-    usage
-    exit 1
-  else
-    while ${#} > 0
-      if not "${1}" match ^(-)
-        DOMAINS+="${1}"
-      shift
 
 
 usage()
