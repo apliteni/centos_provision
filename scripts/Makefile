@@ -1,5 +1,15 @@
-test: clean compile
-	rspec spec/scripts/site_adder_spec.rb spec/scripts/ssl_enabler_spec.rb spec/scripts/installer_spec.rb
+all: clean compile test
+
+test: test_site_adder test_ssl_enabler test_installer
+
+test_site_adder:
+	rspec spec/scripts/site_adder_spec.rb
+
+test_ssl_enabler:
+	rspec spec/scripts/ssl_enabler_spec.rb
+
+test_installer:
+	rspec spec/scripts/installer_spec.rb
 
 clean:
 	rm -f *.log*
