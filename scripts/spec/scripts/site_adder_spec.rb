@@ -1,23 +1,20 @@
 require 'spec_helper'
 
-RSpec.describe 'enable-ssl.sh' do
+RSpec.describe 'add-site.sh' do
   include_context 'run script in tmp dir'
   include_context 'make prompts with values'
 
-  let(:script_name) { 'enable-ssl.sh' }
+  let(:script_name) { 'add-site.sh' }
   let(:env) { {LANG: 'C'} }
-  let(:options) { '' }
-  let(:args) { options + ' ' + domains.join(' ') }
+  let(:args) { '' }
   let(:docker_image) { nil }
   let(:command_stubs) { {} }
   let(:all_command_stubs) { {nginx: '/bin/true', certbot: '/bin/true', crontab: '/bin/true'} }
   let(:commands) { [] }
-  let(:domains) { %w[domain1.tld] }
   let(:nginx_conf) { "ssl_certificate /etc/nginx/cert.pem;\nssl_certificate_key /etc/nginx/ssl/privkey.pem;" }
   let(:make_proper_nginx_conf) do
     [
-      'mkdir -p /etc/nginx/conf.d /etc/nginx/ssl',
-      'touch /etc/nginx/ssl/{cert,privkey}.pem',
+      'mkdir -p /etc/nginx/conf.d',
       %Q{echo -e "#{nginx_conf}"> /etc/nginx/conf.d/vhosts.conf}
     ]
   end
@@ -31,20 +28,20 @@ RSpec.describe 'enable-ssl.sh' do
   let(:prompts) do
     {
       en: {
-        ssl_agree_tos: "Do you agree with terms of Let's Encrypt Subscriber Agreement?",
-        ssl_email: 'Please enter your email (you can left this field empty)',
+        site_domains: 'Please enter domain name',
+        site_root: 'Please enter your site root directory',
       },
       ru: {
-        ssl_agree_tos: "Вы согласны с условиями Абонентского Соглашения Let's Encrypt?",
-        ssl_email: 'Укажите email (можно не указывать)',
+        site_domains: 'Укажите доменное имя сайта',
+        site_root: 'Укажите корневую директорию сайта',
       }
     }
   end
 
   let(:user_values) do
     {
-      ssl_agree_tos: 'yes',
-      ssl_email: '',
+      site_domains: 'example.com',
+      site_root: '',
     }
   end
 
