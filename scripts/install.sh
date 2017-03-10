@@ -179,16 +179,9 @@ detect_language_from_var(){
 
 translate(){
   local key="${1}"
-  local variables="${2}"
   local i18n_key=$UI_LANG.$key
   if isset ${DICT[$i18n_key]}; then
-    local message="${DICT[$i18n_key]}"
-    for key in "${!variables[@]}"; do
-      #local message=${message/%%/}
-      echo "key  : "$key""
-      echo "value: ${array[$i]}"
-    done
-    echo "$message"
+    echo "${DICT[$i18n_key]}"
   fi
 }
 

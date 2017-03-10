@@ -807,18 +807,15 @@ function vhost_content() {
 
 
 ensure_can_add_vhost(){
-  if [[ ! "$SKIP_CHECKS" && is_vhost_filepath_exist ]]; then
-    local message="$(translate 'errors.vhost_already_exists')"
-    fail "${message/:vhost_filepath:/$(vhost_filepath)}"
-  fi
-  if is_vhost_filepath_exist; then
+  debug "Ensure can add vhost"
+  if empty "$SKIP_CHECKS" && is_vhost_already_exists; then
     local message="$(translate 'errors.vhost_already_exists')"
     fail "${message/:vhost_filepath:/$(vhost_filepath)}"
   fi
 }
 
 
-is_vhost_filepath_exist(){
+is_vhost_already_exists(){
   [ -e "$(vhost_filepath)" ]
 }
 
