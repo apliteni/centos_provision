@@ -90,6 +90,7 @@ DICT['en.messages.reload_nginx']="Reloading nginx"
 DICT['en.messages.run_command']='Evaluating command'
 DICT['en.messages.successful']='Everything done!'
 DICT['en.no']='no'
+DICT['en.prompt_errors.validate_domains_list']='Please enter domains list, separated by comma without spaces (i.e. domain1.tld,www.domain1.tld). Each domain name must consist of only letters, numbers and hyphens and contain at least one dot.'
 DICT['en.prompt_errors.validate_presence']='Please enter value'
 DICT['en.prompt_errors.validate_yes_no']='Please answer "yes" or "no"'
 
@@ -102,6 +103,7 @@ DICT['ru.messages.reload_nginx']="Перезагружается nginx"
 DICT['ru.messages.run_command']='Выполняется команда'
 DICT['ru.messages.successful']='Программа успешно завершена!'
 DICT['ru.no']='нет'
+DICT['ru.prompt_errors.validate_domains_list']='Укажите список доменных имён через запятую без пробелов (например domain1.tld,www.domain1.tld). Каждое доменное имя должно состоять только из букв, цифр и тире и содержать хотябы одну точку.'
 DICT['ru.prompt_errors.validate_presence']='Введите значение'
 DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
 
@@ -253,23 +255,30 @@ get_user_var(){
   local var_name="${1}"
   local validation_methods_string="${2}"
   print_prompt_help "$var_name"
+  debug "${var_name}: reading value"
   while true; do
     print_prompt "$var_name"
     variable="$(read_stdin)"
+    debug "${var_name}: got '${variable}'"
     if ! empty "$variable"; then
       VARS[$var_name]="${variable}"
     fi
-    error=false
+    debug "${var_name}: set '${variable}'"
+    errors=""
     read -ra validation_methods <<< "$validation_methods_string"
     for validation_method in "${validation_methods[@]}"; do
       if ! is_valid "$validation_method" "${VARS[$var_name]}"; then
+        debug "${var_name}: invalid with '${validation_method}' validator, reset to ''"
         VARS[$var_name]=''
         print_prompt_error "$validation_method"
-        error=true
+        errors="errors"
+        break
+      else
+        debug "${var_name}: valid with '${validation_method}' validator"
       fi
     done
-    if ! error; then
-      debug "  ${var_name}=${variable}" 'light.blue'
+    if empty "$errors"; then
+      debug "${var_name}=${variable}" 'light.blue'
       break
     fi
   done
@@ -412,6 +421,7 @@ get_name_for_old_log(){
 
 
 on_exit(){
+  debug "Terminated by user"
   echo
   clean_up
   fail "$(translate 'errors.terminated')"
@@ -553,7 +563,8 @@ is_valid(){
   if empty "$validation_method"; then
     true
   else
-    eval "$validation_method" "$value"
+    debug "is_valid: validate '${value}' with ${validation_method} validator"
+    eval "${validation_method} '${value}'"
   fi
 }
 
