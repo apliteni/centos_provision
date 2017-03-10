@@ -2,13 +2,11 @@
 
 
 ensure_can_add_vhost()
-  if ! $SKIP_CHECKS && is_vhost_filepath_exist
-    local message="$(translate 'errors.vhost_already_exists')"
-    fail "${message/:vhost_filepath:/$(vhost_filepath)}"
-  if is_vhost_filepath_exist
+  debug "Ensure can add vhost"
+  if empty $SKIP_CHECKS && is_vhost_already_exists
     local message="$(translate 'errors.vhost_already_exists')"
     fail "${message/:vhost_filepath:/$(vhost_filepath)}"
 
 
-is_vhost_filepath_exist()
+is_vhost_already_exists()
   [ -e "$(vhost_filepath)" ]

@@ -123,11 +123,11 @@ RSpec.describe 'add-site.sh' do
       expect(content).to match('server_name example.com;')
     end
 
-    context '/etc/nginx/conf.d/example.conf already exists' do
-      let(:make_example_com_vhost) { ['touch /etc/nginx/conf.d/example.conf'] }
+    context '/etc/nginx/conf.d/example.com.conf already exists' do
+      let(:make_example_com_vhost) { ['touch /etc/nginx/conf.d/example.com.conf'] }
       let(:commands) { make_proper_nginx_conf + make_keitaro_root_dir + make_example_com_vhost }
 
-      it_behaves_like 'should exit with error', "Can't save site configuration at /etc/nginx/conf.d/example.conf - file already exists"
+      it_behaves_like 'should exit with error', 'Can not save site configuration - /etc/nginx/conf.d/example.com.conf already exists'
     end
   end
 
