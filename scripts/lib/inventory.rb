@@ -12,11 +12,9 @@ class Inventory
   end
 
   def self.read_from_log(log_content)
-    inventory_from_log_match = log_content.match(/#{LOG_PRE_INVENTORY_LINE}(.*)#{LOG_POST_INVENTORY_LINE}/m)
-    unless inventory_from_log_match.nil?
-      values = parse(inventory_from_log_match[1].gsub(/^ +/, ''))
-      Inventory.new(values: values)
-    end
+    log_lines_match = log_content.to_s.match(/#{LOG_PRE_INVENTORY_LINE}(.*)#{LOG_POST_INVENTORY_LINE}/m)
+    log_lines = log_lines_match&.captures&.first.to_s
+    Inventory.new(values: parse(log_lines.gsub(/^ +/, '')))
   end
 
   def self.parse(content)

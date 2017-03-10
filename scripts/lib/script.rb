@@ -53,7 +53,6 @@ class Script
     if docker_image
       docker_run = "docker run #{docker_env} --name keitaro_scripts_test -i --rm -v #{current_dir}:/data -w /data #{docker_image}"
       evaluated_commands = make_command_stubs + commands + [command_with_args("./#{@script_command}", args)]
-      puts %Q{#{docker_run} sh -c '#{evaluated_commands.join(' && ')}'}
       %Q{#{docker_run} sh -c '#{evaluated_commands.join(' && ')}'}
     else
       raise "Cann't stub fake commands in real system. Please use docker mode." if command_stubs.any? || commands.any?
