@@ -251,7 +251,7 @@ is_installed(){
 
 get_user_var(){
   local var_name="${1}"
-  local validation_method="${2}"
+  local validation_methods_string="${2}"
   print_prompt_help "$var_name"
   while true; do
     print_prompt "$var_name"
@@ -259,12 +259,18 @@ get_user_var(){
     if ! empty "$variable"; then
       VARS[$var_name]="${variable}"
     fi
-    if is_valid "$validation_method" "${VARS[$var_name]}"; then
+    error=false
+    read -ra validation_methods <<< "$validation_methods_string"
+    for validation_method in "${validation_methods[@]}"; do
+      if ! is_valid "$validation_method" "${VARS[$var_name]}"; then
+        VARS[$var_name]=''
+        print_prompt_error "$validation_method"
+        error=true
+      fi
+    done
+    if ! error; then
       debug "  ${var_name}=${variable}" 'light.blue'
       break
-    else
-      VARS[$var_name]=''
-      print_prompt_error "$validation_method"
     fi
   done
 }
