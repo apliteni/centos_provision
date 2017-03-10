@@ -253,32 +253,22 @@ is_installed(){
 
 get_user_var(){
   local var_name="${1}"
-  local validation_methods_string="${2}"
+  local validation_methods="${2}"
   print_prompt_help "$var_name"
-  debug "${var_name}: reading value"
   while true; do
     print_prompt "$var_name"
-    variable="$(read_stdin)"
-    debug "${var_name}: got '${variable}'"
-    if ! empty "$variable"; then
-      VARS[$var_name]="${variable}"
+    value="$(read_stdin)"
+    debug "$var_name: got value '${value}'"
+    if ! empty "$value"; then
+      VARS[$var_name]="${value}"
     fi
-    debug "${var_name}: set '${variable}'"
-    errors=""
-    read -ra validation_methods <<< "$validation_methods_string"
-    for validation_method in "${validation_methods[@]}"; do
-      if ! is_valid "$validation_method" "${VARS[$var_name]}"; then
-        debug "${var_name}: invalid with '${validation_method}' validator, reset to ''"
-        VARS[$var_name]=''
-        print_prompt_error "$validation_method"
-        errors="errors"
-        break
-      else
-        debug "${var_name}: valid with '${validation_method}' validator"
-      fi
-    done
-    if empty "$errors"; then
-      debug "${var_name}=${variable}" 'light.blue'
+    error=$(get_error "${var_name}" "$validation_methods")
+    if isset "$error"; then
+      debug "$var_name: validation error - '${error}'"
+      print_prompt_error "$error"
+      VARS[$var_name]=''
+    else
+      debug "  ${var_name}=${value}" 'light.blue'
       break
     fi
   done
@@ -557,15 +547,22 @@ print_command_status(){
 
 
 
-is_valid(){
-  local validation_method="${1}"
-  local value="${2}"
-  if empty "$validation_method"; then
-    true
-  else
-    debug "is_valid: validate '${value}' with ${validation_method} validator"
-    eval "${validation_method} '${value}'"
-  fi
+get_error(){
+  local var_name="${1}"
+  local validation_methods_string="${2}"
+  local value="${VARS[$var_name]}"
+  local error=""
+  read -ra validation_methods <<< "$validation_methods_string"
+  for validation_method in "${validation_methods[@]}"; do
+    if ! eval "${validation_method} '${value}'"; then
+      debug "${var_name}: '${value}' invalid for ${validation_method} validator"
+      error="${validation_method}"
+      break
+    else
+      debug "${var_name}: '${value}' valid for ${validation_method} validator"
+    fi
+  done
+  echo "${error}"
 }
 
 
