@@ -1,0 +1,5 @@
+#!/usr/bin/env powscript
+
+
+validate_site_domains(value)
+  validate_presence $value
