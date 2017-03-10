@@ -105,25 +105,32 @@ RSpec.describe 'add-site.sh' do
     end
   end
 
+  describe 'creating vhost' do
+    include_context 'run in docker'
+
+    let(:command_stubs) { all_command_stubs }
+    let(:commands) { make_proper_nginx_conf + make_keitaro_root_dir }
+
+    it 'should create /etc/nginx/conf.d/example.com.conf' do
+      run_script
+      expect(File.exist?('/etc/nginx/conf.d/example.com.conf')).to be_truthy
+    end
+
+    it 'vhost file should be properly configured' do
+      run_script
+      content = File.read('/etc/nginx/conf.d/example.com.conf')
+      expect(content).to match('server_name example.com;')
+    end
+
+  end
+
   describe 'add-site result' do
     include_context 'run in docker'
 
     let(:command_stubs) { all_command_stubs }
-    let(:commands) { make_proper_nginx_conf + emulate_sudo }
+    let(:commands) { make_proper_nginx_conf + make_keitaro_root_dir }
 
-    context 'successful running certbot' do
-      it_behaves_like 'should print to stdout', /Everything done!/
-    end
-
-    context 'unsuccessful running certbot' do
-      let(:command_stubs) { all_command_stubs.merge(certbot: '/bin/false') }
-
-      it_behaves_like 'should exit with error', [
-        'There was an error evaluating command `certbot',
-        'Evaluating log saved to add-site.log',
-        'Please rerun `add-site.sh domain1.tld`'
-      ]
-    end
+    it_behaves_like 'should print to stdout', /Everything done!/
   end
 
   describe 'reloading nginx' do

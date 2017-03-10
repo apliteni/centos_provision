@@ -51,7 +51,8 @@ KEITARO_URL="https://keitarotds.com"
 WEBROOT_PATH="/var/www/keitaro"
 
 NGINX_ROOT_PATH="/etc/nginx"
-NGINX_VHOSTS_CONF="${NGINX_ROOT_PATH}/conf.d/vhosts.conf"
+NGINX_VHOSTS_DIR="${NGINX_ROOT_PATH}/conf.d"
+NGINX_KEITARO_CONF="${NGINX_VHOSTS_DIR}/vhosts.conf"
 
 SCRIPT_NAME="${PROGRAM_NAME}.sh"
 SCRIPT_URL="${KEITARO_URL}/${PROGRAM_NAME}.sh"
@@ -415,6 +416,13 @@ print_err(){
 
 
 
+print_file_to_log(){
+  local filepath="${1}"
+  debug "Content of '${filepath}':\n$(cat "$filepath" | sed 's/^/  /g')"
+}
+
+
+
 print_translated(){
   local key="${1}"
   message=$(translate "${key}")
@@ -677,24 +685,24 @@ assert_nginx_configured(){
 
 
 is_nginx_properly_configured(){
-  is_exists_file "${NGINX_VHOSTS_CONF}" &&
+  is_exists_file "${NGINX_KEITARO_CONF}" &&
     is_exists_directory "${WEBROOT_PATH}" &&
     is_keitaro_configured
   }
 
 
 is_keitaro_configured(){
-  debug "Checking keitaro params in ${NGINX_VHOSTS_CONF}"
+  debug "Checking keitaro params in ${NGINX_KEITARO_CONF}"
   if isset "$SKIP_CHECKS"; then
-    debug "SKIP: аctual check of keitaro params in ${NGINX_VHOSTS_CONF} disabled"
+    debug "SKIP: аctual check of keitaro params in ${NGINX_KEITARO_CONF} disabled"
     return 0
   fi
-  if grep -q -e "root ${WEBROOT_PATH};" "${NGINX_VHOSTS_CONF}"; then
-    debug "OK: it seems like ${NGINX_VHOSTS_CONF} is properly configured"
+  if grep -q -e "root ${WEBROOT_PATH};" "${NGINX_KEITARO_CONF}"; then
+    debug "OK: it seems like ${NGINX_KEITARO_CONF} is properly configured"
     return 0
   else
-    debug "NOK: ${NGINX_VHOSTS_CONF} is not properly configured"
-    debug "Content of ${NGINX_VHOSTS_CONF}:\n$(cat ${NGINX_VHOSTS_CONF} | sed 's/^/  /g')"
+    debug "NOK: ${NGINX_KEITARO_CONF} is not properly configured"
+    debug "Content of ${NGINX_KEITARO_CONF}:\n$(cat ${NGINX_KEITARO_CONF} | sed 's/^/  /g')"
     return 1
   fi
 }
@@ -712,51 +720,65 @@ stage3(){
 get_user_vars(){
   debug 'Read vars from user input'
   hack_stdin_if_pipe_mode
-  get_user_var 'site_domains'
-  get_user_var 'site_root'
+  get_user_var 'site_domains' 'validate_presence'
+  get_user_var 'site_root' 'validate_presence'
 }
 
 
 
 stage4(){
-  debug "Starting stage 4: install LE certificates"
-  run_certbot
-  make_cert_links
-  add_renewal_job
+  debug "Starting stage 4: add vhost"
+  add_vhost
   reload_nginx
   show_successful_message
 }
 
 
 
-add_renewal_job(){
-  debug "Add renewal certificates cron job"
-  local renew_cmd="certbot renew --allow-subset-of-names --quiet"
-  local cron_task_installed=false
-  local check_renewal_job_cmd="crontab -l -u nginx | grep '${renew_cmd}'"
-  if run_command "${check_renewal_job_cmd}" "$(translate 'messages.check_renewal_job')" "hide_output" "allow_errors"; then
-    debug "Renewal cron job already exists"
-    print_translated 'messages.renewal_job_already_scheduled'
-  else
-    debug "Renewal cron job does not exist. Adding renewal cron job"
-    local hour="$(date +'%H')"
-    local minute="$(date +'%M')"
-    local renew_job="${minute} ${hour} * * * ${renew_cmd}"
-    local schedule_renewal_job_cmd="(crontab -l -u nginx; echo \"${renew_job}\") | crontab -u nginx -"
-    run_command "${schedule_renewal_job_cmd}" "$(translate 'messages.schedule_renewal_job')" "hide_output"
-  fi
+add_vhost(){
+  debug "Add vhost"
+  print_vhost_command
 }
 
 
+print_vhost_command(){
+  local site_domains="${VARS['site_domains']}"
+  local first_domain="${site_domains%%,*}"
+  local site_root="${VARS['site_root']}"
+  local vhost_path="${NGINX_VHOSTS_DIR}/${first_domain}.conf"
+  local fastcgi_path=$(cat NGINX_KEITARO_CONF | grep -o fastcgi_path | sed 's/.*fastcgi_path//')
+  echo "$(cat_vhost)" > "$vhost_path"
+  print_file_to_log "$vhost_path"
+}
 
-make_cert_links(){
-  debug "Make certificate links"
-  local le_cert_path="/etc/letsencrypt/live/${DOMAINS[0]}/fullchain.pem"
-  local le_privkey_path="/etc/letsencrypt/live/${DOMAINS[0]}/privkey.pem"
-  local command="rm -f ${NGINX_SSL_CERT_PATH} && rm -f ${NGINX_SSL_PRIVKEY_PATH}"
-  command="${command} && ln -s ${le_cert_path} ${NGINX_SSL_CERT_PATH}"
-  command="${command} && ln -s ${le_privkey_path} ${NGINX_SSL_PRIVKEY_PATH}"
-  run_command "${command}" "$(translate 'messages.make_ssl_cert_links')" 'hide_output' '' 'nginx'
+function cat_vhost() {
+	cat <<-END
+      server {
+        listen 80;
+        server_name ${site_domains};
+        root ${site_root};
+        index index.php;
+        error_log /var/log/nginx/error.log error;
+        location ~* \.(jpg|jpeg|gif|png|js|css|txt|zip|ico|gz|csv)\$ {
+          expires 10d;
+        }
+        location ~* \.(htaccess|ini|dat)\$ {
+          return 403;
+        }
+        location ~ \.php\$ {
+          fastcgi_split_path_info ^(.+\.php)(/.+)\$;
+          "$fastcgi_path_line"
+          fastcgi_index index.php;
+          fastcgi_buffers 16 16k;
+          fastcgi_buffer_size 32k;
+          fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+          include fastcgi_params;
+        }
+        location / {
+          try_files \$uri \$uri/ /index.php?\$args;
+        }
+      }
+	END
 }
 
 
@@ -764,22 +786,6 @@ make_cert_links(){
 reload_nginx(){
   debug "Reload nginx"
   run_command "nginx -s reload" "$(translate 'messages.reload_nginx')" 'hide_output'
-}
-
-
-
-run_certbot(){
-  debug "Run certbot"
-  certbot_command="certbot certonly --webroot --webroot-path=${WEBROOT_PATH} --agree-tos --non-interactive --expand"
-  for domain in "${DOMAINS[@]}"; do
-    certbot_command="${certbot_command} --domain ${domain}"
-  done
-  if isset "${VARS['ssl_email']}"; then
-    certbot_command="${certbot_command} --email ${VARS['ssl_email']}"
-  else
-    certbot_command="${certbot_command} --register-unsafely-without-email"
-  fi
-  run_command "${certbot_command}" '' '' '' 'nginx'
 }
 
 

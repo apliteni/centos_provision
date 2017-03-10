@@ -7,7 +7,8 @@ KEITARO_URL="https://keitarotds.com"
 WEBROOT_PATH="/var/www/keitaro"
 
 NGINX_ROOT_PATH="/etc/nginx"
-NGINX_VHOSTS_CONF="${NGINX_ROOT_PATH}/conf.d/vhosts.conf"
+NGINX_VHOSTS_DIR="${NGINX_ROOT_PATH}/conf.d"
+NGINX_KEITARO_CONF="${NGINX_VHOSTS_DIR}/vhosts.conf"
 
 SCRIPT_NAME="${PROGRAM_NAME}.sh"
 SCRIPT_URL="${KEITARO_URL}/${PROGRAM_NAME}.sh"

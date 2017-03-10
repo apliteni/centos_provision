@@ -7,21 +7,21 @@ assert_nginx_configured()
 
 
 is_nginx_properly_configured()
-  is_exists_file "${NGINX_VHOSTS_CONF}" &&
+  is_exists_file "${NGINX_KEITARO_CONF}" &&
     is_exists_directory "${WEBROOT_PATH}" &&
     is_keitaro_configured
 
 
 is_keitaro_configured()
-  debug "Checking keitaro params in ${NGINX_VHOSTS_CONF}"
+  debug "Checking keitaro params in ${NGINX_KEITARO_CONF}"
   if isset $SKIP_CHECKS
-    debug "SKIP: аctual check of keitaro params in ${NGINX_VHOSTS_CONF} disabled"
+    debug "SKIP: аctual check of keitaro params in ${NGINX_KEITARO_CONF} disabled"
     return 0
-  if grep -q -e "root ${WEBROOT_PATH};" "${NGINX_VHOSTS_CONF}"
-    debug "OK: it seems like ${NGINX_VHOSTS_CONF} is properly configured"
+  if grep -q -e "root ${WEBROOT_PATH};" "${NGINX_KEITARO_CONF}"
+    debug "OK: it seems like ${NGINX_KEITARO_CONF} is properly configured"
     return 0
   else
-    debug "NOK: ${NGINX_VHOSTS_CONF} is not properly configured"
-    debug "Content of ${NGINX_VHOSTS_CONF}:\n$(cat ${NGINX_VHOSTS_CONF} | sed 's/^/  /g')"
+    debug "NOK: ${NGINX_KEITARO_CONF} is not properly configured"
+    debug "Content of ${NGINX_KEITARO_CONF}:\n$(cat ${NGINX_KEITARO_CONF} | sed 's/^/  /g')"
     return 1
 

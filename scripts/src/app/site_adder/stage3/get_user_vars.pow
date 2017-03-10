@@ -4,5 +4,5 @@
 get_user_vars()
   debug 'Read vars from user input'
   hack_stdin_if_pipe_mode
-  get_user_var 'site_domains'
-  get_user_var 'site_root'
+  get_user_var 'site_domains' 'validate_presence'
+  get_user_var 'site_root' 'validate_presence'

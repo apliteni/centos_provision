@@ -2,9 +2,7 @@
 
 
 stage4()
-  debug "Starting stage 4: install LE certificates"
-  run_certbot
-  make_cert_links
-  add_renewal_job
+  debug "Starting stage 4: add vhost"
+  add_vhost
   reload_nginx
   show_successful_message

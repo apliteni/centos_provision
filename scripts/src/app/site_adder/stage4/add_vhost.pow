@@ -1,0 +1,46 @@
+#!/usr/bin/env powscript
+
+
+add_vhost()
+  debug "Add vhost"
+  print_vhost_command
+
+
+print_vhost_command()
+  local site_domains=$VARS['site_domains']
+  local first_domain="${site_domains%%,*}"
+  local site_root=$VARS['site_root']
+  local vhost_path="${NGINX_VHOSTS_DIR}/${first_domain}.conf"
+  local fastcgi_path=$(cat NGINX_KEITARO_CONF | grep -o fastcgi_path | sed 's/.*fastcgi_path//')
+  echo "$(cat_vhost)" > $vhost_path
+  print_file_to_log $vhost_path
+
+function cat_vhost() {
+	cat <<-END
+      server {
+        listen 80;
+        server_name ${site_domains};
+        root ${site_root};
+        index index.php;
+        error_log /var/log/nginx/error.log error;
+        location ~* \.(jpg|jpeg|gif|png|js|css|txt|zip|ico|gz|csv)\$ {
+          expires 10d;
+        }
+        location ~* \.(htaccess|ini|dat)\$ {
+          return 403;
+        }
+        location ~ \.php\$ {
+          fastcgi_split_path_info ^(.+\.php)(/.+)\$;
+          $fastcgi_path_line
+          fastcgi_index index.php;
+          fastcgi_buffers 16 16k;
+          fastcgi_buffer_size 32k;
+          fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+          include fastcgi_params;
+        }
+        location / {
+          try_files \$uri \$uri/ /index.php?\$args;
+        }
+      }
+	END
+}
