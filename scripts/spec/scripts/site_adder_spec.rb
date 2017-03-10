@@ -24,7 +24,7 @@ RSpec.describe 'add-site.sh' do
         site_root: 'Please enter site root directory',
       },
       ru: {
-        site_domains: 'Укажите список доменное имя и список альясов через запятую без пробелов (например domain1.tld,www.domain1.tld)',
+        site_domains: 'Укажите доменное имя и список альясов через запятую без пробелов (например domain1.tld,www.domain1.tld)',
         site_root: 'Укажите корневую директорию сайта',
       }
     }

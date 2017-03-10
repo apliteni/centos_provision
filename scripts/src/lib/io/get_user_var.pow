@@ -3,18 +3,25 @@
 
 get_user_var(var_name, validation_methods_string)
   print_prompt_help $var_name
+  debug "${var_name}: reading value"
   while true
     print_prompt $var_name
     variable="$(read_stdin)"
+    debug "${var_name}: got '${variable}'"
     if not empty $variable
       VARS[$var_name]="${variable}"
-    error=false
+    debug "${var_name}: set '${variable}'"
+    errors=""
     read -ra validation_methods <<< "$validation_methods_string"
     for validation_method in "${validation_methods[@]}"
       if ! is_valid "$validation_method" "${VARS[$var_name]}"
+        debug "${var_name}: invalid with '${validation_method}' validator, reset to ''"
         VARS[$var_name]=''
         print_prompt_error $validation_method
-        error=true
-    if ! error
-      debug "  ${var_name}=${variable}" 'light.blue'
+        errors="errors"
+        break
+      else
+        debug "${var_name}: valid with '${validation_method}' validator"
+    if empty $errors
+      debug "${var_name}=${variable}" 'light.blue'
       break

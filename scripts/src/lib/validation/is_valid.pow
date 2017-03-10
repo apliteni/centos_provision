@@ -5,4 +5,5 @@ is_valid(validation_method, value)
   if empty $validation_method
     true
   else
-    eval $validation_method $value
+    debug "is_valid: validate '${value}' with ${validation_method} validator"
+    eval "${validation_method} '${value}'"
