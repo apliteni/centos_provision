@@ -3,25 +3,18 @@
 
 add_vhost()
   debug "Add vhost"
-  local site_domains=$VARS['site_domains']
-  local first_domain="${site_domains%%,*}"
-  local site_root=$VARS['site_root']
-  local fastcgi_pass_line="fastcgi_pass unix:/var/run/php70-fpm.sock;"
-  if [ -f $NGINX_KEITARO_CONF ]
-    fastcgi_pass_line="$(cat $NGINX_KEITARO_CONF | grep fastcgi_pass | sed 's/^ +//')"
-  local vhost_content="$(generate_vhost)"
-  local vhost_path="${NGINX_VHOSTS_DIR}/${first_domain}.conf"
-  run_command "echo '${vhost_content}' > '${vhost_path}'" "$(translate 'messages.add_vhost')" "hide_output"
+  run_command "echo '$(vhost_content)' > '$(vhost_filepath)'" "$(translate 'messages.add_vhost')" "hide_output"
   print_file_to_log $vhost_path
 
-function generate_vhost() {
+function vhost_content() {
 	cat <<-END
       server {
         listen 80;
-        server_name ${site_domains};
-        root ${site_root};
+        server_name ${VARS['site_domains']};
+        root ${VARS['site_root']};
         index index.php;
-        error_log /var/log/nginx/error.log error;
+        access_log /var/log/nginx/$(first_domain).access.log main;
+        error_log /var/log/nginx/$(first_domain).error.log warn;
         location ~* \.(jpg|jpeg|gif|png|js|css|txt|zip|ico|gz|csv)\$ {
           expires 10d;
         }
@@ -30,7 +23,7 @@ function generate_vhost() {
         }
         location ~ \.php\$ {
           fastcgi_split_path_info ^(.+\.php)(/.+)\$;
-          ${fastcgi_pass_line}
+          ${FASTCGI_PASS_LINE}
           fastcgi_index index.php;
           fastcgi_buffers 16 16k;
           fastcgi_buffer_size 32k;

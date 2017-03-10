@@ -110,12 +110,14 @@ DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет
 
 DICT['en.errors.see_logs']="Evaluating log saved to ${SCRIPT_LOG}. Please rerun \`${SCRIPT_COMMAND}\` after resolving problems."
 DICT['en.errors.reinstall_keitaro']="Your Keitaro TDS installation does not properly configured. Please reconfigure Keitaro TDS by evaluating command \`${RECONFIGURE_KEITARO_COMMAND_EN}\`"
+DICT['en.errors.vhost_already_exists']="Can not save site configuration - :vhost_filepath: already exists"
 DICT['en.messages.add_vhost']="Creating site config"
 DICT['en.prompts.site_domains']='Please enter domain name with aliases, separated by comma without spaces (i.e. domain1.tld,www.domain1.tld)'
 DICT['en.prompts.site_root']='Please enter site root directory'
 
 DICT['ru.errors.reinstall_keitaro']="Keitaro TDS отконфигурирована неправильно. Пожалуйста выполните перенастройку Keitaro TDS выполнив команду \`${RECONFIGURE_KEITARO_COMMAND_RU}\`"
 DICT['ru.errors.see_logs']="Журнал выполнения сохранён в ${SCRIPT_LOG}. Пожалуйста запустите \`${SCRIPT_COMMAND}\` после устранения возникших проблем."
+DICT['ru.errors.vhost_already_exists']="Невозможно сохранить конфигурацию сайта - :vhost_filepath: уже существует"
 DICT['ru.messages.add_vhost']="Создаётся конфигурация для сайта"
 DICT['ru.prompts.site_domains']='Укажите список доменное имя и список альясов через запятую без пробелов (например domain1.tld,www.domain1.tld)'
 DICT['ru.prompts.site_root']='Укажите корневую директорию сайта'
@@ -579,6 +581,18 @@ validate_yes_no(){
 
 
 
+first_domain(){
+  echo "${VARS['site_domains']%%,*}"
+}
+
+
+
+vhost_filepath(){
+  echo "${NGINX_VHOSTS_DIR}/$(first_domain).conf"
+}
+
+
+
 stage1(){
   debug "Starting stage 1: initial script setup"
   parse_options "$@"
@@ -701,11 +715,19 @@ is_keitaro_configured(){
   debug "Checking keitaro params in ${NGINX_KEITARO_CONF}"
   if isset "$SKIP_CHECKS"; then
     debug "SKIP: аctual check of keitaro params in ${NGINX_KEITARO_CONF} disabled"
+    FASTCGI_PASS_LINE="fastcgi_pass unix:/var/run/php70-fpm.sock;"
     return 0
   fi
   if grep -q -e "root ${WEBROOT_PATH};" "${NGINX_KEITARO_CONF}"; then
-    debug "OK: it seems like ${NGINX_KEITARO_CONF} is properly configured"
-    return 0
+    get_fastcgi_pass_line
+    if isset "${FASTCGI_PASS_LINE}"; then
+      debug "NOK: ${NGINX_KEITARO_CONF} is not properly configured (can't find fastcgi_pass param)"
+      debug "Content of ${NGINX_KEITARO_CONF}:\n$(cat ${NGINX_KEITARO_CONF} | sed 's/^/  /g')"
+      return 1
+    else
+      debug "OK: it seems like ${NGINX_KEITARO_CONF} is properly configured"
+      return 0
+    fi
   else
     debug "NOK: ${NGINX_KEITARO_CONF} is not properly configured"
     debug "Content of ${NGINX_KEITARO_CONF}:\n$(cat ${NGINX_KEITARO_CONF} | sed 's/^/  /g')"
@@ -713,6 +735,9 @@ is_keitaro_configured(){
   fi
 }
 
+get_fastcgi_pass_line(){
+  FASTCGI_PASS_LINE="$(cat "$NGINX_KEITARO_CONF" | grep fastcgi_pass | sed 's/^ +//')"
+}
 
 
 
@@ -734,6 +759,7 @@ get_user_vars(){
 
 stage4(){
   debug "Starting stage 4: add vhost"
+  ensure_can_add_vhost
   add_vhost
   reload_nginx
   show_successful_message
@@ -743,27 +769,19 @@ stage4(){
 
 add_vhost(){
   debug "Add vhost"
-  local site_domains="${VARS['site_domains']}"
-  local first_domain="${site_domains%%,*}"
-  local site_root="${VARS['site_root']}"
-  local fastcgi_pass_line="fastcgi_pass unix:/var/run/php70-fpm.sock;"
-  if [ -f "$NGINX_KEITARO_CONF" ]; then
-    fastcgi_pass_line="$(cat "$NGINX_KEITARO_CONF" | grep fastcgi_pass | sed 's/^ +//')"
-  fi
-  local vhost_content="$(generate_vhost)"
-  local vhost_path="${NGINX_VHOSTS_DIR}/${first_domain}.conf"
-  run_command "echo '${vhost_content}' > '${vhost_path}'" "$(translate 'messages.add_vhost')" "hide_output"
+  run_command "echo '$(vhost_content)' > '$(vhost_filepath)'" "$(translate 'messages.add_vhost')" "hide_output"
   print_file_to_log "$vhost_path"
 }
 
-function generate_vhost() {
+function vhost_content() {
 	cat <<-END
       server {
         listen 80;
-        server_name ${site_domains};
-        root ${site_root};
+        server_name ${VARS['site_domains']};
+        root ${VARS['site_root']};
         index index.php;
-        error_log /var/log/nginx/error.log error;
+        access_log /var/log/nginx/$(first_domain).access.log main;
+        error_log /var/log/nginx/$(first_domain).error.log warn;
         location ~* \.(jpg|jpeg|gif|png|js|css|txt|zip|ico|gz|csv)\$ {
           expires 10d;
         }
@@ -772,7 +790,7 @@ function generate_vhost() {
         }
         location ~ \.php\$ {
           fastcgi_split_path_info ^(.+\.php)(/.+)\$;
-          ${fastcgi_pass_line}
+          ${FASTCGI_PASS_LINE}
           fastcgi_index index.php;
           fastcgi_buffers 16 16k;
           fastcgi_buffer_size 32k;
@@ -784,6 +802,24 @@ function generate_vhost() {
         }
       }
 	END
+}
+
+
+
+ensure_can_add_vhost(){
+  if [[ ! "$SKIP_CHECKS" && is_vhost_filepath_exist ]]; then
+    local message="$(translate 'errors.vhost_already_exists')"
+    fail "${message/:vhost_filepath:/$(vhost_filepath)}"
+  fi
+  if is_vhost_filepath_exist; then
+    local message="$(translate 'errors.vhost_already_exists')"
+    fail "${message/:vhost_filepath:/$(vhost_filepath)}"
+  fi
+}
+
+
+is_vhost_filepath_exist(){
+  [ -e "$(vhost_filepath)" ]
 }
 
 
