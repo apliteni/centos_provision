@@ -86,6 +86,7 @@ DICT['en.errors.must_be_root']='You must run this program as root.'
 DICT['en.errors.run_command.fail']='There was an error evaluating command'
 DICT['en.errors.run_command.fail_extra']=''
 DICT['en.errors.terminated']='Terminated by user'
+DICT['en.messages.reload_nginx']="Reloading nginx"
 DICT['en.messages.run_command']='Evaluating command'
 DICT['en.messages.successful']='Everything done!'
 DICT['en.no']='no'
@@ -97,6 +98,7 @@ DICT['ru.errors.must_be_root']='Эту программу может запус�
 DICT['ru.errors.run_command.fail']='Ошибка выполнения команды'
 DICT['ru.errors.run_command.fail_extra']=''
 DICT['ru.errors.terminated']='Выполнение прервано'
+DICT['ru.messages.reload_nginx']="Перезагружается nginx"
 DICT['ru.messages.run_command']='Выполняется команда'
 DICT['ru.messages.successful']='Программа успешно завершена!'
 DICT['ru.no']='нет'
@@ -106,15 +108,15 @@ DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет
 
 
 
-DICT['en.messages.reload_nginx']="Reload nginx"
 DICT['en.errors.see_logs']="Evaluating log saved to ${SCRIPT_LOG}. Please rerun \`${SCRIPT_COMMAND}\` after resolving problems."
 DICT['en.errors.reinstall_keitaro']="Your Keitaro TDS installation does not properly configured. Please reconfigure Keitaro TDS by evaluating command \`${RECONFIGURE_KEITARO_COMMAND_EN}\`"
+DICT['en.messages.add_vhost']="Creating site config"
 DICT['en.prompts.site_domains']='Please enter domain name with aliases, separated by comma without spaces (i.e. domain1.tld,www.domain1.tld)'
 DICT['en.prompts.site_root']='Please enter site root directory'
 
-DICT['ru.messages.reload_nginx']="Перезагружаем nginx"
 DICT['ru.errors.reinstall_keitaro']="Keitaro TDS отконфигурирована неправильно. Пожалуйста выполните перенастройку Keitaro TDS выполнив команду \`${RECONFIGURE_KEITARO_COMMAND_RU}\`"
 DICT['ru.errors.see_logs']="Журнал выполнения сохранён в ${SCRIPT_LOG}. Пожалуйста запустите \`${SCRIPT_COMMAND}\` после устранения возникших проблем."
+DICT['ru.messages.add_vhost']="Создаётся конфигурация для сайта"
 DICT['ru.prompts.site_domains']='Укажите список доменное имя и список альясов через запятую без пробелов (например domain1.tld,www.domain1.tld)'
 DICT['ru.prompts.site_root']='Укажите корневую директорию сайта'
 
@@ -418,7 +420,11 @@ print_err(){
 
 print_file_to_log(){
   local filepath="${1}"
-  debug "Content of '${filepath}':\n$(cat "$filepath" | sed 's/^/  /g')"
+  if [ -f "$filepath" ]; then
+    debug "Content of '${filepath}':\n$(cat "$filepath" | sed 's/^/  /g')"
+  else
+    debug "Can't log '${filepath}' content - file does not exist"
+  fi
 }
 
 
@@ -737,21 +743,20 @@ stage4(){
 
 add_vhost(){
   debug "Add vhost"
-  print_vhost_command
-}
-
-
-print_vhost_command(){
   local site_domains="${VARS['site_domains']}"
   local first_domain="${site_domains%%,*}"
   local site_root="${VARS['site_root']}"
+  local fastcgi_pass_line="fastcgi_pass unix:/var/run/php70-fpm.sock;"
+  if [ -f "$NGINX_KEITARO_CONF" ]; then
+    fastcgi_pass_line="$(cat "$NGINX_KEITARO_CONF" | grep fastcgi_pass | sed 's/^ +//')"
+  fi
+  local vhost_content="$(generate_vhost)"
   local vhost_path="${NGINX_VHOSTS_DIR}/${first_domain}.conf"
-  local fastcgi_path=$(cat NGINX_KEITARO_CONF | grep -o fastcgi_path | sed 's/.*fastcgi_path//')
-  echo "$(cat_vhost)" > "$vhost_path"
+  run_command "echo '${vhost_content}' > '${vhost_path}'" "$(translate 'messages.add_vhost')" "hide_output"
   print_file_to_log "$vhost_path"
 }
 
-function cat_vhost() {
+function generate_vhost() {
 	cat <<-END
       server {
         listen 80;
@@ -767,7 +772,7 @@ function cat_vhost() {
         }
         location ~ \.php\$ {
           fastcgi_split_path_info ^(.+\.php)(/.+)\$;
-          "$fastcgi_path_line"
+          ${fastcgi_pass_line}
           fastcgi_index index.php;
           fastcgi_buffers 16 16k;
           fastcgi_buffer_size 32k;
