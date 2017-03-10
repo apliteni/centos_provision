@@ -8,6 +8,7 @@ RSpec.shared_context 'build subject', build_subject: :yes do
   let(:command_stubs) { {} }
   let(:all_command_stubs) {}
   let(:commands) { [] }
+  let(:save_files) { [] }
   let(:emulate_sudo) do
     [
       'echo "shift 4; bash -c \"\$@\"" > /bin/sudo',
@@ -29,6 +30,7 @@ RSpec.shared_context 'build subject', build_subject: :yes do
                prompts_with_values: prompts_with_values,
                docker_image: docker_image,
                command_stubs: command_stubs,
-               commands: commands
+               commands: commands,
+               save_files: save_files
   end
 end

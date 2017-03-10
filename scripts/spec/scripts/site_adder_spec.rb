@@ -33,7 +33,7 @@ RSpec.describe 'add-site.sh' do
   let(:user_values) do
     {
       site_domains: 'example.com',
-      site_root: '',
+      site_root: '/var/www/example.com',
     }
   end
 
@@ -110,18 +110,25 @@ RSpec.describe 'add-site.sh' do
 
     let(:command_stubs) { all_command_stubs }
     let(:commands) { make_proper_nginx_conf + make_keitaro_root_dir }
+    let(:save_files) { '/etc/nginx/conf.d/example.com.conf' }
 
-    it 'should create /etc/nginx/conf.d/example.com.conf' do
+    it 'should create example.com.conf' do
       run_script
-      expect(File.exist?('/etc/nginx/conf.d/example.com.conf')).to be_truthy
+      expect(File.exist?("#{@current_dir}/example.com.conf")).to be_truthy
     end
 
     it 'vhost file should be properly configured' do
       run_script
-      content = File.read('/etc/nginx/conf.d/example.com.conf')
+      content = File.read("#{@current_dir}/example.com.conf")
       expect(content).to match('server_name example.com;')
     end
 
+    context '/etc/nginx/conf.d/example.conf already exists' do
+      let(:make_example_com_vhost) { ['touch /etc/nginx/conf.d/example.conf'] }
+      let(:commands) { make_proper_nginx_conf + make_keitaro_root_dir + make_example_com_vhost }
+
+      it_behaves_like 'should exit with error', "Can't save site configuration at /etc/nginx/conf.d/example.conf - file already exists"
+    end
   end
 
   describe 'add-site result' do
