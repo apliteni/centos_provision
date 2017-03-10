@@ -1,0 +1,8 @@
+#!/usr/bin/env powscript
+
+
+print_file_to_log(filepath)
+  if [ -f $filepath ]
+    debug "Content of '${filepath}':\n$(cat $filepath | sed 's/^/  /g')"
+  else
+    debug "Can't log '${filepath}' content - file does not exist"

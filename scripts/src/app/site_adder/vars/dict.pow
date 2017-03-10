@@ -1,14 +1,14 @@
 #!/usr/bin/env powscript
 
-DICT['en.messages.reload_nginx']="Reload nginx"
 DICT['en.errors.see_logs']="Evaluating log saved to ${SCRIPT_LOG}. Please rerun \`${SCRIPT_COMMAND}\` after resolving problems."
 DICT['en.errors.reinstall_keitaro']="Your Keitaro TDS installation does not properly configured. Please reconfigure Keitaro TDS by evaluating command \`${RECONFIGURE_KEITARO_COMMAND_EN}\`"
+DICT['en.messages.add_vhost']="Creating site config"
 DICT['en.prompts.site_domains']='Please enter domain name with aliases, separated by comma without spaces (i.e. domain1.tld,www.domain1.tld)'
 DICT['en.prompts.site_root']='Please enter site root directory'
 
-DICT['ru.messages.reload_nginx']="Перезагружаем nginx"
 DICT['ru.errors.reinstall_keitaro']="Keitaro TDS отконфигурирована неправильно. Пожалуйста выполните перенастройку Keitaro TDS выполнив команду \`${RECONFIGURE_KEITARO_COMMAND_RU}\`"
 DICT['ru.errors.see_logs']="Журнал выполнения сохранён в ${SCRIPT_LOG}. Пожалуйста запустите \`${SCRIPT_COMMAND}\` после устранения возникших проблем."
+DICT['ru.messages.add_vhost']="Создаётся конфигурация для сайта"
 DICT['ru.prompts.site_domains']='Укажите список доменное имя и список альясов через запятую без пробелов (например domain1.tld,www.domain1.tld)'
 DICT['ru.prompts.site_root']='Укажите корневую директорию сайта'
 
