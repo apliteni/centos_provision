@@ -58,6 +58,12 @@ SHELL_NAME=$(basename "$0")
 
 KEITARO_URL="https://keitarotds.com"
 
+WEBROOT_PATH="/var/www/keitaro"
+
+NGINX_ROOT_PATH="/etc/nginx"
+NGINX_VHOSTS_DIR="${NGINX_ROOT_PATH}/conf.d"
+NGINX_KEITARO_CONF="${NGINX_VHOSTS_DIR}/vhosts.conf"
+
 SCRIPT_NAME="${PROGRAM_NAME}.sh"
 SCRIPT_URL="${KEITARO_URL}/${PROGRAM_NAME}.sh"
 SCRIPT_LOG="${PROGRAM_NAME}.log"
@@ -78,6 +84,10 @@ fi
 
 declare -A VARS
 
+RECONFIGURE_KEITARO_COMMAND_EN="curl -sSL ${KEITARO_URL}/install.sh | bash"
+
+RECONFIGURE_KEITARO_COMMAND_RU="curl -sSL ${KEITARO_URL}/install.sh | bash -s -- -l ru"
+
 
 declare -A DICT
 
@@ -86,9 +96,11 @@ DICT['en.errors.must_be_root']='You must run this program as root.'
 DICT['en.errors.run_command.fail']='There was an error evaluating command'
 DICT['en.errors.run_command.fail_extra']=''
 DICT['en.errors.terminated']='Terminated by user'
+DICT['en.messages.reload_nginx']="Reloading nginx"
 DICT['en.messages.run_command']='Evaluating command'
 DICT['en.messages.successful']='Everything done!'
 DICT['en.no']='no'
+DICT['en.prompt_errors.validate_domains_list']='Please enter domains list, separated by comma without spaces (i.e. domain1.tld,www.domain1.tld). Each domain name must consist of only letters, numbers and hyphens and contain at least one dot.'
 DICT['en.prompt_errors.validate_presence']='Please enter value'
 DICT['en.prompt_errors.validate_yes_no']='Please answer "yes" or "no"'
 
@@ -97,9 +109,11 @@ DICT['ru.errors.must_be_root']='Эту программу может запус�
 DICT['ru.errors.run_command.fail']='Ошибка выполнения команды'
 DICT['ru.errors.run_command.fail_extra']=''
 DICT['ru.errors.terminated']='Выполнение прервано'
+DICT['ru.messages.reload_nginx']="Перезагружается nginx"
 DICT['ru.messages.run_command']='Выполняется команда'
 DICT['ru.messages.successful']='Программа успешно завершена!'
 DICT['ru.no']='нет'
+DICT['ru.prompt_errors.validate_domains_list']='Укажите список доменных имён через запятую без пробелов (например domain1.tld,www.domain1.tld). Каждое доменное имя должно состоять только из букв, цифр и тире и содержать хотябы одну точку.'
 DICT['ru.prompt_errors.validate_presence']='Введите значение'
 DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
 
@@ -177,20 +191,23 @@ translate(){
 
 get_user_var(){
   local var_name="${1}"
-  local validation_method="${2}"
+  local validation_methods="${2}"
   print_prompt_help "$var_name"
   while true; do
     print_prompt "$var_name"
-    variable="$(read_stdin)"
-    if ! empty "$variable"; then
-      VARS[$var_name]="${variable}"
+    value="$(read_stdin)"
+    debug "$var_name: got value '${value}'"
+    if ! empty "$value"; then
+      VARS[$var_name]="${value}"
     fi
-    if is_valid "$validation_method" "${VARS[$var_name]}"; then
-      debug "  ${var_name}=${variable}" 'light.blue'
-      break
-    else
+    error=$(get_error "${var_name}" "$validation_methods")
+    if isset "$error"; then
+      debug "$var_name: validation error - '${error}'"
+      print_prompt_error "$error"
       VARS[$var_name]=''
-      print_prompt_error "$validation_method"
+    else
+      debug "  ${var_name}=${value}" 'light.blue'
+      break
     fi
   done
 }
@@ -351,6 +368,7 @@ get_name_for_old_log(){
 
 
 on_exit(){
+  debug "Terminated by user"
   echo
   clean_up
   fail "$(translate 'errors.terminated')"
@@ -475,14 +493,22 @@ print_command_status(){
 
 
 
-is_valid(){
-  local validation_method="${1}"
-  local value="${2}"
-  if empty "$validation_method"; then
-    true
-  else
-    eval "$validation_method" "$value"
-  fi
+get_error(){
+  local var_name="${1}"
+  local validation_methods_string="${2}"
+  local value="${VARS[$var_name]}"
+  local error=""
+  read -ra validation_methods <<< "$validation_methods_string"
+  for validation_method in "${validation_methods[@]}"; do
+    if ! eval "${validation_method} '${value}'"; then
+      debug "${var_name}: '${value}' invalid for ${validation_method} validator"
+      error="${validation_method}"
+      break
+    else
+      debug "${var_name}: '${value}' valid for ${validation_method} validator"
+    fi
+  done
+  echo "${error}"
 }
 
 
@@ -573,7 +599,7 @@ DICT['ru.errors.see_logs']=$(cat <<- END
 	Вы можете повторно запустить \`${SCRIPT_COMMAND}\` с этими настройками после устранения возникших проблем.
 END
 )
-DICT['ru.errors.yum_not_installed']='Утановщик keitaro работает только с пакетным менеджером yum. Пожалуйста, запустите эту программу в CentOS/RHEL/Fedora дистрибутиве'
+DICT['ru.errors.yum_not_installed']='Установщик keitaro работает только с пакетным менеджером yum. Пожалуйста, запустите эту программу в CentOS/RHEL/Fedora дистрибутиве'
 DICT['ru.prompts.admin_login']='Укажите имя администратора keitaro'
 DICT['ru.prompts.admin_password']='Укажите пароль администратора keitaro'
 DICT['ru.prompts.db_name']='Укажите имя базы данных'
