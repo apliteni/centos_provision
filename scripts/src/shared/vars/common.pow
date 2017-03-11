@@ -4,6 +4,12 @@ SHELL_NAME=$(basename $0)
 
 KEITARO_URL="https://keitarotds.com"
 
+WEBROOT_PATH="/var/www/keitaro"
+
+NGINX_ROOT_PATH="/etc/nginx"
+NGINX_VHOSTS_DIR="${NGINX_ROOT_PATH}/conf.d"
+NGINX_KEITARO_CONF="${NGINX_VHOSTS_DIR}/vhosts.conf"
+
 SCRIPT_NAME="${PROGRAM_NAME}.sh"
 SCRIPT_URL="${KEITARO_URL}/${PROGRAM_NAME}.sh"
 SCRIPT_LOG="${PROGRAM_NAME}.log"
@@ -20,3 +26,7 @@ else
     SCRIPT_COMMAND="${SHELL_NAME}"
 
 VARS={}
+
+RECONFIGURE_KEITARO_COMMAND_EN="curl -sSL ${KEITARO_URL}/install.sh | bash"
+
+RECONFIGURE_KEITARO_COMMAND_RU="curl -sSL ${KEITARO_URL}/install.sh | bash -s -- -l ru"

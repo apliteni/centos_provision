@@ -1,15 +1,16 @@
 #!/usr/bin/env powscript
 
 
-require 'shared/vars/ssl_enabler_program_name.pow'
+require 'shared/vars/site_adder_program_name.pow'
 require 'shared/vars/common.pow'
 require 'shared/vars/dict.pow'
 
-require 'app/ssl_enabler/vars/common.pow'
-require 'app/ssl_enabler/vars/dict.pow'
+require 'app/site_adder/vars/common.pow'
+require 'app/site_adder/vars/dict.pow'
 
 require 'lib/asserts/assert_caller_root.pow'
 require 'lib/asserts/assert_installed.pow'
+require 'lib/asserts/is_exists_directory.pow'
 require 'lib/asserts/is_exists_file.pow'
 require 'lib/i18n/set_ui_lang.pow'
 require 'lib/i18n/translate.pow'
@@ -34,29 +35,31 @@ require 'lib/system/print_with_color.pow'
 require 'lib/system/run_command.pow'
 require 'lib/validation/is_valid.pow'
 require 'lib/validation/validate_presence.pow'
+require 'lib/validation/validate_domains_list.pow'
 require 'lib/yes_no/is_no.pow'
 require 'lib/yes_no/is_yes.pow'
 require 'lib/yes_no/validate_yes_no.pow'
 
-require 'app/ssl_enabler/stage1.pow'
-require 'app/ssl_enabler/stage1/parse_options.pow'
-require 'app/ssl_enabler/stage2.pow'
-require 'app/ssl_enabler/stage2/asserts.pow'
-require 'app/ssl_enabler/stage3.pow'
-require 'app/ssl_enabler/stage3/get_user_vars.pow'
-require 'app/ssl_enabler/stage4.pow'
-require 'app/ssl_enabler/stage4/add_renewal_job.pow'
-require 'app/ssl_enabler/stage4/make_cert_links.pow'
-require 'app/ssl_enabler/stage4/reload_nginx.pow'
-require 'app/ssl_enabler/stage4/run_certbot.pow'
-require 'app/ssl_enabler/stage4/show_successful_message.pow'
+require 'app/site_adder/lib/first_domain.pow'
+require 'app/site_adder/lib/vhost_filepath.pow'
+require 'app/site_adder/stage1.pow'
+require 'app/site_adder/stage1/parse_options.pow'
+require 'app/site_adder/stage2.pow'
+require 'app/site_adder/stage2/asserts.pow'
+require 'app/site_adder/stage3.pow'
+require 'app/site_adder/stage3/get_user_vars.pow'
+require 'app/site_adder/stage4.pow'
+require 'app/site_adder/stage4/add_vhost.pow'
+require 'app/site_adder/stage4/ensure_can_add_vhost.pow'
+require 'app/site_adder/stage4/reload_nginx.pow'
+require 'app/site_adder/stage4/show_successful_message.pow'
 
 
 # We wrap the entire script in a big function which we only call at the very end, in order to
 # protect against the possibility of the connection dying mid-script. This protects us against
 # the problem described in this blog post:
 #   http://blog.existentialize.com/dont-pipe-to-your-shell.html
-enable_ssl()
+add_site()
   init $@
   stage1 $@
   stage2
@@ -64,4 +67,4 @@ enable_ssl()
   stage4
 
 
-enable_ssl $@
+add_site $@
