@@ -3,7 +3,6 @@
 
 run_command(command, message, hide_output, allow_errors, run_as)
   debug "Evaluating command: ${command}"
-  debug "command: ${command}, message: ${message}, hide_output: ${hide_output}, allow_errors: ${allow_errors}, run_as: ${run_as}"
   if empty $message
     run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
     message="$run_command_message \`$command\`"
@@ -37,7 +36,7 @@ run_command(command, message, hide_output, allow_errors, run_as)
 
 
 print_command_status(command, status, color, hide_output)
-  debug "Command \`$command\` result: ${status}"
+  debug "Command result: ${status}"
   if isset $hide_output
     print_with_color $status $color
 

@@ -438,7 +438,6 @@ run_command(){
   local allow_errors="${4}"
   local run_as="${5}"
   debug "Evaluating command: ${command}"
-  debug "command: ${command}, message: ${message}, hide_output: ${hide_output}, allow_errors: ${allow_errors}, run_as: ${run_as}"
   if empty "$message"; then
     run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
     message="$run_command_message \`$command\`"
@@ -484,7 +483,7 @@ print_command_status(){
   local status="${2}"
   local color="${3}"
   local hide_output="${4}"
-  debug "Command \`$command\` result: ${status}"
+  debug "Command result: ${status}"
   if isset "$hide_output"; then
     print_with_color "$status" "$color"
   fi
