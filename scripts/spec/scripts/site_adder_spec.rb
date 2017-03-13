@@ -17,6 +17,8 @@ RSpec.describe 'add-site.sh' do
 
   let(:make_keitaro_root_dir) { ['mkdir -p /var/www/keitaro'] }
 
+  let(:make_site_root_dir) { ['mkdir -p /var/www/example.com'] }
+
   let(:prompts) do
     {
       en: {
@@ -56,12 +58,13 @@ RSpec.describe 'add-site.sh' do
     context 'nginx is installed, keitaro is installed, nginx is configured properly' do
       let(:command_stubs) { all_command_stubs }
 
-      let(:commands) { make_proper_nginx_conf + make_keitaro_root_dir }
+      let(:commands) { make_proper_nginx_conf + make_keitaro_root_dir + make_site_root_dir }
 
       it_behaves_like 'should print to log', [
         "Try to found nginx\nOK",
-        "Checking /etc/nginx/conf.d/vhosts.conf file existence\nOK",
-        "Checking /var/www/keitaro directory existence\nOK",
+        "Checking /etc/nginx/conf.d/vhosts.conf file existence\nYES",
+        "Checking /var/www/keitaro directory existence\nYES",
+        "Checking /var/www/example.com directory existence\nYES",
         "Checking keitaro params in /etc/nginx/conf.d/vhosts.conf\nOK"
       ]
     end
@@ -75,11 +78,21 @@ RSpec.describe 'add-site.sh' do
     context 'keitaro is not installed' do
       let(:command_stubs) { all_command_stubs }
 
-      let(:commands) { make_proper_nginx_conf }
+      let(:commands) { make_proper_nginx_conf + make_site_root_dir }
 
-      it_behaves_like 'should print to log', "Checking /var/www/keitaro directory existence\nNOK"
+      it_behaves_like 'should print to log', "Checking /var/www/keitaro directory existence\nNO"
 
       it_behaves_like 'should exit with error', 'Your Keitaro TDS installation does not properly configured'
+    end
+
+    context 'site is not installed' do
+      let(:command_stubs) { all_command_stubs }
+
+      let(:commands) { make_proper_nginx_conf + make_keitaro_root_dir }
+
+      it_behaves_like 'should print to log', "Checking /var/www/example.com directory existence\nNO"
+
+      it_behaves_like 'should exit with error', '/var/www/example.com directory does not exist'
     end
 
     context 'programs are installed, nginx is not configured properly' do
@@ -87,7 +100,7 @@ RSpec.describe 'add-site.sh' do
 
       let(:nginx_conf) { "listen 80;" }
 
-      let(:commands) { make_proper_nginx_conf + make_keitaro_root_dir }
+      let(:commands) { make_proper_nginx_conf + make_keitaro_root_dir + make_site_root_dir }
 
       it_behaves_like 'should print to log', "Checking keitaro params in /etc/nginx/conf.d/vhosts.conf\nNOK"
 
@@ -97,9 +110,9 @@ RSpec.describe 'add-site.sh' do
     context 'vhosts.conf is absent' do
       let(:command_stubs) { all_command_stubs }
 
-      let(:commands) { make_keitaro_root_dir }
+      let(:commands) { make_keitaro_root_dir + make_site_root_dir }
 
-      it_behaves_like 'should print to log', "Checking /etc/nginx/conf.d/vhosts.conf file existence\nNOK"
+      it_behaves_like 'should print to log', "Checking /etc/nginx/conf.d/vhosts.conf file existence\nNO"
 
       it_behaves_like 'should exit with error', 'Your Keitaro TDS installation does not properly configured'
     end
@@ -109,7 +122,7 @@ RSpec.describe 'add-site.sh' do
     include_context 'run in docker'
 
     let(:command_stubs) { all_command_stubs }
-    let(:commands) { make_proper_nginx_conf + make_keitaro_root_dir }
+    let(:commands) { make_proper_nginx_conf + make_keitaro_root_dir + make_site_root_dir }
     let(:save_files) { '/etc/nginx/conf.d/example.com.conf' }
 
     it 'should create example.com.conf' do
@@ -125,7 +138,7 @@ RSpec.describe 'add-site.sh' do
 
     context '/etc/nginx/conf.d/example.com.conf already exists' do
       let(:make_example_com_vhost) { ['touch /etc/nginx/conf.d/example.com.conf'] }
-      let(:commands) { make_proper_nginx_conf + make_keitaro_root_dir + make_example_com_vhost }
+      let(:commands) { make_proper_nginx_conf + make_keitaro_root_dir + make_site_root_dir + make_example_com_vhost }
 
       it_behaves_like 'should exit with error', 'Can not save site configuration - /etc/nginx/conf.d/example.com.conf already exists'
     end
@@ -135,7 +148,7 @@ RSpec.describe 'add-site.sh' do
     include_context 'run in docker'
 
     let(:command_stubs) { all_command_stubs }
-    let(:commands) { make_proper_nginx_conf + make_keitaro_root_dir }
+    let(:commands) { make_proper_nginx_conf + make_keitaro_root_dir + make_site_root_dir }
 
     it_behaves_like 'should print to stdout', /Everything done!/
   end
