@@ -808,7 +808,7 @@ get_user_ssl_vars(){
     get_user_var 'ssl_agree_tos' 'validate_yes_no'
     if is_yes ${VARS['ssl_agree_tos']}; then
       VARS['ssl_certificate']='letsencrypt'
-      get_user_var 'ssl_domains' 'validate_presence'
+      get_user_var 'ssl_domains' 'validate_presence validate_domains_list'
       get_user_var 'ssl_email'
     fi
   fi
