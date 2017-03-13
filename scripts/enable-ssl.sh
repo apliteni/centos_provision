@@ -491,6 +491,13 @@ print_with_color(){
 
 
 
+reload_nginx(){
+  debug "Reload nginx"
+  run_command "nginx -s reload" "$(translate 'messages.reload_nginx')" 'hide_output'
+}
+
+
+
 run_command(){
   local command="${1}"
   local message="${2}"
@@ -857,13 +864,6 @@ make_cert_links(){
   command="${command} && ln -s ${le_cert_path} ${NGINX_SSL_CERT_PATH}"
   command="${command} && ln -s ${le_privkey_path} ${NGINX_SSL_PRIVKEY_PATH}"
   run_command "${command}" "$(translate 'messages.make_ssl_cert_links')" 'hide_output' '' 'nginx'
-}
-
-
-
-reload_nginx(){
-  debug "Reload nginx"
-  run_command "nginx -s reload" "$(translate 'messages.reload_nginx')" 'hide_output'
 }
 
 
