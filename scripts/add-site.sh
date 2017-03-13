@@ -522,6 +522,13 @@ print_with_color(){
 
 
 
+reload_nginx(){
+  debug "Reload nginx"
+  run_command "nginx -s reload" "$(translate 'messages.reload_nginx')" 'hide_output'
+}
+
+
+
 run_command(){
   local command="${1}"
   local message="${2}"
@@ -880,13 +887,6 @@ ensure_can_add_vhost(){
   fi
 }
 
-
-
-
-reload_nginx(){
-  debug "Reload nginx"
-  run_command "nginx -s reload" "$(translate 'messages.reload_nginx')" 'hide_output'
-}
 
 
 
