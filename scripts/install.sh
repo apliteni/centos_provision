@@ -932,6 +932,7 @@ stage5(){
   clean_up
   remove_inventory_file
   show_successful_message
+  remove_log_files
 }
 
 
@@ -948,6 +949,14 @@ remove_inventory_file(){
   if [ -f "${INVENTORY_FILE}" ]; then
     debug "Remove ${INVENTORY_FILE}"
     rm -f "${INVENTORY_FILE}"
+  fi
+}
+
+
+
+remove_log_files(){
+  if [[ ! "$PRESERVE_RUNNING" ]]; then
+    rm -f "${SCRIPT_LOG}" "${SCRIPT_LOG}.*"
   fi
 }
 
