@@ -1,5 +1,11 @@
 all: clean compile test
 
+installer: compile_installer test_installer
+
+site_adder: compile_site_adder test_site_adder
+
+ssl_enabler: compile_ssl_enabler test_ssl_enabler
+
 test: test_site_adder test_ssl_enabler test_installer
 
 test_site_adder:

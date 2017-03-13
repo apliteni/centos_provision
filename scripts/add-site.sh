@@ -113,6 +113,7 @@ DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет
 DICT['en.errors.see_logs']="Evaluating log saved to ${SCRIPT_LOG}. Please rerun \`${SCRIPT_COMMAND}\` after resolving problems."
 DICT['en.errors.reinstall_keitaro']="Your Keitaro TDS installation does not properly configured. Please reconfigure Keitaro TDS by evaluating command \`${RECONFIGURE_KEITARO_COMMAND_EN}\`"
 DICT['en.errors.vhost_already_exists']="Can not save site configuration - :vhost_filepath: already exists"
+DICT['en.errors.site_root_not_exists']="Can not save site configuration - :site_root: directory does not exist"
 DICT['en.messages.add_vhost']="Creating site config"
 DICT['en.prompts.site_domains']='Please enter domain name with aliases, separated by comma without spaces (i.e. domain1.tld,www.domain1.tld)'
 DICT['en.prompts.site_root']='Please enter site root directory'
@@ -120,6 +121,7 @@ DICT['en.prompts.site_root']='Please enter site root directory'
 DICT['ru.errors.reinstall_keitaro']="Keitaro TDS отконфигурирована неправильно. Пожалуйста выполните перенастройку Keitaro TDS выполнив команду \`${RECONFIGURE_KEITARO_COMMAND_RU}\`"
 DICT['ru.errors.see_logs']="Журнал выполнения сохранён в ${SCRIPT_LOG}. Пожалуйста запустите \`${SCRIPT_COMMAND}\` после устранения возникших проблем."
 DICT['ru.errors.vhost_already_exists']="Невозможно сохранить конфигурацию сайта - :vhost_filepath: уже существует"
+DICT['ru.errors.site_root_not_exists']="Невозможно сохранить конфигурацию сайта - нет директории :site_root:"
 DICT['ru.messages.add_vhost']="Создаётся конфигурация для сайта"
 DICT['ru.prompts.site_domains']='Укажите доменное имя и список альясов через запятую без пробелов (например domain1.tld,www.domain1.tld)'
 DICT['ru.prompts.site_root']='Укажите корневую директорию сайта'
@@ -157,16 +159,46 @@ assert_installed(){
 
 is_exists_directory(){
   local directory="${1}"
+  local result_on_skip="${2}"
   debug "Checking ${directory} directory existence"
   if isset "$SKIP_CHECKS"; then
     debug "SKIP: аctual check of ${directory} directory existence disabled"
+    if [[ "$result_on_skip" == "no" ]]; then
+      debug "NO: simulate ${directory} directory does not exist"
+      return 1
+    fi
+    debug "YES: simulate ${directory} directory exists"
     return 0
   fi
   if [ -d "${directory}" ]; then
-    debug "OK: ${directory} directory exists"
+    debug "YES: ${directory} directory exists"
     return 0
   else
-    debug "NOK: ${directory} directory does not exist"
+    debug "NO: ${directory} directory does not exist"
+    return 1
+  fi
+}
+
+
+
+is_exists_path(){
+  local path="${1}"
+  local result_on_skip="${2}"
+  debug "Checking ${path} path existence"
+  if isset "$SKIP_CHECKS"; then
+    debug "SKIP: аctual check of ${path} path existence disabled"
+    if [[ "$result_on_skip" == "no" ]]; then
+      debug "NO: simulate ${path} path does not exist"
+      return 1
+    fi
+    debug "YES: simulate ${path} path exists"
+    return 0
+  fi
+  if [ -e "${path}" ]; then
+    debug "YES: ${path} path exists"
+    return 0
+  else
+    debug "NO: ${path} path does not exist"
     return 1
   fi
 }
@@ -175,16 +207,22 @@ is_exists_directory(){
 
 is_exists_file(){
   local file="${1}"
+  local result_on_skip="${2}"
   debug "Checking ${file} file existence"
   if isset "$SKIP_CHECKS"; then
     debug "SKIP: аctual check of ${file} file existence disabled"
+    if [[ "$result_on_skip" == "no" ]]; then
+      debug "NO: simulate ${file} file does not exist"
+      return 1
+    fi
+    debug "YES: simulate ${file} file exists"
     return 0
   fi
   if [ -f "${file}" ]; then
-    debug "OK: ${file} file exists"
+    debug "YES: ${file} file exists"
     return 0
   else
-    debug "NOK: ${file} file does not exist"
+    debug "NO: ${file} file does not exist"
     return 1
   fi
 }
@@ -484,6 +522,13 @@ print_with_color(){
 
 
 
+reload_nginx(){
+  debug "Reload nginx"
+  run_command "nginx -s reload" "$(translate 'messages.reload_nginx')" 'hide_output'
+}
+
+
+
 run_command(){
   local command="${1}"
   local message="${2}"
@@ -491,7 +536,6 @@ run_command(){
   local allow_errors="${4}"
   local run_as="${5}"
   debug "Evaluating command: ${command}"
-  debug "command: ${command}, message: ${message}, hide_output: ${hide_output}, allow_errors: ${allow_errors}, run_as: ${run_as}"
   if empty "$message"; then
     run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
     message="$run_command_message \`$command\`"
@@ -537,7 +581,7 @@ print_command_status(){
   local status="${2}"
   local color="${3}"
   local hide_output="${4}"
-  debug "Command \`$command\` result: ${status}"
+  debug "Command result: ${status}"
   if isset "$hide_output"; then
     print_with_color "$status" "$color"
   fi
@@ -573,7 +617,7 @@ validate_presence(){
 
 
 SUBDOMAIN_REGEXP="[[:alnum:]-]+"
-DOMAIN_REGEXP="(${SUBDOMAIN_REGEXP}\.)+${SUBDOMAIN_REGEXP}"
+DOMAIN_REGEXP="(${SUBDOMAIN_REGEXP}\.)+[[:alpha:]]${SUBDOMAIN_REGEXP}"
 DOMAIN_LIST_REGEXP="${DOMAIN_REGEXP}(,${DOMAIN_REGEXP})*"
 
 validate_domains_list(){
@@ -795,7 +839,7 @@ stage4(){
 add_vhost(){
   debug "Add vhost"
   run_command "echo '$(vhost_content)' > '$(vhost_filepath)'" "$(translate 'messages.add_vhost')" "hide_output"
-  print_file_to_log "$vhost_path"
+  print_file_to_log "$(vhost_filepath)"
 }
 
 function vhost_content() {
@@ -833,23 +877,16 @@ function vhost_content() {
 
 ensure_can_add_vhost(){
   debug "Ensure can add vhost"
-  if empty "$SKIP_CHECKS" && is_vhost_already_exists; then
+  if is_exists_path "$(vhost_filepath)" "no"; then
     local message="$(translate 'errors.vhost_already_exists')"
     fail "${message/:vhost_filepath:/$(vhost_filepath)}"
   fi
+  if ! is_exists_directory "${VARS['site_root']}"; then
+    local message="$(translate 'errors.site_root_not_exists')"
+    fail "${message/:site_root:/${VARS['site_root']}}"
+  fi
 }
 
-
-is_vhost_already_exists(){
-  [ -e "$(vhost_filepath)" ]
-}
-
-
-
-reload_nginx(){
-  debug "Reload nginx"
-  run_command "nginx -s reload" "$(translate 'messages.reload_nginx')" 'hide_output'
-}
 
 
 

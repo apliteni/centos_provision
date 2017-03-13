@@ -176,16 +176,22 @@ assert_installed(){
 
 is_exists_file(){
   local file="${1}"
+  local result_on_skip="${2}"
   debug "Checking ${file} file existence"
   if isset "$SKIP_CHECKS"; then
     debug "SKIP: аctual check of ${file} file existence disabled"
+    if [[ "$result_on_skip" == "no" ]]; then
+      debug "NO: simulate ${file} file does not exist"
+      return 1
+    fi
+    debug "YES: simulate ${file} file exists"
     return 0
   fi
   if [ -f "${file}" ]; then
-    debug "OK: ${file} file exists"
+    debug "YES: ${file} file exists"
     return 0
   else
-    debug "NOK: ${file} file does not exist"
+    debug "NO: ${file} file does not exist"
     return 1
   fi
 }
@@ -485,6 +491,13 @@ print_with_color(){
 
 
 
+reload_nginx(){
+  debug "Reload nginx"
+  run_command "nginx -s reload" "$(translate 'messages.reload_nginx')" 'hide_output'
+}
+
+
+
 run_command(){
   local command="${1}"
   local message="${2}"
@@ -492,7 +505,6 @@ run_command(){
   local allow_errors="${4}"
   local run_as="${5}"
   debug "Evaluating command: ${command}"
-  debug "command: ${command}, message: ${message}, hide_output: ${hide_output}, allow_errors: ${allow_errors}, run_as: ${run_as}"
   if empty "$message"; then
     run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
     message="$run_command_message \`$command\`"
@@ -538,7 +550,7 @@ print_command_status(){
   local status="${2}"
   local color="${3}"
   local hide_output="${4}"
-  debug "Command \`$command\` result: ${status}"
+  debug "Command result: ${status}"
   if isset "$hide_output"; then
     print_with_color "$status" "$color"
   fi
@@ -852,13 +864,6 @@ make_cert_links(){
   command="${command} && ln -s ${le_cert_path} ${NGINX_SSL_CERT_PATH}"
   command="${command} && ln -s ${le_privkey_path} ${NGINX_SSL_PRIVKEY_PATH}"
   run_command "${command}" "$(translate 'messages.make_ssl_cert_links')" 'hide_output' '' 'nginx'
-}
-
-
-
-reload_nginx(){
-  debug "Reload nginx"
-  run_command "nginx -s reload" "$(translate 'messages.reload_nginx')" 'hide_output'
 }
 
 

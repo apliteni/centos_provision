@@ -33,6 +33,19 @@ run as root
 
     curl -sSL https://keitarotds.com/enable-ssl.sh | bash -s -- -l ru domain1.tld [domain2.tld...]
 
+### Add custom php site (optional)
+
+You can add new php site with `add-site.sh` script. Script asks you new site params (domain, site root) and
+generates config file for Nginx.
+
+Connect to your CentOS server and run as root
+
+    curl -sSL https://keitarotds.com/add-site.sh | bash
+
+In order to use Russian locale run as root
+
+    curl -sSL https://keitarotds.com/add-site.sh | bash -s -- -l ru
+
 ## Installation method 2. Run ansible-playbook
 
 ### Install Ansible
