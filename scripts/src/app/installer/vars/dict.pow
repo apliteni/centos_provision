@@ -22,6 +22,7 @@ DICT['en.prompts.ssl.help']=$(cat <<- END
 	Installer can install Free SSL certificates from Let's Encrypt. In order to install this certificates you must:
 	1. Agree with terms of Let's Encrypt Subscriber Agreement (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf).
 	2. Have at least one domain associated with this server.
+	3. Make sure all the domains are already linked to this server in the DNS.
 	If you don't ready install SSL certificates right now you can install they later by running \`${SSL_ENABLER_COMMAND_EN}\`.
 END
 )
@@ -54,6 +55,7 @@ DICT['ru.prompts.ssl.help']=$(cat <<- END
 	Программа установки может установить бесплатные SSL сертификаты, предоставляемые Let's Encrypt. Для этого вы должны:
 	1. Согласиться с условиями Абонентского Соглашения Let's Encrypt (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf).
 	2. Иметь хотя бы один домен для этого сервера.
+	3. Убедиться, что все домены привязаны к этому серверу в DNS.
 	Если сейчас вы не готовы к установке SSL сертификатов, то вы можете установить их позже, запустив \`${SSL_ENABLER_COMMAND_RU}\`.
 END
 )

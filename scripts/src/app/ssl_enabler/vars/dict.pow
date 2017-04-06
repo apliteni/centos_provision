@@ -13,7 +13,11 @@ DICT['en.messages.renewal_job_already_scheduled']="Renewal job already scheduled
 DICT['en.messages.schedule_renewal_job']="Schedule renewal SSL certificate cron job"
 DICT['en.messages.ssl_enabled_for_sites']="SSL certificates enabled for sites:"
 DICT['en.prompts.ssl_agree_tos']="Do you agree with terms of Let's Encrypt Subscriber Agreement?"
-DICT['en.prompts.ssl_agree_tos.help']="In order to install Let's Encrypt Free SSL certificates for your Keitaro TDS you must agree with terms of Let's Encrypt Subscriber Agreement (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf)."
+DICT['en.prompts.ssl_agree_tos.help']=$(cat <<- END
+	Make sure all the domains are already linked to this server in the DNS
+	In order to install Let's Encrypt Free SSL certificates for your Keitaro TDS you must agree with terms of Let's Encrypt Subscriber Agreement (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf).
+END
+)
 DICT['en.prompts.ssl_email']='Please enter your email (you can left this field empty)'
 DICT['en.prompts.ssl_email.help']='You can obtain SSL certificate with no email address. This is strongly discouraged, because in the event of key loss or LetsEncrypt account compromise you will irrevocably lose access to your LetsEncrypt account. You will also be unable to receive notice about impending expiration or revocation of your certificates.'
 
@@ -26,6 +30,10 @@ DICT['ru.messages.renewal_job_already_scheduled']="Cron задача обнов�
 DICT['ru.messages.schedule_renewal_job']="Добавляется cron задача обновления сертификатов"
 DICT['ru.messages.ssl_enabled_for_sites']="SSL сертификаты подключены для сайтов:"
 DICT['ru.prompts.ssl_agree_tos']="Вы согласны с условиями Абонентского Соглашения Let's Encrypt?"
-DICT['ru.prompts.ssl_agree_tos.help']="Для получения бесплатных SSL сертификатов Let's Encrypt вы должны согласиться с условиями Абонентского Соглашения Let's Encrypt (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf)."
+DICT['ru.prompts.ssl_agree_tos.help']=$(cat <<- END
+	Убедитесь, что все указанные домены привязаны к этому серверу в DNS.
+	Для получения бесплатных SSL сертификатов Let's Encrypt вы должны согласиться с условиями Абонентского Соглашения Let's Encrypt (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf)."
+END
+)
 DICT['ru.prompts.ssl_email']='Укажите email (можно не указывать)'
 DICT['ru.prompts.ssl_email.help']='Вы можете получить SSL сертификат без указания email адреса. Однако LetsEncrypt настоятельно рекомендует указать его, так как в случае потери ключа или компрометации LetsEncrypt аккаунта вы полностью потеряете доступ к своему LetsEncrypt аккаунту. Без email вы также не сможете получить уведомление о предстоящем истечении срока действия или отзыве сертификата'
