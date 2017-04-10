@@ -1,0 +1,6 @@
+#!/usr/bin/env powscript
+
+
+log_and_print_err(message)
+  print_err $message 'red'
+  debug $message 'red'

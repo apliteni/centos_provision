@@ -252,12 +252,12 @@ is_installed(){
   local command="${1}"
   debug "Try to found "$command""
   if isset "$SKIP_CHECKS"; then
-    debug "SKIP: actual checking of '$command' presence"
+    debug "SKIPPED: actual checking of '$command' presence skipped"
   else
     if [[ $(sh -c "command -v "$command" -gt /dev/null") ]]; then
-      debug "OK: "$command" found"
+      debug "FOUND: "$command" found"
     else
-      debug "NOK: "$command" not found"
+      debug "NOT FOUND: "$command" not found"
       return 1
     fi
   fi
@@ -383,13 +383,6 @@ fail(){
 }
 
 
-log_and_print_err(){
-  local message="${1}"
-  print_err "$message" 'red'
-  debug "$message" 'red'
-}
-
-
 
 init(){
   init_log
@@ -424,6 +417,14 @@ get_name_for_old_log(){
 
 
 
+log_and_print_err(){
+  local message="${1}"
+  print_err "$message" 'red'
+  debug "$message" 'red'
+}
+
+
+
 on_exit(){
   debug "Terminated by user"
   echo
@@ -433,21 +434,21 @@ on_exit(){
 
 
 
-print_err(){
-  local message="${1}"
-  local color="${2}"
-  print_with_color "$message" "$color" >&2
+print_content_of(){
+  local filepath="${1}"
+  if [ -f "$filepath" ]; then
+    echo "Content of '${filepath}':\n$(cat "$filepath" | sed 's/^/  /g')"
+  else
+    echo "Can't show '${filepath}' content - file does not exist"
+  fi
 }
 
 
 
-print_file_to_log(){
-  local filepath="${1}"
-  if [ -f "$filepath" ]; then
-    debug "Content of '${filepath}':\n$(cat "$filepath" | sed 's/^/  /g')"
-  else
-    debug "Can't log '${filepath}' content - file does not exist"
-  fi
+print_err(){
+  local message="${1}"
+  local color="${2}"
+  print_with_color "$message" "$color" >&2
 }
 
 
@@ -763,11 +764,20 @@ assert_nginx_configured(){
 
 
 is_nginx_properly_configured(){
-  is_exists_file "${NGINX_KEITARO_CONF}" &&
-    is_exists_file "${NGINX_SSL_CERT_PATH}" &&
-    is_exists_file "${NGINX_SSL_PRIVKEY_PATH}" &&
-    is_ssl_configured
-  }
+  if ! is_exists_file "${NGINX_KEITARO_CONF}"; then
+    log_and_print_err "ERROR: File ${NGINX_KEITARO_CONF} doesn't exists"
+    return 1
+  fi
+  if ! is_exists_file "${NGINX_SSL_CERT_PATH}"; then
+    log_and_print_err "ERROR: File ${NGINX_SSL_CERT_PATH} doesn't exists"
+    return 1
+  fi
+  if ! is_exists_file "${NGINX_SSL_PRIVKEY_PATH}"; then
+    log_and_print_err "ERROR: File ${NGINX_SSL_PRIVKEY_PATH} doesn't exists"
+    return 1
+  fi
+  is_ssl_configured
+}
 
 
 is_ssl_configured(){
@@ -780,8 +790,8 @@ is_ssl_configured(){
     debug "OK: it seems like ${NGINX_KEITARO_CONF} is properly configured"
     return 0
   else
-    debug "NOK: ${NGINX_KEITARO_CONF} is not properly configured"
-    print_file_to_log "$NGINX_KEITARO_CONF"
+    log_and_print_err "ERROR: ${NGINX_KEITARO_CONF} is not properly configured"
+    log_and_print_err $(print_content_of "$NGINX_KEITARO_CONF")
     return 1
   fi
 }
