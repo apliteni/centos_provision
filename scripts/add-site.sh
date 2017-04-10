@@ -275,12 +275,12 @@ is_installed(){
   local command="${1}"
   debug "Try to found "$command""
   if isset "$SKIP_CHECKS"; then
-    debug "SKIP: actual checking of '$command' presence"
+    debug "SKIPPED: actual checking of '$command' presence skipped"
   else
     if [[ $(sh -c "command -v "$command" -gt /dev/null") ]]; then
-      debug "OK: "$command" found"
+      debug "FOUND: "$command" found"
     else
-      debug "NOK: "$command" not found"
+      debug "NOT FOUND: "$command" not found"
       return 1
     fi
   fi
