@@ -6,7 +6,13 @@ RSpec.describe 'add-site.sh' do
 
   let(:script_name) { 'add-site.sh' }
   let(:all_command_stubs) { {nginx: '/bin/true'} }
-  let(:nginx_conf) { "root /var/www/keitaro;" }
+  let(:nginx_conf) {
+    <<-END
+      root /var/www/keitaro;
+
+      fastcgi_pass unix:/var/run/php70-fpm.sock;
+    END
+  }
 
   let(:make_proper_nginx_conf) do
     [
