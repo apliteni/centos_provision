@@ -23,5 +23,5 @@ is_ssl_configured()
     return 0
   else
     debug "NOK: ${NGINX_KEITARO_CONF} is not properly configured"
-    print_file_to_log $NGINX_KEITARO_CONF
+    debug $(print_content_of $NGINX_KEITARO_CONF)
     return 1
