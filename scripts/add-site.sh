@@ -457,21 +457,21 @@ on_exit(){
 
 
 
-print_err(){
-  local message="${1}"
-  local color="${2}"
-  print_with_color "$message" "$color" >&2
+print_content_of(){
+  local filepath="${1}"
+  if [ -f "$filepath" ]; then
+    echo "Content of '${filepath}':\n$(cat "$filepath" | sed 's/^/  /g')"
+  else
+    echo "Can't show '${filepath}' content - file does not exist"
+  fi
 }
 
 
 
-print_file_to_log(){
-  local filepath="${1}"
-  if [ -f "$filepath" ]; then
-    debug "Content of '${filepath}':\n$(cat "$filepath" | sed 's/^/  /g')"
-  else
-    debug "Can't log '${filepath}' content - file does not exist"
-  fi
+print_err(){
+  local message="${1}"
+  local color="${2}"
+  print_with_color "$message" "$color" >&2
 }
 
 
@@ -836,7 +836,7 @@ stage4(){
 add_vhost(){
   debug "Add vhost"
   run_command "echo '$(vhost_content)' > '$(vhost_filepath)'" "$(translate 'messages.add_vhost')" "hide_output"
-  print_file_to_log "$(vhost_filepath)"
+  debug $(print_content_of "$(vhost_filepath)")
 }
 
 function vhost_content() {
