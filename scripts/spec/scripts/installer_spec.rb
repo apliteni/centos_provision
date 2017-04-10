@@ -205,8 +205,8 @@ RSpec.describe 'install.sh' do
     context 'yum presented, ansible presented' do
       let(:command_stubs) { {yum: '/bin/true', ansible: '/bin/true'} }
 
-      it_behaves_like 'should print to log', "Try to found yum\nOK"
-      it_behaves_like 'should print to log', "Try to found ansible\nOK"
+      it_behaves_like 'should print to log', "Try to found yum\nFOUND"
+      it_behaves_like 'should print to log', "Try to found ansible\nFOUND"
       it_behaves_like 'should not print to stdout', 'Execute command: yum install -y ansible'
 
       it_behaves_like 'should install keitarotds'
@@ -215,8 +215,8 @@ RSpec.describe 'install.sh' do
     context 'yum presented, ansible not presented' do
       let(:command_stubs) { {yum: '/bin/true'} }
 
-      it_behaves_like 'should print to log', "Try to found yum\nOK"
-      it_behaves_like 'should print to log', "Try to found ansible\nNOK"
+      it_behaves_like 'should print to log', "Try to found yum\nFOUND"
+      it_behaves_like 'should print to log', "Try to found ansible\nNOT FOUND"
       it_behaves_like 'should print to stdout', 'yum install -y epel-release'
       it_behaves_like 'should print to stdout', 'yum install -y ansible'
 
@@ -225,7 +225,7 @@ RSpec.describe 'install.sh' do
 
     context 'yum not presented' do
       let(:commands) { ['rm /usr/bin/yum'] }
-      it_behaves_like 'should print to log', "Try to found yum\nNOK"
+      it_behaves_like 'should print to log', "Try to found yum\nNOT FOUND"
       it_behaves_like 'should exit with error', 'This installer works only on yum-based systems'
     end
   end
