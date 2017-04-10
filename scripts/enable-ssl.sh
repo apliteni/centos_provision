@@ -252,12 +252,12 @@ is_installed(){
   local command="${1}"
   debug "Try to found "$command""
   if isset "$SKIP_CHECKS"; then
-    debug "SKIP: actual checking of '$command' presence"
+    debug "SKIPPED: actual checking of '$command' presence skipped"
   else
     if [[ $(sh -c "command -v "$command" -gt /dev/null") ]]; then
-      debug "OK: "$command" found"
+      debug "FOUND: "$command" found"
     else
-      debug "NOK: "$command" not found"
+      debug "NOT FOUND: "$command" not found"
       return 1
     fi
   fi
@@ -781,8 +781,8 @@ is_ssl_configured(){
     debug "OK: it seems like ${NGINX_KEITARO_CONF} is properly configured"
     return 0
   else
-    debug "NOK: ${NGINX_KEITARO_CONF} is not properly configured"
-    debug $(print_content_of "$NGINX_KEITARO_CONF")
+    log_and_print_err "ERROR: ${NGINX_KEITARO_CONF} is not properly configured"
+    log_and_print_err $(print_content_of "$NGINX_KEITARO_CONF")
     return 1
   fi
 }

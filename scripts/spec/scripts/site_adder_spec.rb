@@ -67,7 +67,7 @@ RSpec.describe 'add-site.sh' do
       let(:commands) { make_proper_nginx_conf + make_keitaro_root_dir + make_site_root_dir }
 
       it_behaves_like 'should print to log', [
-        "Try to found nginx\nOK",
+        "Try to found nginx\nFOUND",
         "Checking /etc/nginx/conf.d/vhosts.conf file existence\nYES",
         "Checking /var/www/keitaro directory existence\nYES",
         "Checking /var/www/example.com directory existence\nYES",
@@ -76,7 +76,7 @@ RSpec.describe 'add-site.sh' do
     end
 
     context 'nginx is not installed' do
-      it_behaves_like 'should print to log', "Try to found nginx\nNOK"
+      it_behaves_like 'should print to log', "Try to found nginx\nNOT FOUND"
 
       it_behaves_like 'should exit with error', 'Your Keitaro TDS installation does not properly configured'
     end
