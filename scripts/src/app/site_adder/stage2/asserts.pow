@@ -19,8 +19,8 @@ is_keitaro_configured()
     FASTCGI_PASS_LINE="fastcgi_pass unix:/var/run/php70-fpm.sock;"
     return 0
   if grep -q -e "root ${WEBROOT_PATH};" "${NGINX_KEITARO_CONF}"
-    get_fastcgi_pass_line
-    if isset "${FASTCGI_PASS_LINE}"
+    FASTCGI_PASS_LINE="$(cat $NGINX_KEITARO_CONF | grep fastcgi_pass | sed 's/^ +//')"
+    if empty "${FASTCGI_PASS_LINE}"
       debug "NOK: ${NGINX_KEITARO_CONF} is not properly configured (can't find fastcgi_pass param)"
       debug "Content of ${NGINX_KEITARO_CONF}:\n$(cat ${NGINX_KEITARO_CONF} | sed 's/^/  /g')"
       return 1
@@ -31,6 +31,3 @@ is_keitaro_configured()
     debug "NOK: ${NGINX_KEITARO_CONF} is not properly configured"
     debug "Content of ${NGINX_KEITARO_CONF}:\n$(cat ${NGINX_KEITARO_CONF} | sed 's/^/  /g')"
     return 1
-
-get_fastcgi_pass_line()
-  FASTCGI_PASS_LINE="$(cat $NGINX_KEITARO_CONF | grep fastcgi_pass | sed 's/^ +//')"
