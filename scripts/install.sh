@@ -288,12 +288,12 @@ is_installed(){
   local command="${1}"
   debug "Try to found "$command""
   if isset "$SKIP_CHECKS"; then
-    debug "SKIP: actual checking of '$command' presence"
+    debug "SKIPPED: actual checking of '$command' presence skipped"
   else
     if [[ $(sh -c "command -v "$command" -gt /dev/null") ]]; then
-      debug "OK: "$command" found"
+      debug "FOUND: "$command" found"
     else
-      debug "NOK: "$command" not found"
+      debug "NOT FOUND: "$command" not found"
       return 1
     fi
   fi
@@ -323,13 +323,6 @@ fail(){
   print_err
   clean_up
   exit 1
-}
-
-
-log_and_print_err(){
-  local message="${1}"
-  print_err "$message" 'red'
-  debug "$message" 'red'
 }
 
 
@@ -363,6 +356,14 @@ get_name_for_old_log(){
   fi
   current_suffix=$(expr "$old_suffix" + 1)
   echo "$basename".$current_suffix
+}
+
+
+
+log_and_print_err(){
+  local message="${1}"
+  print_err "$message" 'red'
+  debug "$message" 'red'
 }
 
 

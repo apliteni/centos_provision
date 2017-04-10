@@ -88,9 +88,9 @@ RSpec.describe 'enable-ssl.sh' do
       let(:commands) { make_proper_nginx_conf }
 
       it_behaves_like 'should print to log', [
-        "Try to found nginx\nOK",
-        "Try to found crontab\nOK",
-        "Try to found certbot\nOK",
+        "Try to found nginx\nFOUND",
+        "Try to found crontab\nFOUND",
+        "Try to found certbot\nFOUND",
         "Checking /etc/nginx/conf.d/vhosts.conf file existence\nYES",
         "Checking ssl params in /etc/nginx/conf.d/vhosts.conf\nOK"
       ]
@@ -101,7 +101,7 @@ RSpec.describe 'enable-ssl.sh' do
     context 'nginx is not installed' do
       let(:command_stubs) { {crontab: '/bin/true'} }
 
-      it_behaves_like 'should print to log', "Try to found nginx\nNOK"
+      it_behaves_like 'should print to log', "Try to found nginx\nNOT FOUND"
 
       it_behaves_like 'should exit with error', 'Your Keitaro TDS installation does not properly configured'
     end
@@ -109,7 +109,7 @@ RSpec.describe 'enable-ssl.sh' do
     context 'crontab is not installed' do
       let(:command_stubs) { {nginx: '/bin/true', certbot: '/bin/true'} }
 
-      it_behaves_like 'should print to log', "Try to found crontab\nNOK"
+      it_behaves_like 'should print to log', "Try to found crontab\nNOT FOUND"
 
       it_behaves_like 'should exit with error', 'Your Keitaro TDS installation does not properly configured'
     end
@@ -117,7 +117,7 @@ RSpec.describe 'enable-ssl.sh' do
     context 'certbot is not installed' do
       let(:command_stubs) { {nginx: '/bin/true', crontab: '/bin/true'} }
 
-      it_behaves_like 'should print to log', "Try to found certbot\nNOK"
+      it_behaves_like 'should print to log', "Try to found certbot\nNOT FOUND"
 
       it_behaves_like 'should exit with error', 'Nginx settings of your Keitaro TDS installation does not properly configured'
     end
@@ -126,7 +126,7 @@ RSpec.describe 'enable-ssl.sh' do
       let(:command_stubs) { all_command_stubs }
 
       it_behaves_like 'should print to log', [
-        "Try to found certbot\nOK",
+        "Try to found certbot\nFOUND",
         "Checking /etc/nginx/conf.d/vhosts.conf file existence\nNO",
       ]
 
@@ -141,9 +141,9 @@ RSpec.describe 'enable-ssl.sh' do
       let(:commands) { make_proper_nginx_conf }
 
       it_behaves_like 'should print to log', [
-        "Try to found certbot\nOK",
+        "Try to found certbot\nFOUND",
         "Checking /etc/nginx/conf.d/vhosts.conf file existence\nYES",
-        "Checking ssl params in /etc/nginx/conf.d/vhosts.conf\nNOK"
+        "Checking ssl params in /etc/nginx/conf.d/vhosts.conf\nERROR"
       ]
 
       it_behaves_like 'should exit with error', 'Nginx settings of your Keitaro TDS installation does not properly configured'
