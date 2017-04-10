@@ -406,13 +406,6 @@ fail(){
 }
 
 
-log_and_print_err(){
-  local message="${1}"
-  print_err "$message" 'red'
-  debug "$message" 'red'
-}
-
-
 
 init(){
   init_log
@@ -443,6 +436,14 @@ get_name_for_old_log(){
   fi
   current_suffix=$(expr "$old_suffix" + 1)
   echo "$basename".$current_suffix
+}
+
+
+
+log_and_print_err(){
+  local message="${1}"
+  print_err "$message" 'red'
+  debug "$message" 'red'
 }
 
 
