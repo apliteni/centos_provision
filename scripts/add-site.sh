@@ -790,16 +790,16 @@ is_keitaro_configured(){
   if grep -q -e "root ${WEBROOT_PATH};" "${NGINX_KEITARO_CONF}"; then
     FASTCGI_PASS_LINE="$(cat "$NGINX_KEITARO_CONF" | grep fastcgi_pass | sed 's/^ +//')"
     if empty "${FASTCGI_PASS_LINE}"; then
-      debug "NOK: ${NGINX_KEITARO_CONF} is not properly configured (can't find fastcgi_pass param)"
-      debug "Content of ${NGINX_KEITARO_CONF}:\n$(cat ${NGINX_KEITARO_CONF} | sed 's/^/  /g')"
+      log_and_print_err "ERROR: ${NGINX_KEITARO_CONF} is not properly configured (can't find 'fastcgi_pass ...;' directive)"
+      log_and_print_err "$(print_content_of ${NGINX_KEITARO_CONF})"
       return 1
     else
       debug "OK: it seems like ${NGINX_KEITARO_CONF} is properly configured"
       return 0
     fi
   else
-    debug "NOK: ${NGINX_KEITARO_CONF} is not properly configured"
-    debug "Content of ${NGINX_KEITARO_CONF}:\n$(cat ${NGINX_KEITARO_CONF} | sed 's/^/  /g')"
+    log_and_print_err "ERROR: ${NGINX_KEITARO_CONF} is not properly configured (can't find 'root ${WEBROOT_PATH};' directive"
+    log_and_print_err $(print_content_of ${NGINX_KEITARO_CONF})
     return 1
   fi
 }
