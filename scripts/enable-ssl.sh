@@ -529,27 +529,7 @@ run_command(){
     print_command_status "$command" 'SKIPPED' 'yellow' "$hide_output"
     debug "Actual running disabled"
   else
-    if isset "$run_as"; then
-      evaluated_command="sudo -u '${run_as}' bash -c '${command}'"
-    else
-      evaluated_command="${command}"
-    fi
-    if isset "$hide_output"; then
-      evaluated_command="(set -o pipefail && (${evaluated_command}) >> ${SCRIPT_LOG} 2>&1)"
-    else
-      evaluated_command="(set -o pipefail && (${evaluated_command}) 2>&1 | tee -a ${SCRIPT_LOG})"
-    fi
-    debug "Real command: ${evaluated_command}"
-    if ! eval "${evaluated_command}"; then
-      print_command_status "$command" 'NOK' 'red' "$hide_output"
-      if isset "$allow_errors"; then
-        return 1 # false
-      else
-        fail "$(translate 'errors.run_command.fail') \`$command\`" "see_logs"
-      fi
-    else
-      print_command_status "$command" 'OK' 'green' "$hide_output"
-    fi
+    really_run_command "${command}" "${hide_output}" "${allow_errors}" "${run_as}"
   fi
 }
 
@@ -565,6 +545,52 @@ print_command_status(){
   fi
 }
 
+
+really_run_command(){
+  local command="${1}"
+  local hide_output="${2}"
+  local allow_errors="${3}"
+  local run_as="${4}"
+  if isset "$run_as"; then
+    evaluated_command="sudo -u '${run_as}' bash -c '${command}'"
+  else
+    evaluated_command="${command}"
+  fi
+  if isset "$hide_output"; then
+    evaluated_command="(set -o pipefail && (${evaluated_command}) >> ${SCRIPT_LOG} 2>&1)"
+  else
+    evaluated_command="(set -o pipefail && (${evaluated_command}) 2>&1 | tee -a ${SCRIPT_LOG})"
+  fi
+  debug "Real command: ${evaluated_command}"
+  if ! eval "${evaluated_command}"; then
+    print_command_status "$command" 'NOK' 'red' "$hide_output"
+    if isset "$allow_errors"; then
+      return 1 # false
+    else
+      fail "$(translate 'errors.run_command.fail') \`$command\`" "see_logs"
+    fi
+  else
+    print_command_status "$command" 'OK' 'green' "$hide_output"
+  fi
+}
+
+
+command_stdout_file_name(){
+  local command="${1}"
+  echo command-$(command_hash "${command}")-stdout.log
+}
+
+
+command_stderr_file_name(){
+  local command="${1}"
+  echo command-$(command_hash "${command}")-stderr.log
+}
+
+
+command_hash(){
+  local command="${1}"
+  echo "${command}" | md5sum | cut -d' ' -f 1
+}
 
 
 
