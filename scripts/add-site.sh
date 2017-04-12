@@ -58,6 +58,10 @@ SCRIPT_NAME="${PROGRAM_NAME}.sh"
 SCRIPT_URL="${KEITARO_URL}/${PROGRAM_NAME}.sh"
 SCRIPT_LOG="${PROGRAM_NAME}.log"
 
+CURRENT_COMMAND_OUTPUT_LOG="current_command.output.log"
+CURRENT_COMMAND_ERROR_LOG="current_command.error.log"
+CURRENT_COMMAND_SCRIPT="current_command.sh"
+
 if [[ "${SHELL_NAME}" == 'bash' ]]; then
   if ! empty ${@}; then
     SCRIPT_COMMAND="curl -sSL "$SCRIPT_URL" | bash -s -- ${@}"
@@ -574,15 +578,12 @@ really_run_command(){
   local hide_output="${2}"
   local allow_errors="${3}"
   local run_as="${4}"
-  local command_script_name=$(get_command_script_name "${command}")
-  local output_log=$(command_output_log "${command}")
-  local error_log=$(command_error_log "${command}")
-  local evaluated_command="./${command_script_name}"
+  save_command_script "${command}"
+  local evaluated_command="./${CURRENT_COMMAND_SCRIPT}"
   evaluated_command=$(command_run_as "${evaluated_command}" "${run_as}")
   evaluated_command=$(unbuffer_streams "${evaluated_command}")
-  evaluated_command=$(save_command_logs "${evaluated_command}" "${output_log}" "${error_log}")
+  evaluated_command=$(save_command_logs "${evaluated_command}")
   evaluated_command=$(hide_command_output "${evaluated_command}" "${hide_output}")
-  save_command_script "${command}" "${command_script_name}"
   debug "Real command: ${evaluated_command}"
   if ! eval "${evaluated_command}"; then
     print_command_status "${command}" 'NOK' 'red' "${hide_output}"
@@ -594,12 +595,6 @@ really_run_command(){
   else
     print_command_status "$command" 'OK' 'green' "$hide_output"
   fi
-}
-
-
-get_command_script_name(){
-  local command="${1}"
-  echo command-$(command_hash "${command}").sh
 }
 
 
@@ -624,8 +619,8 @@ save_command_logs(){
   local evaluated_command="${1}"
   local output_log="${2}"
   local error_log="${3}"
-  save_error_log="tee -i ${error_log} | tee -ia ${SCRIPT_LOG}"
-  save_output_log="tee -i ${output_log} | tee -ia ${SCRIPT_LOG}"
+  save_output_log="tee -i ${CURRENT_COMMAND_OUTPUT_LOG} | tee -ia ${SCRIPT_LOG}"
+  save_error_log="tee -i ${CURRENT_COMMAND_ERROR_LOG} | tee -ia ${SCRIPT_LOG}"
   echo "((${evaluated_command}) 2> >(${save_error_log}) > >(${save_output_log}))"
 }
 
@@ -643,37 +638,12 @@ hide_command_output(){
 
 save_command_script(){
   local command="${1}"
-  local command_script_name="${2}"
-  echo '#!/usr/bin/env bash' > "${command_script_name}"
-  echo 'set -o pipefail' >> "${command_script_name}"
-  echo -e "${command}" >> "${command_script_name}"
-  chmod a+x "${command_script_name}"
-  debug "Saved script ${command_script_name}"
-  debug "$(print_content_of ${command_script_name})"
-}
-
-
-command_script_name(){
-  local command="${1}"
-  echo command-$(command_hash "${command}").sh
-}
-
-
-command_output_log(){
-  local command="${1}"
-  echo command-$(command_hash "${command}")-stdout.log
-}
-
-
-command_error_log(){
-  local command="${1}"
-  echo command-$(command_hash "${command}")-stderr.log
-}
-
-
-command_hash(){
-  local command="${1}"
-  echo "${command}" | md5sum | cut -d' ' -f 1
+  echo '#!/usr/bin/env bash' > "${CURRENT_COMMAND_SCRIPT}"
+  echo 'set -o pipefail' >> "${CURRENT_COMMAND_SCRIPT}"
+  echo -e "${command}" >> "${CURRENT_COMMAND_SCRIPT}"
+  chmod a+x "${CURRENT_COMMAND_SCRIPT}"
+  debug "Saved script ${CURRENT_COMMAND_SCRIPT}"
+  debug "$(print_content_of ${CURRENT_COMMAND_SCRIPT})"
 }
 
 
