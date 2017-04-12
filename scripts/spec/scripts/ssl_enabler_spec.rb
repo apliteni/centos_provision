@@ -177,8 +177,8 @@ RSpec.describe 'enable-ssl.sh' do
     let(:command_stubs) { all_command_stubs }
     let(:commands) { make_proper_nginx_conf + emulate_sudo }
 
-    it_behaves_like 'should print to log', "sudo -u 'nginx' bash -c 'certbot"
-
+    it_behaves_like 'should print to log', /Evaluating command: certbot certonly.*\nSaved script command-c8bf77fae340f21f1487f1cf4e9ea9f5.sh/
+    it_behaves_like 'should print to log', "sudo -u 'nginx' bash -c './command-c8bf77fae340f21f1487f1cf4e9ea9f5.sh"
   end
 
   context 'with agree LE SA option specified' do

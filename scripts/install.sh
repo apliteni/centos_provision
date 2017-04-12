@@ -476,19 +476,18 @@ really_run_command(){
   local hide_output="${2}"
   local allow_errors="${3}"
   local run_as="${4}"
-  if isset "$run_as"; then
-    evaluated_command="sudo -u '${run_as}' bash -c '${command}'"
-  else
-    evaluated_command="${command}"
-  fi
-  if isset "$hide_output"; then
-    evaluated_command="(set -o pipefail && (${evaluated_command}) >> ${SCRIPT_LOG} 2>&1)"
-  else
-    evaluated_command="(set -o pipefail && (${evaluated_command}) 2>&1 | tee -a ${SCRIPT_LOG})"
-  fi
+  local command_script_name=$(get_command_script_name "${command}")
+  local output_log=$(command_output_log "${command}")
+  local error_log=$(command_error_log "${command}")
+  local evaluated_command="./${command_script_name}"
+  evaluated_command=$(command_run_as "${evaluated_command}" "${run_as}")
+  evaluated_command=$(unbuffer_streams "${evaluated_command}")
+  evaluated_command=$(save_command_logs "${evaluated_command}" "${output_log}" "${error_log}")
+  evaluated_command=$(hide_command_output "${evaluated_command}" "${hide_output}")
+  save_command_script "${command}" "${command_script_name}"
   debug "Real command: ${evaluated_command}"
   if ! eval "${evaluated_command}"; then
-    print_command_status "$command" 'NOK' 'red' "$hide_output"
+    print_command_status "${command}" 'NOK' 'red' "${hide_output}"
     if isset "$allow_errors"; then
       return 1 # false
     else
@@ -500,13 +499,75 @@ really_run_command(){
 }
 
 
-command_stdout_file_name(){
+get_command_script_name(){
+  local command="${1}"
+  echo command-$(command_hash "${command}").sh
+}
+
+
+command_run_as(){
+  local command="${1}"
+  local run_as="${2}"
+  if isset "$run_as"; then
+    echo "sudo -u '${run_as}' bash -c '${command}'"
+  else
+    echo "${command}"
+  fi
+}
+
+
+unbuffer_streams(){
+  local command="${1}"
+  echo "stdbuf -i0 -o0 -e0 ${command}"
+}
+
+
+save_command_logs(){
+  local evaluated_command="${1}"
+  local output_log="${2}"
+  local error_log="${3}"
+  save_error_log="tee -i ${error_log} | tee -ia ${SCRIPT_LOG}"
+  save_output_log="tee -i ${output_log} | tee -ia ${SCRIPT_LOG}"
+  echo "((${evaluated_command}) 2> >(${save_error_log}) > >(${save_output_log}))"
+}
+
+
+hide_command_output(){
+  local command="${1}"
+  local hide_output="${2}"
+  if isset "$hide_output"; then
+    echo "${command} > /dev/null"
+  else
+    echo "${command}"
+  fi
+}
+
+
+save_command_script(){
+  local command="${1}"
+  local command_script_name="${2}"
+  echo '#!/usr/bin/env bash' > "${command_script_name}"
+  echo 'set -o pipefail' >> "${command_script_name}"
+  echo -e "${command}" >> "${command_script_name}"
+  chmod a+x "${command_script_name}"
+  debug "Saved script ${command_script_name}"
+  debug "$(print_content_of ${command_script_name})"
+}
+
+
+command_script_name(){
+  local command="${1}"
+  echo command-$(command_hash "${command}").sh
+}
+
+
+command_output_log(){
   local command="${1}"
   echo command-$(command_hash "${command}")-stdout.log
 }
 
 
-command_stderr_file_name(){
+command_error_log(){
   local command="${1}"
   echo command-$(command_hash "${command}")-stderr.log
 }
