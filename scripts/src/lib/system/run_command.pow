@@ -26,14 +26,11 @@ print_command_status(command, status, color, hide_output)
 
 
 really_run_command(command, hide_output, allow_errors, run_as)
-  if isset $run_as
-    evaluated_command="sudo -u '${run_as}' bash -c '${command}'"
-  else
-    evaluated_command="${command}"
-  if isset $hide_output
-    evaluated_command="(set -o pipefail && (${evaluated_command}) >> ${SCRIPT_LOG} 2>&1)"
-  else
-    evaluated_command="(set -o pipefail && (${evaluated_command}) 2>&1 | tee -a ${SCRIPT_LOG})"
+  local evaluated_command=$(command_run_as "${command}" "${run_as}")
+  evaluated_command=$(unbuffer_streams "${evaluated_command}")
+  evaluated_command=$(break_pipe_on_fail "${evaluated_command}")
+  evaluated_command=$(save_command_logs "${evaluated_command}" "${command}")
+  evaluated_command=$(hide_command_output "${evaluated_command}" "${hide_output}")
   debug "Real command: ${evaluated_command}"
   if ! eval "${evaluated_command}"
     print_command_status $command 'NOK' 'red' $hide_output
@@ -45,11 +42,42 @@ really_run_command(command, hide_output, allow_errors, run_as)
     print_command_status $command 'OK' 'green' $hide_output
 
 
-command_stdout_file_name(command)
+command_run_as(command, run_as)
+  if isset $run_as
+    echo "sudo -u '${run_as}' bash -c '${command}'"
+  else
+    echo "${command}"
+
+
+# unbuffer stdout to keep stderr/stdout lines ordering
+unbuffer_streams(command)
+  echo "stdbuf -i0 -o0 -e0 ${command}"
+
+
+break_pipe_on_fail(command)
+  echo "set -o pipefail && (${command})"
+
+
+save_command_logs(evaluated_command, command)
+  local output_log=$(command_output_log "${command}")
+  local error_log=$(command_error_log "${command}")
+  save_error_log="tee -i ${error_log} | tee -ia ${SCRIPT_LOG}"
+  save_output_log="tee -i ${output_log} | tee -ia ${SCRIPT_LOG}"
+  echo "((${evaluated_command}) 2> >(${save_error_log}) > >(${save_output_log}))"
+
+
+hide_command_output(command, hide_output)
+  if isset $hide_output
+    echo "${command} > /dev/null"
+  else
+    echo "${command}"
+
+
+command_output_log(command)
   echo command-$(command_hash "${command}")-stdout.log
 
 
-command_stderr_file_name(command)
+command_error_log(command)
   echo command-$(command_hash "${command}")-stderr.log
 
 
