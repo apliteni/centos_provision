@@ -377,6 +377,17 @@ on_exit(){
 
 
 
+print_content_of(){
+  local filepath="${1}"
+  if [ -f "$filepath" ]; then
+    echo "Content of '${filepath}':\n$(cat "$filepath" | sed 's/^/  /g')"
+  else
+    echo "Can't show '${filepath}' content - file does not exist"
+  fi
+}
+
+
+
 print_err(){
   local message="${1}"
   local color="${2}"
