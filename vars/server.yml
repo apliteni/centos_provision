@@ -61,7 +61,7 @@ nginx_vhosts:
         try_files $uri $uri/ /index.php?$args;
       }
 
-      location /admin {
+      location /admin/ {
         access_log /var/log/nginx/admin.access.log combined buffer=16k;
       }
 
