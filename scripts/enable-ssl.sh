@@ -48,6 +48,12 @@ SHELL_NAME=$(basename "$0")
 
 KEITARO_URL="https://keitarotds.com"
 
+WEBROOT_PATH="/var/www/keitaro"
+
+NGINX_ROOT_PATH="/etc/nginx"
+NGINX_VHOSTS_DIR="${NGINX_ROOT_PATH}/conf.d"
+NGINX_KEITARO_CONF="${NGINX_VHOSTS_DIR}/vhosts.conf"
+
 SCRIPT_NAME="${PROGRAM_NAME}.sh"
 SCRIPT_URL="${KEITARO_URL}/${PROGRAM_NAME}.sh"
 SCRIPT_LOG="${PROGRAM_NAME}.log"
@@ -68,69 +74,81 @@ fi
 
 declare -A VARS
 
+RECONFIGURE_KEITARO_COMMAND_EN="curl -sSL ${KEITARO_URL}/install.sh | bash"
+
+RECONFIGURE_KEITARO_COMMAND_RU="curl -sSL ${KEITARO_URL}/install.sh | bash -s -- -l ru"
+
 
 declare -A DICT
 
-DICT['en.errors.failure']='PROGRAM FAILED'
+DICT['en.errors.program_failed']='PROGRAM FAILED'
 DICT['en.errors.must_be_root']='You must run this program as root.'
 DICT['en.errors.run_command.fail']='There was an error evaluating command'
 DICT['en.errors.run_command.fail_extra']=''
 DICT['en.errors.terminated']='Terminated by user'
+DICT['en.messages.reload_nginx']="Reloading nginx"
 DICT['en.messages.run_command']='Evaluating command'
 DICT['en.messages.successful']='Everything done!'
 DICT['en.no']='no'
+DICT['en.prompt_errors.validate_domains_list']='Please enter domains list, separated by comma without spaces (i.e. domain1.tld,www.domain1.tld). Each domain name must consist of only letters, numbers and hyphens and contain at least one dot.'
 DICT['en.prompt_errors.validate_presence']='Please enter value'
 DICT['en.prompt_errors.validate_yes_no']='Please answer "yes" or "no"'
 
-DICT['ru.errors.failure']='ОШИБКА ВЫПОЛНЕНИЯ ПРОГРАММЫ'
+DICT['ru.errors.program_failed']='ОШИБКА ВЫПОЛНЕНИЯ ПРОГРАММЫ'
 DICT['ru.errors.must_be_root']='Эту программу может запускать только root.'
 DICT['ru.errors.run_command.fail']='Ошибка выполнения команды'
 DICT['ru.errors.run_command.fail_extra']=''
 DICT['ru.errors.terminated']='Выполнение прервано'
+DICT['ru.messages.reload_nginx']="Перезагружается nginx"
 DICT['ru.messages.run_command']='Выполняется команда'
 DICT['ru.messages.successful']='Программа успешно завершена!'
 DICT['ru.no']='нет'
+DICT['ru.prompt_errors.validate_domains_list']='Укажите список доменных имён через запятую без пробелов (например domain1.tld,www.domain1.tld). Каждое доменное имя должно состоять только из букв, цифр и тире и содержать хотябы одну точку.'
 DICT['ru.prompt_errors.validate_presence']='Введите значение'
 DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
 
 
 declare -a DOMAINS
-NGINX_ROOT_PATH="/etc/nginx"
-NGINX_SSL_PATH="/etc/nginx/ssl"
+NGINX_SSL_PATH="${NGINX_ROOT_PATH}/ssl"
 NGINX_SSL_CERT_PATH="${NGINX_SSL_PATH}/cert.pem"
 NGINX_SSL_PRIVKEY_PATH="${NGINX_SSL_PATH}/privkey.pem"
-NGINX_VHOSTS_CONF="${NGINX_ROOT_PATH}/conf.d/vhosts.conf"
-WEBROOT_PATH="/var/www/keitaro"
 
 
-RECONFIGURE_KEITARO_COMMAND="curl ${KEITARO_URL}/install.sh | bash"
-RECONFIGURE_KEITARO_SSL_COMMAND="curl ${KEITARO_URL}/install.sh | bash -s -- -t nginx,ssl"
+RECONFIGURE_KEITARO_SSL_COMMAND_EN="curl -sSL ${KEITARO_URL}/install.sh | bash -s -- -l en -t nginx,ssl"
 
+RECONFIGURE_KEITARO_SSL_COMMAND_RU="curl -sSL ${KEITARO_URL}/install.sh | bash -s -- -l ru -t nginx,ssl"
+
+DICT['en.errors.reinstall_keitaro']="Your Keitaro TDS installation does not properly configured. Please reconfigure Keitaro TDS by evaluating command \`${RECONFIGURE_KEITARO_COMMAND_EN}\`"
+DICT['en.errors.reinstall_keitaro_ssl']="Nginx settings of your Keitaro TDS installation does not properly configured. Please reconfigure Nginx by evaluating command \`${RECONFIGURE_KEITARO_SSL_COMMAND_EN}\`"
+DICT['en.errors.see_logs']="Evaluating log saved to ${SCRIPT_LOG}. Please rerun \`${SCRIPT_COMMAND}\` after resolving problems."
 DICT['en.messages.check_renewal_job']="Check that renewal job scheduled"
 DICT['en.messages.make_ssl_cert_links']="Make SSL certificate links"
-DICT['en.messages.reload_nginx']="Reload nginx"
 DICT['en.messages.renewal_job_already_scheduled']="Renewal job already scheduled"
 DICT['en.messages.schedule_renewal_job']="Schedule renewal SSL certificate cron job"
 DICT['en.messages.ssl_enabled_for_sites']="SSL certificates enabled for sites:"
-DICT['en.errors.reinstall_keitaro']="Your Keitaro TDS installation does not properly configured. Please reconfigure Keitaro TDS by evaluating command \`${RECONFIGURE_KEITARO_COMMAND}\`"
-DICT['en.errors.reinstall_keitaro_ssl']="Nginx settings of your Keitaro TDS installation does not properly configured. Please reconfigure Nginx by evaluating command \`${RECONFIGURE_KEITARO_SSL_COMMAND}\`"
-DICT['en.errors.run_command.fail_extra']="Evaluating log saved to ${SCRIPT_LOG}. Please rerun \`${SCRIPT_COMMAND}\` after resolving problems."
 DICT['en.prompts.ssl_agree_tos']="Do you agree with terms of Let's Encrypt Subscriber Agreement?"
-DICT['en.prompts.ssl_agree_tos.help']="In order to install Let's Encrypt Free SSL certificates for your Keitaro TDS you must agree with terms of Let's Encrypt Subscriber Agreement (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf)."
+DICT['en.prompts.ssl_agree_tos.help']=$(cat <<- END
+	Make sure all the domains are already linked to this server in the DNS
+	In order to install Let's Encrypt Free SSL certificates for your Keitaro TDS you must agree with terms of Let's Encrypt Subscriber Agreement (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf).
+END
+)
 DICT['en.prompts.ssl_email']='Please enter your email (you can left this field empty)'
 DICT['en.prompts.ssl_email.help']='You can obtain SSL certificate with no email address. This is strongly discouraged, because in the event of key loss or LetsEncrypt account compromise you will irrevocably lose access to your LetsEncrypt account. You will also be unable to receive notice about impending expiration or revocation of your certificates.'
 
+DICT['ru.errors.reinstall_keitaro']="Keitaro TDS отконфигурирована неправильно. Пожалуйста выполните перенастройку Keitaro TDS выполнив команду \`${RECONFIGURE_KEITARO_COMMAND_RU}\`"
+DICT['ru.errors.reinstall_keitaro_ssl']="Настройки Nginx вашей Keitaro TDS отконфигурированы неправильно. Пожалуйста выполните перенастройку Nginx выполнив команду \`${RECONFIGURE_KEITARO_SSL_COMMAND_RU}\`"
+DICT['ru.errors.see_logs']="Журнал выполнения сохранён в ${SCRIPT_LOG}. Пожалуйста запустите \`${SCRIPT_COMMAND}\` после устранения возникших проблем."
 DICT['ru.messages.check_renewal_job']="Проверяем наличие cron задачи обновления сертификатов"
 DICT['ru.messages.make_ssl_cert_links']="Создаются ссылки на SSL сертификаты"
-DICT['ru.messages.reload_nginx']="Перезагружаем nginx"
 DICT['ru.messages.renewal_job_already_scheduled']="Cron задача обновления сертификатов уже существует"
 DICT['ru.messages.schedule_renewal_job']="Добавляется cron задача обновления сертификатов"
 DICT['ru.messages.ssl_enabled_for_sites']="SSL сертификаты подключены для сайтов:"
-DICT['ru.errors.reinstall_keitaro']="Keitaro TDS отконфигурирована неправильно. Пожалуйста выполните перенастройку Keitaro TDS выполнив команду \`${RECONFIGURE_KEITARO_COMMAND}\`"
-DICT['ru.errors.reinstall_keitaro_ssl']="Настройки Nginx вашей Keitaro TDS отконфигурированы неправильно. Пожалуйста выполните перенастройку Nginx выполнив команду \`${RECONFIGURE_KEITARO_SSL_COMMAND}\`"
-DICT['ru.errors.run_command.fail_extra']="Журнал выполнения сохранён в ${SCRIPT_LOG}. Пожалуйста запустите \`${SCRIPT_COMMAND}\` после устранения возникших проблем."
 DICT['ru.prompts.ssl_agree_tos']="Вы согласны с условиями Абонентского Соглашения Let's Encrypt?"
-DICT['ru.prompts.ssl_agree_tos.help']="Для получения бесплатных SSL сертификатов Let's Encrypt вы должны согласиться с условиями Абонентского Соглашения Let's Encrypt (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf)."
+DICT['ru.prompts.ssl_agree_tos.help']=$(cat <<- END
+	Убедитесь, что все указанные домены привязаны к этому серверу в DNS.
+	Для получения бесплатных SSL сертификатов Let's Encrypt вы должны согласиться с условиями Абонентского Соглашения Let's Encrypt (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf)."
+END
+)
 DICT['ru.prompts.ssl_email']='Укажите email (можно не указывать)'
 DICT['ru.prompts.ssl_email.help']='Вы можете получить SSL сертификат без указания email адреса. Однако LetsEncrypt настоятельно рекомендует указать его, так как в случае потери ключа или компрометации LetsEncrypt аккаунта вы полностью потеряете доступ к своему LetsEncrypt аккаунту. Без email вы также не сможете получить уведомление о предстоящем истечении срока действия или отзыве сертификата'
 
@@ -156,11 +174,35 @@ assert_installed(){
   local program="${1}"
   local error="${2}"
   if ! is_installed "$program"; then
-    fail "$(translate ${error})"
+    fail "$(translate ${error})" "see_logs"
   fi
 }
 
 
+
+
+
+is_exists_file(){
+  local file="${1}"
+  local result_on_skip="${2}"
+  debug "Checking ${file} file existence"
+  if isset "$SKIP_CHECKS"; then
+    debug "SKIP: аctual check of ${file} file existence disabled"
+    if [[ "$result_on_skip" == "no" ]]; then
+      debug "NO: simulate ${file} file does not exist"
+      return 1
+    fi
+    debug "YES: simulate ${file} file exists"
+    return 0
+  fi
+  if [ -f "${file}" ]; then
+    debug "YES: ${file} file exists"
+    return 0
+  else
+    debug "NO: ${file} file does not exist"
+    return 1
+  fi
+}
 
 
 
@@ -210,12 +252,12 @@ is_installed(){
   local command="${1}"
   debug "Try to found "$command""
   if isset "$SKIP_CHECKS"; then
-    debug "SKIP: actual checking of '$command' presence"
+    debug "SKIPPED: actual checking of '$command' presence skipped"
   else
     if [[ $(sh -c "command -v "$command" -gt /dev/null") ]]; then
-      debug "OK: "$command" found"
+      debug "FOUND: "$command" found"
     else
-      debug "NOK: "$command" not found"
+      debug "NOT FOUND: "$command" not found"
       return 1
     fi
   fi
@@ -225,20 +267,23 @@ is_installed(){
 
 get_user_var(){
   local var_name="${1}"
-  local validation_method="${2}"
+  local validation_methods="${2}"
   print_prompt_help "$var_name"
   while true; do
     print_prompt "$var_name"
-    variable="$(read_stdin)"
-    if ! empty "$variable"; then
-      VARS[$var_name]="${variable}"
+    value="$(read_stdin)"
+    debug "$var_name: got value '${value}'"
+    if ! empty "$value"; then
+      VARS[$var_name]="${value}"
     fi
-    if is_valid "$validation_method" "${VARS[$var_name]}"; then
-      debug "  ${var_name}=${variable}" 'light.blue'
-      break
-    else
+    error=$(get_error "${var_name}" "$validation_methods")
+    if isset "$error"; then
+      debug "$var_name: validation error - '${error}'"
+      print_prompt_error "$error"
       VARS[$var_name]=''
-      print_prompt_error "$validation_method"
+    else
+      debug "  ${var_name}=${value}" 'light.blue'
+      break
     fi
   done
 }
@@ -305,56 +350,6 @@ read_stdin(){
 }
 
 
-is_valid(){
-  local validation_method="${1}"
-  local value="${2}"
-  if empty "$validation_method"; then
-    true
-  else
-    eval "$validation_method" "$value"
-  fi
-}
-
-
-validate_presence(){
-  local value="${1}"
-  isset "$value"
-}
-
-
-validate_yes_no(){
-  local value="${1}"
-  (is_yes_answer "$value" || is_no_answer "$value")
-}
-
-
-is_yes_answer(){
-  local answer="${1}"
-  shopt -s nocasematch
-  [[ "$answer" =~ ^(yes|y|да|д) ]]
-}
-
-
-is_no_answer(){
-  local answer="${1}"
-  shopt -s nocasematch
-  [[ "$answer" =~ ^(no|n|нет|н) ]]
-}
-
-
-is_yes_answer(){
-  local answer="${1}"
-  shopt -s nocasematch
-  [[ "$answer" =~ ^(yes|y|да|д) ]]
-}
-
-
-is_no_answer(){
-  local answer="${1}"
-  shopt -s nocasematch
-  [[ "$answer" =~ ^(no|n|нет|н) ]]
-}
-
 
 
 clean_up(){
@@ -376,18 +371,15 @@ debug(){
 
 fail(){
   local message="${1}"
-  log_and_print_err "*** $(translate errors.failure) ***"
+  local see_logs="${2}"
+  log_and_print_err "*** $(translate errors.program_failed) ***"
   log_and_print_err "$message"
+  if isset "$see_logs"; then
+    log_and_print_err "$(translate errors.see_logs)"
+  fi
   print_err
   clean_up
   exit 1
-}
-
-
-log_and_print_err(){
-  local message="${1}"
-  print_err "$message" 'red'
-  debug "$message" 'red'
 }
 
 
@@ -425,10 +417,30 @@ get_name_for_old_log(){
 
 
 
+log_and_print_err(){
+  local message="${1}"
+  print_err "$message" 'red'
+  debug "$message" 'red'
+}
+
+
+
 on_exit(){
+  debug "Terminated by user"
   echo
   clean_up
   fail "$(translate 'errors.terminated')"
+}
+
+
+
+print_content_of(){
+  local filepath="${1}"
+  if [ -f "$filepath" ]; then
+    echo "Content of '${filepath}':\n$(cat "$filepath" | sed 's/^/  /g')"
+  else
+    echo "Can't show '${filepath}' content - file does not exist"
+  fi
 }
 
 
@@ -488,11 +500,19 @@ print_with_color(){
 
 
 
+reload_nginx(){
+  debug "Reload nginx"
+  run_command "nginx -s reload" "$(translate 'messages.reload_nginx')" 'hide_output'
+}
+
+
+
 run_command(){
   local command="${1}"
   local message="${2}"
   local hide_output="${3}"
   local allow_errors="${4}"
+  local run_as="${5}"
   debug "Evaluating command: ${command}"
   if empty "$message"; then
     run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
@@ -509,10 +529,15 @@ run_command(){
     print_command_status "$command" 'SKIPPED' 'yellow' "$hide_output"
     debug "Actual running disabled"
   else
-    if isset "$hide_output"; then
-      evaluated_command="(set -o pipefail && (${command}) >> ${SCRIPT_LOG} 2>&1)"
+    if isset "$run_as"; then
+      evaluated_command="sudo -u '${run_as}' bash -c '${command}'"
     else
-      evaluated_command="(set -o pipefail && (${command}) 2>&1 | tee -a ${SCRIPT_LOG})"
+      evaluated_command="${command}"
+    fi
+    if isset "$hide_output"; then
+      evaluated_command="(set -o pipefail && (${evaluated_command}) >> ${SCRIPT_LOG} 2>&1)"
+    else
+      evaluated_command="(set -o pipefail && (${evaluated_command}) 2>&1 | tee -a ${SCRIPT_LOG})"
     fi
     debug "Real command: ${evaluated_command}"
     if ! eval "${evaluated_command}"; then
@@ -520,8 +545,7 @@ run_command(){
       if isset "$allow_errors"; then
         return 1 # false
       else
-        message="$(translate 'errors.run_command.fail') \`$command\`\n$(translate 'errors.run_command.fail_extra')"
-        fail "$message"
+        fail "$(translate 'errors.run_command.fail') \`$command\`" "see_logs"
       fi
     else
       print_command_status "$command" 'OK' 'green' "$hide_output"
@@ -535,12 +559,61 @@ print_command_status(){
   local status="${2}"
   local color="${3}"
   local hide_output="${4}"
-  debug "Command \`$command\` result: ${status}"
+  debug "Command result: ${status}"
   if isset "$hide_output"; then
     print_with_color "$status" "$color"
   fi
 }
 
+
+
+
+get_error(){
+  local var_name="${1}"
+  local validation_methods_string="${2}"
+  local value="${VARS[$var_name]}"
+  local error=""
+  read -ra validation_methods <<< "$validation_methods_string"
+  for validation_method in "${validation_methods[@]}"; do
+    if ! eval "${validation_method} '${value}'"; then
+      debug "${var_name}: '${value}' invalid for ${validation_method} validator"
+      error="${validation_method}"
+      break
+    else
+      debug "${var_name}: '${value}' valid for ${validation_method} validator"
+    fi
+  done
+  echo "${error}"
+}
+
+
+
+validate_presence(){
+  local value="${1}"
+  isset "$value"
+}
+
+
+
+is_no(){
+  local answer="${1}"
+  shopt -s nocasematch
+  [[ "$answer" =~ ^(no|n|нет|н) ]]
+}
+
+
+
+is_yes(){
+  local answer="${1}"
+  shopt -s nocasematch
+  [[ "$answer" =~ ^(yes|y|да|д) ]]
+}
+
+
+validate_yes_no(){
+  local value="${1}"
+  (is_yes "$value" || is_no "$value")
+}
 
 
 
@@ -660,7 +733,7 @@ en_usage(){
   print_err
   print_err "  -l <lang>"
   print_err "    By default "$SCRIPT_NAME" tries to detect language from LANG/LC_MESSAGES/LC_ALL environment variables, but language can be explicitly set  with -l option."
-  print_err "    Only en and ru (for English and Russian) values supported now."
+  print_err "    Only en and ru (for English and Russian) values are supported now."
   print_err
   print_err "  -e <email>"
   print_err "    Email used for registration while getting Free SSL Let's Encrypt certificates."
@@ -685,49 +758,43 @@ stage2(){
 
 assert_nginx_configured(){
   if ! is_nginx_properly_configured; then
-    fail "$(translate 'errors.reinstall_keitaro_ssl')"
+    fail "$(translate 'errors.reinstall_keitaro_ssl')" "see_logs"
   fi
 }
 
 
 is_nginx_properly_configured(){
-  is_exists "${NGINX_VHOSTS_CONF}" && is_exists "${NGINX_SSL_CERT_PATH}" && is_exists "${NGINX_SSL_PRIVKEY_PATH}" && is_ssl_configured
-}
-
-
-is_exists(){
-  local file="${1}"
-  debug "Checking ${file} existence"
-  if isset "$SKIP_CHECKS"; then
-    debug "SKIP: аctual check of ${file} existence disabled"
-    return 0
-  fi
-  if [ -f "${file}" ]; then
-    debug "OK: ${file} exists"
-    return 0
-  else
-    debug "NOK: ${file} does not exist"
+  if ! is_exists_file "${NGINX_KEITARO_CONF}"; then
+    log_and_print_err "ERROR: File ${NGINX_KEITARO_CONF} doesn't exists"
     return 1
   fi
+  if ! is_exists_file "${NGINX_SSL_CERT_PATH}"; then
+    log_and_print_err "ERROR: File ${NGINX_SSL_CERT_PATH} doesn't exists"
+    return 1
+  fi
+  if ! is_exists_file "${NGINX_SSL_PRIVKEY_PATH}"; then
+    log_and_print_err "ERROR: File ${NGINX_SSL_PRIVKEY_PATH} doesn't exists"
+    return 1
+  fi
+  is_ssl_configured
 }
 
 
 is_ssl_configured(){
-  debug "Checking ssl params in ${NGINX_VHOSTS_CONF}"
+  debug "Checking ssl params in ${NGINX_KEITARO_CONF}"
   if isset "$SKIP_CHECKS"; then
-    debug "SKIP: аctual check of ssl params in ${NGINX_VHOSTS_CONF} disabled"
+    debug "SKIP: аctual check of ssl params in ${NGINX_KEITARO_CONF} disabled"
     return 0
   fi
-  if grep -q -e "ssl_certificate #{NGINX_SSL_CERT_PATH};" -e "ssl_certificate_key ${NGINX_SSL_PRIVKEY_PATH};" "${NGINX_VHOSTS_CONF}"; then
-    debug "OK: it seems like ${NGINX_VHOSTS_CONF} is properly configured"
+  if grep -q -e "ssl_certificate #{NGINX_SSL_CERT_PATH};" -e "ssl_certificate_key ${NGINX_SSL_PRIVKEY_PATH};" "${NGINX_KEITARO_CONF}"; then
+    debug "OK: it seems like ${NGINX_KEITARO_CONF} is properly configured"
     return 0
   else
-    debug "NOK: ${NGINX_VHOSTS_CONF} is not properly configured"
-    debug "Content of ${NGINX_VHOSTS_CONF}:\n$(cat ${NGINX_VHOSTS_CONF} | sed 's/^/  /g')"
+    log_and_print_err "ERROR: ${NGINX_KEITARO_CONF} is not properly configured"
+    log_and_print_err $(print_content_of "$NGINX_KEITARO_CONF")
     return 1
   fi
 }
-
 
 
 
@@ -742,7 +809,7 @@ get_user_vars(){
   debug 'Read vars from user input'
   hack_stdin_if_pipe_mode
   get_user_le_sa_agreement
-  if is_yes_answer ${VARS['ssl_agree_tos']}; then
+  if is_yes ${VARS['ssl_agree_tos']}; then
     get_user_email
   else
     fail "$(translate 'prompts.ssl_agree_tos.help')"
@@ -814,14 +881,7 @@ make_cert_links(){
   local command="rm -f ${NGINX_SSL_CERT_PATH} && rm -f ${NGINX_SSL_PRIVKEY_PATH}"
   command="${command} && ln -s ${le_cert_path} ${NGINX_SSL_CERT_PATH}"
   command="${command} && ln -s ${le_privkey_path} ${NGINX_SSL_PRIVKEY_PATH}"
-  run_command "${command}" "$(translate 'messages.make_ssl_cert_links')" 'hide_output'
-}
-
-
-
-reload_nginx(){
-  debug "Reload nginx"
-  run_command "nginx -s reload" "$(translate 'messages.reload_nginx')" 'hide_out'
+  run_command "${command}" "$(translate 'messages.make_ssl_cert_links')" 'hide_output' '' 'nginx'
 }
 
 
@@ -837,7 +897,7 @@ run_certbot(){
   else
     certbot_command="${certbot_command} --register-unsafely-without-email"
   fi
-  run_command "${certbot_command}"
+  run_command "${certbot_command}" '' '' '' 'nginx'
 }
 
 
@@ -851,8 +911,6 @@ show_successful_message(){
 }
 
 
-
-PROGRAM_NAME="enable-ssl"
 
 
 

@@ -8,4 +8,4 @@ make_cert_links()
   local command="rm -f ${NGINX_SSL_CERT_PATH} && rm -f ${NGINX_SSL_PRIVKEY_PATH}"
   command="${command} && ln -s ${le_cert_path} ${NGINX_SSL_CERT_PATH}"
   command="${command} && ln -s ${le_privkey_path} ${NGINX_SSL_PRIVKEY_PATH}"
-  run_command "${command}" "$(translate 'messages.make_ssl_cert_links')" 'hide_output'
+  run_command "${command}" "$(translate 'messages.make_ssl_cert_links')" 'hide_output' '' 'nginx'

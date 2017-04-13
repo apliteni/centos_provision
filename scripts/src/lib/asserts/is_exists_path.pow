@@ -1,0 +1,18 @@
+#!/usr/bin/env powscript
+
+
+is_exists_path(path, result_on_skip)
+  debug "Checking ${path} path existence"
+  if isset $SKIP_CHECKS
+    debug "SKIP: аctual check of ${path} path existence disabled"
+    if $result_on_skip == "no"
+      debug "NO: simulate ${path} path does not exist"
+      return 1
+    debug "YES: simulate ${path} path exists"
+    return 0
+  if [ -e "${path}" ]
+    debug "YES: ${path} path exists"
+    return 0
+  else
+    debug "NO: ${path} path does not exist"
+    return 1

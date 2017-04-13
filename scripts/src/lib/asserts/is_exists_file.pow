@@ -1,0 +1,18 @@
+#!/usr/bin/env powscript
+
+
+is_exists_file(file, result_on_skip)
+  debug "Checking ${file} file existence"
+  if isset $SKIP_CHECKS
+    debug "SKIP: аctual check of ${file} file existence disabled"
+    if $result_on_skip == "no"
+      debug "NO: simulate ${file} file does not exist"
+      return 1
+    debug "YES: simulate ${file} file exists"
+    return 0
+  if [ -f "${file}" ]
+    debug "YES: ${file} file exists"
+    return 0
+  else
+    debug "NO: ${file} file does not exist"
+    return 1

@@ -1,0 +1,8 @@
+#!/usr/bin/env powscript
+
+
+show_successful_message()
+  print_with_color "$(translate 'messages.successful')" 'green'
+  print_translated 'messages.ssl_enabled_for_sites'
+  for domain in "${DOMAINS[@]}"
+    print_with_color "https://${domain}/admin" 'green'

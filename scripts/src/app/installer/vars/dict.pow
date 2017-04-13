@@ -1,7 +1,9 @@
 #!/usr/bin/env powscript
 
+SSL_ENABLER_COMMAND_EN="curl -sSL ${KEITARO_URL}/enable-ssl.sh | bash -s -- domain1.tld [domain2.tld...]"
+SSL_ENABLER_COMMAND_RU="curl -sSL ${KEITARO_URL}/enable-ssl.sh | bash -s -- -l ru domain1.tld [domain2.tld...]"
 
-DICT['en.errors.run_command.fail_extra']=$(cat <<- END
+DICT['en.errors.see_logs']=$(cat <<- END
 	Installation log saved to ${SCRIPT_LOG}. Configuration settings saved to ${INVENTORY_FILE}.
 	You can rerun \`${SCRIPT_COMMAND}\` with saved settings after resolving installation problems.
 END
@@ -20,6 +22,8 @@ DICT['en.prompts.ssl.help']=$(cat <<- END
 	Installer can install Free SSL certificates from Let's Encrypt. In order to install this certificates you must:
 	1. Agree with terms of Let's Encrypt Subscriber Agreement (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf).
 	2. Have at least one domain associated with this server.
+	3. Make sure all the domains are already linked to this server in the DNS.
+	If you don't ready install SSL certificates right now you can install they later by running \`${SSL_ENABLER_COMMAND_EN}\`.
 END
 )
 DICT['en.prompts.ssl_agree_tos']="Do you agree with terms of Let's Encrypt Subscriber Agreement?"
@@ -33,12 +37,12 @@ DICT['en.welcome']=$(cat <<- END
 END
 )
 
-DICT['ru.errors.run_command.fail_extra']=$(cat <<- END
+DICT['ru.errors.see_logs']=$(cat <<- END
 	Журнал установки сохранён в ${SCRIPT_LOG}. Настройки сохранены в ${INVENTORY_FILE}.
 	Вы можете повторно запустить \`${SCRIPT_COMMAND}\` с этими настройками после устранения возникших проблем.
 END
 )
-DICT['ru.errors.yum_not_installed']='Утановщик keitaro работает только с пакетным менеджером yum. Пожалуйста, запустите эту программу в CentOS/RHEL/Fedora дистрибутиве'
+DICT['ru.errors.yum_not_installed']='Установщик keitaro работает только с пакетным менеджером yum. Пожалуйста, запустите эту программу в CentOS/RHEL/Fedora дистрибутиве'
 DICT['ru.prompts.admin_login']='Укажите имя администратора keitaro'
 DICT['ru.prompts.admin_password']='Укажите пароль администратора keitaro'
 DICT['ru.prompts.db_name']='Укажите имя базы данных'
@@ -51,11 +55,13 @@ DICT['ru.prompts.ssl.help']=$(cat <<- END
 	Программа установки может установить бесплатные SSL сертификаты, предоставляемые Let's Encrypt. Для этого вы должны:
 	1. Согласиться с условиями Абонентского Соглашения Let's Encrypt (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf).
 	2. Иметь хотя бы один домен для этого сервера.
+	3. Убедиться, что все домены привязаны к этому серверу в DNS.
+	Если сейчас вы не готовы к установке SSL сертификатов, то вы можете установить их позже, запустив \`${SSL_ENABLER_COMMAND_RU}\`.
 END
 )
 DICT['ru.prompts.ssl_agree_tos']="Вы согласны с условиями Абонентского Соглашения Let's Encrypt?"
 DICT['ru.prompts.ssl_agree_tos.help']="Абонентское Соглашение Let's Encrypt находится по адресу https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf."
-DICT['ru.prompts.ssl_domains']='Укажите список доменов через запятую без пробелов (наример domain1.tld,domain2.tld)'
+DICT['ru.prompts.ssl_domains']='Укажите список доменов через запятую без пробелов (например domain1.tld,domain2.tld)'
 DICT['ru.prompts.ssl_email']='Укажите email (можно не указывать)'
 DICT['ru.prompts.ssl_email.help']='Вы можете получить SSL сертификат без указания email адреса. Однако LetsEncrypt настоятельно рекомендует указать его, так как в случае потери ключа или компрометации LetsEncrypt аккаунта вы полностью потеряете доступ к своему LetsEncrypt аккаунту. Без email вы также не сможете получить уведомление о предстоящем истечении срока действия или отзыве сертификата'
 DICT['ru.welcome']=$(cat <<- END
@@ -63,3 +69,5 @@ DICT['ru.welcome']=$(cat <<- END
 	Эта программа поможет собрать информацию необходимую для установки Keitaro TDS на вашем сервере.
 END
 )
+
+COMMENT_ME_IF_POWSCRIPT_DONT_COMPILE_PROJECT="'"

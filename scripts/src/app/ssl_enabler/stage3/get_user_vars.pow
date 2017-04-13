@@ -5,7 +5,7 @@ get_user_vars()
   debug 'Read vars from user input'
   hack_stdin_if_pipe_mode
   get_user_le_sa_agreement
-  if is_yes_answer ${VARS['ssl_agree_tos']}
+  if is_yes ${VARS['ssl_agree_tos']}
     get_user_email
   else
     fail "$(translate 'prompts.ssl_agree_tos.help')"

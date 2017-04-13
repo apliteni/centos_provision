@@ -1,0 +1,8 @@
+#!/usr/bin/env powscript
+
+
+print_content_of(filepath)
+  if [ -f $filepath ]
+    echo "Content of '${filepath}':\n$(cat $filepath | sed 's/^/  /g')"
+  else
+    echo "Can't show '${filepath}' content - file does not exist"
