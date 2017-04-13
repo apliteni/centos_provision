@@ -58,6 +58,12 @@ SHELL_NAME=$(basename "$0")
 
 KEITARO_URL="https://keitarotds.com"
 
+WEBROOT_PATH="/var/www/keitaro"
+
+NGINX_ROOT_PATH="/etc/nginx"
+NGINX_VHOSTS_DIR="${NGINX_ROOT_PATH}/conf.d"
+NGINX_KEITARO_CONF="${NGINX_VHOSTS_DIR}/vhosts.conf"
+
 SCRIPT_NAME="${PROGRAM_NAME}.sh"
 SCRIPT_URL="${KEITARO_URL}/${PROGRAM_NAME}.sh"
 SCRIPT_LOG="${PROGRAM_NAME}.log"
@@ -78,28 +84,36 @@ fi
 
 declare -A VARS
 
+RECONFIGURE_KEITARO_COMMAND_EN="curl -sSL ${KEITARO_URL}/install.sh | bash"
+
+RECONFIGURE_KEITARO_COMMAND_RU="curl -sSL ${KEITARO_URL}/install.sh | bash -s -- -l ru"
+
 
 declare -A DICT
 
-DICT['en.errors.failure']='PROGRAM FAILED'
+DICT['en.errors.program_failed']='PROGRAM FAILED'
 DICT['en.errors.must_be_root']='You must run this program as root.'
 DICT['en.errors.run_command.fail']='There was an error evaluating command'
 DICT['en.errors.run_command.fail_extra']=''
 DICT['en.errors.terminated']='Terminated by user'
+DICT['en.messages.reload_nginx']="Reloading nginx"
 DICT['en.messages.run_command']='Evaluating command'
 DICT['en.messages.successful']='Everything done!'
 DICT['en.no']='no'
+DICT['en.prompt_errors.validate_domains_list']='Please enter domains list, separated by comma without spaces (i.e. domain1.tld,www.domain1.tld). Each domain name must consist of only letters, numbers and hyphens and contain at least one dot.'
 DICT['en.prompt_errors.validate_presence']='Please enter value'
 DICT['en.prompt_errors.validate_yes_no']='Please answer "yes" or "no"'
 
-DICT['ru.errors.failure']='ОШИБКА ВЫПОЛНЕНИЯ ПРОГРАММЫ'
+DICT['ru.errors.program_failed']='ОШИБКА ВЫПОЛНЕНИЯ ПРОГРАММЫ'
 DICT['ru.errors.must_be_root']='Эту программу может запускать только root.'
 DICT['ru.errors.run_command.fail']='Ошибка выполнения команды'
 DICT['ru.errors.run_command.fail_extra']=''
 DICT['ru.errors.terminated']='Выполнение прервано'
+DICT['ru.messages.reload_nginx']="Перезагружается nginx"
 DICT['ru.messages.run_command']='Выполняется команда'
 DICT['ru.messages.successful']='Программа успешно завершена!'
 DICT['ru.no']='нет'
+DICT['ru.prompt_errors.validate_domains_list']='Укажите список доменных имён через запятую без пробелов (например domain1.tld,www.domain1.tld). Каждое доменное имя должно состоять только из букв, цифр и тире и содержать хотябы одну точку.'
 DICT['ru.prompt_errors.validate_presence']='Введите значение'
 DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
 
@@ -125,7 +139,7 @@ assert_installed(){
   local program="${1}"
   local error="${2}"
   if ! is_installed "$program"; then
-    fail "$(translate ${error})"
+    fail "$(translate ${error})" "see_logs"
   fi
 }
 
@@ -177,20 +191,23 @@ translate(){
 
 get_user_var(){
   local var_name="${1}"
-  local validation_method="${2}"
+  local validation_methods="${2}"
   print_prompt_help "$var_name"
   while true; do
     print_prompt "$var_name"
-    variable="$(read_stdin)"
-    if ! empty "$variable"; then
-      VARS[$var_name]="${variable}"
+    value="$(read_stdin)"
+    debug "$var_name: got value '${value}'"
+    if ! empty "$value"; then
+      VARS[$var_name]="${value}"
     fi
-    if is_valid "$validation_method" "${VARS[$var_name]}"; then
-      debug "  ${var_name}=${variable}" 'light.blue'
-      break
-    else
+    error=$(get_error "${var_name}" "$validation_methods")
+    if isset "$error"; then
+      debug "$var_name: validation error - '${error}'"
+      print_prompt_error "$error"
       VARS[$var_name]=''
-      print_prompt_error "$validation_method"
+    else
+      debug "  ${var_name}=${value}" 'light.blue'
+      break
     fi
   done
 }
@@ -257,56 +274,6 @@ read_stdin(){
 }
 
 
-is_valid(){
-  local validation_method="${1}"
-  local value="${2}"
-  if empty "$validation_method"; then
-    true
-  else
-    eval "$validation_method" "$value"
-  fi
-}
-
-
-validate_presence(){
-  local value="${1}"
-  isset "$value"
-}
-
-
-validate_yes_no(){
-  local value="${1}"
-  (is_yes_answer "$value" || is_no_answer "$value")
-}
-
-
-is_yes_answer(){
-  local answer="${1}"
-  shopt -s nocasematch
-  [[ "$answer" =~ ^(yes|y|да|д) ]]
-}
-
-
-is_no_answer(){
-  local answer="${1}"
-  shopt -s nocasematch
-  [[ "$answer" =~ ^(no|n|нет|н) ]]
-}
-
-
-is_yes_answer(){
-  local answer="${1}"
-  shopt -s nocasematch
-  [[ "$answer" =~ ^(yes|y|да|д) ]]
-}
-
-
-is_no_answer(){
-  local answer="${1}"
-  shopt -s nocasematch
-  [[ "$answer" =~ ^(no|n|нет|н) ]]
-}
-
 
 
 install_package(){
@@ -321,12 +288,12 @@ is_installed(){
   local command="${1}"
   debug "Try to found "$command""
   if isset "$SKIP_CHECKS"; then
-    debug "SKIP: actual checking of '$command' presence"
+    debug "SKIPPED: actual checking of '$command' presence skipped"
   else
     if [[ $(sh -c "command -v "$command" -gt /dev/null") ]]; then
-      debug "OK: "$command" found"
+      debug "FOUND: "$command" found"
     else
-      debug "NOK: "$command" not found"
+      debug "NOT FOUND: "$command" not found"
       return 1
     fi
   fi
@@ -347,18 +314,15 @@ debug(){
 
 fail(){
   local message="${1}"
-  log_and_print_err "*** $(translate errors.failure) ***"
+  local see_logs="${2}"
+  log_and_print_err "*** $(translate errors.program_failed) ***"
   log_and_print_err "$message"
+  if isset "$see_logs"; then
+    log_and_print_err "$(translate errors.see_logs)"
+  fi
   print_err
   clean_up
   exit 1
-}
-
-
-log_and_print_err(){
-  local message="${1}"
-  print_err "$message" 'red'
-  debug "$message" 'red'
 }
 
 
@@ -396,7 +360,16 @@ get_name_for_old_log(){
 
 
 
+log_and_print_err(){
+  local message="${1}"
+  print_err "$message" 'red'
+  debug "$message" 'red'
+}
+
+
+
 on_exit(){
+  debug "Terminated by user"
   echo
   clean_up
   fail "$(translate 'errors.terminated')"
@@ -464,6 +437,7 @@ run_command(){
   local message="${2}"
   local hide_output="${3}"
   local allow_errors="${4}"
+  local run_as="${5}"
   debug "Evaluating command: ${command}"
   if empty "$message"; then
     run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
@@ -480,10 +454,15 @@ run_command(){
     print_command_status "$command" 'SKIPPED' 'yellow' "$hide_output"
     debug "Actual running disabled"
   else
-    if isset "$hide_output"; then
-      evaluated_command="(set -o pipefail && (${command}) >> ${SCRIPT_LOG} 2>&1)"
+    if isset "$run_as"; then
+      evaluated_command="sudo -u '${run_as}' bash -c '${command}'"
     else
-      evaluated_command="(set -o pipefail && (${command}) 2>&1 | tee -a ${SCRIPT_LOG})"
+      evaluated_command="${command}"
+    fi
+    if isset "$hide_output"; then
+      evaluated_command="(set -o pipefail && (${evaluated_command}) >> ${SCRIPT_LOG} 2>&1)"
+    else
+      evaluated_command="(set -o pipefail && (${evaluated_command}) 2>&1 | tee -a ${SCRIPT_LOG})"
     fi
     debug "Real command: ${evaluated_command}"
     if ! eval "${evaluated_command}"; then
@@ -491,8 +470,7 @@ run_command(){
       if isset "$allow_errors"; then
         return 1 # false
       else
-        message="$(translate 'errors.run_command.fail') \`$command\`\n$(translate 'errors.run_command.fail_extra')"
-        fail "$message"
+        fail "$(translate 'errors.run_command.fail') \`$command\`" "see_logs"
       fi
     else
       print_command_status "$command" 'OK' 'green' "$hide_output"
@@ -506,7 +484,7 @@ print_command_status(){
   local status="${2}"
   local color="${3}"
   local hide_output="${4}"
-  debug "Command \`$command\` result: ${status}"
+  debug "Command result: ${status}"
   if isset "$hide_output"; then
     print_with_color "$status" "$color"
   fi
@@ -514,12 +492,86 @@ print_command_status(){
 
 
 
+
+get_error(){
+  local var_name="${1}"
+  local validation_methods_string="${2}"
+  local value="${VARS[$var_name]}"
+  local error=""
+  read -ra validation_methods <<< "$validation_methods_string"
+  for validation_method in "${validation_methods[@]}"; do
+    if ! eval "${validation_method} '${value}'"; then
+      debug "${var_name}: '${value}' invalid for ${validation_method} validator"
+      error="${validation_method}"
+      break
+    else
+      debug "${var_name}: '${value}' valid for ${validation_method} validator"
+    fi
+  done
+  echo "${error}"
+}
+
+
+
+validate_presence(){
+  local value="${1}"
+  isset "$value"
+}
+
+
+SUBDOMAIN_REGEXP="[[:alnum:]-]+"
+DOMAIN_REGEXP="(${SUBDOMAIN_REGEXP}\.)+[[:alpha:]]${SUBDOMAIN_REGEXP}"
+DOMAIN_LIST_REGEXP="${DOMAIN_REGEXP}(,${DOMAIN_REGEXP})*"
+
+validate_domains_list(){
+  local value="${1}"
+  [[ "$value" =~ ^(${DOMAIN_LIST_REGEXP})$ ]]
+}
+
+
+
+is_no(){
+  local answer="${1}"
+  shopt -s nocasematch
+  [[ "$answer" =~ ^(no|n|нет|н) ]]
+}
+
+
+
+is_yes(){
+  local answer="${1}"
+  shopt -s nocasematch
+  [[ "$answer" =~ ^(yes|y|да|д) ]]
+}
+
+
+
+transform_to_yes_no(){
+  local var_name="${1}"
+  if is_no "${VARS[$var_name]}"; then
+    debug "Transform ${var_name}: ${VARS[$var_name]} => yes"
+    VARS[$var_name]='yes'
+  else
+    debug "Transform ${var_name}: ${VARS[$var_name]} => no"
+    VARS[$var_name]='no'
+  fi
+}
+
+
+validate_yes_no(){
+  local value="${1}"
+  (is_yes "$value" || is_no "$value")
+}
+
+
 INVENTORY_FILE=hosts.txt
 PROVISION_DIRECTORY=centos_provision-master
 
 
+SSL_ENABLER_COMMAND_EN="curl -sSL ${KEITARO_URL}/enable-ssl.sh | bash -s -- domain1.tld [domain2.tld...]"
+SSL_ENABLER_COMMAND_RU="curl -sSL ${KEITARO_URL}/enable-ssl.sh | bash -s -- -l ru domain1.tld [domain2.tld...]"
 
-DICT['en.errors.run_command.fail_extra']=$(cat <<- END
+DICT['en.errors.see_logs']=$(cat <<- END
 	Installation log saved to ${SCRIPT_LOG}. Configuration settings saved to ${INVENTORY_FILE}.
 	You can rerun \`${SCRIPT_COMMAND}\` with saved settings after resolving installation problems.
 END
@@ -538,6 +590,8 @@ DICT['en.prompts.ssl.help']=$(cat <<- END
 	Installer can install Free SSL certificates from Let's Encrypt. In order to install this certificates you must:
 	1. Agree with terms of Let's Encrypt Subscriber Agreement (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf).
 	2. Have at least one domain associated with this server.
+	3. Make sure all the domains are already linked to this server in the DNS.
+	If you don't ready install SSL certificates right now you can install they later by running \`${SSL_ENABLER_COMMAND_EN}\`.
 END
 )
 DICT['en.prompts.ssl_agree_tos']="Do you agree with terms of Let's Encrypt Subscriber Agreement?"
@@ -551,12 +605,12 @@ DICT['en.welcome']=$(cat <<- END
 END
 )
 
-DICT['ru.errors.run_command.fail_extra']=$(cat <<- END
+DICT['ru.errors.see_logs']=$(cat <<- END
 	Журнал установки сохранён в ${SCRIPT_LOG}. Настройки сохранены в ${INVENTORY_FILE}.
 	Вы можете повторно запустить \`${SCRIPT_COMMAND}\` с этими настройками после устранения возникших проблем.
 END
 )
-DICT['ru.errors.yum_not_installed']='Утановщик keitaro работает только с пакетным менеджером yum. Пожалуйста, запустите эту программу в CentOS/RHEL/Fedora дистрибутиве'
+DICT['ru.errors.yum_not_installed']='Установщик keitaro работает только с пакетным менеджером yum. Пожалуйста, запустите эту программу в CentOS/RHEL/Fedora дистрибутиве'
 DICT['ru.prompts.admin_login']='Укажите имя администратора keitaro'
 DICT['ru.prompts.admin_password']='Укажите пароль администратора keitaro'
 DICT['ru.prompts.db_name']='Укажите имя базы данных'
@@ -569,11 +623,13 @@ DICT['ru.prompts.ssl.help']=$(cat <<- END
 	Программа установки может установить бесплатные SSL сертификаты, предоставляемые Let's Encrypt. Для этого вы должны:
 	1. Согласиться с условиями Абонентского Соглашения Let's Encrypt (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf).
 	2. Иметь хотя бы один домен для этого сервера.
+	3. Убедиться, что все домены привязаны к этому серверу в DNS.
+	Если сейчас вы не готовы к установке SSL сертификатов, то вы можете установить их позже, запустив \`${SSL_ENABLER_COMMAND_RU}\`.
 END
 )
 DICT['ru.prompts.ssl_agree_tos']="Вы согласны с условиями Абонентского Соглашения Let's Encrypt?"
 DICT['ru.prompts.ssl_agree_tos.help']="Абонентское Соглашение Let's Encrypt находится по адресу https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf."
-DICT['ru.prompts.ssl_domains']='Укажите список доменов через запятую без пробелов (наример domain1.tld,domain2.tld)'
+DICT['ru.prompts.ssl_domains']='Укажите список доменов через запятую без пробелов (например domain1.tld,domain2.tld)'
 DICT['ru.prompts.ssl_email']='Укажите email (можно не указывать)'
 DICT['ru.prompts.ssl_email.help']='Вы можете получить SSL сертификат без указания email адреса. Однако LetsEncrypt настоятельно рекомендует указать его, так как в случае потери ключа или компрометации LetsEncrypt аккаунта вы полностью потеряете доступ к своему LetsEncrypt аккаунту. Без email вы также не сможете получить уведомление о предстоящем истечении срока действия или отзыве сертификата'
 DICT['ru.welcome']=$(cat <<- END
@@ -581,6 +637,8 @@ DICT['ru.welcome']=$(cat <<- END
 	Эта программа поможет собрать информацию необходимую для установки Keitaro TDS на вашем сервере.
 END
 )
+
+COMMENT_ME_IF_POWSCRIPT_DONT_COMPILE_PROJECT="'"
 
 
 
@@ -602,7 +660,7 @@ stage1(){
 
 
 parse_options(){
-  while getopts ":hpsl:t:" opt; do
+  while getopts ":hpsl:t:k:i:" opt; do
     case $opt in
       p)
         PRESERVE_RUNNING=true
@@ -626,6 +684,16 @@ parse_options(){
         ;;
       t)
         ANSIBLE_TAGS=$OPTARG
+        ;;
+      i)
+        ANSIBLE_IGNORE_TAGS=$OPTARG
+        ;;
+      k)
+        if [[ "$OPTARG" -ne 6 && "$OPTARG" -ne 7 && "$OPTARG" -ne 8 ]]; then
+          print_err "Specified Keitaro TDS Release \"$OPTARG\" is not supported"
+          exit 1
+        fi
+        KEITARO_RELEASE=$OPTARG
         ;;
       :)
         print_err "Option -$OPTARG requires an argument."
@@ -665,12 +733,19 @@ ru_usage(){
   print_err "  -s"
   print_err "    С опцией -s (skip checks) "$SCRIPT_NAME" не будет проверять присутствие yum/ansible в системе, не будет проверять факт запуска из под root."
   print_err
-  print_err "  -l <lang>"
-  print_err "    "$SCRIPT_NAME" определяет язык через установленные переменные окружения LANG/LC_MESSAGES/LC_ALL, однако вы можете явно задать язык при помощи параметра -l."
+  print_err "  -l <language>"
+  print_err "    "$SCRIPT_NAME" определяет язык через установленные переменные окружения LANG/LC_MESSAGES/LC_ALL, однако вы можете явно задать язык при помощи этого параметра."
   print_err "    На данный момент поддерживаются значения en и ru (для английского и русского языков)."
   print_err
-  print_err "  -t <TAG1[,TAG2...]>"
+  print_err "  -t <tag1[,tag2...]>"
   print_err "    Запуск ansible-playbook с указанными тэгами."
+  print_err
+  print_err "  -i <tag1[,tag2...]>"
+  print_err "    Запуск ansible-playbook без выполнения указанных тэгов."
+  print_err
+  print_err "  -k <keitaro_release>"
+  print_err "    "$SCRIPT_NAME" по умолчанию устанавливает текущую стабильную версию Keitaro TDS. Вы можете явно задать устанавливаемую версию через этот параметр."
+  print_err "    На данный момент поддерживаются значения 6, 7 и 8."
   print_err
 }
 
@@ -686,12 +761,19 @@ en_usage(){
   print_err "  -s"
   print_err "    The -s (skip checks) option causes "$SCRIPT_NAME" to skip checks of yum/ansible presence, skip check root running"
   print_err
-  print_err "  -l <lang>"
-  print_err "    By default "$SCRIPT_NAME" tries to detect language from LANG/LC_MESSAGES/LC_ALL environment variables, but you can explicitly set language with -l option."
-  print_err "    Only en and ru (for English and Russian) values supported now."
+  print_err "  -l <language>"
+  print_err "    By default "$SCRIPT_NAME" tries to detect language from LANG/LC_MESSAGES/LC_ALL environment variables, but you can explicitly set language with this option."
+  print_err "    Only en and ru (for English and Russian) values are supported now."
   print_err
-  print_err "  -t <TAG1[,TAG2...]>"
+  print_err "  -t <tag1[,tag2...]>"
   print_err "    Runs ansible-playbook with specified tags."
+  print_err
+  print_err "  -i <tag1[,tag2...]>"
+  print_err "    Runs ansible-playbook with skipping specified tags."
+  print_err
+  print_err "  -k <keitaro_release>"
+  print_err "    By default "$SCRIPT_NAME" installs current stable Keitaro TDS. You can specify Keitaro TDS release with this option."
+  print_err "    Only 6, 7 and 8 values are supported now."
   print_err
 }
 
@@ -705,13 +787,12 @@ stage2(){
 
 
 
-
-
 stage3(){
   debug "Starting stage 3: generate inventory file"
   setup_vars
   read_inventory_file
   get_user_vars
+  transform_yes_no_vars
   write_inventory_file
 }
 
@@ -735,11 +816,11 @@ get_user_vars(){
 get_user_ssl_vars(){
   VARS['ssl_certificate']='self-signed'
   get_user_var 'ssl' 'validate_yes_no'
-  if is_yes_answer ${VARS['ssl']}; then
+  if is_yes ${VARS['ssl']}; then
     get_user_var 'ssl_agree_tos' 'validate_yes_no'
-    if is_yes_answer ${VARS['ssl_agree_tos']}; then
+    if is_yes ${VARS['ssl_agree_tos']}; then
       VARS['ssl_certificate']='letsencrypt'
-      get_user_var 'ssl_domains' 'validate_presence'
+      get_user_var 'ssl_domains' 'validate_presence validate_domains_list'
       get_user_var 'ssl_email'
     fi
   fi
@@ -788,6 +869,14 @@ generate_password(){
 
 
 
+transform_yes_no_vars(){
+  debug "Transform binary values to yes/no"
+  transform_to_yes_no 'ssl'
+  transform_to_yes_no 'ssl_agree_tos'
+}
+
+
+
 write_inventory_file(){
   debug "Write inventory file"
   echo -n > "$INVENTORY_FILE"
@@ -808,6 +897,9 @@ write_inventory_file(){
   print_line_to_inventory_file "admin_login="${VARS['admin_login']}""
   print_line_to_inventory_file "admin_password="${VARS['admin_password']}""
   print_line_to_inventory_file "language=${UI_LANG}"
+  if isset "$KEITARO_RELEASE"; then
+    print_line_to_inventory_file "kversion=$KEITARO_RELEASE"
+  fi
 }
 
 
@@ -840,13 +932,35 @@ stage5(){
   debug "Starting stage 5: run ansible playbook"
   download_provision
   run_ansible_playbook
+  clean_up
+  remove_inventory_file
+  show_successful_message
+  remove_log_files
 }
 
 
 
 download_provision(){
+  debug "Download provision"
   release_url="https://github.com/keitarocorp/centos_provision/archive/master.tar.gz"
   run_command "curl -sSL "$release_url" | tar xz"
+}
+
+
+
+remove_inventory_file(){
+  if [ -f "${INVENTORY_FILE}" ]; then
+    debug "Remove ${INVENTORY_FILE}"
+    rm -f "${INVENTORY_FILE}"
+  fi
+}
+
+
+
+remove_log_files(){
+  if [[ ! "$PRESERVE_RUNNING" ]]; then
+    rm -f "${SCRIPT_LOG}" "${SCRIPT_LOG}.*"
+  fi
 }
 
 
@@ -856,9 +970,10 @@ run_ansible_playbook(){
   if isset "$ANSIBLE_TAGS"; then
     command="${command} --tags ${ANSIBLE_TAGS}"
   fi
+  if isset "$ANSIBLE_IGNORE_TAGS"; then
+    command="${command} --skip-tags ${ANSIBLE_IGNORE_TAGS}"
+  fi
   run_command "${command}"
-  clean_up
-  show_successful_message
 }
 
 

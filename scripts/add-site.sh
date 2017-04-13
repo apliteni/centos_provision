@@ -41,7 +41,7 @@ values ()
 
 
 
-PROGRAM_NAME='enable-ssl'
+PROGRAM_NAME='add-site'
 
 
 SHELL_NAME=$(basename "$0")
@@ -108,49 +108,24 @@ DICT['ru.prompt_errors.validate_presence']='Введите значение'
 DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
 
 
-declare -a DOMAINS
-NGINX_SSL_PATH="${NGINX_ROOT_PATH}/ssl"
-NGINX_SSL_CERT_PATH="${NGINX_SSL_PATH}/cert.pem"
-NGINX_SSL_PRIVKEY_PATH="${NGINX_SSL_PATH}/privkey.pem"
 
 
-RECONFIGURE_KEITARO_SSL_COMMAND_EN="curl -sSL ${KEITARO_URL}/install.sh | bash -s -- -l en -t nginx,ssl"
-
-RECONFIGURE_KEITARO_SSL_COMMAND_RU="curl -sSL ${KEITARO_URL}/install.sh | bash -s -- -l ru -t nginx,ssl"
-
-DICT['en.errors.reinstall_keitaro']="Your Keitaro TDS installation does not properly configured. Please reconfigure Keitaro TDS by evaluating command \`${RECONFIGURE_KEITARO_COMMAND_EN}\`"
-DICT['en.errors.reinstall_keitaro_ssl']="Nginx settings of your Keitaro TDS installation does not properly configured. Please reconfigure Nginx by evaluating command \`${RECONFIGURE_KEITARO_SSL_COMMAND_EN}\`"
 DICT['en.errors.see_logs']="Evaluating log saved to ${SCRIPT_LOG}. Please rerun \`${SCRIPT_COMMAND}\` after resolving problems."
-DICT['en.messages.check_renewal_job']="Check that renewal job scheduled"
-DICT['en.messages.make_ssl_cert_links']="Make SSL certificate links"
-DICT['en.messages.renewal_job_already_scheduled']="Renewal job already scheduled"
-DICT['en.messages.schedule_renewal_job']="Schedule renewal SSL certificate cron job"
-DICT['en.messages.ssl_enabled_for_sites']="SSL certificates enabled for sites:"
-DICT['en.prompts.ssl_agree_tos']="Do you agree with terms of Let's Encrypt Subscriber Agreement?"
-DICT['en.prompts.ssl_agree_tos.help']=$(cat <<- END
-	Make sure all the domains are already linked to this server in the DNS
-	In order to install Let's Encrypt Free SSL certificates for your Keitaro TDS you must agree with terms of Let's Encrypt Subscriber Agreement (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf).
-END
-)
-DICT['en.prompts.ssl_email']='Please enter your email (you can left this field empty)'
-DICT['en.prompts.ssl_email.help']='You can obtain SSL certificate with no email address. This is strongly discouraged, because in the event of key loss or LetsEncrypt account compromise you will irrevocably lose access to your LetsEncrypt account. You will also be unable to receive notice about impending expiration or revocation of your certificates.'
+DICT['en.errors.reinstall_keitaro']="Your Keitaro TDS installation does not properly configured. Please reconfigure Keitaro TDS by evaluating command \`${RECONFIGURE_KEITARO_COMMAND_EN}\`"
+DICT['en.errors.vhost_already_exists']="Can not save site configuration - :vhost_filepath: already exists"
+DICT['en.errors.site_root_not_exists']="Can not save site configuration - :site_root: directory does not exist"
+DICT['en.messages.add_vhost']="Creating site config"
+DICT['en.prompts.site_domains']='Please enter domain name with aliases, separated by comma without spaces (i.e. domain1.tld,www.domain1.tld)'
+DICT['en.prompts.site_root']='Please enter site root directory'
 
 DICT['ru.errors.reinstall_keitaro']="Keitaro TDS отконфигурирована неправильно. Пожалуйста выполните перенастройку Keitaro TDS выполнив команду \`${RECONFIGURE_KEITARO_COMMAND_RU}\`"
-DICT['ru.errors.reinstall_keitaro_ssl']="Настройки Nginx вашей Keitaro TDS отконфигурированы неправильно. Пожалуйста выполните перенастройку Nginx выполнив команду \`${RECONFIGURE_KEITARO_SSL_COMMAND_RU}\`"
 DICT['ru.errors.see_logs']="Журнал выполнения сохранён в ${SCRIPT_LOG}. Пожалуйста запустите \`${SCRIPT_COMMAND}\` после устранения возникших проблем."
-DICT['ru.messages.check_renewal_job']="Проверяем наличие cron задачи обновления сертификатов"
-DICT['ru.messages.make_ssl_cert_links']="Создаются ссылки на SSL сертификаты"
-DICT['ru.messages.renewal_job_already_scheduled']="Cron задача обновления сертификатов уже существует"
-DICT['ru.messages.schedule_renewal_job']="Добавляется cron задача обновления сертификатов"
-DICT['ru.messages.ssl_enabled_for_sites']="SSL сертификаты подключены для сайтов:"
-DICT['ru.prompts.ssl_agree_tos']="Вы согласны с условиями Абонентского Соглашения Let's Encrypt?"
-DICT['ru.prompts.ssl_agree_tos.help']=$(cat <<- END
-	Убедитесь, что все указанные домены привязаны к этому серверу в DNS.
-	Для получения бесплатных SSL сертификатов Let's Encrypt вы должны согласиться с условиями Абонентского Соглашения Let's Encrypt (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf)."
-END
-)
-DICT['ru.prompts.ssl_email']='Укажите email (можно не указывать)'
-DICT['ru.prompts.ssl_email.help']='Вы можете получить SSL сертификат без указания email адреса. Однако LetsEncrypt настоятельно рекомендует указать его, так как в случае потери ключа или компрометации LetsEncrypt аккаунта вы полностью потеряете доступ к своему LetsEncrypt аккаунту. Без email вы также не сможете получить уведомление о предстоящем истечении срока действия или отзыве сертификата'
+DICT['ru.errors.vhost_already_exists']="Невозможно сохранить конфигурацию сайта - :vhost_filepath: уже существует"
+DICT['ru.errors.site_root_not_exists']="Невозможно сохранить конфигурацию сайта - нет директории :site_root:"
+DICT['ru.messages.add_vhost']="Создаётся конфигурация для сайта"
+DICT['ru.prompts.site_domains']='Укажите доменное имя и список альясов через запятую без пробелов (например domain1.tld,www.domain1.tld)'
+DICT['ru.prompts.site_root']='Укажите корневую директорию сайта'
+
 
 
 
@@ -179,6 +154,54 @@ assert_installed(){
 }
 
 
+
+
+
+is_exists_directory(){
+  local directory="${1}"
+  local result_on_skip="${2}"
+  debug "Checking ${directory} directory existence"
+  if isset "$SKIP_CHECKS"; then
+    debug "SKIP: аctual check of ${directory} directory existence disabled"
+    if [[ "$result_on_skip" == "no" ]]; then
+      debug "NO: simulate ${directory} directory does not exist"
+      return 1
+    fi
+    debug "YES: simulate ${directory} directory exists"
+    return 0
+  fi
+  if [ -d "${directory}" ]; then
+    debug "YES: ${directory} directory exists"
+    return 0
+  else
+    debug "NO: ${directory} directory does not exist"
+    return 1
+  fi
+}
+
+
+
+is_exists_path(){
+  local path="${1}"
+  local result_on_skip="${2}"
+  debug "Checking ${path} path existence"
+  if isset "$SKIP_CHECKS"; then
+    debug "SKIP: аctual check of ${path} path existence disabled"
+    if [[ "$result_on_skip" == "no" ]]; then
+      debug "NO: simulate ${path} path does not exist"
+      return 1
+    fi
+    debug "YES: simulate ${path} path exists"
+    return 0
+  fi
+  if [ -e "${path}" ]; then
+    debug "YES: ${path} path exists"
+    return 0
+  else
+    debug "NO: ${path} path does not exist"
+    return 1
+  fi
+}
 
 
 
@@ -594,6 +617,16 @@ validate_presence(){
 }
 
 
+SUBDOMAIN_REGEXP="[[:alnum:]-]+"
+DOMAIN_REGEXP="(${SUBDOMAIN_REGEXP}\.)+[[:alpha:]]${SUBDOMAIN_REGEXP}"
+DOMAIN_LIST_REGEXP="${DOMAIN_REGEXP}(,${DOMAIN_REGEXP})*"
+
+validate_domains_list(){
+  local value="${1}"
+  [[ "$value" =~ ^(${DOMAIN_LIST_REGEXP})$ ]]
+}
+
+
 
 is_no(){
   local answer="${1}"
@@ -617,6 +650,18 @@ validate_yes_no(){
 
 
 
+first_domain(){
+  echo "${VARS['site_domains']%%,*}"
+}
+
+
+
+vhost_filepath(){
+  echo "${NGINX_VHOSTS_DIR}/$(first_domain).conf"
+}
+
+
+
 stage1(){
   debug "Starting stage 1: initial script setup"
   parse_options "$@"
@@ -626,7 +671,7 @@ stage1(){
 
 
 parse_options(){
-  while getopts ":hpsl:ae:w" opt; do
+  while getopts ":hpsl:" opt; do
     case $opt in
       p)
         PRESERVE_RUNNING=true
@@ -648,15 +693,6 @@ parse_options(){
             ;;
         esac
         ;;
-      a)
-        SKIP_SSL_AGREE_TOS=true
-        ;;
-      e)
-        EMAIL="${OPTARG}"
-        ;;
-      w)
-        SKIP_SSL_EMAIL=true
-        ;;
       :)
         print_err "Option -$OPTARG requires an argument."
         exit 1
@@ -671,18 +707,6 @@ parse_options(){
         ;;
     esac
   done
-  shift $((OPTIND-1))
-  if [[ ${#} == 0 ]]; then
-    usage
-    exit 1
-  else
-    while [[ ${#} -gt 0 ]]; do
-      if [[ ! "${1}" =~ ^(-) ]]; then
-        DOMAINS+=("${1}")
-      fi
-      shift
-    done
-  fi
 }
 
 
@@ -697,9 +721,9 @@ usage(){
 
 
 ru_usage(){
-  print_err "$SCRIPT_NAME подключает SSL сертификат от Let's Encrypt для указанных доменов Keitaro TDS"
+  print_err "$SCRIPT_NAME позволяет запустить дополнительный сайт совместно с Keitaro TDS"
   print_err
-  print_err "Использование: "$SCRIPT_NAME" [-ps] [-l en|ru] [-e some.email@example.org] domain1.tld [domain2.tld] ..."
+  print_err "Использование: "$SCRIPT_NAME" [-ps] [-l en|ru] "
   print_err
   print_err "  -p"
   print_err "    С опцией -p (preserve commands running) "$SCRIPT_NAME" не выполняет установочные команды. Вместо этого текст команд будет показан на экране."
@@ -711,17 +735,11 @@ ru_usage(){
   print_err "    "$SCRIPT_NAME" определяет язык через установленные переменные окружения LANG/LC_MESSAGES/LC_ALL, однако язык может быть явно задан помощи параметра -l."
   print_err "    На данный момент поддерживаются значения en и ru (для английского и русского языков)."
   print_err
-  print_err "  -e <email>"
-  print_err "    Адрес электронной почты исползуемый для регистрации при получении бесплатных SSL сертификатов. Let's Encrypt"
-  print_err
-  print_err "  -w"
-  print_err "    C опцией -w (without email) "$SCRIPT_NAME" не будет запрашивать у пользователя адрес электронной почты."
-  print_err
 }
 
 
 en_usage(){
-  print_err "$SCRIPT_NAME generates Let's Encrypt SSL for the specified domains of Keitaro TDS"
+  print_err "$SCRIPT_NAME allows to run additional site together with Keitaro TDS"
   print_err
   print_err "Usage: "$SCRIPT_NAME" [-ps] [-l en|ru] domain1.tld [domain2.tld] ..."
   print_err
@@ -735,12 +753,6 @@ en_usage(){
   print_err "    By default "$SCRIPT_NAME" tries to detect language from LANG/LC_MESSAGES/LC_ALL environment variables, but language can be explicitly set  with -l option."
   print_err "    Only en and ru (for English and Russian) values are supported now."
   print_err
-  print_err "  -e <email>"
-  print_err "    Email used for registration while getting Free SSL Let's Encrypt certificates."
-  print_err
-  print_err "  -w"
-  print_err "    The -w (without email) option causes "$SCRIPT_NAME" to skip email request."
-  print_err
 }
 
 
@@ -749,8 +761,6 @@ stage2(){
   debug "Starting stage 2: make some asserts"
   assert_caller_root
   assert_installed 'nginx' 'errors.reinstall_keitaro'
-  assert_installed 'crontab' 'errors.reinstall_keitaro'
-  assert_installed 'certbot' 'errors.reinstall_keitaro_ssl'
   assert_nginx_configured
 }
 
@@ -758,7 +768,7 @@ stage2(){
 
 assert_nginx_configured(){
   if ! is_nginx_properly_configured; then
-    fail "$(translate 'errors.reinstall_keitaro_ssl')" "see_logs"
+    fail "$(translate 'errors.reinstall_keitaro')" "see_logs"
   fi
 }
 
@@ -768,30 +778,34 @@ is_nginx_properly_configured(){
     log_and_print_err "ERROR: File ${NGINX_KEITARO_CONF} doesn't exists"
     return 1
   fi
-  if ! is_exists_file "${NGINX_SSL_CERT_PATH}"; then
-    log_and_print_err "ERROR: File ${NGINX_SSL_CERT_PATH} doesn't exists"
+  if ! is_exists_directory "${WEBROOT_PATH}"; then
+    log_and_print_err "ERROR: Directory ${WEBROOT_PATH} doesn't exists"
     return 1
   fi
-  if ! is_exists_file "${NGINX_SSL_PRIVKEY_PATH}"; then
-    log_and_print_err "ERROR: File ${NGINX_SSL_PRIVKEY_PATH} doesn't exists"
-    return 1
-  fi
-  is_ssl_configured
+  is_keitaro_configured
 }
 
 
-is_ssl_configured(){
-  debug "Checking ssl params in ${NGINX_KEITARO_CONF}"
+is_keitaro_configured(){
+  debug "Checking keitaro params in ${NGINX_KEITARO_CONF}"
   if isset "$SKIP_CHECKS"; then
-    debug "SKIP: аctual check of ssl params in ${NGINX_KEITARO_CONF} disabled"
+    debug "SKIP: аctual check of keitaro params in ${NGINX_KEITARO_CONF} disabled"
+    FASTCGI_PASS_LINE="fastcgi_pass unix:/var/run/php70-fpm.sock;"
     return 0
   fi
-  if grep -q -e "ssl_certificate #{NGINX_SSL_CERT_PATH};" -e "ssl_certificate_key ${NGINX_SSL_PRIVKEY_PATH};" "${NGINX_KEITARO_CONF}"; then
-    debug "OK: it seems like ${NGINX_KEITARO_CONF} is properly configured"
-    return 0
+  if grep -q -e "root ${WEBROOT_PATH};" "${NGINX_KEITARO_CONF}"; then
+    FASTCGI_PASS_LINE="$(cat "$NGINX_KEITARO_CONF" | grep fastcgi_pass | sed 's/^ +//')"
+    if empty "${FASTCGI_PASS_LINE}"; then
+      log_and_print_err "ERROR: ${NGINX_KEITARO_CONF} is not properly configured (can't find 'fastcgi_pass ...;' directive)"
+      log_and_print_err "$(print_content_of ${NGINX_KEITARO_CONF})"
+      return 1
+    else
+      debug "OK: it seems like ${NGINX_KEITARO_CONF} is properly configured"
+      return 0
+    fi
   else
-    log_and_print_err "ERROR: ${NGINX_KEITARO_CONF} is not properly configured"
-    log_and_print_err $(print_content_of "$NGINX_KEITARO_CONF")
+    log_and_print_err "ERROR: ${NGINX_KEITARO_CONF} is not properly configured (can't find 'root ${WEBROOT_PATH};' directive"
+    log_and_print_err $(print_content_of ${NGINX_KEITARO_CONF})
     return 1
   fi
 }
@@ -808,97 +822,74 @@ stage3(){
 get_user_vars(){
   debug 'Read vars from user input'
   hack_stdin_if_pipe_mode
-  get_user_le_sa_agreement
-  if is_yes ${VARS['ssl_agree_tos']}; then
-    get_user_email
-  else
-    fail "$(translate 'prompts.ssl_agree_tos.help')"
-  fi
-}
-
-
-get_user_le_sa_agreement(){
-  if isset "$SKIP_SSL_AGREE_TOS"; then
-    VARS['ssl_agree_tos']='yes'
-    debug "Do not request SSL user agreement because appropriate option specified"
-  else
-    VARS['ssl_agree_tos']=$(translate 'no')
-    get_user_var 'ssl_agree_tos' 'validate_yes_no'
-  fi
-}
-
-
-get_user_email(){
-  if isset "$SKIP_SSL_EMAIL"; then
-    debug "Do not request SSL email because appropriate option specified"
-  else
-    if isset "$EMAIL"; then
-      debug "Do not request SSL email because email specified by option"
-      VARS['ssl_email']="${EMAIL}"
-    else
-      get_user_var 'ssl_email'
-    fi
-  fi
+  get_user_var 'site_domains' 'validate_presence validate_domains_list'
+  VARS['site_root']="/var/www/$(first_domain)"
+  get_user_var 'site_root' 'validate_presence'
 }
 
 
 
 stage4(){
-  debug "Starting stage 4: install LE certificates"
-  run_certbot
-  make_cert_links
-  add_renewal_job
+  debug "Starting stage 4: add vhost"
+  ensure_can_add_vhost
+  add_vhost
   reload_nginx
   show_successful_message
 }
 
 
 
-add_renewal_job(){
-  debug "Add renewal certificates cron job"
-  local renew_cmd="certbot renew --allow-subset-of-names --quiet"
-  local cron_task_installed=false
-  local check_renewal_job_cmd="crontab -l -u nginx | grep '${renew_cmd}'"
-  if run_command "${check_renewal_job_cmd}" "$(translate 'messages.check_renewal_job')" "hide_output" "allow_errors"; then
-    debug "Renewal cron job already exists"
-    print_translated 'messages.renewal_job_already_scheduled'
-  else
-    debug "Renewal cron job does not exist. Adding renewal cron job"
-    local hour="$(date +'%H')"
-    local minute="$(date +'%M')"
-    local renew_job="${minute} ${hour} * * * ${renew_cmd}"
-    local schedule_renewal_job_cmd="(crontab -l -u nginx; echo \"${renew_job}\") | crontab -u nginx -"
-    run_command "${schedule_renewal_job_cmd}" "$(translate 'messages.schedule_renewal_job')" "hide_output"
+add_vhost(){
+  debug "Add vhost"
+  run_command "echo '$(vhost_content)' > '$(vhost_filepath)'" "$(translate 'messages.add_vhost')" "hide_output"
+  debug $(print_content_of "$(vhost_filepath)")
+}
+
+function vhost_content() {
+	cat <<-END
+      server {
+        listen 80;
+        server_name ${VARS['site_domains']};
+        root ${VARS['site_root']};
+        index index.php;
+        access_log /var/log/nginx/$(first_domain).access.log main;
+        error_log /var/log/nginx/$(first_domain).error.log warn;
+        location ~* \.(jpg|jpeg|gif|png|js|css|txt|zip|ico|gz|csv)\$ {
+          expires 10d;
+        }
+        location ~* \.(htaccess|ini|dat)\$ {
+          return 403;
+        }
+        location ~ \.php\$ {
+          fastcgi_split_path_info ^(.+\.php)(/.+)\$;
+          ${FASTCGI_PASS_LINE}
+          fastcgi_index index.php;
+          fastcgi_buffers 16 16k;
+          fastcgi_buffer_size 32k;
+          fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+          include fastcgi_params;
+        }
+        location / {
+          try_files \$uri \$uri/ /index.php?\$args;
+        }
+      }
+	END
+}
+
+
+
+ensure_can_add_vhost(){
+  debug "Ensure can add vhost"
+  if is_exists_path "$(vhost_filepath)" "no"; then
+    local message="$(translate 'errors.vhost_already_exists')"
+    fail "${message/:vhost_filepath:/$(vhost_filepath)}"
+  fi
+  if ! is_exists_directory "${VARS['site_root']}"; then
+    local message="$(translate 'errors.site_root_not_exists')"
+    fail "${message/:site_root:/${VARS['site_root']}}"
   fi
 }
 
-
-
-make_cert_links(){
-  debug "Make certificate links"
-  local le_cert_path="/etc/letsencrypt/live/${DOMAINS[0]}/fullchain.pem"
-  local le_privkey_path="/etc/letsencrypt/live/${DOMAINS[0]}/privkey.pem"
-  local command="rm -f ${NGINX_SSL_CERT_PATH} && rm -f ${NGINX_SSL_PRIVKEY_PATH}"
-  command="${command} && ln -s ${le_cert_path} ${NGINX_SSL_CERT_PATH}"
-  command="${command} && ln -s ${le_privkey_path} ${NGINX_SSL_PRIVKEY_PATH}"
-  run_command "${command}" "$(translate 'messages.make_ssl_cert_links')" 'hide_output' '' 'nginx'
-}
-
-
-
-run_certbot(){
-  debug "Run certbot"
-  certbot_command="certbot certonly --webroot --webroot-path=${WEBROOT_PATH} --agree-tos --non-interactive --expand"
-  for domain in "${DOMAINS[@]}"; do
-    certbot_command="${certbot_command} --domain ${domain}"
-  done
-  if isset "${VARS['ssl_email']}"; then
-    certbot_command="${certbot_command} --email ${VARS['ssl_email']}"
-  else
-    certbot_command="${certbot_command} --register-unsafely-without-email"
-  fi
-  run_command "${certbot_command}" '' '' '' 'nginx'
-}
 
 
 
@@ -917,7 +908,7 @@ show_successful_message(){
 
 
 
-enable_ssl(){
+add_site(){
   init "$@"
   stage1 "$@"
   stage2
@@ -926,7 +917,7 @@ enable_ssl(){
 }
 
 
-enable_ssl "$@"
+add_site "$@"
 
 # wait for all async child processes (because "await ... then" is used in powscript)
 [[ $ASYNC == 1 ]] && wait

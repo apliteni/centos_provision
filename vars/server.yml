@@ -72,6 +72,7 @@ firewall_allowed_tcp_ports:
   - 80
   - 3333 # friendhosting ssh
   - 1500 # isp manager
+firewall_disable_firewalld: true #  disable firewalld (installed by default on CentOS) respectively.
 
 letsencrypt_webroot_path: "{{ keitaro.path }}"
 letsencrypt_cert_domains: "{{ ssl_domains.split(',') }}"
