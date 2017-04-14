@@ -565,12 +565,24 @@ really_run_command(){
   if ! eval "${evaluated_command}"; then
     print_command_status "${command}" 'NOK' 'red' "${hide_output}"
     if isset "$allow_errors"; then
+      remove_current_command_logs
+      remove_current_command_script
       return 1 # false
     else
-      fail "$(translate 'errors.run_command.fail') \`$command\`" "see_logs"
+      local fail_message="$(translate 'errors.run_command.fail')"
+      remove_colors_from_file "${CURRENT_COMMAND_OUTPUT_LOG}"
+      remove_colors_from_file "${CURRENT_COMMAND_ERROR_LOG}"
+      fail_message="${fail_message}\n$(print_content_of ${CURRENT_COMMAND_SCRIPT})"
+      fail_message="${fail_message}\n$(print_content_of ${CURRENT_COMMAND_OUTPUT_LOG})"
+      fail_message="${fail_message}\n$(print_content_of ${CURRENT_COMMAND_ERROR_LOG})"
+      remove_current_command_logs
+      remove_current_command_script
+      fail "${fail_message}" "see_logs"
     fi
   else
     print_command_status "$command" 'OK' 'green' "$hide_output"
+    remove_current_command_logs
+    remove_current_command_script
   fi
 }
 
@@ -601,6 +613,12 @@ save_command_logs(){
   echo "((${evaluated_command}) 2> >(${save_error_log}) > >(${save_output_log}))"
 }
 
+remove_colors_from_file(){
+  local file="${1}"
+  debug "Removing colors from file ${file}"
+  sed -r -e 's/\x1b\[([0-9]{1,3}(;[0-9]{1,3}){,2})?[mGK]//g' -i "$file"
+}
+
 
 hide_command_output(){
   local command="${1}"
@@ -619,8 +637,17 @@ save_command_script(){
   echo 'set -o pipefail' >> "${CURRENT_COMMAND_SCRIPT}"
   echo -e "${command}" >> "${CURRENT_COMMAND_SCRIPT}"
   chmod a+x "${CURRENT_COMMAND_SCRIPT}"
-  debug "Saved script ${CURRENT_COMMAND_SCRIPT}"
   debug "$(print_content_of ${CURRENT_COMMAND_SCRIPT})"
+}
+
+
+remove_current_command_logs(){
+  rm ${CURRENT_COMMAND_OUTPUT_LOG} ${CURRENT_COMMAND_ERROR_LOG}
+}
+
+
+remove_current_command_script(){
+  rm ${CURRENT_COMMAND_SCRIPT}
 }
 
 
