@@ -8,7 +8,6 @@
     mode: 0777
 
 - name: Download installer
-  tags: keitaro
   get_url:
     url: "http://keitarotds.com/getfile/install"
     dest: "{{ keitaro.path }}/install.php"
@@ -34,7 +33,6 @@
   failed_when: "'Installation Finished' not in command_result.stdout and 'Установка завершена' not in command_result.stdout"
 
 - name: Add cron task
-  tags: keitaro
   cron:
     user: "{{os_user}}"
     name: "keitaro"

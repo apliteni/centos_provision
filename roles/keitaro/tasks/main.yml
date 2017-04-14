@@ -6,5 +6,5 @@
 
 - name: Install keitaro
   include: install.yml
-  when: not lockfile.stats.exists
+  when: not lockfile.stat.exists
 
