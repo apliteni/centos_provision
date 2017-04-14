@@ -1,41 +1,10 @@
 ---
-- name: Prepare keitaro dir
-  file:
-    path={{ keitaro.path }}
-    state=directory
-    owner={{ os_user }}
-    group={{ os_user }}
-    mode=0777
+- name: Get lockfile status
+  stat:
+    path: "{{ keitaro.path }}/install.lock"
+  register: lockfile
 
-- name: Download installer
-  tags: keitaro
-  get_url:
-    url=http://keitarotds.com/getfile/install
-    dest={{ keitaro.path }}/install.php
+- name: Install keitaro
+  include: install.yml
+  when: not lockfile.stat.exists
 
-- name: Install Keitaro TDS
-  tags: keitaro
-  command: |
-      /usr/bin/php install.php install --ip={{ license_ip }} \
-                                       --key={{ license_key }} \
-                                       --db-user={{ db_user }} \
-                                       --db-name={{ db_name }} \
-                                       --db-password='{{ db_password }}' \
-                                       --admin-login={{ admin_login }} \
-                                       --admin-password='{{ admin_password }}' \
-                                       --draft-storage=redis \
-                                       --cache-storage=redis \
-                                       {% if language is defined %}--language={{ language }}{% endif %} \
-                                       {% if kversion is defined %}--kversion={{ kversion }}{% endif %}
-  args:
-    chdir: "{{ keitaro.path }}"
-  become_user: "{{ os_user }}"
-  register: command_result
-  failed_when: "'Installation Finished' not in command_result.stdout and 'Установка завершена' not in command_result.stdout"
-
-- name: Add cron task
-  tags: keitaro
-  cron:
-    user="{{os_user}}"
-    name="keitaro"
-    job="php {{ keitaro.path }}/cron.php"
