@@ -56,6 +56,10 @@ PROGRAM_NAME='install'
 
 SHELL_NAME=$(basename "$0")
 
+SUCCESS_RESULT=0
+FAILURE_RESULT=1
+ROOT_UID=0
+
 KEITARO_URL="https://keitarotds.com"
 
 WEBROOT_PATH="/var/www/keitaro"
@@ -128,7 +132,7 @@ assert_caller_root(){
   if isset "$SKIP_CHECKS"; then
     debug "SKIP: actual checking of current user"
   else
-    if [[ "$EUID" = 0 ]]; then
+    if [[ "$EUID" = "$ROOT_UID" ]]; then
       debug 'OK: current user is root'
     else
       debug 'NOK: current user is not root'
@@ -298,7 +302,7 @@ is_installed(){
       debug "FOUND: "$command" found"
     else
       debug "NOT FOUND: "$command" not found"
-      return 1
+      return ${FAILURE_RESULT}
     fi
   fi
 }
@@ -326,7 +330,7 @@ fail(){
   fi
   print_err
   clean_up
-  exit 1
+  exit ${FAILURE_RESULT}
 }
 
 
@@ -503,7 +507,7 @@ really_run_command(){
     if isset "$allow_errors"; then
       remove_current_command_logs
       remove_current_command_script
-      return 1 # false
+      return ${FAILURE_RESULT} # false
     else
       local fail_message="$(translate 'errors.run_command.fail')"
       remove_colors_from_file "${CURRENT_COMMAND_OUTPUT_LOG}"
@@ -773,7 +777,7 @@ parse_options(){
             ;;
           *)
             print_err "Specified language \"$OPTARG\" is not supported"
-            exit 1
+            exit ${FAILURE_RESULT}
             ;;
         esac
         ;;
@@ -786,21 +790,21 @@ parse_options(){
       k)
         if [[ "$OPTARG" -ne 6 && "$OPTARG" -ne 7 && "$OPTARG" -ne 8 ]]; then
           print_err "Specified Keitaro TDS Release \"$OPTARG\" is not supported"
-          exit 1
+          exit ${FAILURE_RESULT}
         fi
         KEITARO_RELEASE=$OPTARG
         ;;
       :)
         print_err "Option -$OPTARG requires an argument."
-        exit 1
+        exit ${FAILURE_RESULT}
         ;;
       h)
         usage
-        exit 0
+        exit ${SUCCESS_RESULT}
         ;;
       \?)
         usage
-        exit 1
+        exit ${FAILURE_RESULT}
         ;;
     esac
   done
