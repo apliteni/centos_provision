@@ -1,17 +1,17 @@
 ---
 - name: Prepare keitaro dir
   file:
-    path={{ keitaro.path }}
-    state=directory
-    owner={{ os_user }}
-    group={{ os_user }}
-    mode=0777
+    path: "{{ keitaro.path }}"
+    state: directory
+    owner: "{{ os_user }}"
+    group: "{{ os_user }}"
+    mode: 0777
 
 - name: Download installer
   tags: keitaro
   get_url:
-    url=http://keitarotds.com/getfile/install
-    dest={{ keitaro.path }}/install.php
+    url: "http://keitarotds.com/getfile/install"
+    dest: "{{ keitaro.path }}/install.php"
 
 - name: Install Keitaro TDS
   tags: keitaro
@@ -36,6 +36,6 @@
 - name: Add cron task
   tags: keitaro
   cron:
-    user="{{os_user}}"
-    name="keitaro"
-    job="php {{ keitaro.path }}/cron.php"
+    user: "{{os_user}}"
+    name: "keitaro"
+    job: "php {{ keitaro.path }}/cron.php"
