@@ -6,7 +6,7 @@ assert_caller_root()
   if isset $SKIP_CHECKS
     debug "SKIP: actual checking of current user"
   else
-    if $EUID = $ROOT_UID
+    if $EUID == $ROOT_UID
       debug 'OK: current user is root'
     else
       debug 'NOK: current user is not root'
