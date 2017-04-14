@@ -167,7 +167,7 @@ assert_caller_root(){
   if isset "$SKIP_CHECKS"; then
     debug "SKIP: actual checking of current user"
   else
-    if [[ "$EUID" = "$ROOT_UID" ]]; then
+    if [[ "$EUID" == "$ROOT_UID" ]]; then
       debug 'OK: current user is root'
     else
       debug 'NOK: current user is not root'
@@ -776,7 +776,7 @@ parse_options(){
 
 usage(){
   set_ui_lang
-  if [[ "$UI_LANG" = 'ru' ]]; then
+  if [[ "$UI_LANG" == 'ru' ]]; then
     ru_usage
   else
     en_usage
