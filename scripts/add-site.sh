@@ -46,6 +46,10 @@ PROGRAM_NAME='add-site'
 
 SHELL_NAME=$(basename "$0")
 
+SUCCESS_RESULT=0
+FAILURE_RESULT=1
+ROOT_UID=0
+
 KEITARO_URL="https://keitarotds.com"
 
 WEBROOT_PATH="/var/www/keitaro"
@@ -138,7 +142,7 @@ assert_caller_root(){
   if isset "$SKIP_CHECKS"; then
     debug "SKIP: actual checking of current user"
   else
-    if [[ "$EUID" = 0 ]]; then
+    if [[ "$EUID" = "$ROOT_UID" ]]; then
       debug 'OK: current user is root'
     else
       debug 'NOK: current user is not root'
@@ -169,17 +173,17 @@ is_exists_directory(){
     debug "SKIP: аctual check of ${directory} directory existence disabled"
     if [[ "$result_on_skip" == "no" ]]; then
       debug "NO: simulate ${directory} directory does not exist"
-      return 1
+      return ${FAILURE_RESULT}
     fi
     debug "YES: simulate ${directory} directory exists"
-    return 0
+    return ${SUCCESS_RESULT}
   fi
   if [ -d "${directory}" ]; then
     debug "YES: ${directory} directory exists"
-    return 0
+    return ${SUCCESS_RESULT}
   else
     debug "NO: ${directory} directory does not exist"
-    return 1
+    return ${FAILURE_RESULT}
   fi
 }
 
@@ -193,17 +197,17 @@ is_exists_path(){
     debug "SKIP: аctual check of ${path} path existence disabled"
     if [[ "$result_on_skip" == "no" ]]; then
       debug "NO: simulate ${path} path does not exist"
-      return 1
+      return ${FAILURE_RESULT}
     fi
     debug "YES: simulate ${path} path exists"
-    return 0
+    return ${SUCCESS_RESULT}
   fi
   if [ -e "${path}" ]; then
     debug "YES: ${path} path exists"
-    return 0
+    return ${SUCCESS_RESULT}
   else
     debug "NO: ${path} path does not exist"
-    return 1
+    return ${FAILURE_RESULT}
   fi
 }
 
@@ -217,17 +221,17 @@ is_exists_file(){
     debug "SKIP: аctual check of ${file} file existence disabled"
     if [[ "$result_on_skip" == "no" ]]; then
       debug "NO: simulate ${file} file does not exist"
-      return 1
+      return ${FAILURE_RESULT}
     fi
     debug "YES: simulate ${file} file exists"
-    return 0
+    return ${SUCCESS_RESULT}
   fi
   if [ -f "${file}" ]; then
     debug "YES: ${file} file exists"
-    return 0
+    return ${SUCCESS_RESULT}
   else
     debug "NO: ${file} file does not exist"
-    return 1
+    return ${FAILURE_RESULT}
   fi
 }
 
@@ -285,7 +289,7 @@ is_installed(){
       debug "FOUND: "$command" found"
     else
       debug "NOT FOUND: "$command" not found"
-      return 1
+      return ${FAILURE_RESULT}
     fi
   fi
 }
@@ -406,7 +410,7 @@ fail(){
   fi
   print_err
   clean_up
-  exit 1
+  exit ${FAILURE_RESULT}
 }
 
 
@@ -590,7 +594,7 @@ really_run_command(){
     if isset "$allow_errors"; then
       remove_current_command_logs
       remove_current_command_script
-      return 1 # false
+      return ${FAILURE_RESULT} # false
     else
       local fail_message="$(translate 'errors.run_command.fail')"
       remove_colors_from_file "${CURRENT_COMMAND_OUTPUT_LOG}"
@@ -773,21 +777,21 @@ parse_options(){
             ;;
           *)
             print_err "Specified language \"$OPTARG\" is not supported"
-            exit 1
+            exit ${FAILURE_RESULT}
             ;;
         esac
         ;;
       :)
         print_err "Option -$OPTARG requires an argument."
-        exit 1
+        exit ${FAILURE_RESULT}
         ;;
       h)
         usage
-        exit 0
+        exit ${SUCCESS_RESULT}
         ;;
       \?)
         usage
-        exit 1
+        exit ${FAILURE_RESULT}
         ;;
     esac
   done
@@ -860,11 +864,11 @@ assert_nginx_configured(){
 is_nginx_properly_configured(){
   if ! is_exists_file "${NGINX_KEITARO_CONF}"; then
     log_and_print_err "ERROR: File ${NGINX_KEITARO_CONF} doesn't exists"
-    return 1
+    return ${FAILURE_RESULT}
   fi
   if ! is_exists_directory "${WEBROOT_PATH}"; then
     log_and_print_err "ERROR: Directory ${WEBROOT_PATH} doesn't exists"
-    return 1
+    return ${FAILURE_RESULT}
   fi
   is_keitaro_configured
 }
@@ -875,22 +879,22 @@ is_keitaro_configured(){
   if isset "$SKIP_CHECKS"; then
     debug "SKIP: аctual check of keitaro params in ${NGINX_KEITARO_CONF} disabled"
     FASTCGI_PASS_LINE="fastcgi_pass unix:/var/run/php70-fpm.sock;"
-    return 0
+    return ${SUCCESS_RESULT}
   fi
   if grep -q -e "root ${WEBROOT_PATH};" "${NGINX_KEITARO_CONF}"; then
     FASTCGI_PASS_LINE="$(cat "$NGINX_KEITARO_CONF" | grep fastcgi_pass | sed 's/^ +//')"
     if empty "${FASTCGI_PASS_LINE}"; then
       log_and_print_err "ERROR: ${NGINX_KEITARO_CONF} is not properly configured (can't find 'fastcgi_pass ...;' directive)"
       log_and_print_err "$(print_content_of ${NGINX_KEITARO_CONF})"
-      return 1
+      return ${FAILURE_RESULT}
     else
       debug "OK: it seems like ${NGINX_KEITARO_CONF} is properly configured"
-      return 0
+      return ${SUCCESS_RESULT}
     fi
   else
     log_and_print_err "ERROR: ${NGINX_KEITARO_CONF} is not properly configured (can't find 'root ${WEBROOT_PATH};' directive"
     log_and_print_err $(print_content_of ${NGINX_KEITARO_CONF})
-    return 1
+    return ${FAILURE_RESULT}
   fi
 }
 

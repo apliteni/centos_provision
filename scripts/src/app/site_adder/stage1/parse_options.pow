@@ -16,16 +16,16 @@ parse_options()
             UI_LANG=ru
           case *
             print_err "Specified language \"$OPTARG\" is not supported"
-            exit 1
+            exit ${FAILURE_RESULT}
       case :
         print_err "Option -$OPTARG requires an argument."
-        exit 1
+        exit ${FAILURE_RESULT}
       case h
         usage
-        exit 0
+        exit ${SUCCESS_RESULT}
       case \?
         usage
-        exit 1
+        exit ${FAILURE_RESULT}
 
 
 usage()

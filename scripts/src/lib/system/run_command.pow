@@ -38,7 +38,7 @@ really_run_command(command, hide_output, allow_errors, run_as)
     if isset $allow_errors
       remove_current_command_logs
       remove_current_command_script
-      return 1 # false
+      return ${FAILURE_RESULT} # false
     else
       local fail_message="$(translate 'errors.run_command.fail')"
       remove_colors_from_file "${CURRENT_COMMAND_OUTPUT_LOG}"

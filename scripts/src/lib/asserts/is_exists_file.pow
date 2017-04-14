@@ -7,12 +7,12 @@ is_exists_file(file, result_on_skip)
     debug "SKIP: аctual check of ${file} file existence disabled"
     if $result_on_skip == "no"
       debug "NO: simulate ${file} file does not exist"
-      return 1
+      return ${FAILURE_RESULT}
     debug "YES: simulate ${file} file exists"
-    return 0
+    return ${SUCCESS_RESULT}
   if [ -f "${file}" ]
     debug "YES: ${file} file exists"
-    return 0
+    return ${SUCCESS_RESULT}
   else
     debug "NO: ${file} file does not exist"
-    return 1
+    return ${FAILURE_RESULT}
