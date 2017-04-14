@@ -164,7 +164,7 @@ RSpec.describe 'enable-ssl.sh' do
       let(:command_stubs) { all_command_stubs.merge(certbot: '/bin/false') }
 
       it_behaves_like 'should exit with error', [
-        'There was an error evaluating command `certbot',
+        /There was an error evaluating command\n(.*\n){3}  certbot certonly/,
         'Evaluating log saved to enable-ssl.log',
         'Please rerun `enable-ssl.sh domain1.tld`'
       ]
