@@ -1,7 +1,7 @@
 ---
 - name: Get lockfile status
   stat:
-    path: "{{ keitaro.path }}/install.lock"
+    path: "{{ keitaro.path }}/var/install.lock"
   register: lockfile
 
 - name: Install keitaro
