@@ -28,5 +28,6 @@
     - {role: 'ioncube', tags: 'ioncube', when: php_version >= 'php70'}
     - {role: 'monit'}
     - {role: 'geerlingguy.firewall', tags: 'firewall'}
-    - {role: 'keitaro', tags: 'keitaro'}
+    - {role: 'prepare_keitaro_home', tags: ['keitaro', 'ssl']}
     - {role: 'letsencrypt', tags: 'ssl'}
+    - {role: 'keitaro', tags: 'keitaro'}
