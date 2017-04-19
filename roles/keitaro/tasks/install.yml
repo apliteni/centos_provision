@@ -1,12 +1,4 @@
 ---
-- name: Prepare keitaro dir
-  file:
-    path: "{{ keitaro.path }}"
-    state: directory
-    owner: "{{ os_user }}"
-    group: "{{ os_user }}"
-    mode: 0777
-
 - name: Download installer
   get_url:
     url: "http://keitarotds.com/getfile/install"
