@@ -6,7 +6,8 @@ site_adder: compile_site_adder test_site_adder
 
 ssl_enabler: compile_ssl_enabler test_ssl_enabler
 
-test: test_site_adder test_ssl_enabler test_installer
+test: 
+	rspec spec
 
 test_site_adder:
 	rspec spec/scripts/site_adder_spec.rb
