@@ -33,6 +33,11 @@ isset ()
     [[ ! "${#1}" == 0 ]] && return 0 || return 1
 }
 
+filter () 
+{ 
+    map $1 | pipemap $2
+}
+
 values () 
 { 
     echo "$2"
@@ -385,6 +390,7 @@ read_stdin(){
 
 clean_up(){
   debug 'called clean_up()'
+  remove_current_command
 }
 
 
@@ -538,12 +544,22 @@ reload_nginx(){
 
 
 
+remove_current_command(){
+  debug "Removing current_command script and logs"
+  rm ${CURRENT_COMMAND_OUTPUT_LOG} ${CURRENT_COMMAND_ERROR_LOG}
+  rm ${CURRENT_COMMAND_SCRIPT}
+}
+
+
+
 run_command(){
   local command="${1}"
   local message="${2}"
   local hide_output="${3}"
   local allow_errors="${4}"
   local run_as="${5}"
+  local filter_output_log_on_fail="${6}"
+  local filter_error_log_on_fail="${7}"
   debug "Evaluating command: ${command}"
   if empty "$message"; then
     run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
@@ -560,7 +576,7 @@ run_command(){
     print_command_status "$command" 'SKIPPED' 'yellow' "$hide_output"
     debug "Actual running disabled"
   else
-    really_run_command "${command}" "${hide_output}" "${allow_errors}" "${run_as}"
+    really_run_command "${command}" "${hide_output}" "${allow_errors}" "${run_as}" "${filter_output_log_on_fail}" "${filter_error_log_on_fail}"
   fi
 }
 
@@ -582,6 +598,8 @@ really_run_command(){
   local hide_output="${2}"
   local allow_errors="${3}"
   local run_as="${4}"
+  local filter_output_log_on_fail="${5}"
+  local filter_error_log_on_fail="${6}"
   save_command_script "${command}"
   local evaluated_command="./${CURRENT_COMMAND_SCRIPT}"
   evaluated_command=$(command_run_as "${evaluated_command}" "${run_as}")
@@ -592,24 +610,19 @@ really_run_command(){
   if ! eval "${evaluated_command}"; then
     print_command_status "${command}" 'NOK' 'red' "${hide_output}"
     if isset "$allow_errors"; then
-      remove_current_command_logs
-      remove_current_command_script
+      remove_current_command
       return ${FAILURE_RESULT} # false
     else
       local fail_message="$(translate 'errors.run_command.fail')"
-      remove_colors_from_file "${CURRENT_COMMAND_OUTPUT_LOG}"
-      remove_colors_from_file "${CURRENT_COMMAND_ERROR_LOG}"
       fail_message="${fail_message}\n$(print_content_of ${CURRENT_COMMAND_SCRIPT})"
-      fail_message="${fail_message}\n$(print_content_of ${CURRENT_COMMAND_OUTPUT_LOG})"
-      fail_message="${fail_message}\n$(print_content_of ${CURRENT_COMMAND_ERROR_LOG})"
-      remove_current_command_logs
-      remove_current_command_script
+      fail_message="${fail_message}\n$(print_filtered_content_of ${CURRENT_COMMAND_OUTPUT_LOG} ${filter_output_log_on_fail})"
+      fail_message="${fail_message}\n$(print_filtered_content_of ${CURRENT_COMMAND_ERROR_LOG} ${filter_error_log_on_fail})"
+      remove_current_command
       fail "${fail_message}" "see_logs"
     fi
   else
     print_command_status "$command" 'OK' 'green' "$hide_output"
-    remove_current_command_logs
-    remove_current_command_script
+    remove_current_command
   fi
 }
 
@@ -668,13 +681,24 @@ save_command_script(){
 }
 
 
-remove_current_command_logs(){
-  rm ${CURRENT_COMMAND_OUTPUT_LOG} ${CURRENT_COMMAND_ERROR_LOG}
+print_filtered_content_of(){
+  local file="${1}"
+  local filter="${2}"
+  remove_colors_from_file "${file}"
+  if [[ "${filter}" == "" ]]; then
+    filter="keep_tail"
+  fi
+  eval "${filter} ${file}"
+  print_content_of "${file}"
 }
 
 
-remove_current_command_script(){
-  rm ${CURRENT_COMMAND_SCRIPT}
+keep_tail(){
+  local file="${1}"
+  MAX_LINES_COUNT=20
+  if [[ $(cat "${file}" | wc -l) -gt "$MAX_LINES_COUNT" ]]; then
+    sed -i 's/.*$//g' ${file}
+  fi
 }
 
 

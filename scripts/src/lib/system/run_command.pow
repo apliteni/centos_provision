@@ -36,21 +36,18 @@ really_run_command(command, hide_output, allow_errors, run_as, filter_output_log
   if ! eval "${evaluated_command}"
     print_command_status "${command}" 'NOK' 'red' "${hide_output}"
     if isset $allow_errors
-      remove_current_command_logs
-      remove_current_command_script
+      remove_current_command
       return ${FAILURE_RESULT} # false
     else
       local fail_message="$(translate 'errors.run_command.fail')"
       fail_message="${fail_message}\n$(print_content_of ${CURRENT_COMMAND_SCRIPT})"
       fail_message="${fail_message}\n$(print_filtered_content_of ${CURRENT_COMMAND_OUTPUT_LOG} ${filter_output_log_on_fail})"
       fail_message="${fail_message}\n$(print_filtered_content_of ${CURRENT_COMMAND_ERROR_LOG} ${filter_error_log_on_fail})"
-      remove_current_command_logs
-      remove_current_command_script
+      remove_current_command
       fail "${fail_message}" "see_logs"
   else
     print_command_status $command 'OK' 'green' $hide_output
-    remove_current_command_logs
-    remove_current_command_script
+    remove_current_command
 
 
 command_run_as(command, run_as)
@@ -88,14 +85,6 @@ save_command_script(command)
   echo -e "${command}" >> "${CURRENT_COMMAND_SCRIPT}"
   chmod a+x "${CURRENT_COMMAND_SCRIPT}"
   debug "$(print_content_of ${CURRENT_COMMAND_SCRIPT})"
-
-
-remove_current_command_logs()
-  rm ${CURRENT_COMMAND_OUTPUT_LOG} ${CURRENT_COMMAND_ERROR_LOG}
-
-
-remove_current_command_script()
-  rm ${CURRENT_COMMAND_SCRIPT}
 
 
 print_filtered_content_of(file, filter)

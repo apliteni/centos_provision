@@ -3,3 +3,4 @@
 
 clean_up()
   debug 'called clean_up()'
+  remove_current_command
