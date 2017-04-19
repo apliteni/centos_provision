@@ -98,4 +98,6 @@ print_filtered_content_of(file, filter)
 keep_tail(file)
   MAX_LINES_COUNT=20
   if $(cat "${file}" | wc -l) > $MAX_LINES_COUNT
-    sed -i 's/.*$//g' ${file}
+    debug "${file} is too big, keep only ${MAX_LINES_COUNT} tail lines"
+    tail -n $MAX_LINES_COUNT $file > $file.tail
+    mv $file.tail $file

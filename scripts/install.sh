@@ -601,16 +601,18 @@ keep_tail(){
   local file="${1}"
   MAX_LINES_COUNT=20
   if [[ $(cat "${file}" | wc -l) -gt "$MAX_LINES_COUNT" ]]; then
-    sed -i 's/.*$//g' ${file}
+    debug "${file} is too big, keep only ${MAX_LINES_COUNT} tail lines"
+    tail -n "$MAX_LINES_COUNT" "$file" > "$file".tail
+    mv "$file".tail "$file"
   fi
 }
 
 
 
+
 remove_current_command(){
   debug "Removing current_command script and logs"
-  rm ${CURRENT_COMMAND_OUTPUT_LOG} ${CURRENT_COMMAND_ERROR_LOG}
-  rm ${CURRENT_COMMAND_SCRIPT}
+  rm -f ${CURRENT_COMMAND_OUTPUT_LOG} ${CURRENT_COMMAND_ERROR_LOG} ${CURRENT_COMMAND_SCRIPT}
 }
 
 
