@@ -101,11 +101,12 @@ remove_current_command_script()
 print_filtered_content_of(file, filter)
   remove_colors_from_file "${file}"
   if "${filter}" == ""
-    filter="keep_head_and_tail"
+    filter="keep_tail"
   eval "${filter} ${file}"
   print_content_of "${file}"
 
 
-keep_head_and_tail(file)
-  if $(wc -l)
-  sed -i 's/.*$//g' ${file}
+keep_tail(file)
+  MAX_LINES_COUNT=20
+  if $(cat "${file}" | wc -l) > $MAX_LINES_COUNT
+    sed -i 's/.*$//g' ${file}
