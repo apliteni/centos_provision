@@ -33,11 +33,6 @@ isset ()
     [[ ! "${#1}" == 0 ]] && return 0 || return 1
 }
 
-filter () 
-{ 
-    map $1 | pipemap $2
-}
-
 values () 
 { 
     echo "$2"
@@ -534,7 +529,7 @@ run_command(){
   local hide_output="${3}"
   local allow_errors="${4}"
   local run_as="${5}"
-  local current_command_logs_filter="${6}"
+  local build_fail_message="${6}"
   debug "Evaluating command: ${command}"
   if empty "$message"; then
     run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
@@ -551,7 +546,7 @@ run_command(){
     print_command_status "$command" 'SKIPPED' 'yellow' "$hide_output"
     debug "Actual running disabled"
   else
-    really_run_command "${command}" "${hide_output}" "${allow_errors}" "${run_as}" "${current_command_logs_filter}"
+    really_run_command "${command}" "${hide_output}" "${allow_errors}" "${run_as}" "${build_fail_message}"
   fi
 }
 
@@ -573,7 +568,7 @@ really_run_command(){
   local hide_output="${2}"
   local allow_errors="${3}"
   local run_as="${4}"
-  local current_command_logs_filter="${5}"
+  local build_fail_message="${5}"
   save_command_script "${command}"
   local evaluated_command="./${CURRENT_COMMAND_SCRIPT}"
   evaluated_command=$(command_run_as "${evaluated_command}" "${run_as}")
@@ -587,13 +582,7 @@ really_run_command(){
       remove_current_command
       return ${FAILURE_RESULT}
     else
-      filter_current_command_logs_on_fail ${current_command_logs_filter}
-      local fail_message="$(translate 'errors.run_command.fail')"
-      fail_message="${fail_message}\n$(print_content_of ${CURRENT_COMMAND_SCRIPT})"
-      fail_message="${fail_message}\n$(print_content_of ${CURRENT_COMMAND_OUTPUT_LOG})"
-      fail_message="${fail_message}\n$(print_content_of ${CURRENT_COMMAND_ERROR_LOG})"
-      remove_current_command
-      fail "${fail_message}" "see_logs"
+      current_command_fail "${build_fail_message}"
     fi
   else
     print_command_status "$command" 'OK' 'green' "$hide_output"
@@ -628,6 +617,7 @@ save_command_logs(){
   echo "((${evaluated_command}) 2> >(${save_error_log}) > >(${save_output_log}))"
 }
 
+
 remove_colors_from_file(){
   local file="${1}"
   debug "Removing colors from file ${file}"
@@ -655,17 +645,26 @@ save_command_script(){
   debug "$(print_content_of ${CURRENT_COMMAND_SCRIPT})"
 }
 
-
-filter_current_command_logs_on_fail(){
-  local filter="${1}"
+current_command_fail(){
+  local build_fail_message="${1}"
   remove_colors_from_file "${CURRENT_COMMAND_OUTPUT_LOG}"
   remove_colors_from_file "${CURRENT_COMMAND_ERROR_LOG}"
-  if [[ "${filter}" == "" ]]; then
-    keep_tail "${CURRENT_COMMAND_OUTPUT_LOG}"
-    keep_tail "${CURRENT_COMMAND_ERROR_LOG}"
-  else
-    eval "${filter} ${file}"
+  if empty "$build_fail_message"; then
+    build_fail_message="build_common_fail_message"
   fi
+  local fail_message="$(translate 'errors.run_command.fail')\n$(eval ${build_fail_message})"
+  remove_current_command
+  fail "${fail_message}" "see_logs"
+}
+
+
+build_common_fail_message(){
+  keep_tail "${CURRENT_COMMAND_OUTPUT_LOG}"
+  keep_tail "${CURRENT_COMMAND_ERROR_LOG}"
+  local fail_message="$(print_content_of ${CURRENT_COMMAND_SCRIPT})"
+  fail_message="${fail_message}\n$(print_content_of ${CURRENT_COMMAND_OUTPUT_LOG})"
+  fail_message="${fail_message}\n$(print_content_of ${CURRENT_COMMAND_ERROR_LOG})"
+  echo "$fail_message"
 }
 
 

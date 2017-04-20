@@ -8,10 +8,13 @@ RSpec.describe 'test-run-command.sh' do
   ERROR_EXIT_CODE = 1
 
   let(:script_name) { 'test-run-command.sh' }
-  let(:run_command_args) {}
+  let(:message) { }
+  let(:hide_output) { }
+  let(:allow_errors) { }
+  let(:run_as) { }
+  let(:fail_message_builder) { }
   let(:helper_scripts_path) { "#{File.dirname(File.expand_path(__FILE__, '../'))}/run_command_tester" }
-
-  let(:args) { "'#{helper_scripts_path}/#{helper_script}' #{run_command_args}" }
+  let(:args) { "'#{helper_scripts_path}/#{helper_script}' '#{message}' '#{hide_output}' '#{allow_errors}' '#{run_as}' '#{fail_message_builder}'" }
 
   describe 'test standard failing filter' do
     let(:print_sh_counter) { 30 }
@@ -34,10 +37,12 @@ RSpec.describe 'test-run-command.sh' do
       it_behaves_like 'prints lines to', :stdout
 
       context 'hide_output specified' do
-        let(:run_command_args) { "'Running command' hide_output" }
+        let(:message) { 'Running print command' }
+        let(:hide_output) { true }
 
         it_behaves_like 'prints lines to', :log
-        it_behaves_like 'should print to', :stdout, 'Running command . OK'
+        it_behaves_like 'should print to', :stdout, 'Running print command . OK'
+        it_behaves_like 'should not print to', :stdout, ['error 0', 'error 29', 'output 0', 'output 29']
       end
     end
 
@@ -57,6 +62,7 @@ RSpec.describe 'test-run-command.sh' do
   describe 'test ansible_failure' do
     let(:scenario_path) { "#{helper_scripts_path}/ansible/#{scenario}"}
     let(:helper_script) { "cat_files.sh #{scenario_path}/output #{scenario_path}/error #{ERROR_EXIT_CODE}"}
+    let(:fail_message_builder) { 'build_ansible_fail_message' }
 
     context 'install keitaro' do
       let(:scenario) { 'install_keitaro' }
