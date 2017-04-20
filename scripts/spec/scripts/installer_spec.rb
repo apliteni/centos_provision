@@ -207,7 +207,7 @@ RSpec.describe 'install.sh' do
 
       it_behaves_like 'should print to', :log, "Try to found yum\nFOUND"
       it_behaves_like 'should print to', :log, "Try to found ansible\nFOUND"
-      it_behaves_like 'should not print to stdout', 'Execute command: yum install -y ansible'
+      it_behaves_like 'should not print to', :stdout, 'Execute command: yum install -y ansible'
 
       it_behaves_like 'should install keitarotds'
     end

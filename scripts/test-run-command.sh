@@ -171,6 +171,13 @@ read_stdin(){
 
 
 
+clean_up(){
+  debug 'called clean_up()'
+  remove_current_command
+}
+
+
+
 debug(){
   local message="${1}"
   local color="${2}"

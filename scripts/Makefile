@@ -6,7 +6,7 @@ site_adder: compile_site_adder test_site_adder
 
 ssl_enabler: compile_ssl_enabler test_ssl_enabler
 
-run_command_tester: compile_run_command_tester
+run_command_tester: compile_run_command_tester test_run_command_tester
 
 test: 
 	rspec spec
