@@ -9,7 +9,7 @@ RSpec.describe 'test-run-command.sh' do
 
   let(:script_name) { 'test-run-command.sh' }
   let(:print_sh_counter) { 30 }
-  let(:run_command_args) { }
+  let(:run_command_args) {}
   let(:args) { "'#{ROOT_PATH}/bin/print.sh #{print_sh_counter} #{print_sh_exit_code}' #{run_command_args}" }
 
   shared_examples_for 'prints lines to' do |destination|
@@ -35,12 +35,15 @@ RSpec.describe 'test-run-command.sh' do
     end
   end
 
-  context 'failed command run'  do
+  context 'failed command run' do
     let(:print_sh_exit_code) { ERROR_EXIT_CODE }
 
     it_behaves_like 'prints lines to', :log
     it_behaves_like 'prints lines to', :stdout
-    it_behaves_like 'should print to', :stderr, ['error 9', 'error 29']
-    it_behaves_like 'should not print to', :stderr, ['error 0', 'error 8', 'output 0', 'output 29']
+
+    describe 'should print last 20 lines of command stderr/stdout' do
+      it_behaves_like 'should print to', :stderr, ['error 10', 'error 29', 'output 10', 'output 29']
+      it_behaves_like 'should not print to', :stderr, ['error 0', 'error 9', 'output 0', 'output 9']
+    end
   end
 end

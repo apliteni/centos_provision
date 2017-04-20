@@ -184,7 +184,7 @@ RSpec.describe 'enable-ssl.sh' do
   context 'with agree LE SA option specified' do
     let(:options) { '-s -p -a' }
 
-    it_behaves_like 'should not print to stdout', "Do you agree with terms of Let's Encrypt Subscriber Agreement?"
+    it_behaves_like 'should not print to', :stdout, "Do you agree with terms of Let's Encrypt Subscriber Agreement?"
 
     it_behaves_like 'should print to', :stdout, 'Everything done!'
   end
@@ -192,7 +192,7 @@ RSpec.describe 'enable-ssl.sh' do
   context 'email specified' do
     let(:options) { '-s -p -e some.mail@example.com' }
 
-    it_behaves_like 'should not print to stdout', 'Please enter your email'
+    it_behaves_like 'should not print to', :stdout, 'Please enter your email'
 
     it_behaves_like 'should print to', :stdout, /certbot certonly .* --email some.mail@example.com/
   end
@@ -200,7 +200,7 @@ RSpec.describe 'enable-ssl.sh' do
   context 'without email option specified' do
     let(:options) { '-s -p -w' }
 
-    it_behaves_like 'should not print to stdout', 'Please enter your email'
+    it_behaves_like 'should not print to', :stdout, 'Please enter your email'
 
     it_behaves_like 'should print to', :stdout, /certbot certonly .* --register-unsafely-without-email/
   end
