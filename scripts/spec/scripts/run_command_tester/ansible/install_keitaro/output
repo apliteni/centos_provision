@@ -1,0 +1,132 @@
+TASK [keitaro : Download installer] ********************************************
+task path: /root/centos_provision/centos_provision-master/roles/keitaro/tasks/install.yml:2
+Using module file /usr/lib/python2.7/site-packages/ansible/modules/core/network/basics/get_url.py
+<localhost> ESTABLISH LOCAL CONNECTION FOR USER: root
+<localhost> EXEC /bin/sh -c '( umask 77 && mkdir -p "` echo ~/.ansible/tmp/ansible-tmp-1492623946.95-5222201500795 `" && echo ansible-tmp-1492623946.95-5222201500795="` echo ~/.ansible/tmp/ansible-tmp-1492623946.95-5222201500795 `" ) && sleep 0'
+<localhost> PUT /tmp/tmpGRXAtJ TO /root/.ansible/tmp/ansible-tmp-1492623946.95-5222201500795/get_url.py
+<localhost> EXEC /bin/sh -c 'chmod u+x /root/.ansible/tmp/ansible-tmp-1492623946.95-5222201500795/ /root/.ansible/tmp/ansible-tmp-1492623946.95-5222201500795/get_url.py && sleep 0'
+<localhost> EXEC /bin/sh -c '/usr/bin/python /root/.ansible/tmp/ansible-tmp-1492623946.95-5222201500795/get_url.py; rm -rf "/root/.ansible/tmp/ansible-tmp-1492623946.95-5222201500795/" > /dev/null 2>&1 && sleep 0'
+ok: [localhost] => {
+    "changed": false,
+    "dest": "/var/www/keitaro/install.php",
+    "gid": 0,
+    "group": "root",
+    "invocation": {
+        "module_args": {
+            "backup": false,
+            "checksum": "",
+            "content": null,
+            "delimiter": null,
+            "dest": "/var/www/keitaro/install.php",
+            "directory_mode": null,
+            "follow": false,
+            "force": false,
+            "force_basic_auth": false,
+            "group": null,
+            "headers": null,
+            "http_agent": "ansible-httpget",
+            "mode": null,
+            "owner": null,
+            "path": "/var/www/keitaro/install.php",
+            "regexp": null,
+            "remote_src": null,
+            "selevel": null,
+            "serole": null,
+            "setype": null,
+            "seuser": null,
+            "sha256sum": "",
+            "src": null,
+            "timeout": 10,
+            "tmp_dest": "",
+            "unsafe_writes": null,
+            "url": "http://keitarotds.com/getfile/install",
+            "url_password": null,
+            "url_username": null,
+            "use_proxy": true,
+            "validate_certs": true
+        },
+        "module_name": "get_url"
+    },
+    "mode": "0644",
+    "msg": "file already exists",
+    "owner": "root",
+    "secontext": "unconfined_u:object_r:var_t:s0",
+    "size": 287779,
+    "state": "file",
+    "uid": 0,
+    "url": "http://keitarotds.com/getfile/install"
+}
+
+TASK [keitaro : Install Keitaro TDS] *******************************************
+task path: /root/centos_provision/centos_provision-master/roles/keitaro/tasks/install.yml:7
+Using module file /usr/lib/python2.7/site-packages/ansible/modules/core/commands/command.py
+<localhost> ESTABLISH LOCAL CONNECTION FOR USER: root
+<localhost> EXEC /bin/sh -c '( umask 77 && mkdir -p "` echo /tmp/ansible-tmp-1492623947.16-222875382688800 `" && echo ansible-tmp-1492623947.16-222875382688800="` echo /tmp/ansible-tmp-1492623947.16-222875382688800 `" ) && sleep 0'
+<localhost> PUT /tmp/tmpIXBHoe TO /tmp/ansible-tmp-1492623947.16-222875382688800/command.py
+<localhost> EXEC /bin/sh -c 'setfacl -m u:nginx:r-x /tmp/ansible-tmp-1492623947.16-222875382688800/ /tmp/ansible-tmp-1492623947.16-222875382688800/command.py && sleep 0'
+<localhost> EXEC /bin/sh -c 'sudo -H -S -n -u nginx /bin/sh -c '"'"'echo BECOME-SUCCESS-hppxhybmgwmfvgjciumouxneawqtdyqn; /usr/bin/python /tmp/ansible-tmp-1492623947.16-222875382688800/command.py'"'"' && sleep 0'
+<localhost> EXEC /bin/sh -c 'rm -f -r /tmp/ansible-tmp-1492623947.16-222875382688800/ > /dev/null 2>&1 && sleep 0'
+fatal: [localhost]: FAILED! => {
+    "changed": true,
+    "cmd": [
+        "/usr/bin/php",
+        "install.php",
+        "install",
+        "--ip=1.2.3.4",
+        "--key=xxx-yyy-zzz",
+        "--db-user=keitaro",
+        "--db-name=keitaro",
+        "--db-password=89WPLqLn36v6SAm4",
+        "--admin-login=admin",
+        "--admin-password=BcbhSu0Q2nsDEXUn",
+        "--draft-storage=redis",
+        "--cache-storage=redis",
+        "--language=en"
+    ],
+    "delta": "0:00:00.675719",
+    "end": "2017-04-19 20:45:47.928281",
+    "failed": true,
+    "failed_when_result": true,
+    "invocation": {
+        "module_args": {
+            "_raw_params": "/usr/bin/php install.php install --ip=1.2.3.4 --key=xxx-yyy-zzz --db-user=keitaro --db-name=keitaro --db-password='89WPLqLn36v6SAm4' --admin-login=admin --admin-password='BcbhSu0Q2nsDEXUn' --draft-storage=redis --cache-storage=redis --language=en ",
+            "_uses_shell": false,
+            "chdir": "/var/www/keitaro",
+            "creates": null,
+            "executable": null,
+            "removes": null,
+            "warn": true
+        },
+        "module_name": "command"
+    },
+    "rc": 0,
+    "start": "2017-04-19 20:45:47.252562",
+    "stderr": "",
+    "stdout": "Server Configuration\nServer IP: 1.2.3.4 (OK)\nPHP version 5.4 - 5.6: 7.0.18 (OK)\nPDO MySQL: Installed (OK)\nSafe-mode must be disabled: Disabled (OK)\nXcache: Not installed (OK)\nIconv extension: Installed (OK)\nMbstring extension: Installed (OK)\nZlib extension: Installed (OK)\nCURL extension: Installed (OK)\nWritable permissions to current directory: Writable (OK)\nIonCube Loader: Installed (OK)\nZip extension: Installed (OK)\nJSON extension: Installed (OK)\nHash extension: Installed (OK)\nChecks done.You can install Keitaro TDS!\nLicense Key\nKey is invalid. Please check your license key and IP address\nCheck",
+    "stdout_lines": [
+        "Server Configuration",
+        "Server IP: 1.2.3.4 (OK)",
+        "PHP version 5.4 - 5.6: 7.0.18 (OK)",
+        "PDO MySQL: Installed (OK)",
+        "Safe-mode must be disabled: Disabled (OK)",
+        "Xcache: Not installed (OK)",
+        "Iconv extension: Installed (OK)",
+        "Mbstring extension: Installed (OK)",
+        "Zlib extension: Installed (OK)",
+        "CURL extension: Installed (OK)",
+        "Writable permissions to current directory: Writable (OK)",
+        "IonCube Loader: Installed (OK)",
+        "Zip extension: Installed (OK)",
+        "JSON extension: Installed (OK)",
+        "Hash extension: Installed (OK)",
+        "Checks done.You can install Keitaro TDS!",
+        "License Key",
+        "Key is invalid. Please check your license key and IP address",
+        "Check"
+    ],
+    "warnings": []
+}
+	to retry, use: --limit @/root/centos_provision/centos_provision-master/playbook.retry
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=71   changed=4    unreachable=0    failed=1
