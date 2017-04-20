@@ -610,7 +610,7 @@ really_run_command(){
     print_command_status "${command}" 'NOK' 'red' "${hide_output}"
     if isset "$allow_errors"; then
       remove_current_command
-      return ${FAILURE_RESULT} # false
+      return ${FAILURE_RESULT}
     else
       local fail_message="$(translate 'errors.run_command.fail')"
       fail_message="${fail_message}\n$(print_content_of ${CURRENT_COMMAND_SCRIPT})"
@@ -701,7 +701,6 @@ keep_tail(){
     mv "$file".tail "$file"
   fi
 }
-
 
 
 
