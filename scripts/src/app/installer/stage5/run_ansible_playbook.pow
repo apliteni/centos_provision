@@ -8,3 +8,12 @@ run_ansible_playbook()
   if isset $ANSIBLE_IGNORE_TAGS
     command="${command} --skip-tags ${ANSIBLE_IGNORE_TAGS}"
   run_command "${command}"
+
+
+build_ansible_fail_message()
+  keep_tail "${CURRENT_COMMAND_OUTPUT_LOG}"
+  keep_tail "${CURRENT_COMMAND_ERROR_LOG}"
+  local fail_message="$(print_content_of ${CURRENT_COMMAND_SCRIPT})"
+  fail_message="${fail_message}\n$(print_content_of ${CURRENT_COMMAND_OUTPUT_LOG})"
+  fail_message="${fail_message}\n$(print_content_of ${CURRENT_COMMAND_ERROR_LOG})"
+  echo $fail_message

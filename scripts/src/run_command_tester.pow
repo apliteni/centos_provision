@@ -23,6 +23,8 @@ require 'lib/system/print_with_color.pow'
 require 'lib/system/run_command.pow'
 require 'lib/system/remove_current_command.pow'
 
+require 'app/installer/stage5/run_ansible_playbook.pow'
+
 
 # We wrap the entire script in a big function which we only call at the very end, in order to
 # protect against the possibility of the connection dying mid-script. This protects us against
