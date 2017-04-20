@@ -1,7 +1,7 @@
 #!/usr/bin/env powscript
 
 
-run_command(command, message, hide_output, allow_errors, run_as, filter_output_log_on_fail, filter_error_log_on_fail)
+run_command(command, message, hide_output, allow_errors, run_as, current_command_logs_filter)
   debug "Evaluating command: ${command}"
   if empty $message
     run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
@@ -16,7 +16,7 @@ run_command(command, message, hide_output, allow_errors, run_as, filter_output_l
     print_command_status $command 'SKIPPED' 'yellow' $hide_output
     debug "Actual running disabled"
   else
-    really_run_command "${command}" "${hide_output}" "${allow_errors}" "${run_as}" "${filter_output_log_on_fail}" "${filter_error_log_on_fail}"
+    really_run_command "${command}" "${hide_output}" "${allow_errors}" "${run_as}" "${current_command_logs_filter}"
 
 
 print_command_status(command, status, color, hide_output)
@@ -25,7 +25,7 @@ print_command_status(command, status, color, hide_output)
     print_with_color $status $color
 
 
-really_run_command(command, hide_output, allow_errors, run_as, filter_output_log_on_fail, filter_error_log_on_fail)
+really_run_command(command, hide_output, allow_errors, run_as, current_command_logs_filter)
   save_command_script "${command}"
   local evaluated_command="./${CURRENT_COMMAND_SCRIPT}"
   evaluated_command=$(command_run_as "${evaluated_command}" "${run_as}")
@@ -39,10 +39,11 @@ really_run_command(command, hide_output, allow_errors, run_as, filter_output_log
       remove_current_command
       return ${FAILURE_RESULT}
     else
+      filter_current_command_logs_on_fail ${current_command_logs_filter}
       local fail_message="$(translate 'errors.run_command.fail')"
       fail_message="${fail_message}\n$(print_content_of ${CURRENT_COMMAND_SCRIPT})"
-      fail_message="${fail_message}\n$(print_filtered_content_of ${CURRENT_COMMAND_OUTPUT_LOG} ${filter_output_log_on_fail})"
-      fail_message="${fail_message}\n$(print_filtered_content_of ${CURRENT_COMMAND_ERROR_LOG} ${filter_error_log_on_fail})"
+      fail_message="${fail_message}\n$(print_content_of ${CURRENT_COMMAND_OUTPUT_LOG})"
+      fail_message="${fail_message}\n$(print_content_of ${CURRENT_COMMAND_ERROR_LOG})"
       remove_current_command
       fail "${fail_message}" "see_logs"
   else
@@ -87,12 +88,14 @@ save_command_script(command)
   debug "$(print_content_of ${CURRENT_COMMAND_SCRIPT})"
 
 
-print_filtered_content_of(file, filter)
-  remove_colors_from_file "${file}"
+filter_current_command_logs_on_fail(filter)
+  remove_colors_from_file "${CURRENT_COMMAND_OUTPUT_LOG}"
+  remove_colors_from_file "${CURRENT_COMMAND_ERROR_LOG}"
   if "${filter}" == ""
-    filter="keep_tail"
-  eval "${filter} ${file}"
-  print_content_of "${file}"
+    keep_tail "${CURRENT_COMMAND_OUTPUT_LOG}"
+    keep_tail "${CURRENT_COMMAND_ERROR_LOG}"
+  else
+    eval "${filter} ${file}"
 
 
 keep_tail(file)

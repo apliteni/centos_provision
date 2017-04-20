@@ -6,7 +6,7 @@ site_adder: compile_site_adder test_site_adder
 
 ssl_enabler: compile_ssl_enabler test_ssl_enabler
 
-test_run_command: compile_test_run_command
+run_command_tester: compile_run_command_tester
 
 test: 
 	rspec spec
@@ -20,10 +20,13 @@ test_ssl_enabler:
 test_installer:
 	rspec spec/scripts/installer_spec.rb
 
+test_run_command_tester:
+	rspec spec/scripts/run_command_tester_spec.rb
+
 clean:
 	rm -f *.log*
 
-compile: compile_site_adder compile_installer compile_ssl_enabler compile_test_run_command
+compile: compile_site_adder compile_installer compile_ssl_enabler compile_run_command_tester
 
 compile_installer:
 	powscript --compile src/installer.pow  > install.sh || true
@@ -46,8 +49,8 @@ compile_site_adder:
 	sed -i 's/#$$//g' add-site.sh                                 # remove trailing #
 	chmod a+x add-site.sh
 
-compile_test_run_command:
-	powscript --compile src/test_run_command.pow  > test-run-command.sh || true
+compile_run_command_tester:
+	powscript --compile src/run_command_tester.pow  > test-run-command.sh || true
 	sed -i 's|#!/bin/bash|#!/usr/bin/env bash|g' test-run-command.sh      # portable shebang line
 	sed -i '/# cleanup tmp files/,+4d' test-run-command.sh                # remove unportable cleaning
 	sed -i 's/#$$//g' test-run-command.sh                                 # remove trailing #

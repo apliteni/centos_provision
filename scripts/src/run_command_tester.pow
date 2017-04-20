@@ -27,9 +27,9 @@ require 'lib/system/remove_current_command.pow'
 # protect against the possibility of the connection dying mid-script. This protects us against
 # the problem described in this blog post:
 #   http://blog.existentialize.com/dont-pipe-to-your-shell.html
-test_run_command()
+test_run_command(command, message, hide_output, allow_errors, run_as, failed_logs_filter)
   UI_LANG=en
-  run_command $@
+  run_command "${command}" "${message}" "${hide_output}" "${allow_errors}" "${run_as}" "${failed_logs_filter}"
 
 
-test_run_command $@
+test_run_command "${1}" "${2}" "${3}" "${4}" "${5}" "${6}"

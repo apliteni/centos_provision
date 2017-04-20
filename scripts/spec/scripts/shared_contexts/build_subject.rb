@@ -17,7 +17,7 @@ RSpec.shared_context 'build subject', build_subject: :yes do
   end
   let(:prompts_with_values) { make_prompts_with_values(:en) }
   let(:prompts) { {en: {}, ru: {}} }
-  let(:user_values) {}
+  let(:user_values) { {} }
 
   def make_prompts_with_values(lang)
     user_values.map { |k, v| [prompts[lang][k], v] }.to_h
