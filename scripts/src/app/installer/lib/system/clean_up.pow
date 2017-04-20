@@ -2,7 +2,6 @@
 
 
 clean_up()
-  remove_current_command
   if [ -d $PROVISION_DIRECTORY ]
     debug "Remove ${PROVISION_DIRECTORY}"
     rm -rf $PROVISION_DIRECTORY

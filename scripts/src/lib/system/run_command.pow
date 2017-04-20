@@ -39,7 +39,9 @@ really_run_command(command, hide_output, allow_errors, run_as, build_fail_messag
       remove_current_command
       return ${FAILURE_RESULT}
     else
-      current_command_fail "${build_fail_message}"
+      fail_message="$(current_command_fail_message ${build_fail_message})"
+      remove_current_command
+      fail "${fail_message}" "see_logs"
   else
     print_command_status $command 'OK' 'green' $hide_output
     remove_current_command
@@ -82,14 +84,14 @@ save_command_script(command)
   chmod a+x "${CURRENT_COMMAND_SCRIPT}"
   debug "$(print_content_of ${CURRENT_COMMAND_SCRIPT})"
 
-current_command_fail(build_fail_message)
+current_command_fail_message(build_fail_message)
   remove_colors_from_file "${CURRENT_COMMAND_OUTPUT_LOG}"
   remove_colors_from_file "${CURRENT_COMMAND_ERROR_LOG}"
   if empty $build_fail_message
     build_fail_message="build_common_fail_message"
-  local fail_message="$(translate 'errors.run_command.fail')\n$(eval ${build_fail_message})"
-  remove_current_command
-  fail "${fail_message}" "see_logs"
+  fail_message=$(translate 'errors.run_command.fail')
+  fail_message="${fail_message}\n$(eval ${build_fail_message})"
+  echo -e "${fail_message}"
 
 
 build_common_fail_message()

@@ -385,7 +385,6 @@ read_stdin(){
 
 clean_up(){
   debug 'called clean_up()'
-  remove_current_command
 }
 
 
@@ -461,6 +460,7 @@ on_exit(){
   debug "Terminated by user"
   echo
   clean_up
+  remove_current_command
   fail "$(translate 'errors.terminated')"
 }
 
@@ -605,7 +605,9 @@ really_run_command(){
       remove_current_command
       return ${FAILURE_RESULT}
     else
-      current_command_fail "${build_fail_message}"
+      fail_message="$(current_command_fail_message ${build_fail_message})"
+      remove_current_command
+      fail "${fail_message}" "see_logs"
     fi
   else
     print_command_status "$command" 'OK' 'green' "$hide_output"
@@ -668,16 +670,16 @@ save_command_script(){
   debug "$(print_content_of ${CURRENT_COMMAND_SCRIPT})"
 }
 
-current_command_fail(){
+current_command_fail_message(){
   local build_fail_message="${1}"
   remove_colors_from_file "${CURRENT_COMMAND_OUTPUT_LOG}"
   remove_colors_from_file "${CURRENT_COMMAND_ERROR_LOG}"
   if empty "$build_fail_message"; then
     build_fail_message="build_common_fail_message"
   fi
-  local fail_message="$(translate 'errors.run_command.fail')\n$(eval ${build_fail_message})"
-  remove_current_command
-  fail "${fail_message}" "see_logs"
+  fail_message=$(translate 'errors.run_command.fail')
+  fail_message="${fail_message}\n$(eval ${build_fail_message})"
+  echo -e "${fail_message}"
 }
 
 

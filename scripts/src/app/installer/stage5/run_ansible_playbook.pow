@@ -1,5 +1,7 @@
 #!/usr/bin/env powscript
 
+ANSIBLE_TASK_FAILURE_HEADER="^fatal: "
+ANSIBLE_FAILURE_JSON="ansible_fail_task.json"
 
 run_ansible_playbook()
   local command="ANSIBLE_FORCE_COLOR=true ansible-playbook -vvv -i ${INVENTORY_FILE} ${PROVISION_DIRECTORY}/playbook.yml"
@@ -11,9 +13,23 @@ run_ansible_playbook()
 
 
 build_ansible_fail_message()
-  keep_tail "${CURRENT_COMMAND_OUTPUT_LOG}"
-  keep_tail "${CURRENT_COMMAND_ERROR_LOG}"
-  local fail_message="$(print_content_of ${CURRENT_COMMAND_SCRIPT})"
-  fail_message="${fail_message}\n$(print_content_of ${CURRENT_COMMAND_OUTPUT_LOG})"
-  fail_message="${fail_message}\n$(print_content_of ${CURRENT_COMMAND_ERROR_LOG})"
-  echo $fail_message
+  if is_ansible_task_failed
+    debug "Detected ansible task failure"
+    save_ansible_failure_json
+    print_content_of $ANSIBLE_FAILURE_JSON
+    remove_ansible_failure_json
+  else
+    build_common_fail_message
+
+
+is_ansible_task_failed()
+  grep -q $ANSIBLE_TASK_FAILURE_HEADER $CURRENT_COMMAND_OUTPUT_LOG
+
+
+save_ansible_failure_json()
+  # delete content before $ANSIBLE_TASK_FAILURE_HEADER
+  sed "/${ANSIBLE_TASK_FAILURE_HEADER}/,\$!d" $CURRENT_COMMAND_OUTPUT_LOG > $ANSIBLE_FAILURE_JSON
+  sed -i -e "s/${ANSIBLE_TASK_FAILURE_HEADER}.*/{/g" -e '/^}$/q' $ANSIBLE_FAILURE_JSON
+
+remove_ansible_failure_json()
+  rm $ANSIBLE_FAILURE_JSON
