@@ -534,8 +534,7 @@ run_command(){
   local hide_output="${3}"
   local allow_errors="${4}"
   local run_as="${5}"
-  local filter_output_log_on_fail="${6}"
-  local filter_error_log_on_fail="${7}"
+  local current_command_logs_filter="${6}"
   debug "Evaluating command: ${command}"
   if empty "$message"; then
     run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
@@ -552,7 +551,7 @@ run_command(){
     print_command_status "$command" 'SKIPPED' 'yellow' "$hide_output"
     debug "Actual running disabled"
   else
-    really_run_command "${command}" "${hide_output}" "${allow_errors}" "${run_as}" "${filter_output_log_on_fail}" "${filter_error_log_on_fail}"
+    really_run_command "${command}" "${hide_output}" "${allow_errors}" "${run_as}" "${current_command_logs_filter}"
   fi
 }
 
@@ -574,8 +573,7 @@ really_run_command(){
   local hide_output="${2}"
   local allow_errors="${3}"
   local run_as="${4}"
-  local filter_output_log_on_fail="${5}"
-  local filter_error_log_on_fail="${6}"
+  local current_command_logs_filter="${5}"
   save_command_script "${command}"
   local evaluated_command="./${CURRENT_COMMAND_SCRIPT}"
   evaluated_command=$(command_run_as "${evaluated_command}" "${run_as}")
@@ -589,10 +587,11 @@ really_run_command(){
       remove_current_command
       return ${FAILURE_RESULT}
     else
+      filter_current_command_logs_on_fail ${current_command_logs_filter}
       local fail_message="$(translate 'errors.run_command.fail')"
       fail_message="${fail_message}\n$(print_content_of ${CURRENT_COMMAND_SCRIPT})"
-      fail_message="${fail_message}\n$(print_filtered_content_of ${CURRENT_COMMAND_OUTPUT_LOG} ${filter_output_log_on_fail})"
-      fail_message="${fail_message}\n$(print_filtered_content_of ${CURRENT_COMMAND_ERROR_LOG} ${filter_error_log_on_fail})"
+      fail_message="${fail_message}\n$(print_content_of ${CURRENT_COMMAND_OUTPUT_LOG})"
+      fail_message="${fail_message}\n$(print_content_of ${CURRENT_COMMAND_ERROR_LOG})"
       remove_current_command
       fail "${fail_message}" "see_logs"
     fi
@@ -657,15 +656,16 @@ save_command_script(){
 }
 
 
-print_filtered_content_of(){
-  local file="${1}"
-  local filter="${2}"
-  remove_colors_from_file "${file}"
+filter_current_command_logs_on_fail(){
+  local filter="${1}"
+  remove_colors_from_file "${CURRENT_COMMAND_OUTPUT_LOG}"
+  remove_colors_from_file "${CURRENT_COMMAND_ERROR_LOG}"
   if [[ "${filter}" == "" ]]; then
-    filter="keep_tail"
+    keep_tail "${CURRENT_COMMAND_OUTPUT_LOG}"
+    keep_tail "${CURRENT_COMMAND_ERROR_LOG}"
+  else
+    eval "${filter} ${file}"
   fi
-  eval "${filter} ${file}"
-  print_content_of "${file}"
 }
 
 
