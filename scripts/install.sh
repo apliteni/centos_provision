@@ -380,6 +380,7 @@ on_exit(){
   debug "Terminated by user"
   echo
   clean_up
+  remove_current_command
   fail "$(translate 'errors.terminated')"
 }
 
@@ -510,7 +511,9 @@ really_run_command(){
       remove_current_command
       return ${FAILURE_RESULT}
     else
-      current_command_fail "${build_fail_message}"
+      fail_message="$(current_command_fail_message ${build_fail_message})"
+      remove_current_command
+      fail "${fail_message}" "see_logs"
     fi
   else
     print_command_status "$command" 'OK' 'green' "$hide_output"
@@ -573,16 +576,16 @@ save_command_script(){
   debug "$(print_content_of ${CURRENT_COMMAND_SCRIPT})"
 }
 
-current_command_fail(){
+current_command_fail_message(){
   local build_fail_message="${1}"
   remove_colors_from_file "${CURRENT_COMMAND_OUTPUT_LOG}"
   remove_colors_from_file "${CURRENT_COMMAND_ERROR_LOG}"
   if empty "$build_fail_message"; then
     build_fail_message="build_common_fail_message"
   fi
-  local fail_message="$(translate 'errors.run_command.fail')\n$(eval ${build_fail_message})"
-  remove_current_command
-  fail "${fail_message}" "see_logs"
+  fail_message=$(translate 'errors.run_command.fail')
+  fail_message="${fail_message}\n$(eval ${build_fail_message})"
+  echo -e "${fail_message}"
 }
 
 
@@ -765,7 +768,6 @@ COMMENT_ME_IF_POWSCRIPT_DONT_COMPILE_PROJECT="'"
 
 
 clean_up(){
-  remove_current_command
   if [ -d "$PROVISION_DIRECTORY" ]; then
     debug "Remove ${PROVISION_DIRECTORY}"
     rm -rf "$PROVISION_DIRECTORY"
@@ -1087,6 +1089,8 @@ remove_log_files(){
 }
 
 
+ANSIBLE_TASK_FAILURE_HEADER="^fatal: "
+ANSIBLE_FAILURE_JSON="ansible_fail_task.json"
 
 run_ansible_playbook(){
   local command="ANSIBLE_FORCE_COLOR=true ansible-playbook -vvv -i ${INVENTORY_FILE} ${PROVISION_DIRECTORY}/playbook.yml"
@@ -1097,6 +1101,34 @@ run_ansible_playbook(){
     command="${command} --skip-tags ${ANSIBLE_IGNORE_TAGS}"
   fi
   run_command "${command}"
+}
+
+
+build_ansible_fail_message(){
+  if is_ansible_task_failed; then
+    debug "Detected ansible task failure"
+    save_ansible_failure_json
+    print_content_of "$ANSIBLE_FAILURE_JSON"
+    remove_ansible_failure_json
+  else
+    build_common_fail_message
+  fi
+}
+
+
+is_ansible_task_failed(){
+  grep -q "$ANSIBLE_TASK_FAILURE_HEADER" "$CURRENT_COMMAND_OUTPUT_LOG"
+}
+
+
+save_ansible_failure_json(){
+  # delete content before "$ANSIBLE_TASK_FAILURE_HEADER"
+  sed "/${ANSIBLE_TASK_FAILURE_HEADER}/,\$!d" "$CURRENT_COMMAND_OUTPUT_LOG" > "$ANSIBLE_FAILURE_JSON"
+  sed -i -e "s/${ANSIBLE_TASK_FAILURE_HEADER}.*/{/g" -e '/^}$/q' "$ANSIBLE_FAILURE_JSON"
+}
+
+remove_ansible_failure_json(){
+  rm "$ANSIBLE_FAILURE_JSON"
 }
 
 

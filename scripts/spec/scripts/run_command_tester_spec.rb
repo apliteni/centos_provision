@@ -67,7 +67,9 @@ RSpec.describe 'test-run-command.sh' do
     context 'install keitaro' do
       let(:scenario) { 'install_keitaro' }
 
-      it_behaves_like 'should print to', :stderr, '[WARNING]: Ignoring "pattern" as it is not used in "systemd"'
+      # it_behaves_like 'should print to', :stderr, '[WARNING]: Ignoring "pattern" as it is not used in "systemd"'
+      it_behaves_like 'should not print to', :stderr, 'TASK [keitaro : Install Keitaro TDS]'
+      it_behaves_like 'should print to', :stderr, 'Key is invalid. Please check your license key and IP address'
     end
   end
 end
