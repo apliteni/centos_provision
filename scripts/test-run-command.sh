@@ -658,7 +658,7 @@ keep_tail(){
 
 remove_current_command(){
   debug "Removing current_command script and logs"
-  rm -f ${CURRENT_COMMAND_OUTPUT_LOG} ${CURRENT_COMMAND_ERROR_LOG} ${CURRENT_COMMAND_SCRIPT}
+  # rm -f ${CURRENT_COMMAND_OUTPUT_LOG} ${CURRENT_COMMAND_ERROR_LOG} ${CURRENT_COMMAND_SCRIPT}
 }
 
 
@@ -680,7 +680,7 @@ run_ansible_playbook(){
 print_ansible_fail_message(){
   if ansible_task_found "$CURRENT_COMMAND_OUTPUT_LOG"; then
     debug "Found last ansible task"
-    remove_text_before_pattern "$ANSIBLE_TASK_HEADER" "$CURRENT_COMMAND_OUTPUT_LOG"
+    remove_text_before_last_pattern_occurence "$ANSIBLE_TASK_HEADER" "$CURRENT_COMMAND_OUTPUT_LOG"
     print_ansible_task_info "$CURRENT_COMMAND_OUTPUT_LOG"
     print_ansible_task_stdout_and_stderr "$CURRENT_COMMAND_OUTPUT_LOG"
   else
@@ -713,7 +713,7 @@ print_ansible_task_stdout_and_stderr(){
     cp "$task_output_filepath" "$json_filepath"
     keep_json_only "$json_filepath"
     print_ansible_task_stdout_and_stderr_from_json "$json_filepath"
-    rm "$json_filepath"
+    #rm "$json_filepath"
   fi
 }
 
@@ -738,18 +738,21 @@ keep_json_only(){
   # .....
   
   # So remove all before "fatal: [localhost]: FAILED! => {" line
-  remove_text_before_pattern "$ANSIBLE_TASK_FAILURE_HEADER" "$task_output_with_json"
+  echo "Remove text before last pattern occurrence"
+  remove_text_before_last_pattern_occurrence "$ANSIBLE_TASK_FAILURE_HEADER" "$task_output_with_json"
   # Replace first line to just '{'
+  echo "Replace firt line"
   sed -i '1c{' "$task_output_with_json"
   # Remove all after '}'
+  echo "Remove all after '{'"
   sed -i -e '/^}$/q' "$task_output_with_json"
 }
 
 
-remove_text_before_pattern(){
+remove_text_before_last_pattern_occurence(){
   local pattern="${1}"
   local file="${2}"
-  sed -i -r "/${pattern}/,\$!d" "${file}"
+  sed -n -i -r "H;/${pattern}/h;\${g;p;}" "$file"
 }
 
 
