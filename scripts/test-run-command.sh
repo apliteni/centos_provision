@@ -658,12 +658,13 @@ keep_tail(){
 
 remove_current_command(){
   debug "Removing current_command script and logs"
-  # rm -f ${CURRENT_COMMAND_OUTPUT_LOG} ${CURRENT_COMMAND_ERROR_LOG} ${CURRENT_COMMAND_SCRIPT}
+  rm -f ${CURRENT_COMMAND_OUTPUT_LOG} ${CURRENT_COMMAND_ERROR_LOG} ${CURRENT_COMMAND_SCRIPT}
 }
 
 
 ANSIBLE_TASK_HEADER="^TASK \[(.*)\].*"
 ANSIBLE_TASK_FAILURE_HEADER="^fatal: "
+ANSIBLE_FAILURE_JSON_FILEPATH="ansible_failure.json"
 
 run_ansible_playbook(){
   local command="ANSIBLE_FORCE_COLOR=true ansible-playbook -vvv -i ${INVENTORY_FILE} ${PROVISION_DIRECTORY}/playbook.yml"
@@ -709,11 +710,10 @@ print_ansible_task_stdout_and_stderr(){
   local task_output_filepath="${1}"
   if ansible_task_failure_found; then
     debug "Found last ansible failure"
-    json_filepath="${task_output_filepath}.json"
-    cp "$task_output_filepath" "$json_filepath"
-    keep_json_only "$json_filepath"
-    print_ansible_task_stdout_and_stderr_from_json "$json_filepath"
-    #rm "$json_filepath"
+    cp "$task_output_filepath" "$ANSIBLE_FAILURE_JSON_FILEPATH"
+    keep_json_only "$ANSIBLE_FAILURE_JSON_FILEPATH"
+    print_ansible_task_stdout_and_stderr_from_json "$ANSIBLE_FAILURE_JSON_FILEPATH"
+    rm "$ANSIBLE_FAILURE_JSON_FILEPATH"
   fi
 }
 
@@ -738,13 +738,10 @@ keep_json_only(){
   # .....
   
   # So remove all before "fatal: [localhost]: FAILED! => {" line
-  echo "Remove text before last pattern occurrence"
   sed -n -i -r "/${ANSIBLE_TASK_FAILURE_HEADER}/,\$p" "$task_output_with_json"
   # Replace first line to just '{'
-  echo "Replace firt line"
   sed -i '1c{' "$task_output_with_json"
   # Remove all after '}'
-  echo "Remove all after '{'"
   sed -i -e '/^}$/q' "$task_output_with_json"
 }
 

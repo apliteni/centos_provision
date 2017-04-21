@@ -1273,6 +1273,7 @@ remove_log_files(){
 
 ANSIBLE_TASK_HEADER="^TASK \[(.*)\].*"
 ANSIBLE_TASK_FAILURE_HEADER="^fatal: "
+ANSIBLE_FAILURE_JSON_FILEPATH="ansible_failure.json"
 
 run_ansible_playbook(){
   local command="ANSIBLE_FORCE_COLOR=true ansible-playbook -vvv -i ${INVENTORY_FILE} ${PROVISION_DIRECTORY}/playbook.yml"
@@ -1289,7 +1290,7 @@ run_ansible_playbook(){
 print_ansible_fail_message(){
   if ansible_task_found "$CURRENT_COMMAND_OUTPUT_LOG"; then
     debug "Found last ansible task"
-    remove_text_before_pattern "$ANSIBLE_TASK_HEADER" "$CURRENT_COMMAND_OUTPUT_LOG"
+    remove_text_before_last_pattern_occurence "$ANSIBLE_TASK_HEADER" "$CURRENT_COMMAND_OUTPUT_LOG"
     print_ansible_task_info "$CURRENT_COMMAND_OUTPUT_LOG"
     print_ansible_task_stdout_and_stderr "$CURRENT_COMMAND_OUTPUT_LOG"
   else
@@ -1306,10 +1307,10 @@ ansible_task_found(){
 print_ansible_task_info(){
   local task_output_filepath="${1}"
   task=$(head -n1 "$task_output_filepath" | sed -r "s/${ANSIBLE_TASK_HEADER}/\1/g")
-  echo "Ansible task: '${task}'"
+  echo "Ansible failed task: '${task}'"
   task_path=$(head -n2 "$task_output_filepath" | tail -n1)
   if [[ "$task_path" =~ ^(task path:) ]]; then
-    echo "Ansible ${task_path}"
+    echo "Ansible failed ${task_path}"
   fi
 }
 
@@ -1318,11 +1319,10 @@ print_ansible_task_stdout_and_stderr(){
   local task_output_filepath="${1}"
   if ansible_task_failure_found; then
     debug "Found last ansible failure"
-    json_filepath="${task_output_filepath}.json"
-    cp "$task_output_filepath" "$json_filepath"
-    keep_json_only "$json_filepath"
-    print_ansible_task_stdout_and_stderr_from_json "$json_filepath"
-    rm "$json_filepath"
+    cp "$task_output_filepath" "$ANSIBLE_FAILURE_JSON_FILEPATH"
+    keep_json_only "$ANSIBLE_FAILURE_JSON_FILEPATH"
+    print_ansible_task_stdout_and_stderr_from_json "$ANSIBLE_FAILURE_JSON_FILEPATH"
+    rm "$ANSIBLE_FAILURE_JSON_FILEPATH"
   fi
 }
 
@@ -1347,7 +1347,7 @@ keep_json_only(){
   # .....
   
   # So remove all before "fatal: [localhost]: FAILED! => {" line
-  remove_text_before_pattern "$ANSIBLE_TASK_FAILURE_HEADER" "$task_output_with_json"
+  sed -n -i -r "/${ANSIBLE_TASK_FAILURE_HEADER}/,\$p" "$task_output_with_json"
   # Replace first line to just '{'
   sed -i '1c{' "$task_output_with_json"
   # Remove all after '}'
@@ -1355,10 +1355,10 @@ keep_json_only(){
 }
 
 
-remove_text_before_pattern(){
+remove_text_before_last_pattern_occurence(){
   local pattern="${1}"
   local file="${2}"
-  sed -i -r "/${pattern}/,\$!d" "${file}"
+  sed -n -i -r "H;/${pattern}/h;\${g;p;}" "$file"
 }
 
 
