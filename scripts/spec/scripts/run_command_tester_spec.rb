@@ -8,17 +8,17 @@ RSpec.describe 'test-run-command.sh' do
   ERROR_EXIT_CODE = 1
 
   let(:script_name) { 'test-run-command.sh' }
-  let(:message) { }
-  let(:hide_output) { }
-  let(:allow_errors) { }
-  let(:run_as) { }
-  let(:fail_message_builder) { }
+  let(:message) {}
+  let(:hide_output) {}
+  let(:allow_errors) {}
+  let(:run_as) {}
+  let(:fail_message_builder) {}
   let(:helper_scripts_path) { "#{File.dirname(File.expand_path(__FILE__, '../'))}/run_command_tester" }
   let(:args) { "'#{helper_scripts_path}/#{helper_script}' '#{message}' '#{hide_output}' '#{allow_errors}' '#{run_as}' '#{fail_message_builder}'" }
 
   describe 'test standard failing filter' do
     let(:print_sh_counter) { 30 }
-    let(:print_sh_exit_code) { }
+    let(:print_sh_exit_code) {}
     let(:helper_script) { "print.sh #{print_sh_counter} #{print_sh_exit_code}" }
 
     shared_examples_for 'prints lines to' do |destination|
@@ -60,16 +60,21 @@ RSpec.describe 'test-run-command.sh' do
   end
 
   describe 'test ansible_failure' do
-    let(:scenario_path) { "#{helper_scripts_path}/ansible/#{scenario}"}
-    let(:helper_script) { "cat_files.sh #{scenario_path}/output #{scenario_path}/error #{ERROR_EXIT_CODE}"}
-    let(:fail_message_builder) { 'build_ansible_fail_message' }
+    let(:scenario_path) { "#{helper_scripts_path}/ansible/#{scenario}" }
+    let(:helper_script) { "cat_files.sh #{scenario_path}/output #{scenario_path}/error #{ERROR_EXIT_CODE}" }
+    let(:fail_message_builder) { 'print_ansible_fail_message' }
 
     context 'install keitaro' do
       let(:scenario) { 'install_keitaro' }
 
       # it_behaves_like 'should print to', :stderr, '[WARNING]: Ignoring "pattern" as it is not used in "systemd"'
       it_behaves_like 'should not print to', :stderr, 'TASK [keitaro : Install Keitaro TDS]'
-      it_behaves_like 'should print to', :stderr, 'Key is invalid. Please check your license key and IP address'
+      it_behaves_like 'should print to', :stderr, [
+        "Ansible failed task: 'keitaro : Install Keitaro TDS'",
+        'Ansible failed task path: /root/centos_provision-master/roles/keitaro/tasks/install.yml:7',
+        #'Ansible task stderr is empty',
+        #/Ansible task stdout:\n  Server Configuration(.*\n)+  Key is invalid.*/
+      ]
     end
   end
 end
