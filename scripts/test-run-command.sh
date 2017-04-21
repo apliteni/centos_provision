@@ -739,7 +739,7 @@ keep_json_only(){
   
   # So remove all before "fatal: [localhost]: FAILED! => {" line
   echo "Remove text before last pattern occurrence"
-  remove_text_before_last_pattern_occurrence "$ANSIBLE_TASK_FAILURE_HEADER" "$task_output_with_json"
+  sed -n -i -r "/${ANSIBLE_TASK_FAILURE_HEADER}/,\$p" "$task_output_with_json"
   # Replace first line to just '{'
   echo "Replace firt line"
   sed -i '1c{' "$task_output_with_json"
