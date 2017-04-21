@@ -48,6 +48,188 @@ values ()
     echo "$2"
 }
 
+last () 
+{ 
+    [[ ! -n $1 ]] && return 1;
+    echo "$(eval "echo \${$1[@]:(-1)}")"
+}
+
+json_decode () 
+{ 
+    function throw () 
+    { 
+        echo "json: $*" 1>&2;
+        exit 1
+    };
+    BRIEF=0;
+    LEAFONLY=0;
+    PRUNE=0;
+    function awk_egrep () 
+    { 
+        local pattern_string=$1;
+        gawk '{
+      while ($0) {
+        start=match($0, pattern);
+        token=substr($0, start, RLENGTH);
+        print token;
+        $0=substr($0, start+RLENGTH);
+      }
+    }' pattern=$pattern_string
+    };
+    function json_tokenize () 
+    { 
+        local GREP;
+        local ESCAPE;
+        local CHAR;
+        if echo "test string" | egrep -ao --color=never "test" &> /dev/null; then
+            GREP='egrep -ao --color=never';
+        else
+            GREP='egrep -ao';
+        fi;
+        if echo "test string" | egrep -o "test" &> /dev/null; then
+            ESCAPE='(\\[^u[:cntrl:]]|\\u[0-9a-fA-F]{4})';
+            CHAR='[^[:cntrl:]"\\]';
+        else
+            GREP=awk_egrep;
+            ESCAPE='(\\\\[^u[:cntrl:]]|\\u[0-9a-fA-F]{4})';
+            CHAR='[^[:cntrl:]"\\\\]';
+        fi;
+        local STRING="\"$CHAR*($ESCAPE$CHAR*)*\"";
+        local NUMBER='-?(0|[1-9][0-9]*)([.][0-9]*)?([eE][+-]?[0-9]*)?';
+        local KEYWORD='null|false|true';
+        local SPACE='[[:space:]]+';
+        $GREP "$STRING|$NUMBER|$KEYWORD|$SPACE|." | egrep -v "^$SPACE$"
+    };
+    function parse_array () 
+    { 
+        local index=0;
+        local ary='';
+        read -r token;
+        case "$token" in 
+            ']')
+
+            ;;
+            *)
+                while :; do
+                    parse_value "$1" "$index";
+                    index=$((index+1));
+                    ary="$ary""$value";
+                    read -r token;
+                    case "$token" in 
+                        ']')
+                            break
+                        ;;
+                        ',')
+                            ary="$ary,"
+                        ;;
+                        *)
+                            throw "EXPECTED , or ] GOT ${token:-EOF}"
+                        ;;
+                    esac;
+                    read -r token;
+                done
+            ;;
+        esac;
+        [ "$BRIEF" -eq 0 ] && value=`printf '[%s]' "$ary"` || value=;
+        :
+    };
+    function parse_object () 
+    { 
+        local key;
+        local obj='';
+        read -r token;
+        case "$token" in 
+            '}')
+
+            ;;
+            *)
+                while :; do
+                    case "$token" in 
+                        '"'*'"')
+                            key=$token
+                        ;;
+                        *)
+                            throw "EXPECTED string GOT ${token:-EOF}"
+                        ;;
+                    esac;
+                    read -r token;
+                    case "$token" in 
+                        ':')
+
+                        ;;
+                        *)
+                            throw "EXPECTED : GOT ${token:-EOF}"
+                        ;;
+                    esac;
+                    read -r token;
+                    parse_value "$1" "$key";
+                    obj="$obj$key:$value";
+                    read -r token;
+                    case "$token" in 
+                        '}')
+                            break
+                        ;;
+                        ',')
+                            obj="$obj,"
+                        ;;
+                        *)
+                            throw "EXPECTED , or } GOT ${token:-EOF}"
+                        ;;
+                    esac;
+                    read -r token;
+                done
+            ;;
+        esac;
+        [ "$BRIEF" -eq 0 ] && value=`printf '{%s}' "$obj"` || value=;
+        :
+    };
+    function parse_value () 
+    { 
+        local jpath="${1:+$1,}$2" isleaf=0 isempty=0 print=0;
+        case "$token" in 
+            '{')
+                parse_object "$jpath"
+            ;;
+            '[')
+                parse_array "$jpath"
+            ;;
+            '' | [!0-9])
+                throw "EXPECTED value GOT ${token:-EOF}"
+            ;;
+            *)
+                value=$token;
+                isleaf=1;
+                [ "$value" = '""' ] && isempty=1
+            ;;
+        esac;
+        [ "$value" = '' ] && return;
+        [ "$LEAFONLY" -eq 0 ] && [ "$PRUNE" -eq 0 ] && print=1;
+        [ "$LEAFONLY" -eq 1 ] && [ "$isleaf" -eq 1 ] && [ $PRUNE -eq 0 ] && print=1;
+        [ "$LEAFONLY" -eq 0 ] && [ "$PRUNE" -eq 1 ] && [ "$isempty" -eq 0 ] && print=1;
+        [ "$LEAFONLY" -eq 1 ] && [ "$isleaf" -eq 1 ] && [ $PRUNE -eq 1 ] && [ $isempty -eq 0 ] && print=1;
+        [ "$print" -eq 1 ] && printf "[%s]\t%s\n" "$jpath" "$value";
+        :
+    };
+    function json_parse () 
+    { 
+        read -r token;
+        parse_value;
+        read -r token;
+        case "$token" in 
+            '')
+
+            ;;
+            *)
+                throw "EXPECTED EOF GOT $token"
+            ;;
+        esac
+    };
+    varname="$1";
+    code="$code$( sed 'N;s/\n//g' | json_tokenize | json_parse | awk '{print "'$varname'"$0}')";
+    code="$(echo -e "$code" | sed  's/.*\[\].*//g;s/\t/=/g;s/",/./g;s/[,.]"/./g;s/.*=[{\[].*//g;s/\"\]=/]=/g;s/\]=/"\]=/g' | sed -r 's/([A-Za-z_0-9])([\.-])([A-Za-z_0-9])"]/\1-\3"]/g' )";
+    eval "$code"
+}
+
 
 
 
@@ -458,7 +640,7 @@ run_command(){
   local hide_output="${3}"
   local allow_errors="${4}"
   local run_as="${5}"
-  local build_fail_message="${6}"
+  local print_fail_message_method="${6}"
   debug "Evaluating command: ${command}"
   if empty "$message"; then
     run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
@@ -475,7 +657,7 @@ run_command(){
     print_command_status "$command" 'SKIPPED' 'yellow' "$hide_output"
     debug "Actual running disabled"
   else
-    really_run_command "${command}" "${hide_output}" "${allow_errors}" "${run_as}" "${build_fail_message}"
+    really_run_command "${command}" "${hide_output}" "${allow_errors}" "${run_as}" "${print_fail_message_method}"
   fi
 }
 
@@ -497,7 +679,7 @@ really_run_command(){
   local hide_output="${2}"
   local allow_errors="${3}"
   local run_as="${4}"
-  local build_fail_message="${5}"
+  local print_fail_message_method="${5}"
   save_command_script "${command}"
   local evaluated_command="./${CURRENT_COMMAND_SCRIPT}"
   evaluated_command=$(command_run_as "${evaluated_command}" "${run_as}")
@@ -511,7 +693,7 @@ really_run_command(){
       remove_current_command
       return ${FAILURE_RESULT}
     else
-      fail_message="$(current_command_fail_message ${build_fail_message})"
+      fail_message="$(print_current_command_fail_message ${print_fail_message_method})"
       remove_current_command
       fail "${fail_message}" "see_logs"
     fi
@@ -576,20 +758,20 @@ save_command_script(){
   debug "$(print_content_of ${CURRENT_COMMAND_SCRIPT})"
 }
 
-current_command_fail_message(){
-  local build_fail_message="${1}"
+print_current_command_fail_message(){
+  local print_fail_message_method="${1}"
   remove_colors_from_file "${CURRENT_COMMAND_OUTPUT_LOG}"
   remove_colors_from_file "${CURRENT_COMMAND_ERROR_LOG}"
-  if empty "$build_fail_message"; then
-    build_fail_message="build_common_fail_message"
+  if empty "$print_fail_message_method"; then
+    print_fail_message_method="print_common_fail_message"
   fi
   fail_message=$(translate 'errors.run_command.fail')
-  fail_message="${fail_message}\n$(eval ${build_fail_message})"
+  fail_message="${fail_message}\n$(eval ${print_fail_message_method})"
   echo -e "${fail_message}"
 }
 
 
-build_common_fail_message(){
+print_common_fail_message(){
   keep_tail "${CURRENT_COMMAND_OUTPUT_LOG}"
   keep_tail "${CURRENT_COMMAND_ERROR_LOG}"
   local fail_message="$(print_content_of ${CURRENT_COMMAND_SCRIPT})"
@@ -1089,8 +1271,8 @@ remove_log_files(){
 }
 
 
+ANSIBLE_TASK_HEADER="^TASK \[(.*)\].*"
 ANSIBLE_TASK_FAILURE_HEADER="^fatal: "
-ANSIBLE_FAILURE_JSON="ansible_fail_task.json"
 
 run_ansible_playbook(){
   local command="ANSIBLE_FORCE_COLOR=true ansible-playbook -vvv -i ${INVENTORY_FILE} ${PROVISION_DIRECTORY}/playbook.yml"
@@ -1100,35 +1282,91 @@ run_ansible_playbook(){
   if isset "$ANSIBLE_IGNORE_TAGS"; then
     command="${command} --skip-tags ${ANSIBLE_IGNORE_TAGS}"
   fi
-  run_command "${command}"
+  run_command "${command}" '' '' '' '' 'print_ansible_fail_message'
 }
 
 
-build_ansible_fail_message(){
-  if is_ansible_task_failed; then
-    debug "Detected ansible task failure"
-    save_ansible_failure_json
-    print_content_of "$ANSIBLE_FAILURE_JSON"
-    remove_ansible_failure_json
+print_ansible_fail_message(){
+  if ansible_task_found "$CURRENT_COMMAND_OUTPUT_LOG"; then
+    debug "Found last ansible task"
+    remove_text_before_pattern "$ANSIBLE_TASK_HEADER" "$CURRENT_COMMAND_OUTPUT_LOG"
+    print_ansible_task_info "$CURRENT_COMMAND_OUTPUT_LOG"
+    print_ansible_task_stdout_and_stderr "$CURRENT_COMMAND_OUTPUT_LOG"
   else
-    build_common_fail_message
+    print_common_fail_message
+  fi
+}
+
+ansible_task_found(){
+  local task_output_filepath="${1}"
+  grep -qE "$ANSIBLE_TASK_HEADER" "$task_output_filepath"
+}
+
+
+print_ansible_task_info(){
+  local task_output_filepath="${1}"
+  task=$(head -n1 "$task_output_filepath" | sed -r "s/${ANSIBLE_TASK_HEADER}/\1/g")
+  echo "Ansible task: '${task}'"
+  task_path=$(head -n2 "$task_output_filepath" | tail -n1)
+  if [[ "$task_path" =~ ^(task path:) ]]; then
+    echo "Ansible ${task_path}"
   fi
 }
 
 
-is_ansible_task_failed(){
+print_ansible_task_stdout_and_stderr(){
+  local task_output_filepath="${1}"
+  if ansible_task_failure_found; then
+    debug "Found last ansible failure"
+    json_filepath="${task_output_filepath}.json"
+    cp "$task_output_filepath" "$json_filepath"
+    keep_json_only "$json_filepath"
+    print_ansible_task_stdout_and_stderr_from_json "$json_filepath"
+    rm "$json_filepath"
+  fi
+}
+
+
+ansible_task_failure_found(){
   grep -q "$ANSIBLE_TASK_FAILURE_HEADER" "$CURRENT_COMMAND_OUTPUT_LOG"
 }
 
 
-save_ansible_failure_json(){
-  # delete content before "$ANSIBLE_TASK_FAILURE_HEADER"
-  sed "/${ANSIBLE_TASK_FAILURE_HEADER}/,\$!d" "$CURRENT_COMMAND_OUTPUT_LOG" > "$ANSIBLE_FAILURE_JSON"
-  sed -i -e "s/${ANSIBLE_TASK_FAILURE_HEADER}.*/{/g" -e '/^}$/q' "$ANSIBLE_FAILURE_JSON"
+keep_json_only(){
+  local task_output_with_json="${1}"
+  # The json with error is inbuilt into text. The structure of text is about:
+  
+  # TASK [$ROLE_NAME : "$TASK_NAME"] *******
+  # task path: /path/to/task/file.yml:$LINE
+  # .....
+  # fatal: [localhost]: FAILED! => {
+  #     .....
+  #     failure JSON
+  #     .....
+  # }
+  # .....
+  
+  # So remove all before "fatal: [localhost]: FAILED! => {" line
+  remove_text_before_pattern "$ANSIBLE_TASK_FAILURE_HEADER" "$task_output_with_json"
+  # Replace first line to just '{'
+  sed -i '1c{' "$task_output_with_json"
+  # Remove all after '}'
+  sed -i -e '/^}$/q' "$task_output_with_json"
 }
 
-remove_ansible_failure_json(){
-  rm "$ANSIBLE_FAILURE_JSON"
+
+remove_text_before_pattern(){
+  local pattern="${1}"
+  local file="${2}"
+  sed -i -r "/${pattern}/,\$!d" "${file}"
+}
+
+
+print_ansible_task_stdout_and_stderr_from_json(){
+  local json_filepath="${1}"
+  declare -A   fail_json
+  cat "$json_filepath" | json_decode fail_json
+  echo "${fail_json['stdout']}"
 }
 
 

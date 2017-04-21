@@ -1,7 +1,7 @@
 #!/usr/bin/env powscript
 
+ANSIBLE_TASK_HEADER="^TASK \[(.*)\].*"
 ANSIBLE_TASK_FAILURE_HEADER="^fatal: "
-ANSIBLE_FAILURE_JSON="ansible_fail_task.json"
 
 run_ansible_playbook()
   local command="ANSIBLE_FORCE_COLOR=true ansible-playbook -vvv -i ${INVENTORY_FILE} ${PROVISION_DIRECTORY}/playbook.yml"
@@ -9,27 +9,70 @@ run_ansible_playbook()
     command="${command} --tags ${ANSIBLE_TAGS}"
   if isset $ANSIBLE_IGNORE_TAGS
     command="${command} --skip-tags ${ANSIBLE_IGNORE_TAGS}"
-  run_command "${command}"
+  run_command "${command}" '' '' '' '' 'print_ansible_fail_message'
 
 
-build_ansible_fail_message()
-  if is_ansible_task_failed
-    debug "Detected ansible task failure"
-    save_ansible_failure_json
-    print_content_of $ANSIBLE_FAILURE_JSON
-    remove_ansible_failure_json
+print_ansible_fail_message()
+  if ansible_task_found $CURRENT_COMMAND_OUTPUT_LOG
+    debug "Found last ansible task"
+    remove_text_before_pattern $ANSIBLE_TASK_HEADER $CURRENT_COMMAND_OUTPUT_LOG
+    print_ansible_task_info $CURRENT_COMMAND_OUTPUT_LOG
+    print_ansible_task_stdout_and_stderr $CURRENT_COMMAND_OUTPUT_LOG
   else
-    build_common_fail_message
+    print_common_fail_message
+
+ansible_task_found(task_output_filepath)
+  grep -qE $ANSIBLE_TASK_HEADER $task_output_filepath
 
 
-is_ansible_task_failed()
+print_ansible_task_info(task_output_filepath)
+  task=$(head -n1 $task_output_filepath | sed -r "s/${ANSIBLE_TASK_HEADER}/\1/g")
+  echo "Ansible failed task: '${task}'"
+  task_path=$(head -n2 $task_output_filepath | tail -n1)
+  if $task_path match ^(task path:)
+    echo "Ansible failed ${task_path}"
+
+
+print_ansible_task_stdout_and_stderr(task_output_filepath)
+  if ansible_task_failure_found
+    debug "Found last ansible failure"
+    json_filepath="${task_output_filepath}.json"
+    cp $task_output_filepath $json_filepath
+    keep_json_only $json_filepath
+    print_ansible_task_stdout_and_stderr_from_json $json_filepath
+    rm $json_filepath
+
+
+ansible_task_failure_found()
   grep -q $ANSIBLE_TASK_FAILURE_HEADER $CURRENT_COMMAND_OUTPUT_LOG
 
 
-save_ansible_failure_json()
-  # delete content before $ANSIBLE_TASK_FAILURE_HEADER
-  sed "/${ANSIBLE_TASK_FAILURE_HEADER}/,\$!d" $CURRENT_COMMAND_OUTPUT_LOG > $ANSIBLE_FAILURE_JSON
-  sed -i -e "s/${ANSIBLE_TASK_FAILURE_HEADER}.*/{/g" -e '/^}$/q' $ANSIBLE_FAILURE_JSON
+keep_json_only(task_output_with_json)
+  # The json with error is inbuilt into text. The structure of text is about:
+  #
+  # TASK [$ROLE_NAME : $TASK_NAME] *******
+  # task path: /path/to/task/file.yml:$LINE
+  # .....
+  # fatal: [localhost]: FAILED! => {
+  #     .....
+  #     failure JSON
+  #     .....
+  # }
+  # .....
+  #
+  # So remove all before "fatal: [localhost]: FAILED! => {" line
+  remove_text_before_pattern $ANSIBLE_TASK_FAILURE_HEADER $task_output_with_json
+  # Replace first line to just '{'
+  sed -i '1c{' $task_output_with_json
+  # Remove all after '}'
+  sed -i -e '/^}$/q' $task_output_with_json
 
-remove_ansible_failure_json()
-  rm $ANSIBLE_FAILURE_JSON
+
+remove_text_before_pattern(pattern, file)
+  sed -i -r "/${pattern}/,\$!d" "${file}"
+
+
+print_ansible_task_stdout_and_stderr_from_json(json_filepath)
+  fail_json={}
+  cat $json_filepath | json_decode fail_json
+  echo $fail_json['stdout']

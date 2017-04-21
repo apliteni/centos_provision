@@ -1,5 +1,5 @@
 TASK [keitaro : Download installer] ********************************************
-task path: /root/centos_provision/centos_provision-master/roles/keitaro/tasks/install.yml:2
+task path: /root/centos_provision-master/roles/keitaro/tasks/install.yml:2
 Using module file /usr/lib/python2.7/site-packages/ansible/modules/core/network/basics/get_url.py
 <localhost> ESTABLISH LOCAL CONNECTION FOR USER: root
 <localhost> EXEC /bin/sh -c '( umask 77 && mkdir -p "` echo ~/.ansible/tmp/ansible-tmp-1492623946.95-5222201500795 `" && echo ansible-tmp-1492623946.95-5222201500795="` echo ~/.ansible/tmp/ansible-tmp-1492623946.95-5222201500795 `" ) && sleep 0'
@@ -58,7 +58,7 @@ ok: [localhost] => {
 }
 
 TASK [keitaro : Install Keitaro TDS] *******************************************
-task path: /root/centos_provision/centos_provision-master/roles/keitaro/tasks/install.yml:7
+task path: /root/centos_provision-master/roles/keitaro/tasks/install.yml:7
 Using module file /usr/lib/python2.7/site-packages/ansible/modules/core/commands/command.py
 <localhost> ESTABLISH LOCAL CONNECTION FOR USER: root
 <localhost> EXEC /bin/sh -c '( umask 77 && mkdir -p "` echo /tmp/ansible-tmp-1492623947.16-222875382688800 `" && echo ansible-tmp-1492623947.16-222875382688800="` echo /tmp/ansible-tmp-1492623947.16-222875382688800 `" ) && sleep 0'
@@ -126,7 +126,7 @@ fatal: [localhost]: FAILED! => {
     ],
     "warnings": []
 }
-	to retry, use: --limit @/root/centos_provision/centos_provision-master/playbook.retry
+	to retry, use: --limit @/root/centos_provision-master/playbook.retry
 
 PLAY RECAP *********************************************************************
 localhost                  : ok=71   changed=4    unreachable=0    failed=1

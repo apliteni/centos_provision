@@ -529,7 +529,7 @@ run_command(){
   local hide_output="${3}"
   local allow_errors="${4}"
   local run_as="${5}"
-  local build_fail_message="${6}"
+  local print_fail_message_method="${6}"
   debug "Evaluating command: ${command}"
   if empty "$message"; then
     run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
@@ -546,7 +546,7 @@ run_command(){
     print_command_status "$command" 'SKIPPED' 'yellow' "$hide_output"
     debug "Actual running disabled"
   else
-    really_run_command "${command}" "${hide_output}" "${allow_errors}" "${run_as}" "${build_fail_message}"
+    really_run_command "${command}" "${hide_output}" "${allow_errors}" "${run_as}" "${print_fail_message_method}"
   fi
 }
 
@@ -568,7 +568,7 @@ really_run_command(){
   local hide_output="${2}"
   local allow_errors="${3}"
   local run_as="${4}"
-  local build_fail_message="${5}"
+  local print_fail_message_method="${5}"
   save_command_script "${command}"
   local evaluated_command="./${CURRENT_COMMAND_SCRIPT}"
   evaluated_command=$(command_run_as "${evaluated_command}" "${run_as}")
@@ -582,7 +582,7 @@ really_run_command(){
       remove_current_command
       return ${FAILURE_RESULT}
     else
-      fail_message="$(current_command_fail_message ${build_fail_message})"
+      fail_message="$(print_current_command_fail_message ${print_fail_message_method})"
       remove_current_command
       fail "${fail_message}" "see_logs"
     fi
@@ -647,20 +647,20 @@ save_command_script(){
   debug "$(print_content_of ${CURRENT_COMMAND_SCRIPT})"
 }
 
-current_command_fail_message(){
-  local build_fail_message="${1}"
+print_current_command_fail_message(){
+  local print_fail_message_method="${1}"
   remove_colors_from_file "${CURRENT_COMMAND_OUTPUT_LOG}"
   remove_colors_from_file "${CURRENT_COMMAND_ERROR_LOG}"
-  if empty "$build_fail_message"; then
-    build_fail_message="build_common_fail_message"
+  if empty "$print_fail_message_method"; then
+    print_fail_message_method="print_common_fail_message"
   fi
   fail_message=$(translate 'errors.run_command.fail')
-  fail_message="${fail_message}\n$(eval ${build_fail_message})"
+  fail_message="${fail_message}\n$(eval ${print_fail_message_method})"
   echo -e "${fail_message}"
 }
 
 
-build_common_fail_message(){
+print_common_fail_message(){
   keep_tail "${CURRENT_COMMAND_OUTPUT_LOG}"
   keep_tail "${CURRENT_COMMAND_ERROR_LOG}"
   local fail_message="$(print_content_of ${CURRENT_COMMAND_SCRIPT})"
