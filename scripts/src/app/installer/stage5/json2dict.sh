@@ -1,5 +1,3 @@
-#!/usr/bin/env bash
-
 json2dict() {
 
   throw() {

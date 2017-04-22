@@ -33,6 +33,7 @@ define compile_powscript
 	sed -i 's|#!/bin/bash|#!/usr/bin/env bash|g' $(2)         # portable shebang line
 	sed -i '/# cleanup tmp files/,+4d' $(2)                   # remove unportable cleaning
 	sed -i 's/#$$//g' $(2)                                    # remove trailing #
+    bin/postprocess_requires.rb $(2)
 	chmod a+x $(2)
 endef
 
@@ -40,7 +41,7 @@ compile_installer:
 	$(call compile_powscript,installer.pow,install.sh)
 
 compile_ssl_enabler:
-	$(call compile_powscript,ssl_enableer.pow,enable-ssl.sh)
+	$(call compile_powscript,ssl_enabler.pow,enable-ssl.sh)
 
 compile_site_adder:
 	$(call compile_powscript,site_adder.pow,add-site.sh)

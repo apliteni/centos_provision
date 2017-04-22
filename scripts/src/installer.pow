@@ -60,6 +60,7 @@ require 'app/installer/stage5/remove_inventory_file.pow'
 require 'app/installer/stage5/remove_log_files.pow'
 require 'app/installer/stage5/run_ansible_playbook.pow'
 require 'app/installer/stage5/show_successful_message.pow'
+_require 'app/installer/stage5/json2dict.sh'
 
 # We wrap the entire script in a big function which we only call at the very end, in order to
 # protect against the possibility of the connection dying mid-script. This protects us against

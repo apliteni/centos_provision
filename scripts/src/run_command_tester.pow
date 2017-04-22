@@ -24,6 +24,7 @@ require 'lib/system/run_command.pow'
 require 'lib/system/remove_current_command.pow'
 
 require 'app/installer/stage5/run_ansible_playbook.pow'
+_require 'app/installer/stage5/json2dict.sh'
 
 
 # We wrap the entire script in a big function which we only call at the very end, in order to
