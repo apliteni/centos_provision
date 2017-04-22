@@ -28,30 +28,22 @@ clean:
 
 compile: compile_site_adder compile_installer compile_ssl_enabler compile_run_command_tester
 
+define compile_powscript
+	powscript --compile src/$(1)  > $(2) || true
+	sed -i 's|#!/bin/bash|#!/usr/bin/env bash|g' $(2)         # portable shebang line
+	sed -i '/# cleanup tmp files/,+4d' $(2)                   # remove unportable cleaning
+	sed -i 's/#$$//g' $(2)                                    # remove trailing #
+	chmod a+x $(2)
+endef
+
 compile_installer:
-	powscript --compile src/installer.pow  > install.sh || true
-	sed -i 's|#!/bin/bash|#!/usr/bin/env bash|g' install.sh         # portable shebang line
-	sed -i '/# cleanup tmp files/,+4d' install.sh                   # remove unportable cleaning
-	sed -i 's/#$$//g' install.sh                                    # remove trailing #
-	chmod a+x install.sh
+	$(call compile_powscript,installer.pow,install.sh)
 
 compile_ssl_enabler:
-	powscript --compile src/ssl_enabler.pow  > enable-ssl.sh || true
-	sed -i 's|#!/bin/bash|#!/usr/bin/env bash|g' enable-ssl.sh      # portable shebang line
-	sed -i '/# cleanup tmp files/,+4d' enable-ssl.sh                # remove unportable cleaning
-	sed -i 's/#$$//g' enable-ssl.sh                                 # remove trailing #
-	chmod a+x enable-ssl.sh
+	$(call compile_powscript,ssl_enableer.pow,enable-ssl.sh)
 
 compile_site_adder:
-	powscript --compile src/site_adder.pow  > add-site.sh || true
-	sed -i 's|#!/bin/bash|#!/usr/bin/env bash|g' add-site.sh      # portable shebang line
-	sed -i '/# cleanup tmp files/,+4d' add-site.sh                # remove unportable cleaning
-	sed -i 's/#$$//g' add-site.sh                                 # remove trailing #
-	chmod a+x add-site.sh
+	$(call compile_powscript,site_adder.pow,add-site.sh)
 
 compile_run_command_tester:
-	powscript --compile src/run_command_tester.pow  > test-run-command.sh || true
-	sed -i 's|#!/bin/bash|#!/usr/bin/env bash|g' test-run-command.sh      # portable shebang line
-	sed -i '/# cleanup tmp files/,+4d' test-run-command.sh                # remove unportable cleaning
-	sed -i 's/#$$//g' test-run-command.sh                                 # remove trailing #
-	chmod a+x test-run-command.sh
+	$(call compile_powscript,run_command_tester.pow,test-run-command.sh)
