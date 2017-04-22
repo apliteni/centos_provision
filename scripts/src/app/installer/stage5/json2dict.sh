@@ -1,6 +1,6 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
-json_decode() {
+json2dict() {
 
   throw() {
     echo "$*" >&2
@@ -130,11 +130,11 @@ json_decode() {
       # At this point, the only valid single-character tokens are digits.
       ''|[!0-9]) throw "EXPECTED value GOT ${token:-EOF}" ;;
       *) value=$token
-         # if asked, replace solidus ("\/") in json strings with normalized value: "/"
-         [ "$NORMALIZE_SOLIDUS" -eq 1 ] && value=$(echo "$value" | sed 's#\\/#/#g')
-         isleaf=1
-         [ "$value" = '""' ] && isempty=1
-         ;;
+        # if asked, replace solidus ("\/") in json strings with normalized value: "/"
+        [ "$NORMALIZE_SOLIDUS" -eq 1 ] && value=$(echo "$value" | sed 's#\\/#/#g')
+        isleaf=1
+        [ "$value" = '""' ] && isempty=1
+        ;;
     esac
     [ "$value" = '' ] && return
     [ "$NO_HEAD" -eq 1 ] && [ -z "$jpath" ] && return
@@ -164,15 +164,5 @@ json_decode() {
     esac
   }
 
-  local var="$1"
-  tokenize | json_parse
-
-#  echo "declare -a $var; var=( $(tokenize | json_parse) )"
-#  eval "declare -a $var; var=( $(tokenize | json_parse) )"
-#  eval "declare -a $var; var=( $dict )"
+  echo "("; (tokenize | json_parse); echo ")"
 }
-
-cat $1 | json_decode json
-
-
-# vi: expandtab sw=2 ts=2
