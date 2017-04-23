@@ -67,13 +67,11 @@ RSpec.describe 'test-run-command.sh' do
     context 'install keitaro' do
       let(:scenario) { 'install_keitaro' }
 
-      # it_behaves_like 'should print to', :stderr, '[WARNING]: Ignoring "pattern" as it is not used in "systemd"'
-      it_behaves_like 'should not print to', :stderr, 'TASK [keitaro : Install Keitaro TDS]'
+      it_behaves_like 'should print to', :stderr, %Q{Content of 'current_command.error.log':\n  \n  [WARNING]: Ignoring "pattern" as it is not used in "systemd"}
+      it_behaves_like 'should not print to', :stderr, '<localhost> ESTABLISH LOCAL CONNECTION FOR USER: root'
       it_behaves_like 'should print to', :stderr, [
-        "Ansible failed task: 'keitaro : Install Keitaro TDS'",
-        'Ansible failed task path: /root/centos_provision-master/roles/keitaro/tasks/install.yml:7',
-        #'Ansible task stderr is empty',
-        /Ansible task stdout:\n  Server Configuration(.*\n)+  Key is invalid.*/
+        "Task info:\n  TASK [keitaro : Install Keitaro TDS]",
+        /Task stdout:\n  Server Configuration(.*\n)+  Key is invalid.*/
       ]
     end
   end
