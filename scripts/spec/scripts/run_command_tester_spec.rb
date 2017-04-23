@@ -73,7 +73,7 @@ RSpec.describe 'test-run-command.sh' do
         "Ansible failed task: 'keitaro : Install Keitaro TDS'",
         'Ansible failed task path: /root/centos_provision-master/roles/keitaro/tasks/install.yml:7',
         #'Ansible task stderr is empty',
-        #/Ansible task stdout:\n  Server Configuration(.*\n)+  Key is invalid.*/
+        /Ansible task stdout:\n  Server Configuration(.*\n)+  Key is invalid.*/
       ]
     end
   end
