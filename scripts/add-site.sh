@@ -684,23 +684,16 @@ print_current_command_fail_message(){
 
 
 print_common_fail_message(){
-  keep_tail "${CURRENT_COMMAND_OUTPUT_LOG}"
-  keep_tail "${CURRENT_COMMAND_ERROR_LOG}"
-  local fail_message="$(print_content_of ${CURRENT_COMMAND_SCRIPT})"
-  fail_message="${fail_message}\n$(print_content_of ${CURRENT_COMMAND_OUTPUT_LOG})"
-  fail_message="${fail_message}\n$(print_content_of ${CURRENT_COMMAND_ERROR_LOG})"
-  echo "$fail_message"
+  print_content_of ${CURRENT_COMMAND_SCRIPT}
+  print_tail_content_of "${CURRENT_COMMAND_OUTPUT_LOG}"
+  print_tail_content_of "${CURRENT_COMMAND_ERROR_LOG}"
 }
 
 
-keep_tail(){
+print_tail_content_of(){
   local file="${1}"
   MAX_LINES_COUNT=20
-  if [[ $(cat "${file}" | wc -l) -gt "$MAX_LINES_COUNT" ]]; then
-    debug "${file} is too big, keep only ${MAX_LINES_COUNT} tail lines"
-    tail -n "$MAX_LINES_COUNT" "$file" > "$file".tail
-    mv "$file".tail "$file"
-  fi
+  print_content_of "${file}" |  tail -n "$MAX_LINES_COUNT"
 }
 
 

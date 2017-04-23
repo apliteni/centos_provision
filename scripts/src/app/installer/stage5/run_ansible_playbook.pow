@@ -17,6 +17,7 @@ print_ansible_fail_message()
   echo "Fail when playing ansible playbook"
   if ansible_task_found $CURRENT_COMMAND_OUTPUT_LOG
     debug "Found last ansible task"
+    print_tail_content_of $CURRENT_COMMAND_ERROR_LOG
     remove_text_before_last_pattern_occurence $ANSIBLE_TASK_HEADER $CURRENT_COMMAND_OUTPUT_LOG
     print_ansible_task_info $CURRENT_COMMAND_OUTPUT_LOG
     print_ansible_task_stdout_and_stderr $CURRENT_COMMAND_OUTPUT_LOG

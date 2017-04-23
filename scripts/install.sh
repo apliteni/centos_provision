@@ -596,23 +596,16 @@ print_current_command_fail_message(){
 
 
 print_common_fail_message(){
-  keep_tail "${CURRENT_COMMAND_OUTPUT_LOG}"
-  keep_tail "${CURRENT_COMMAND_ERROR_LOG}"
-  local fail_message="$(print_content_of ${CURRENT_COMMAND_SCRIPT})"
-  fail_message="${fail_message}\n$(print_content_of ${CURRENT_COMMAND_OUTPUT_LOG})"
-  fail_message="${fail_message}\n$(print_content_of ${CURRENT_COMMAND_ERROR_LOG})"
-  echo "$fail_message"
+  print_content_of ${CURRENT_COMMAND_SCRIPT}
+  print_tail_content_of "${CURRENT_COMMAND_OUTPUT_LOG}"
+  print_tail_content_of "${CURRENT_COMMAND_ERROR_LOG}"
 }
 
 
-keep_tail(){
+print_tail_content_of(){
   local file="${1}"
   MAX_LINES_COUNT=20
-  if [[ $(cat "${file}" | wc -l) -gt "$MAX_LINES_COUNT" ]]; then
-    debug "${file} is too big, keep only ${MAX_LINES_COUNT} tail lines"
-    tail -n "$MAX_LINES_COUNT" "$file" > "$file".tail
-    mv "$file".tail "$file"
-  fi
+  print_content_of "${file}" |  tail -n "$MAX_LINES_COUNT"
 }
 
 
@@ -1112,8 +1105,10 @@ run_ansible_playbook(){
 
 
 print_ansible_fail_message(){
+  echo "Fail when playing ansible playbook"
   if ansible_task_found "$CURRENT_COMMAND_OUTPUT_LOG"; then
     debug "Found last ansible task"
+    print_tail_content_of "$CURRENT_COMMAND_ERROR_LOG"
     remove_text_before_last_pattern_occurence "$ANSIBLE_TASK_HEADER" "$CURRENT_COMMAND_OUTPUT_LOG"
     print_ansible_task_info "$CURRENT_COMMAND_OUTPUT_LOG"
     print_ansible_task_stdout_and_stderr "$CURRENT_COMMAND_OUTPUT_LOG"
@@ -1130,12 +1125,8 @@ ansible_task_found(){
 
 print_ansible_task_info(){
   local task_output_filepath="${1}"
-  task=$(head -n1 "$task_output_filepath" | sed -r "s/${ANSIBLE_TASK_HEADER}/\1/g")
-  echo "Ansible failed task: '${task}'"
-  task_path=$(head -n2 "$task_output_filepath" | tail -n1)
-  if [[ "$task_path" =~ ^(task path:) ]]; then
-    echo "Ansible failed ${task_path}"
-  fi
+  echo "Task info:"
+  head -n3 "$task_output_filepath" | add_indentation
 }
 
 
@@ -1190,8 +1181,25 @@ print_ansible_task_stdout_and_stderr_from_json(){
   local json_filepath="${1}"
   declare -A   fail_json
   eval "fail_json=$(cat "$ANSIBLE_FAILURE_JSON_FILEPATH" | json2dict)"
-  echo "Task stderr: ${fail_json['stderr']}"
-  echo "Task stdout: ${fail_json['stdout']}"
+  print_field_content 'Task stdout' "${fail_json['stdout']}"
+  print_field_content 'Task stderr' "${fail_json['stderr']}"
+}
+
+
+print_field_content(){
+  local field_name="${1}"
+  local field_content="${2}"
+  if empty "${field_content}"; then
+    echo "${field_name} is empty"
+  else
+    echo "${field_name}:"
+    echo -e "${field_content}" | add_indentation
+  fi
+}
+
+
+add_indentation(){
+  sed "s/^/  /g"
 }
 
 

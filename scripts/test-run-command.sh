@@ -459,23 +459,16 @@ print_current_command_fail_message(){
 
 
 print_common_fail_message(){
-  keep_tail "${CURRENT_COMMAND_OUTPUT_LOG}"
-  keep_tail "${CURRENT_COMMAND_ERROR_LOG}"
-  local fail_message="$(print_content_of ${CURRENT_COMMAND_SCRIPT})"
-  fail_message="${fail_message}\n$(print_content_of ${CURRENT_COMMAND_OUTPUT_LOG})"
-  fail_message="${fail_message}\n$(print_content_of ${CURRENT_COMMAND_ERROR_LOG})"
-  echo "$fail_message"
+  print_content_of ${CURRENT_COMMAND_SCRIPT}
+  print_tail_content_of "${CURRENT_COMMAND_OUTPUT_LOG}"
+  print_tail_content_of "${CURRENT_COMMAND_ERROR_LOG}"
 }
 
 
-keep_tail(){
+print_tail_content_of(){
   local file="${1}"
   MAX_LINES_COUNT=20
-  if [[ $(cat "${file}" | wc -l) -gt "$MAX_LINES_COUNT" ]]; then
-    debug "${file} is too big, keep only ${MAX_LINES_COUNT} tail lines"
-    tail -n "$MAX_LINES_COUNT" "$file" > "$file".tail
-    mv "$file".tail "$file"
-  fi
+  print_content_of "${file}" |  tail -n "$MAX_LINES_COUNT"
 }
 
 
@@ -506,6 +499,7 @@ print_ansible_fail_message(){
   echo "Fail when playing ansible playbook"
   if ansible_task_found "$CURRENT_COMMAND_OUTPUT_LOG"; then
     debug "Found last ansible task"
+    print_tail_content_of "$CURRENT_COMMAND_ERROR_LOG"
     remove_text_before_last_pattern_occurence "$ANSIBLE_TASK_HEADER" "$CURRENT_COMMAND_OUTPUT_LOG"
     print_ansible_task_info "$CURRENT_COMMAND_OUTPUT_LOG"
     print_ansible_task_stdout_and_stderr "$CURRENT_COMMAND_OUTPUT_LOG"
