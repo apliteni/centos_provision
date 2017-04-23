@@ -503,6 +503,7 @@ run_ansible_playbook(){
 
 
 print_ansible_fail_message(){
+  echo "Fail when playing ansible playbook"
   if ansible_task_found "$CURRENT_COMMAND_OUTPUT_LOG"; then
     debug "Found last ansible task"
     remove_text_before_last_pattern_occurence "$ANSIBLE_TASK_HEADER" "$CURRENT_COMMAND_OUTPUT_LOG"
@@ -521,12 +522,8 @@ ansible_task_found(){
 
 print_ansible_task_info(){
   local task_output_filepath="${1}"
-  task=$(head -n1 "$task_output_filepath" | sed -r "s/${ANSIBLE_TASK_HEADER}/\1/g")
-  echo "Ansible failed task: '${task}'"
-  task_path=$(head -n2 "$task_output_filepath" | tail -n1)
-  if [[ "$task_path" =~ ^(task path:) ]]; then
-    echo "Ansible failed ${task_path}"
-  fi
+  echo "Task info:"
+  head -n3 "$task_output_filepath" | add_indentation
 }
 
 
@@ -581,19 +578,25 @@ print_ansible_task_stdout_and_stderr_from_json(){
   local json_filepath="${1}"
   declare -A   fail_json
   eval "fail_json=$(cat "$ANSIBLE_FAILURE_JSON_FILEPATH" | json2dict)"
-  print_field_content 'cmd.stdout' "${fail_json['stdout']}"
-  print_field_content 'cmd.stderr' "${fail_json['stderr']}"
+  print_field_content 'Task stdout' "${fail_json['stdout']}"
+  print_field_content 'Task stderr' "${fail_json['stderr']}"
 }
 
 
 print_field_content(){
-  local file_name_suffix="${1}"
+  local field_name="${1}"
   local field_content="${2}"
-  # TODO Get rid of file operations
-  local log_file_name="ansible_task.${file_name_suffix}.log"
-  echo "${field_content}" > "${log_file_name}"
-  print_content_of "${log_file_name}"
-  rm -f "${log_file_name}"
+  if empty "${field_content}"; then
+    echo "${field_name} is empty"
+  else
+    echo "${field_name}:"
+    echo -e "${field_content}" | add_indentation
+  fi
+}
+
+
+add_indentation(){
+  sed "s/^/  /g"
 }
 
 
