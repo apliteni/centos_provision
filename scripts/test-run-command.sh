@@ -581,8 +581,19 @@ print_ansible_task_stdout_and_stderr_from_json(){
   local json_filepath="${1}"
   declare -A   fail_json
   eval "fail_json=$(cat "$ANSIBLE_FAILURE_JSON_FILEPATH" | json2dict)"
-  echo "Task stderr: ${fail_json['stderr']}"
-  echo "Task stdout: ${fail_json['stdout']}"
+  print_field_content 'cmd.stdout' "${fail_json['stdout']}"
+  print_field_content 'cmd.stderr' "${fail_json['stderr']}"
+}
+
+
+print_field_content(){
+  local file_name_suffix="${1}"
+  local field_content="${2}"
+  # TODO Get rid of file operations
+  local log_file_name="ansible_task.${file_name_suffix}.log"
+  echo "${field_content}" > "${log_file_name}"
+  print_content_of "${log_file_name}"
+  rm -f "${log_file_name}"
 }
 
 
