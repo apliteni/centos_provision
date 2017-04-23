@@ -91,7 +91,7 @@ declare -A DICT
 
 DICT['en.errors.program_failed']='PROGRAM FAILED'
 DICT['en.errors.must_be_root']='You must run this program as root.'
-DICT['en.errors.run_command.fail']='There was an error evaluating command'
+DICT['en.errors.run_command.fail']='There was an error evaluating current command'
 DICT['en.errors.run_command.fail_extra']=''
 DICT['en.errors.terminated']='Terminated by user'
 DICT['en.messages.reload_nginx']="Reloading nginx"
@@ -104,7 +104,7 @@ DICT['en.prompt_errors.validate_yes_no']='Please answer "yes" or "no"'
 
 DICT['ru.errors.program_failed']='ОШИБКА ВЫПОЛНЕНИЯ ПРОГРАММЫ'
 DICT['ru.errors.must_be_root']='Эту программу может запускать только root.'
-DICT['ru.errors.run_command.fail']='Ошибка выполнения команды'
+DICT['ru.errors.run_command.fail']='Ошибка выполнения текущей команды'
 DICT['ru.errors.run_command.fail_extra']=''
 DICT['ru.errors.terminated']='Выполнение прервано'
 DICT['ru.messages.reload_nginx']="Перезагружается nginx"
@@ -446,7 +446,11 @@ on_exit(){
 print_content_of(){
   local filepath="${1}"
   if [ -f "$filepath" ]; then
-    echo "Content of '${filepath}':\n$(cat "$filepath" | sed 's/^/  /g')"
+    if [ -s "$filepath" ]; then
+      echo "Content of '${filepath}':\n$(cat "$filepath" | sed 's/^/  /g')"
+    else
+      echo "File '${filepath}' is empty"
+    fi
   else
     echo "Can't show '${filepath}' content - file does not exist"
   fi

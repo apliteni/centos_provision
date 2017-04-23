@@ -1,8 +1,10 @@
 #!/usr/bin/env powscript
 
+
 ANSIBLE_TASK_HEADER="^TASK \[(.*)\].*"
 ANSIBLE_TASK_FAILURE_HEADER="^fatal: "
 ANSIBLE_FAILURE_JSON_FILEPATH="ansible_failure.json"
+
 
 run_ansible_playbook()
   local command="ANSIBLE_FORCE_COLOR=true ansible-playbook -vvv -i ${INVENTORY_FILE} ${PROVISION_DIRECTORY}/playbook.yml"
@@ -14,7 +16,6 @@ run_ansible_playbook()
 
 
 print_ansible_fail_message()
-  echo "Fail when playing ansible playbook"
   if ansible_task_found $CURRENT_COMMAND_OUTPUT_LOG
     debug "Found last ansible task"
     print_tail_content_of $CURRENT_COMMAND_ERROR_LOG
@@ -23,6 +24,7 @@ print_ansible_fail_message()
     print_ansible_task_stdout_and_stderr $CURRENT_COMMAND_OUTPUT_LOG
   else
     print_common_fail_message
+
 
 ansible_task_found(task_output_filepath)
   grep -qE $ANSIBLE_TASK_HEADER $task_output_filepath

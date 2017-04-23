@@ -92,7 +92,7 @@ declare -A DICT
 
 DICT['en.errors.program_failed']='PROGRAM FAILED'
 DICT['en.errors.must_be_root']='You must run this program as root.'
-DICT['en.errors.run_command.fail']='There was an error evaluating command'
+DICT['en.errors.run_command.fail']='There was an error evaluating current command'
 DICT['en.errors.run_command.fail_extra']=''
 DICT['en.errors.terminated']='Terminated by user'
 DICT['en.messages.reload_nginx']="Reloading nginx"
@@ -105,7 +105,7 @@ DICT['en.prompt_errors.validate_yes_no']='Please answer "yes" or "no"'
 
 DICT['ru.errors.program_failed']='ОШИБКА ВЫПОЛНЕНИЯ ПРОГРАММЫ'
 DICT['ru.errors.must_be_root']='Эту программу может запускать только root.'
-DICT['ru.errors.run_command.fail']='Ошибка выполнения команды'
+DICT['ru.errors.run_command.fail']='Ошибка выполнения текущей команды'
 DICT['ru.errors.run_command.fail_extra']=''
 DICT['ru.errors.terminated']='Выполнение прервано'
 DICT['ru.messages.reload_nginx']="Перезагружается nginx"
@@ -258,7 +258,11 @@ on_exit(){
 print_content_of(){
   local filepath="${1}"
   if [ -f "$filepath" ]; then
-    echo "Content of '${filepath}':\n$(cat "$filepath" | sed 's/^/  /g')"
+    if [ -s "$filepath" ]; then
+      echo "Content of '${filepath}':\n$(cat "$filepath" | sed 's/^/  /g')"
+    else
+      echo "File '${filepath}' is empty"
+    fi
   else
     echo "Can't show '${filepath}' content - file does not exist"
   fi
@@ -479,9 +483,11 @@ remove_current_command(){
 }
 
 
+
 ANSIBLE_TASK_HEADER="^TASK \[(.*)\].*"
 ANSIBLE_TASK_FAILURE_HEADER="^fatal: "
 ANSIBLE_FAILURE_JSON_FILEPATH="ansible_failure.json"
+
 
 run_ansible_playbook(){
   local command="ANSIBLE_FORCE_COLOR=true ansible-playbook -vvv -i ${INVENTORY_FILE} ${PROVISION_DIRECTORY}/playbook.yml"
@@ -496,7 +502,6 @@ run_ansible_playbook(){
 
 
 print_ansible_fail_message(){
-  echo "Fail when playing ansible playbook"
   if ansible_task_found "$CURRENT_COMMAND_OUTPUT_LOG"; then
     debug "Found last ansible task"
     print_tail_content_of "$CURRENT_COMMAND_ERROR_LOG"
@@ -507,6 +512,7 @@ print_ansible_fail_message(){
     print_common_fail_message
   fi
 }
+
 
 ansible_task_found(){
   local task_output_filepath="${1}"
