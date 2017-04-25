@@ -588,13 +588,12 @@ get_failed_module_name(){
 
 print_ansible_task_module_info(){
   local json_filepath="${1}"
-  failed_module=$(get_failed_module_name "$task_output_filepath")
+  failed_module=$(get_failed_module_name)
   declare -A   fail_json
   eval "fail_json=$(cat "$ANSIBLE_FAILURE_JSON_FILEPATH" | json2dict)"
-  echo "$failed_module"
-  echo ${ANSIBLE_MODULE_FIELDS[$failed_module]}
-  print_field_content 'Task stdout' "${fail_json['stdout']}"
-  print_field_content 'Task stderr' "${fail_json['stderr']}"
+  for field in ${ANSIBLE_MODULE_FIELDS[$failed_module]}; do
+    print_field_content "Task ${field}" "${fail_json["${field}"]}"
+  done
 }
 
 

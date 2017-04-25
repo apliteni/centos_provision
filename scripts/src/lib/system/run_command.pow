@@ -84,6 +84,7 @@ save_command_script(command)
   chmod a+x "${CURRENT_COMMAND_SCRIPT}"
   debug "$(print_content_of ${CURRENT_COMMAND_SCRIPT})"
 
+
 print_current_command_fail_message(print_fail_message_method)
   remove_colors_from_file "${CURRENT_COMMAND_OUTPUT_LOG}"
   remove_colors_from_file "${CURRENT_COMMAND_ERROR_LOG}"

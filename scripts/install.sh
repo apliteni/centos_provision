@@ -1097,6 +1097,9 @@ ANSIBLE_TASK_HEADER="^TASK \[(.*)\].*"
 ANSIBLE_TASK_FAILURE_HEADER="^fatal: "
 ANSIBLE_FAILURE_JSON_FILEPATH="ansible_failure.json"
 
+declare -A ANSIBLE_MODULE_FIELDS
+ANSIBLE_MODULE_FIELDS['core_commands_command']='stdout stderr'
+
 
 run_ansible_playbook(){
   local command="ANSIBLE_FORCE_COLOR=true ansible-playbook -vvv -i ${INVENTORY_FILE} ${PROVISION_DIRECTORY}/playbook.yml"
@@ -1114,9 +1117,10 @@ print_ansible_fail_message(){
   if ansible_task_found "$CURRENT_COMMAND_OUTPUT_LOG"; then
     debug "Found last ansible task"
     print_tail_content_of "$CURRENT_COMMAND_ERROR_LOG"
+    # TODO Save only last task log in file
     remove_text_before_last_pattern_occurence "$ANSIBLE_TASK_HEADER" "$CURRENT_COMMAND_OUTPUT_LOG"
     print_ansible_task_info "$CURRENT_COMMAND_OUTPUT_LOG"
-    print_ansible_task_stdout_and_stderr "$CURRENT_COMMAND_OUTPUT_LOG"
+    print_ansible_task_external_info "$CURRENT_COMMAND_OUTPUT_LOG"
   else
     print_common_fail_message
   fi
@@ -1136,13 +1140,13 @@ print_ansible_task_info(){
 }
 
 
-print_ansible_task_stdout_and_stderr(){
+print_ansible_task_external_info(){
   local task_output_filepath="${1}"
   if ansible_task_failure_found; then
     debug "Found last ansible failure"
     cp "$task_output_filepath" "$ANSIBLE_FAILURE_JSON_FILEPATH"
     keep_json_only "$ANSIBLE_FAILURE_JSON_FILEPATH"
-    print_ansible_task_stdout_and_stderr_from_json "$ANSIBLE_FAILURE_JSON_FILEPATH"
+    print_ansible_task_module_info "$ANSIBLE_FAILURE_JSON_FILEPATH"
     rm "$ANSIBLE_FAILURE_JSON_FILEPATH"
   fi
 }
@@ -1183,12 +1187,22 @@ remove_text_before_last_pattern_occurence(){
 }
 
 
-print_ansible_task_stdout_and_stderr_from_json(){
+get_failed_module_name(){
+  head -n3 "$CURRENT_COMMAND_OUTPUT_LOG" | \
+    tail -n1 | \
+    grep -oE 'modules/.*' | \
+    sed -e 's|^modules/||g' -e 's|/|_|g' -e 's|\.py||'
+  }
+
+
+print_ansible_task_module_info(){
   local json_filepath="${1}"
+  failed_module=$(get_failed_module_name)
   declare -A   fail_json
   eval "fail_json=$(cat "$ANSIBLE_FAILURE_JSON_FILEPATH" | json2dict)"
-  print_field_content 'Task stdout' "${fail_json['stdout']}"
-  print_field_content 'Task stderr' "${fail_json['stderr']}"
+  for field in ${ANSIBLE_MODULE_FIELDS[$failed_module]}; do
+    print_field_content "Task ${field}" "${fail_json["${field}"]}"
+  done
 }
 
 
@@ -1401,8 +1415,8 @@ json2dict() {
 
 
 install(){
-  init "$@"
-  stage1 "$@"
+  init $@
+  stage1 $@
   stage2
   stage3
   stage4
@@ -1410,7 +1424,7 @@ install(){
 }
 
 
-install "$@"
+install $@
 
 # wait for all async child processes (because "await ... then" is used in powscript)
 [[ $ASYNC == 1 ]] && wait
