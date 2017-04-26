@@ -102,7 +102,7 @@ class Script
 
         prompt = stdout_chunk.split("\n").last
 
-        if prompt =~ / > $/
+        if prompts_with_values.any? && prompt =~ / > $/
           key = prompt.match(/[^>]+/)[0].gsub(/\[.*\]/, '').strip
           if prompts_with_values.key?(key)
             stdin.puts(prompts_with_values[key])
