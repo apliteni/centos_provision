@@ -1,0 +1,3 @@
+[WARNING]: Ignoring "pattern" as it is not used in "systemd"
+
+[WARNING]: Consider using yum module rather than running yum

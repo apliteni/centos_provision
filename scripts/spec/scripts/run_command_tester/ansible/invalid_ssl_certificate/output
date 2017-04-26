@@ -1,0 +1,1034 @@
+Using /etc/ansible/ansible.cfg as config file
+statically included: /root/centos_provision/roles/mrlesmithjr.timezone/tasks/debian.yml
+statically included: /root/centos_provision/roles/mrlesmithjr.timezone/tasks/centos.yml
+statically included: /root/centos_provision/roles/geerlingguy.nginx/tasks/setup-RedHat.yml
+statically included: /root/centos_provision/roles/geerlingguy.nginx/tasks/setup-Ubuntu.yml
+statically included: /root/centos_provision/roles/geerlingguy.nginx/tasks/setup-Debian.yml
+statically included: /root/centos_provision/roles/geerlingguy.nginx/tasks/vhosts.yml
+statically included: /root/centos_provision/roles/geerlingguy.firewall/tasks/disable-other-firewalls.yml
+statically included: /root/centos_provision/roles/letsencrypt/tasks/install_certbot.yml
+statically included: /root/centos_provision/roles/letsencrypt/tasks/generate_selfsigned_certs.yml
+statically included: /root/centos_provision/roles/letsencrypt/tasks/generate_letsencrypt_certs.yml
+statically included: /root/centos_provision/roles/letsencrypt/tasks/generate_dhparam.yml
+statically included: /root/centos_provision/roles/letsencrypt/tasks/configure_nginx.yml
+statically included: /root/centos_provision/roles/keitaro/tasks/install.yml
+
+PLAYBOOK: playbook.yml *********************************************************
+1 plays in playbook.yml
+
+PLAY [all] *********************************************************************
+
+TASK [setup] *******************************************************************
+Using module file /usr/lib/python2.7/site-packages/ansible/modules/core/system/setup.py
+<localhost> ESTABLISH LOCAL CONNECTION FOR USER: root
+<localhost> EXEC /bin/sh -c '( umask 77 && mkdir -p "` echo ~/.ansible/tmp/ansible-tmp-1492755485.98-93798293109178 `" && echo ansible-tmp-1492755485.98-93798293109178="` echo ~/.ansible/tmp/ansible-tmp-1492755485.98-93798293109178 `" ) && sleep 0'
+<localhost> PUT /tmp/tmpd_Bfwr TO /root/.ansible/tmp/ansible-tmp-1492755485.98-93798293109178/setup.py
+<localhost> EXEC /bin/sh -c 'chmod u+x /root/.ansible/tmp/ansible-tmp-1492755485.98-93798293109178/ /root/.ansible/tmp/ansible-tmp-1492755485.98-93798293109178/setup.py && sleep 0'
+<localhost> EXEC /bin/sh -c '/usr/bin/python /root/.ansible/tmp/ansible-tmp-1492755485.98-93798293109178/setup.py; rm -rf "/root/.ansible/tmp/ansible-tmp-1492755485.98-93798293109178/" > /dev/null 2>&1 && sleep 0'
+ok: [localhost]
+
+TASK [kernel : Update kernel params] *******************************************
+task path: /root/centos_provision/roles/kernel/tasks/main.yml:2
+Using module file /usr/lib/python2.7/site-packages/ansible/modules/core/system/sysctl.py
+<localhost> ESTABLISH LOCAL CONNECTION FOR USER: root
+<localhost> EXEC /bin/sh -c '( umask 77 && mkdir -p "` echo ~/.ansible/tmp/ansible-tmp-1492755486.35-42574423039326 `" && echo ansible-tmp-1492755486.35-42574423039326="` echo ~/.ansible/tmp/ansible-tmp-1492755486.35-42574423039326 `" ) && sleep 0'
+<localhost> PUT /tmp/tmpxjUspO TO /root/.ansible/tmp/ansible-tmp-1492755486.35-42574423039326/sysctl.py
+<localhost> EXEC /bin/sh -c 'chmod u+x /root/.ansible/tmp/ansible-tmp-1492755486.35-42574423039326/ /root/.ansible/tmp/ansible-tmp-1492755486.35-42574423039326/sysctl.py && sleep 0'
+<localhost> EXEC /bin/sh -c '/usr/bin/python /root/.ansible/tmp/ansible-tmp-1492755486.35-42574423039326/sysctl.py; rm -rf "/root/.ansible/tmp/ansible-tmp-1492755486.35-42574423039326/" > /dev/null 2>&1 && sleep 0'
+Using module file /usr/lib/python2.7/site-packages/ansible/modules/core/system/sysctl.py
+<localhost> EXEC /bin/sh -c '( umask 77 && mkdir -p "` echo ~/.ansible/tmp/ansible-tmp-1492755486.46-60690096568455 `" && echo ansible-tmp-1492755486.46-60690096568455="` echo ~/.ansible/tmp/ansible-tmp-1492755486.46-60690096568455 `" ) && sleep 0'
+ok: [localhost] => (item={'key': u'net.ipv6.conf.all.disable_ipv6', 'value': 1}) => {
+    "changed": false,
+    "invocation": {
+        "module_args": {
+            "ignoreerrors": false,
+            "name": "net.ipv6.conf.all.disable_ipv6",
+            "reload": true,
+            "state": "present",
+            "sysctl_file": "/etc/sysctl.conf",
+            "sysctl_set": false,
+            "value": "1"
+        },
+        "module_name": "sysctl"
+    },
+    "item": {
+        "key": "net.ipv6.conf.all.disable_ipv6",
+        "value": 1
+    }
+}
+<localhost> PUT /tmp/tmp43deTm TO /root/.ansible/tmp/ansible-tmp-1492755486.46-60690096568455/sysctl.py
+<localhost> EXEC /bin/sh -c 'chmod u+x /root/.ansible/tmp/ansible-tmp-1492755486.46-60690096568455/ /root/.ansible/tmp/ansible-tmp-1492755486.46-60690096568455/sysctl.py && sleep 0'
+<localhost> EXEC /bin/sh -c '/usr/bin/python /root/.ansible/tmp/ansible-tmp-1492755486.46-60690096568455/sysctl.py; rm -rf "/root/.ansible/tmp/ansible-tmp-1492755486.46-60690096568455/" > /dev/null 2>&1 && sleep 0'
+ok: [localhost] => (item={'key': u'net.ipv6.conf.default.disable_ipv6', 'value': 1}) => {
+    "changed": false,
+    "invocation": {
+        "module_args": {
+            "ignoreerrors": false,
+            "name": "net.ipv6.conf.default.disable_ipv6",
+            "reload": true,
+            "state": "present",
+            "sysctl_file": "/etc/sysctl.conf",
+            "sysctl_set": false,
+            "value": "1"
+        },
+        "module_name": "sysctl"
+    },
+    "item": {
+        "key": "net.ipv6.conf.default.disable_ipv6",
+        "value": 1
+    }
+}
+
+TASK [tools : install tools] ***************************************************
+task path: /root/centos_provision/roles/tools/tasks/main.yml:2
+Using module file /usr/lib/python2.7/site-packages/ansible/modules/core/packaging/os/yum.py
+<localhost> ESTABLISH LOCAL CONNECTION FOR USER: root
+<localhost> EXEC /bin/sh -c '( umask 77 && mkdir -p "` echo ~/.ansible/tmp/ansible-tmp-1492755486.75-279081591271078 `" && echo ansible-tmp-1492755486.75-279081591271078="` echo ~/.ansible/tmp/ansible-tmp-1492755486.75-279081591271078 `" ) && sleep 0'
+<localhost> PUT /tmp/tmplYkUzg TO /root/.ansible/tmp/ansible-tmp-1492755486.75-279081591271078/yum.py
+<localhost> EXEC /bin/sh -c 'chmod u+x /root/.ansible/tmp/ansible-tmp-1492755486.75-279081591271078/ /root/.ansible/tmp/ansible-tmp-1492755486.75-279081591271078/yum.py && sleep 0'
+<localhost> EXEC /bin/sh -c '/usr/bin/python /root/.ansible/tmp/ansible-tmp-1492755486.75-279081591271078/yum.py; rm -rf "/root/.ansible/tmp/ansible-tmp-1492755486.75-279081591271078/" > /dev/null 2>&1 && sleep 0'
+ok: [localhost] => (item=[u'nano', u'htop', u'httpd-tools', u'sudo', u'cronie', u'libselinux-python']) => {
+    "changed": false,
+    "invocation": {
+        "module_args": {
+            "conf_file": null,
+            "disable_gpg_check": false,
+            "disablerepo": null,
+            "enablerepo": null,
+            "exclude": null,
+            "install_repoquery": true,
+            "list": null,
+            "name": [
+                "nano",
+                "htop",
+                "httpd-tools",
+                "sudo",
+                "cronie",
+                "libselinux-python"
+            ],
+            "state": "present",
+            "update_cache": false,
+            "validate_certs": true
+        },
+        "module_name": "yum"
+    },
+    "item": [
+        "nano",
+        "htop",
+        "httpd-tools",
+        "sudo",
+        "cronie",
+        "libselinux-python"
+    ],
+    "msg": "",
+    "rc": 0,
+    "results": [
+        "nano-2.3.1-10.el7.x86_64 providing nano is already installed",
+        "htop-2.0.2-1.el7.x86_64 providing htop is already installed",
+        "httpd-tools-2.4.6-45.el7.centos.4.x86_64 providing httpd-tools is already installed",
+        "sudo-1.8.6p7-21.el7_3.x86_64 providing sudo is already installed",
+        "cronie-1.4.11-14.el7_2.1.x86_64 providing cronie is already installed",
+        "libselinux-python-2.5-6.el7.x86_64 providing libselinux-python is already installed"
+    ]
+}
+
+TASK [tools : Remove require tty] **********************************************
+task path: /root/centos_provision/roles/tools/tasks/main.yml:15
+Using module file /usr/lib/python2.7/site-packages/ansible/modules/core/files/lineinfile.py
+<localhost> ESTABLISH LOCAL CONNECTION FOR USER: root
+<localhost> EXEC /bin/sh -c '( umask 77 && mkdir -p "` echo ~/.ansible/tmp/ansible-tmp-1492755487.19-208045569206359 `" && echo ansible-tmp-1492755487.19-208045569206359="` echo ~/.ansible/tmp/ansible-tmp-1492755487.19-208045569206359 `" ) && sleep 0'
+<localhost> PUT /tmp/tmpDs3QTJ TO /root/.ansible/tmp/ansible-tmp-1492755487.19-208045569206359/lineinfile.py
+<localhost> EXEC /bin/sh -c 'chmod u+x /root/.ansible/tmp/ansible-tmp-1492755487.19-208045569206359/ /root/.ansible/tmp/ansible-tmp-1492755487.19-208045569206359/lineinfile.py && sleep 0'
+<localhost> EXEC /bin/sh -c '/usr/bin/python /root/.ansible/tmp/ansible-tmp-1492755487.19-208045569206359/lineinfile.py; rm -rf "/root/.ansible/tmp/ansible-tmp-1492755487.19-208045569206359/" > /dev/null 2>&1 && sleep 0'
+ok: [localhost] => {
+    "backup": "",
+    "changed": false,
+    "diff": [
+        {
+            "after": "",
+            "after_header": "/etc/sudoers (content)",
+            "before": "",
+            "before_header": "/etc/sudoers (content)"
+        },
+        {
+            "after_header": "/etc/sudoers (file attributes)",
+            "before_header": "/etc/sudoers (file attributes)"
+        }
+    ],
+    "found": 0,
+    "invocation": {
+        "module_args": {
+            "backrefs": false,
+            "backup": false,
+            "content": null,
+            "create": false,
+            "delimiter": null,
+            "dest": "/etc/sudoers",
+            "directory_mode": null,
+            "follow": false,
+            "force": null,
+            "group": null,
+            "insertafter": null,
+            "insertbefore": null,
+            "line": null,
+            "mode": null,
+            "owner": null,
+            "regexp": "requiretty",
+            "remote_src": null,
+            "selevel": null,
+            "serole": null,
+            "setype": null,
+            "seuser": null,
+            "src": null,
+            "state": "absent",
+            "unsafe_writes": null,
+            "validate": null
+        },
+        "module_name": "lineinfile"
+    },
+    "msg": ""
+}
+
+TASK [tools : Remove require tty - alt] ****************************************
+task path: /root/centos_provision/roles/tools/tasks/main.yml:19
+Using module file /usr/lib/python2.7/site-packages/ansible/modules/core/files/lineinfile.py
+<localhost> ESTABLISH LOCAL CONNECTION FOR USER: root
+<localhost> EXEC /bin/sh -c '( umask 77 && mkdir -p "` echo ~/.ansible/tmp/ansible-tmp-1492755487.35-125773886648825 `" && echo ansible-tmp-1492755487.35-125773886648825="` echo ~/.ansible/tmp/ansible-tmp-1492755487.35-125773886648825 `" ) && sleep 0'
+<localhost> PUT /tmp/tmpaeMZNq TO /root/.ansible/tmp/ansible-tmp-1492755487.35-125773886648825/lineinfile.py
+<localhost> EXEC /bin/sh -c 'chmod u+x /root/.ansible/tmp/ansible-tmp-1492755487.35-125773886648825/ /root/.ansible/tmp/ansible-tmp-1492755487.35-125773886648825/lineinfile.py && sleep 0'
+<localhost> EXEC /bin/sh -c '/usr/bin/python /root/.ansible/tmp/ansible-tmp-1492755487.35-125773886648825/lineinfile.py; rm -rf "/root/.ansible/tmp/ansible-tmp-1492755487.35-125773886648825/" > /dev/null 2>&1 && sleep 0'
+ok: [localhost] => {
+    "changed": false,
+    "invocation": {
+        "module_args": {
+            "backrefs": false,
+            "backup": false,
+            "content": null,
+            "create": false,
+            "delimiter": null,
+            "dest": "/etc/sudoers.d/os_defaults",
+            "directory_mode": null,
+            "follow": false,
+            "force": null,
+            "group": null,
+            "insertafter": null,
+            "insertbefore": null,
+            "line": null,
+            "mode": null,
+            "owner": null,
+            "regexp": "requiretty",
+            "remote_src": null,
+            "selevel": null,
+            "serole": null,
+            "setype": null,
+            "seuser": null,
+            "src": null,
+            "state": "absent",
+            "unsafe_writes": null,
+            "validate": null
+        },
+        "module_name": "lineinfile"
+    },
+    "msg": "file not present"
+}
+
+TASK [tools : Run crond] *******************************************************
+task path: /root/centos_provision/roles/tools/tasks/main.yml:22
+Using module file /usr/lib/python2.7/site-packages/ansible/modules/core/system/systemd.py
+<localhost> ESTABLISH LOCAL CONNECTION FOR USER: root
+<localhost> EXEC /bin/sh -c '( umask 77 && mkdir -p "` echo ~/.ansible/tmp/ansible-tmp-1492755487.6-89408181267872 `" && echo ansible-tmp-1492755487.6-89408181267872="` echo ~/.ansible/tmp/ansible-tmp-1492755487.6-89408181267872 `" ) && sleep 0'
+<localhost> PUT /tmp/tmp0KpgCv TO /root/.ansible/tmp/ansible-tmp-1492755487.6-89408181267872/systemd.py
+<localhost> EXEC /bin/sh -c 'chmod u+x /root/.ansible/tmp/ansible-tmp-1492755487.6-89408181267872/ /root/.ansible/tmp/ansible-tmp-1492755487.6-89408181267872/systemd.py && sleep 0'
+<localhost> EXEC /bin/sh -c '/usr/bin/python /root/.ansible/tmp/ansible-tmp-1492755487.6-89408181267872/systemd.py; rm -rf "/root/.ansible/tmp/ansible-tmp-1492755487.6-89408181267872/" > /dev/null 2>&1 && sleep 0'
+ok: [localhost] => {
+    "changed": false,
+    "enabled": true,
+    "invocation": {
+        "module_args": {
+            "daemon_reload": false,
+            "enabled": true,
+            "masked": null,
+            "name": "crond",
+            "state": "started",
+            "user": false
+        }
+    },
+    "name": "crond",
+    "state": "started",
+    "status": {
+        "ActiveEnterTimestamp": "Wed 2017-04-19 09:25:38 MSK",
+        "ActiveEnterTimestampMonotonic": "4108434",
+        "ActiveExitTimestampMonotonic": "0",
+        "ActiveState": "active",
+        "After": "time-sync.target systemd-journald.socket system.slice basic.target systemd-user-sessions.service auditd.service",
+        "AllowIsolate": "no",
+        "AssertResult": "yes",
+        "AssertTimestamp": "Wed 2017-04-19 09:25:38 MSK",
+        "AssertTimestampMonotonic": "4104250",
+        "Before": "shutdown.target multi-user.target",
+        "BlockIOAccounting": "no",
+        "BlockIOWeight": "18446744073709551615",
+        "CPUAccounting": "no",
+        "CPUQuotaPerSecUSec": "infinity",
+        "CPUSchedulingPolicy": "0",
+        "CPUSchedulingPriority": "0",
+        "CPUSchedulingResetOnFork": "no",
+        "CPUShares": "18446744073709551615",
+        "CanIsolate": "no",
+        "CanReload": "yes",
+        "CanStart": "yes",
+        "CanStop": "yes",
+        "CapabilityBoundingSet": "18446744073709551615",
+        "ConditionResult": "yes",
+        "ConditionTimestamp": "Wed 2017-04-19 09:25:38 MSK",
+        "ConditionTimestampMonotonic": "4104250",
+        "Conflicts": "shutdown.target",
+        "ControlGroup": "/system.slice/crond.service",
+        "ControlPID": "0",
+        "DefaultDependencies": "yes",
+        "Delegate": "no",
+        "Description": "Command Scheduler",
+        "DevicePolicy": "auto",
+        "EnvironmentFile": "/etc/sysconfig/crond (ignore_errors=no)",
+        "ExecMainCode": "0",
+        "ExecMainExitTimestampMonotonic": "0",
+        "ExecMainPID": "637",
+        "ExecMainStartTimestamp": "Wed 2017-04-19 09:25:38 MSK",
+        "ExecMainStartTimestampMonotonic": "4108382",
+        "ExecMainStatus": "0",
+        "ExecReload": "{ path=/bin/kill ; argv[]=/bin/kill -HUP $MAINPID ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }",
+        "ExecStart": "{ path=/usr/sbin/crond ; argv[]=/usr/sbin/crond -n $CRONDARGS ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }",
+        "FailureAction": "none",
+        "FileDescriptorStoreMax": "0",
+        "FragmentPath": "/usr/lib/systemd/system/crond.service",
+        "GuessMainPID": "yes",
+        "IOScheduling": "0",
+        "Id": "crond.service",
+        "IgnoreOnIsolate": "no",
+        "IgnoreOnSnapshot": "no",
+        "IgnoreSIGPIPE": "yes",
+        "InactiveEnterTimestampMonotonic": "0",
+        "InactiveExitTimestamp": "Wed 2017-04-19 09:25:38 MSK",
+        "InactiveExitTimestampMonotonic": "4108434",
+        "JobTimeoutAction": "none",
+        "JobTimeoutUSec": "0",
+        "KillMode": "process",
+        "KillSignal": "15",
+        "LimitAS": "18446744073709551615",
+        "LimitCORE": "18446744073709551615",
+        "LimitCPU": "18446744073709551615",
+        "LimitDATA": "18446744073709551615",
+        "LimitFSIZE": "18446744073709551615",
+        "LimitLOCKS": "18446744073709551615",
+        "LimitMEMLOCK": "65536",
+        "LimitMSGQUEUE": "819200",
+        "LimitNICE": "0",
+        "LimitNOFILE": "4096",
+        "LimitNPROC": "3888",
+        "LimitRSS": "18446744073709551615",
+        "LimitRTPRIO": "0",
+        "LimitRTTIME": "18446744073709551615",
+        "LimitSIGPENDING": "3888",
+        "LimitSTACK": "18446744073709551615",
+        "LoadState": "loaded",
+        "MainPID": "637",
+        "MemoryAccounting": "no",
+        "MemoryCurrent": "18446744073709551615",
+        "MemoryLimit": "18446744073709551615",
+        "MountFlags": "0",
+        "Names": "crond.service",
+        "NeedDaemonReload": "no",
+        "Nice": "0",
+        "NoNewPrivileges": "no",
+        "NonBlocking": "no",
+        "NotifyAccess": "none",
+        "OOMScoreAdjust": "0",
+        "OnFailureJobMode": "replace",
+        "PermissionsStartOnly": "no",
+        "PrivateDevices": "no",
+        "PrivateNetwork": "no",
+        "PrivateTmp": "no",
+        "ProtectHome": "no",
+        "ProtectSystem": "no",
+        "RefuseManualStart": "no",
+        "RefuseManualStop": "no",
+        "RemainAfterExit": "no",
+        "Requires": "basic.target",
+        "Restart": "no",
+        "RestartUSec": "100ms",
+        "Result": "success",
+        "RootDirectoryStartOnly": "no",
+        "RuntimeDirectoryMode": "0755",
+        "SameProcessGroup": "no",
+        "SecureBits": "0",
+        "SendSIGHUP": "no",
+        "SendSIGKILL": "yes",
+        "Slice": "system.slice",
+        "StandardError": "inherit",
+        "StandardInput": "null",
+        "StandardOutput": "journal",
+        "StartLimitAction": "none",
+        "StartLimitBurst": "5",
+        "StartLimitInterval": "10000000",
+        "StartupBlockIOWeight": "18446744073709551615",
+        "StartupCPUShares": "18446744073709551615",
+        "StatusErrno": "0",
+        "StopWhenUnneeded": "no",
+        "SubState": "running",
+        "SyslogLevelPrefix": "yes",
+        "SyslogPriority": "30",
+        "SystemCallErrorNumber": "0",
+        "TTYReset": "no",
+        "TTYVHangup": "no",
+        "TTYVTDisallocate": "no",
+        "TimeoutStartUSec": "1min 30s",
+        "TimeoutStopUSec": "1min 30s",
+        "TimerSlackNSec": "50000",
+        "Transient": "no",
+        "Type": "simple",
+        "UMask": "0022",
+        "UnitFilePreset": "enabled",
+        "UnitFileState": "enabled",
+        "WantedBy": "multi-user.target",
+        "Wants": "system.slice",
+        "WatchdogTimestamp": "Wed 2017-04-19 09:25:38 MSK",
+        "WatchdogTimestampMonotonic": "4108415",
+        "WatchdogUSec": "0"
+    },
+    "warnings": []
+}
+
+TASK [selinux : Detect /etc/selinux/config exists] *****************************
+task path: /root/centos_provision/roles/selinux/tasks/main.yml:2
+Using module file /usr/lib/python2.7/site-packages/ansible/modules/core/files/stat.py
+<localhost> ESTABLISH LOCAL CONNECTION FOR USER: root
+<localhost> EXEC /bin/sh -c '( umask 77 && mkdir -p "` echo ~/.ansible/tmp/ansible-tmp-1492755487.86-181228992962531 `" && echo ansible-tmp-1492755487.86-181228992962531="` echo ~/.ansible/tmp/ansible-tmp-1492755487.86-181228992962531 `" ) && sleep 0'
+<localhost> PUT /tmp/tmpaeCRHJ TO /root/.ansible/tmp/ansible-tmp-1492755487.86-181228992962531/stat.py
+<localhost> EXEC /bin/sh -c 'chmod u+x /root/.ansible/tmp/ansible-tmp-1492755487.86-181228992962531/ /root/.ansible/tmp/ansible-tmp-1492755487.86-181228992962531/stat.py && sleep 0'
+<localhost> EXEC /bin/sh -c '/usr/bin/python /root/.ansible/tmp/ansible-tmp-1492755487.86-181228992962531/stat.py; rm -rf "/root/.ansible/tmp/ansible-tmp-1492755487.86-181228992962531/" > /dev/null 2>&1 && sleep 0'
+ok: [localhost] => {
+    "changed": false,
+    "invocation": {
+        "module_args": {
+            "checksum_algorithm": "sha1",
+            "follow": false,
+            "get_checksum": true,
+            "get_md5": true,
+            "mime": false,
+            "path": "/etc/selinux/config"
+        },
+        "module_name": "stat"
+    },
+    "stat": {
+        "atime": 1492670448.9048252,
+        "checksum": "2fe9f77b217258cc85b45dd73f7fe24831910c4b",
+        "ctime": 1491449323.147442,
+        "dev": 64768,
+        "executable": false,
+        "exists": true,
+        "gid": 0,
+        "gr_name": "root",
+        "inode": 100806197,
+        "isblk": false,
+        "ischr": false,
+        "isdir": false,
+        "isfifo": false,
+        "isgid": false,
+        "islnk": false,
+        "isreg": true,
+        "issock": false,
+        "isuid": false,
+        "md5": "6956190fdc600eebd58fd69d8cb274c9",
+        "mode": "0644",
+        "mtime": 1491449323.147442,
+        "nlink": 1,
+        "path": "/etc/selinux/config",
+        "pw_name": "root",
+        "readable": true,
+        "rgrp": true,
+        "roth": true,
+        "rusr": true,
+        "size": 547,
+        "uid": 0,
+        "wgrp": false,
+        "woth": false,
+        "writeable": true,
+        "wusr": true,
+        "xgrp": false,
+        "xoth": false,
+        "xusr": false
+    }
+}
+
+TASK [selinux : Set selinux permissive] ****************************************
+task path: /root/centos_provision/roles/selinux/tasks/main.yml:6
+Using module file /usr/lib/python2.7/site-packages/ansible/modules/core/system/selinux.py
+<localhost> ESTABLISH LOCAL CONNECTION FOR USER: root
+<localhost> EXEC /bin/sh -c '( umask 77 && mkdir -p "` echo ~/.ansible/tmp/ansible-tmp-1492755488.14-15306523902290 `" && echo ansible-tmp-1492755488.14-15306523902290="` echo ~/.ansible/tmp/ansible-tmp-1492755488.14-15306523902290 `" ) && sleep 0'
+<localhost> PUT /tmp/tmp1mMjB8 TO /root/.ansible/tmp/ansible-tmp-1492755488.14-15306523902290/selinux.py
+<localhost> EXEC /bin/sh -c 'chmod u+x /root/.ansible/tmp/ansible-tmp-1492755488.14-15306523902290/ /root/.ansible/tmp/ansible-tmp-1492755488.14-15306523902290/selinux.py && sleep 0'
+<localhost> EXEC /bin/sh -c '/usr/bin/python /root/.ansible/tmp/ansible-tmp-1492755488.14-15306523902290/selinux.py; rm -rf "/root/.ansible/tmp/ansible-tmp-1492755488.14-15306523902290/" > /dev/null 2>&1 && sleep 0'
+ok: [localhost] => {
+    "changed": false,
+    "configfile": "/etc/selinux/config",
+    "invocation": {
+        "module_args": {
+            "configfile": "/etc/selinux/config",
+            "policy": "targeted",
+            "state": "permissive"
+        },
+        "module_name": "selinux"
+    },
+    "msg": "",
+    "policy": "targeted",
+    "state": "permissive"
+}
+
+TASK [resmo.ntp : Add the OS specific variables] *******************************
+task path: /root/centos_provision/roles/resmo.ntp/tasks/main.yml:2
+ok: [localhost] => {
+    "ansible_facts": {
+        "ntp_config_driftfile": "/var/lib/ntp/drift",
+        "ntp_service_name": "ntpd"
+    },
+    "changed": false,
+    "invocation": {
+        "module_args": {
+            "_raw_params": "RedHat.yml"
+        },
+        "module_name": "include_vars"
+    }
+}
+
+TASK [resmo.ntp : Install the required packages in Redhat derivatives] *********
+task path: /root/centos_provision/roles/resmo.ntp/tasks/main.yml:6
+Using module file /usr/lib/python2.7/site-packages/ansible/modules/core/packaging/os/yum.py
+<localhost> ESTABLISH LOCAL CONNECTION FOR USER: root
+<localhost> EXEC /bin/sh -c '( umask 77 && mkdir -p "` echo ~/.ansible/tmp/ansible-tmp-1492755488.41-122696869342501 `" && echo ansible-tmp-1492755488.41-122696869342501="` echo ~/.ansible/tmp/ansible-tmp-1492755488.41-122696869342501 `" ) && sleep 0'
+<localhost> PUT /tmp/tmpNgwyJx TO /root/.ansible/tmp/ansible-tmp-1492755488.41-122696869342501/yum.py
+<localhost> EXEC /bin/sh -c 'chmod u+x /root/.ansible/tmp/ansible-tmp-1492755488.41-122696869342501/ /root/.ansible/tmp/ansible-tmp-1492755488.41-122696869342501/yum.py && sleep 0'
+<localhost> EXEC /bin/sh -c '/usr/bin/python /root/.ansible/tmp/ansible-tmp-1492755488.41-122696869342501/yum.py; rm -rf "/root/.ansible/tmp/ansible-tmp-1492755488.41-122696869342501/" > /dev/null 2>&1 && sleep 0'
+ok: [localhost] => {
+    "changed": false,
+    "invocation": {
+        "module_args": {
+            "conf_file": null,
+            "disable_gpg_check": false,
+            "disablerepo": null,
+            "enablerepo": null,
+            "exclude": null,
+            "install_repoquery": true,
+            "list": null,
+            "name": [
+                "ntp"
+            ],
+            "state": "installed",
+            "update_cache": false,
+            "validate_certs": true
+        },
+        "module_name": "yum"
+    },
+    "msg": "",
+    "rc": 0,
+    "results": [
+        "ntp-4.2.6p5-25.el7.centos.2.x86_64 providing ntp is already installed"
+    ]
+}
+
+TASK [resmo.ntp : Install the required packages in Debian derivatives] *********
+task path: /root/centos_provision/roles/resmo.ntp/tasks/main.yml:11
+skipping: [localhost] => {
+    "changed": false,
+    "skip_reason": "Conditional check failed",
+    "skipped": true
+}
+
+TASK [resmo.ntp : Copy the ntp.conf template file] *****************************
+task path: /root/centos_provision/roles/resmo.ntp/tasks/main.yml:16
+<localhost> ESTABLISH LOCAL CONNECTION FOR USER: root
+<localhost> EXEC /bin/sh -c '( umask 77 && mkdir -p "` echo ~/.ansible/tmp/ansible-tmp-1492755488.78-232096670970601 `" && echo ansible-tmp-1492755488.78-232096670970601="` echo ~/.ansible/tmp/ansible-tmp-1492755488.78-232096670970601 `" ) && sleep 0'
+Using module file /usr/lib/python2.7/site-packages/ansible/modules/core/files/stat.py
+<localhost> PUT /tmp/tmpvibXX5 TO /root/.ansible/tmp/ansible-tmp-1492755488.78-232096670970601/stat.py
+<localhost> EXEC /bin/sh -c 'chmod u+x /root/.ansible/tmp/ansible-tmp-1492755488.78-232096670970601/ /root/.ansible/tmp/ansible-tmp-1492755488.78-232096670970601/stat.py && sleep 0'
+<localhost> EXEC /bin/sh -c '/usr/bin/python /root/.ansible/tmp/ansible-tmp-1492755488.78-232096670970601/stat.py && sleep 0'
+Using module file /usr/lib/python2.7/site-packages/ansible/modules/core/files/file.py
+<localhost> PUT /tmp/tmpkcGmIH TO /root/.ansible/tmp/ansible-tmp-1492755488.78-232096670970601/file.py
+<localhost> EXEC /bin/sh -c 'chmod u+x /root/.ansible/tmp/ansible-tmp-1492755488.78-232096670970601/ /root/.ansible/tmp/ansible-tmp-1492755488.78-232096670970601/file.py && sleep 0'
+<localhost> EXEC /bin/sh -c '/usr/bin/python /root/.ansible/tmp/ansible-tmp-1492755488.78-232096670970601/file.py && sleep 0'
+<localhost> EXEC /bin/sh -c 'rm -f -r /root/.ansible/tmp/ansible-tmp-1492755488.78-232096670970601/ > /dev/null 2>&1 && sleep 0'
+ok: [localhost] => {
+    "changed": false,
+    "diff": {
+        "after": {
+            "path": "/etc/ntp.conf"
+        },
+        "before": {
+            "path": "/etc/ntp.conf"
+        }
+    },
+    "gid": 0,
+    "group": "root",
+    "invocation": {
+        "module_args": {
+            "backup": null,
+            "content": null,
+            "delimiter": null,
+            "dest": "/etc/ntp.conf",
+            "diff_peek": null,
+            "directory_mode": null,
+            "follow": true,
+            "force": false,
+            "group": null,
+            "mode": null,
+            "original_basename": "ntp.conf.j2",
+            "owner": null,
+            "path": "/etc/ntp.conf",
+            "recurse": false,
+            "regexp": null,
+            "remote_src": null,
+            "selevel": null,
+            "serole": null,
+            "setype": null,
+            "seuser": null,
+            "src": null,
+            "state": null,
+            "unsafe_writes": null,
+            "validate": null
+        }
+    },
+    "mode": "0644",
+    "owner": "root",
+    "path": "/etc/ntp.conf",
+    "secontext": "system_u:object_r:net_conf_t:s0",
+    "size": 510,
+    "state": "file",
+    "uid": 0
+}
+
+TASK [resmo.ntp : Start/stop ntp service] **************************************
+task path: /root/centos_provision/roles/resmo.ntp/tasks/main.yml:22
+ [WARNING]: Ignoring "pattern" as it is not used in "systemd"
+
+Using module file /usr/lib/python2.7/site-packages/ansible/modules/core/system/systemd.py
+<localhost> ESTABLISH LOCAL CONNECTION FOR USER: root
+<localhost> EXEC /bin/sh -c '( umask 77 && mkdir -p "` echo ~/.ansible/tmp/ansible-tmp-1492755489.12-281436290866401 `" && echo ansible-tmp-1492755489.12-281436290866401="` echo ~/.ansible/tmp/ansible-tmp-1492755489.12-281436290866401 `" ) && sleep 0'
+<localhost> PUT /tmp/tmpzJ8aif TO /root/.ansible/tmp/ansible-tmp-1492755489.12-281436290866401/systemd.py
+<localhost> EXEC /bin/sh -c 'chmod u+x /root/.ansible/tmp/ansible-tmp-1492755489.12-281436290866401/ /root/.ansible/tmp/ansible-tmp-1492755489.12-281436290866401/systemd.py && sleep 0'
+<localhost> EXEC /bin/sh -c '/usr/bin/python /root/.ansible/tmp/ansible-tmp-1492755489.12-281436290866401/systemd.py; rm -rf "/root/.ansible/tmp/ansible-tmp-1492755489.12-281436290866401/" > /dev/null 2>&1 && sleep 0'
+ok: [localhost] => {
+    "changed": false,
+    "enabled": true,
+    "invocation": {
+        "module_args": {
+            "daemon_reload": false,
+            "enabled": true,
+            "masked": null,
+            "name": "ntpd",
+            "state": "started",
+            "user": false
+        }
+    },
+    "name": "ntpd",
+    "state": "started",
+    "status": {
+        "ActiveEnterTimestamp": "Wed 2017-04-19 13:26:35 MSK",
+        "ActiveEnterTimestampMonotonic": "14461230057",
+        "ActiveExitTimestamp": "Wed 2017-04-19 13:26:35 MSK",
+        "ActiveExitTimestampMonotonic": "14461204118",
+        "ActiveState": "active",
+        "After": "sntp.service -.mount ntpdate.service system.slice tmp.mount syslog.target systemd-journald.socket basic.target",
+        "AllowIsolate": "no",
+        "AssertResult": "yes",
+        "AssertTimestamp": "Wed 2017-04-19 13:26:35 MSK",
+        "AssertTimestampMonotonic": "14461207090",
+        "Before": "chronyd.service shutdown.target multi-user.target",
+        "BlockIOAccounting": "no",
+        "BlockIOWeight": "18446744073709551615",
+        "CPUAccounting": "no",
+        "CPUQuotaPerSecUSec": "infinity",
+        "CPUSchedulingPolicy": "0",
+        "CPUSchedulingPriority": "0",
+        "CPUSchedulingResetOnFork": "no",
+        "CPUShares": "18446744073709551615",
+        "CanIsolate": "no",
+        "CanReload": "no",
+        "CanStart": "yes",
+        "CanStop": "yes",
+        "CapabilityBoundingSet": "18446744073709551615",
+        "ConditionResult": "yes",
+        "ConditionTimestamp": "Wed 2017-04-19 13:26:35 MSK",
+        "ConditionTimestampMonotonic": "14461207089",
+        "ConflictedBy": "chronyd.service",
+        "Conflicts": "shutdown.target",
+        "ControlGroup": "/system.slice/ntpd.service",
+        "ControlPID": "0",
+        "DefaultDependencies": "yes",
+        "Delegate": "no",
+        "Description": "Network Time Service",
+        "DevicePolicy": "auto",
+        "EnvironmentFile": "/etc/sysconfig/ntpd (ignore_errors=yes)",
+        "ExecMainCode": "0",
+        "ExecMainExitTimestampMonotonic": "0",
+        "ExecMainPID": "21343",
+        "ExecMainStartTimestamp": "Wed 2017-04-19 13:26:35 MSK",
+        "ExecMainStartTimestampMonotonic": "14461230024",
+        "ExecMainStatus": "0",
+        "ExecStart": "{ path=/usr/sbin/ntpd ; argv[]=/usr/sbin/ntpd -u ntp:ntp $OPTIONS ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }",
+        "FailureAction": "none",
+        "FileDescriptorStoreMax": "0",
+        "FragmentPath": "/usr/lib/systemd/system/ntpd.service",
+        "GuessMainPID": "yes",
+        "IOScheduling": "0",
+        "Id": "ntpd.service",
+        "IgnoreOnIsolate": "no",
+        "IgnoreOnSnapshot": "no",
+        "IgnoreSIGPIPE": "yes",
+        "InactiveEnterTimestamp": "Wed 2017-04-19 13:26:35 MSK",
+        "InactiveEnterTimestampMonotonic": "14461206849",
+        "InactiveExitTimestamp": "Wed 2017-04-19 13:26:35 MSK",
+        "InactiveExitTimestampMonotonic": "14461208097",
+        "JobTimeoutAction": "none",
+        "JobTimeoutUSec": "0",
+        "KillMode": "control-group",
+        "KillSignal": "15",
+        "LimitAS": "18446744073709551615",
+        "LimitCORE": "18446744073709551615",
+        "LimitCPU": "18446744073709551615",
+        "LimitDATA": "18446744073709551615",
+        "LimitFSIZE": "18446744073709551615",
+        "LimitLOCKS": "18446744073709551615",
+        "LimitMEMLOCK": "65536",
+        "LimitMSGQUEUE": "819200",
+        "LimitNICE": "0",
+        "LimitNOFILE": "4096",
+        "LimitNPROC": "3888",
+        "LimitRSS": "18446744073709551615",
+        "LimitRTPRIO": "0",
+        "LimitRTTIME": "18446744073709551615",
+        "LimitSIGPENDING": "3888",
+        "LimitSTACK": "18446744073709551615",
+        "LoadState": "loaded",
+        "MainPID": "21343",
+        "MemoryAccounting": "no",
+        "MemoryCurrent": "18446744073709551615",
+        "MemoryLimit": "18446744073709551615",
+        "MountFlags": "0",
+        "Names": "ntpd.service",
+        "NeedDaemonReload": "no",
+        "Nice": "0",
+        "NoNewPrivileges": "no",
+        "NonBlocking": "no",
+        "NotifyAccess": "none",
+        "OOMScoreAdjust": "0",
+        "OnFailureJobMode": "replace",
+        "PermissionsStartOnly": "no",
+        "PrivateDevices": "no",
+        "PrivateNetwork": "no",
+        "PrivateTmp": "yes",
+        "ProtectHome": "no",
+        "ProtectSystem": "no",
+        "RefuseManualStart": "no",
+        "RefuseManualStop": "no",
+        "RemainAfterExit": "no",
+        "Requires": "basic.target -.mount",
+        "RequiresMountsFor": "/var/tmp",
+        "Restart": "no",
+        "RestartUSec": "100ms",
+        "Result": "success",
+        "RootDirectoryStartOnly": "no",
+        "RuntimeDirectoryMode": "0755",
+        "SameProcessGroup": "no",
+        "SecureBits": "0",
+        "SendSIGHUP": "no",
+        "SendSIGKILL": "yes",
+        "Slice": "system.slice",
+        "StandardError": "inherit",
+        "StandardInput": "null",
+        "StandardOutput": "journal",
+        "StartLimitAction": "none",
+        "StartLimitBurst": "5",
+        "StartLimitInterval": "10000000",
+        "StartupBlockIOWeight": "18446744073709551615",
+        "StartupCPUShares": "18446744073709551615",
+        "StatusErrno": "0",
+        "StopWhenUnneeded": "no",
+        "SubState": "running",
+        "SyslogLevelPrefix": "yes",
+        "SyslogPriority": "30",
+        "SystemCallErrorNumber": "0",
+        "TTYReset": "no",
+        "TTYVHangup": "no",
+        "TTYVTDisallocate": "no",
+        "TimeoutStartUSec": "1min 30s",
+        "TimeoutStopUSec": "1min 30s",
+        "TimerSlackNSec": "50000",
+        "Transient": "no",
+        "Type": "forking",
+        "UMask": "0022",
+        "UnitFilePreset": "disabled",
+        "UnitFileState": "enabled",
+        "WantedBy": "multi-user.target",
+        "Wants": "system.slice",
+        "WatchdogTimestamp": "Wed 2017-04-19 13:26:35 MSK",
+        "WatchdogTimestampMonotonic": "14461230040",
+        "WatchdogUSec": "0"
+    },
+    "warnings": []
+}
+
+TASK [mrlesmithjr.timezone : configuring /etc/localtime] ***********************
+task path: /root/centos_provision/roles/mrlesmithjr.timezone/tasks/debian.yml:2
+skipping: [localhost] => {
+    "changed": false,
+    "skip_reason": "Conditional check failed",
+    "skipped": true
+}
+
+TASK [mrlesmithjr.timezone : configuring /etc/timezone] ************************
+task path: /root/centos_provision/roles/mrlesmithjr.timezone/tasks/debian.yml:6
+skipping: [localhost] => {
+    "changed": false,
+    "skip_reason": "Conditional check failed",
+    "skipped": true
+}
+
+TASK [mrlesmithjr.timezone : configuring /etc/localtime] ***********************
+task path: /root/centos_provision/roles/mrlesmithjr.timezone/tasks/centos.yml:2
+Using module file /usr/lib/python2.7/site-packages/ansible/modules/core/files/file.py
+<localhost> ESTABLISH LOCAL CONNECTION FOR USER: root
+<localhost> EXEC /bin/sh -c '( umask 77 && mkdir -p "` echo ~/.ansible/tmp/ansible-tmp-1492755489.37-106283627026617 `" && echo ansible-tmp-1492755489.37-106283627026617="` echo ~/.ansible/tmp/ansible-tmp-1492755489.37-106283627026617 `" ) && sleep 0'
+<localhost> PUT /tmp/tmpmVj0m4 TO /root/.ansible/tmp/ansible-tmp-1492755489.37-106283627026617/file.py
+<localhost> EXEC /bin/sh -c 'chmod u+x /root/.ansible/tmp/ansible-tmp-1492755489.37-106283627026617/ /root/.ansible/tmp/ansible-tmp-1492755489.37-106283627026617/file.py && sleep 0'
+<localhost> EXEC /bin/sh -c '/usr/bin/python /root/.ansible/tmp/ansible-tmp-1492755489.37-106283627026617/file.py; rm -rf "/root/.ansible/tmp/ansible-tmp-1492755489.37-106283627026617/" > /dev/null 2>&1 && sleep 0'
+ok: [localhost] => {
+    "changed": false,
+    "dest": "/etc/localtime",
+    "diff": {
+        "after": {
+            "path": "/etc/localtime"
+        },
+        "before": {
+            "path": "/etc/localtime"
+        }
+    },
+    "gid": 0,
+    "group": "root",
+    "invocation": {
+        "module_args": {
+            "backup": null,
+            "content": null,
+            "delimiter": null,
+            "dest": "/etc/localtime",
+            "diff_peek": null,
+            "directory_mode": null,
+            "follow": false,
+            "force": true,
+            "group": null,
+            "mode": null,
+            "original_basename": null,
+            "owner": null,
+            "path": "/etc/localtime",
+            "recurse": false,
+            "regexp": null,
+            "remote_src": null,
+            "selevel": null,
+            "serole": null,
+            "setype": null,
+            "seuser": null,
+            "src": "/usr/share/zoneinfo/Europe/Moscow",
+            "state": "link",
+            "unsafe_writes": null,
+            "validate": null
+        },
+        "module_name": "file"
+    },
+    "mode": "0777",
+    "owner": "root",
+    "secontext": "unconfined_u:object_r:etc_t:s0",
+    "size": 33,
+    "src": "/usr/share/zoneinfo/Europe/Moscow",
+    "state": "link",
+    "uid": 0
+}
+
+TASK [geerlingguy.repo-epel : Install EPEL repo.] ******************************
+task path: /root/centos_provision/roles/geerlingguy.repo-epel/tasks/main.yml:2
+Using module file /usr/lib/python2.7/site-packages/ansible/modules/core/packaging/os/yum.py
+<localhost> ESTABLISH LOCAL CONNECTION FOR USER: root
+<localhost> EXEC /bin/sh -c '( umask 77 && mkdir -p "` echo ~/.ansible/tmp/ansible-tmp-1492755489.53-214286953892344 `" && echo ansible-tmp-1492755489.53-214286953892344="` echo ~/.ansible/tmp/ansible-tmp-1492755489.53-214286953892344 `" ) && sleep 0'
+<localhost> PUT /tmp/tmpe9MWj5 TO /root/.ansible/tmp/ansible-tmp-1492755489.53-214286953892344/yum.py
+<localhost> EXEC /bin/sh -c 'chmod u+x /root/.ansible/tmp/ansible-tmp-1492755489.53-214286953892344/ /root/.ansible/tmp/ansible-tmp-1492755489.53-214286953892344/yum.py && sleep 0'
+<localhost> EXEC /bin/sh -c '/usr/bin/python /root/.ansible/tmp/ansible-tmp-1492755489.53-214286953892344/yum.py; rm -rf "/root/.ansible/tmp/ansible-tmp-1492755489.53-214286953892344/" > /dev/null 2>&1 && sleep 0'
+FAILED - RETRYING: TASK: geerlingguy.repo-epel : Install EPEL repo. (5 retries left).Result was: {
+    "attempts": 1,
+    "failed": true,
+    "invocation": {
+        "module_args": {
+            "conf_file": null,
+            "disable_gpg_check": false,
+            "disablerepo": null,
+            "enablerepo": null,
+            "exclude": null,
+            "install_repoquery": true,
+            "list": null,
+            "name": [
+                "https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm"
+            ],
+            "state": "present",
+            "update_cache": false,
+            "validate_certs": true
+        },
+        "module_name": "yum"
+    },
+    "msg": "Failed to validate the SSL certificate for dl.fedoraproject.org:443. Make sure your managed systems have a valid CA certificate installed. You can use validate_certs=False if you do not need to confirm the servers identity but this is unsafe and not recommended. Paths checked for this platform: /etc/ssl/certs, /etc/pki/ca-trust/extracted/pem, /etc/pki/tls/certs, /usr/share/ca-certificates/cacert.org, /etc/ansible",
+    "retries": 6
+}
+Using module file /usr/lib/python2.7/site-packages/ansible/modules/core/packaging/os/yum.py
+<localhost> EXEC /bin/sh -c '( umask 77 && mkdir -p "` echo ~/.ansible/tmp/ansible-tmp-1492755509.92-13761131463665 `" && echo ansible-tmp-1492755509.92-13761131463665="` echo ~/.ansible/tmp/ansible-tmp-1492755509.92-13761131463665 `" ) && sleep 0'
+<localhost> PUT /tmp/tmp6DkCQa TO /root/.ansible/tmp/ansible-tmp-1492755509.92-13761131463665/yum.py
+<localhost> EXEC /bin/sh -c 'chmod u+x /root/.ansible/tmp/ansible-tmp-1492755509.92-13761131463665/ /root/.ansible/tmp/ansible-tmp-1492755509.92-13761131463665/yum.py && sleep 0'
+<localhost> EXEC /bin/sh -c '/usr/bin/python /root/.ansible/tmp/ansible-tmp-1492755509.92-13761131463665/yum.py; rm -rf "/root/.ansible/tmp/ansible-tmp-1492755509.92-13761131463665/" > /dev/null 2>&1 && sleep 0'
+FAILED - RETRYING: TASK: geerlingguy.repo-epel : Install EPEL repo. (4 retries left).Result was: {
+    "attempts": 2,
+    "failed": true,
+    "invocation": {
+        "module_args": {
+            "conf_file": null,
+            "disable_gpg_check": false,
+            "disablerepo": null,
+            "enablerepo": null,
+            "exclude": null,
+            "install_repoquery": true,
+            "list": null,
+            "name": [
+                "https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm"
+            ],
+            "state": "present",
+            "update_cache": false,
+            "validate_certs": true
+        },
+        "module_name": "yum"
+    },
+    "msg": "Failed to validate the SSL certificate for dl.fedoraproject.org:443. Make sure your managed systems have a valid CA certificate installed. You can use validate_certs=False if you do not need to confirm the servers identity but this is unsafe and not recommended. Paths checked for this platform: /etc/ssl/certs, /etc/pki/ca-trust/extracted/pem, /etc/pki/tls/certs, /usr/share/ca-certificates/cacert.org, /etc/ansible",
+    "retries": 6
+}
+Using module file /usr/lib/python2.7/site-packages/ansible/modules/core/packaging/os/yum.py
+<localhost> EXEC /bin/sh -c '( umask 77 && mkdir -p "` echo ~/.ansible/tmp/ansible-tmp-1492755540.27-255757753406410 `" && echo ansible-tmp-1492755540.27-255757753406410="` echo ~/.ansible/tmp/ansible-tmp-1492755540.27-255757753406410 `" ) && sleep 0'
+<localhost> PUT /tmp/tmp2ij5He TO /root/.ansible/tmp/ansible-tmp-1492755540.27-255757753406410/yum.py
+<localhost> EXEC /bin/sh -c 'chmod u+x /root/.ansible/tmp/ansible-tmp-1492755540.27-255757753406410/ /root/.ansible/tmp/ansible-tmp-1492755540.27-255757753406410/yum.py && sleep 0'
+<localhost> EXEC /bin/sh -c '/usr/bin/python /root/.ansible/tmp/ansible-tmp-1492755540.27-255757753406410/yum.py; rm -rf "/root/.ansible/tmp/ansible-tmp-1492755540.27-255757753406410/" > /dev/null 2>&1 && sleep 0'
+FAILED - RETRYING: TASK: geerlingguy.repo-epel : Install EPEL repo. (3 retries left).Result was: {
+    "attempts": 3,
+    "failed": true,
+    "invocation": {
+        "module_args": {
+            "conf_file": null,
+            "disable_gpg_check": false,
+            "disablerepo": null,
+            "enablerepo": null,
+            "exclude": null,
+            "install_repoquery": true,
+            "list": null,
+            "name": [
+                "https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm"
+            ],
+            "state": "present",
+            "update_cache": false,
+            "validate_certs": true
+        },
+        "module_name": "yum"
+    },
+    "msg": "Failed to validate the SSL certificate for dl.fedoraproject.org:443. Make sure your managed systems have a valid CA certificate installed. You can use validate_certs=False if you do not need to confirm the servers identity but this is unsafe and not recommended. Paths checked for this platform: /etc/ssl/certs, /etc/pki/ca-trust/extracted/pem, /etc/pki/tls/certs, /usr/share/ca-certificates/cacert.org, /etc/ansible",
+    "retries": 6
+}
+Using module file /usr/lib/python2.7/site-packages/ansible/modules/core/packaging/os/yum.py
+<localhost> EXEC /bin/sh -c '( umask 77 && mkdir -p "` echo ~/.ansible/tmp/ansible-tmp-1492755570.65-63320253327143 `" && echo ansible-tmp-1492755570.65-63320253327143="` echo ~/.ansible/tmp/ansible-tmp-1492755570.65-63320253327143 `" ) && sleep 0'
+<localhost> PUT /tmp/tmpqQH8M4 TO /root/.ansible/tmp/ansible-tmp-1492755570.65-63320253327143/yum.py
+<localhost> EXEC /bin/sh -c 'chmod u+x /root/.ansible/tmp/ansible-tmp-1492755570.65-63320253327143/ /root/.ansible/tmp/ansible-tmp-1492755570.65-63320253327143/yum.py && sleep 0'
+<localhost> EXEC /bin/sh -c '/usr/bin/python /root/.ansible/tmp/ansible-tmp-1492755570.65-63320253327143/yum.py; rm -rf "/root/.ansible/tmp/ansible-tmp-1492755570.65-63320253327143/" > /dev/null 2>&1 && sleep 0'
+FAILED - RETRYING: TASK: geerlingguy.repo-epel : Install EPEL repo. (2 retries left).Result was: {
+    "attempts": 4,
+    "failed": true,
+    "invocation": {
+        "module_args": {
+            "conf_file": null,
+            "disable_gpg_check": false,
+            "disablerepo": null,
+            "enablerepo": null,
+            "exclude": null,
+            "install_repoquery": true,
+            "list": null,
+            "name": [
+                "https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm"
+            ],
+            "state": "present",
+            "update_cache": false,
+            "validate_certs": true
+        },
+        "module_name": "yum"
+    },
+    "msg": "Failed to validate the SSL certificate for dl.fedoraproject.org:443. Make sure your managed systems have a valid CA certificate installed. You can use validate_certs=False if you do not need to confirm the servers identity but this is unsafe and not recommended. Paths checked for this platform: /etc/ssl/certs, /etc/pki/ca-trust/extracted/pem, /etc/pki/tls/certs, /usr/share/ca-certificates/cacert.org, /etc/ansible",
+    "retries": 6
+}
+Using module file /usr/lib/python2.7/site-packages/ansible/modules/core/packaging/os/yum.py
+<localhost> EXEC /bin/sh -c '( umask 77 && mkdir -p "` echo ~/.ansible/tmp/ansible-tmp-1492755601.01-243451047904505 `" && echo ansible-tmp-1492755601.01-243451047904505="` echo ~/.ansible/tmp/ansible-tmp-1492755601.01-243451047904505 `" ) && sleep 0'
+<localhost> PUT /tmp/tmpmelHdt TO /root/.ansible/tmp/ansible-tmp-1492755601.01-243451047904505/yum.py
+<localhost> EXEC /bin/sh -c 'chmod u+x /root/.ansible/tmp/ansible-tmp-1492755601.01-243451047904505/ /root/.ansible/tmp/ansible-tmp-1492755601.01-243451047904505/yum.py && sleep 0'
+<localhost> EXEC /bin/sh -c '/usr/bin/python /root/.ansible/tmp/ansible-tmp-1492755601.01-243451047904505/yum.py; rm -rf "/root/.ansible/tmp/ansible-tmp-1492755601.01-243451047904505/" > /dev/null 2>&1 && sleep 0'
+FAILED - RETRYING: TASK: geerlingguy.repo-epel : Install EPEL repo. (1 retries left).Result was: {
+    "attempts": 5,
+    "failed": true,
+    "invocation": {
+        "module_args": {
+            "conf_file": null,
+            "disable_gpg_check": false,
+            "disablerepo": null,
+            "enablerepo": null,
+            "exclude": null,
+            "install_repoquery": true,
+            "list": null,
+            "name": [
+                "https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm"
+            ],
+            "state": "present",
+            "update_cache": false,
+            "validate_certs": true
+        },
+        "module_name": "yum"
+    },
+    "msg": "Failed to validate the SSL certificate for dl.fedoraproject.org:443. Make sure your managed systems have a valid CA certificate installed. You can use validate_certs=False if you do not need to confirm the servers identity but this is unsafe and not recommended. Paths checked for this platform: /etc/ssl/certs, /etc/pki/ca-trust/extracted/pem, /etc/pki/tls/certs, /usr/share/ca-certificates/cacert.org, /etc/ansible",
+    "retries": 6
+}
+Using module file /usr/lib/python2.7/site-packages/ansible/modules/core/packaging/os/yum.py
+<localhost> EXEC /bin/sh -c '( umask 77 && mkdir -p "` echo ~/.ansible/tmp/ansible-tmp-1492755631.42-257479276971892 `" && echo ansible-tmp-1492755631.42-257479276971892="` echo ~/.ansible/tmp/ansible-tmp-1492755631.42-257479276971892 `" ) && sleep 0'
+<localhost> PUT /tmp/tmpKMQWBq TO /root/.ansible/tmp/ansible-tmp-1492755631.42-257479276971892/yum.py
+<localhost> EXEC /bin/sh -c 'chmod u+x /root/.ansible/tmp/ansible-tmp-1492755631.42-257479276971892/ /root/.ansible/tmp/ansible-tmp-1492755631.42-257479276971892/yum.py && sleep 0'
+<localhost> EXEC /bin/sh -c '/usr/bin/python /root/.ansible/tmp/ansible-tmp-1492755631.42-257479276971892/yum.py; rm -rf "/root/.ansible/tmp/ansible-tmp-1492755631.42-257479276971892/" > /dev/null 2>&1 && sleep 0'
+fatal: [localhost]: FAILED! => {
+    "attempts": 5,
+    "changed": false,
+    "failed": true,
+    "invocation": {
+        "module_args": {
+            "conf_file": null,
+            "disable_gpg_check": false,
+            "disablerepo": null,
+            "enablerepo": null,
+            "exclude": null,
+            "install_repoquery": true,
+            "list": null,
+            "name": [
+                "https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm"
+            ],
+            "state": "present",
+            "update_cache": false,
+            "validate_certs": true
+        },
+        "module_name": "yum"
+    },
+    "msg": "Failed to validate the SSL certificate for dl.fedoraproject.org:443. Make sure your managed systems have a valid CA certificate installed. You can use validate_certs=False if you do not need to confirm the servers identity but this is unsafe and not recommended. Paths checked for this platform: /etc/ssl/certs, /etc/pki/ca-trust/extracted/pem, /etc/pki/tls/certs, /usr/share/ca-certificates/cacert.org, /etc/ansible"
+}
+	to retry, use: --limit @/root/centos_provision/playbook.retry
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=13   changed=0    unreachable=0    failed=1
