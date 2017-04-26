@@ -1,0 +1,40 @@
+#!/usr/bin/env powscript
+
+
+require 'shared/vars/test_run_command_program_name.pow'
+
+require 'shared/vars/common.pow'
+require 'shared/vars/dict.pow'
+
+require 'lib/i18n/set_ui_lang.pow'
+require 'lib/i18n/translate.pow'
+require 'lib/io/add_indentation.pow'
+require 'lib/io/read_stdin.pow'
+require 'lib/system/clean_up.pow'
+require 'lib/system/debug.pow'
+require 'lib/system/fail.pow'
+require 'lib/system/init.pow'
+require 'lib/system/init_log.pow'
+require 'lib/system/log_and_print_err.pow'
+require 'lib/system/on_exit.pow'
+require 'lib/system/print_content_of.pow'
+require 'lib/system/print_err.pow'
+require 'lib/system/print_translated.pow'
+require 'lib/system/print_with_color.pow'
+require 'lib/system/run_command.pow'
+require 'lib/system/remove_current_command.pow'
+
+require 'app/installer/stage5/run_ansible_playbook.pow'
+_require 'app/installer/stage5/json2dict.sh'
+
+
+# We wrap the entire script in a big function which we only call at the very end, in order to
+# protect against the possibility of the connection dying mid-script. This protects us against
+# the problem described in this blog post:
+#   http://blog.existentialize.com/dont-pipe-to-your-shell.html
+test_run_command(command, message, hide_output, allow_errors, run_as, failed_logs_filter)
+  UI_LANG=en
+  run_command "${command}" "${message}" "${hide_output}" "${allow_errors}" "${run_as}" "${failed_logs_filter}"
+
+
+test_run_command "${1}" "${2}" "${3}" "${4}" "${5}" "${6}"

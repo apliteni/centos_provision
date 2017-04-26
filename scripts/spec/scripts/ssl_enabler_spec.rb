@@ -78,7 +78,7 @@ RSpec.describe 'enable-ssl.sh' do
     let(:options) { '-p' }
 
     shared_examples_for 'should enable ssl for Keitaro TDS' do
-      it_behaves_like 'should print to stdout', 'certbot certonly --webroot'
+      it_behaves_like 'should print to', :stdout, 'certbot certonly --webroot'
     end
 
     context 'nginx is installed, certbot is installed, crontab is installed, nginx is configured properly' do
@@ -87,7 +87,7 @@ RSpec.describe 'enable-ssl.sh' do
 
       let(:commands) { make_proper_nginx_conf }
 
-      it_behaves_like 'should print to log', [
+      it_behaves_like 'should print to', :log, [
         "Try to found nginx\nFOUND",
         "Try to found crontab\nFOUND",
         "Try to found certbot\nFOUND",
@@ -101,7 +101,7 @@ RSpec.describe 'enable-ssl.sh' do
     context 'nginx is not installed' do
       let(:command_stubs) { {crontab: '/bin/true'} }
 
-      it_behaves_like 'should print to log', "Try to found nginx\nNOT FOUND"
+      it_behaves_like 'should print to', :log, "Try to found nginx\nNOT FOUND"
 
       it_behaves_like 'should exit with error', 'Your Keitaro TDS installation does not properly configured'
     end
@@ -109,7 +109,7 @@ RSpec.describe 'enable-ssl.sh' do
     context 'crontab is not installed' do
       let(:command_stubs) { {nginx: '/bin/true', certbot: '/bin/true'} }
 
-      it_behaves_like 'should print to log', "Try to found crontab\nNOT FOUND"
+      it_behaves_like 'should print to', :log, "Try to found crontab\nNOT FOUND"
 
       it_behaves_like 'should exit with error', 'Your Keitaro TDS installation does not properly configured'
     end
@@ -117,7 +117,7 @@ RSpec.describe 'enable-ssl.sh' do
     context 'certbot is not installed' do
       let(:command_stubs) { {nginx: '/bin/true', crontab: '/bin/true'} }
 
-      it_behaves_like 'should print to log', "Try to found certbot\nNOT FOUND"
+      it_behaves_like 'should print to', :log, "Try to found certbot\nNOT FOUND"
 
       it_behaves_like 'should exit with error', 'Nginx settings of your Keitaro TDS installation does not properly configured'
     end
@@ -125,7 +125,7 @@ RSpec.describe 'enable-ssl.sh' do
     context 'certbot is installed, vhosts.conf is absent' do
       let(:command_stubs) { all_command_stubs }
 
-      it_behaves_like 'should print to log', [
+      it_behaves_like 'should print to', :log, [
         "Try to found certbot\nFOUND",
         "Checking /etc/nginx/conf.d/vhosts.conf file existence\nNO",
       ]
@@ -140,7 +140,7 @@ RSpec.describe 'enable-ssl.sh' do
 
       let(:commands) { make_proper_nginx_conf }
 
-      it_behaves_like 'should print to log', [
+      it_behaves_like 'should print to', :log, [
         "Try to found certbot\nFOUND",
         "Checking /etc/nginx/conf.d/vhosts.conf file existence\nYES",
         "Checking ssl params in /etc/nginx/conf.d/vhosts.conf\nERROR"
@@ -157,14 +157,14 @@ RSpec.describe 'enable-ssl.sh' do
     let(:commands) { make_proper_nginx_conf + emulate_sudo }
 
     context 'successful running certbot' do
-      it_behaves_like 'should print to stdout', /Everything done!/
+      it_behaves_like 'should print to', :stdout, /Everything done!/
     end
 
     context 'unsuccessful running certbot' do
       let(:command_stubs) { all_command_stubs.merge(certbot: '/bin/false') }
 
       it_behaves_like 'should exit with error', [
-        'There was an error evaluating command `certbot',
+        /There was an error evaluating current command\n(.*\n){3}  certbot certonly/,
         'Evaluating log saved to enable-ssl.log',
         'Please rerun `enable-ssl.sh domain1.tld`'
       ]
@@ -177,41 +177,41 @@ RSpec.describe 'enable-ssl.sh' do
     let(:command_stubs) { all_command_stubs }
     let(:commands) { make_proper_nginx_conf + emulate_sudo }
 
-    it_behaves_like 'should print to log', "sudo -u 'nginx' bash -c 'certbot"
-
+    it_behaves_like 'should print to', :log,
+                    %r{certbot certonly.*\n.*sudo -u 'nginx' bash -c './current_command.sh}
   end
 
   context 'with agree LE SA option specified' do
     let(:options) { '-s -p -a' }
 
-    it_behaves_like 'should not print to stdout', "Do you agree with terms of Let's Encrypt Subscriber Agreement?"
+    it_behaves_like 'should not print to', :stdout, "Do you agree with terms of Let's Encrypt Subscriber Agreement?"
 
-    it_behaves_like 'should print to stdout', 'Everything done!'
+    it_behaves_like 'should print to', :stdout, 'Everything done!'
   end
 
   context 'email specified' do
     let(:options) { '-s -p -e some.mail@example.com' }
 
-    it_behaves_like 'should not print to stdout', 'Please enter your email'
+    it_behaves_like 'should not print to', :stdout, 'Please enter your email'
 
-    it_behaves_like 'should print to stdout', /certbot certonly .* --email some.mail@example.com/
+    it_behaves_like 'should print to', :stdout, /certbot certonly .* --email some.mail@example.com/
   end
 
   context 'without email option specified' do
     let(:options) { '-s -p -w' }
 
-    it_behaves_like 'should not print to stdout', 'Please enter your email'
+    it_behaves_like 'should not print to', :stdout, 'Please enter your email'
 
-    it_behaves_like 'should print to stdout', /certbot certonly .* --register-unsafely-without-email/
+    it_behaves_like 'should print to', :stdout, /certbot certonly .* --register-unsafely-without-email/
   end
 
   describe 'making symlinks' do
     let(:options) { '-s -p' }
 
-    it_behaves_like 'should print to log', 'rm -f /etc/nginx/ssl/cert.pem'
-    it_behaves_like 'should print to log', 'ln -s /etc/letsencrypt/live/domain1.tld/fullchain.pem /etc/nginx/ssl/cert.pem'
-    it_behaves_like 'should print to log', 'rm -f /etc/nginx/ssl/privkey.pem'
-    it_behaves_like 'should print to log', 'ln -s /etc/letsencrypt/live/domain1.tld/privkey.pem /etc/nginx/ssl/privkey.pem'
+    it_behaves_like 'should print to', :log, 'rm -f /etc/nginx/ssl/cert.pem'
+    it_behaves_like 'should print to', :log, 'ln -s /etc/letsencrypt/live/domain1.tld/fullchain.pem /etc/nginx/ssl/cert.pem'
+    it_behaves_like 'should print to', :log, 'rm -f /etc/nginx/ssl/privkey.pem'
+    it_behaves_like 'should print to', :log, 'ln -s /etc/letsencrypt/live/domain1.tld/privkey.pem /etc/nginx/ssl/privkey.pem'
   end
 
 
@@ -220,7 +220,7 @@ RSpec.describe 'enable-ssl.sh' do
     let(:command_stubs) { all_command_stubs }
     let(:commands) { make_proper_nginx_conf + emulate_sudo }
 
-    it_behaves_like 'should print to log', /Adding renewal cron job/
+    it_behaves_like 'should print to', :log, /Adding renewal cron job/
 
     context 'cron job already exists' do
       let(:commands) do
@@ -232,13 +232,13 @@ RSpec.describe 'enable-ssl.sh' do
           ]
       end
 
-      it_behaves_like 'should print to log', /Renewal cron job already exists/
+      it_behaves_like 'should print to', :log, /Renewal cron job already exists/
     end
   end
 
   describe 'reloading nginx' do
     let(:options) { '-s -p' }
 
-    it_behaves_like 'should print to log', /nginx -s reload/
+    it_behaves_like 'should print to', :log, /nginx -s reload/
   end
 end

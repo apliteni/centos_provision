@@ -181,23 +181,23 @@ RSpec.describe 'install.sh' do
     before(:all) { `docker rm keitaro_installer_test &>/dev/null` }
 
     shared_examples_for 'should install keitarotds' do
-      it_behaves_like 'should print to stdout',
+      it_behaves_like 'should print to', :stdout,
                       'curl -sSL https://github.com/keitarocorp/centos_provision/archive/master.tar.gz | tar xz'
 
-      it_behaves_like 'should print to stdout',
+      it_behaves_like 'should print to', :stdout,
                       "ansible-playbook -vvv -i #{Inventory::INVENTORY_FILE} centos_provision-master/playbook.yml"
 
       context '-t specified' do
         let(:options) { '-p -t tag1,tag2' }
 
-        it_behaves_like 'should print to stdout',
+        it_behaves_like 'should print to', :stdout,
                         "ansible-playbook -vvv -i #{Inventory::INVENTORY_FILE} centos_provision-master/playbook.yml --tags tag1,tag2"
       end
 
       context '-i specified' do
         let(:options) { '-p -i tag1,tag2' }
 
-        it_behaves_like 'should print to stdout',
+        it_behaves_like 'should print to', :stdout,
                         "ansible-playbook -vvv -i #{Inventory::INVENTORY_FILE} centos_provision-master/playbook.yml --skip-tags tag1,tag2"
       end
     end
@@ -205,9 +205,9 @@ RSpec.describe 'install.sh' do
     context 'yum presented, ansible presented' do
       let(:command_stubs) { {yum: '/bin/true', ansible: '/bin/true'} }
 
-      it_behaves_like 'should print to log', "Try to found yum\nFOUND"
-      it_behaves_like 'should print to log', "Try to found ansible\nFOUND"
-      it_behaves_like 'should not print to stdout', 'Execute command: yum install -y ansible'
+      it_behaves_like 'should print to', :log, "Try to found yum\nFOUND"
+      it_behaves_like 'should print to', :log, "Try to found ansible\nFOUND"
+      it_behaves_like 'should not print to', :stdout, 'Execute command: yum install -y ansible'
 
       it_behaves_like 'should install keitarotds'
     end
@@ -215,17 +215,17 @@ RSpec.describe 'install.sh' do
     context 'yum presented, ansible not presented' do
       let(:command_stubs) { {yum: '/bin/true'} }
 
-      it_behaves_like 'should print to log', "Try to found yum\nFOUND"
-      it_behaves_like 'should print to log', "Try to found ansible\nNOT FOUND"
-      it_behaves_like 'should print to stdout', 'yum install -y epel-release'
-      it_behaves_like 'should print to stdout', 'yum install -y ansible'
+      it_behaves_like 'should print to', :log, "Try to found yum\nFOUND"
+      it_behaves_like 'should print to', :log, "Try to found ansible\nNOT FOUND"
+      it_behaves_like 'should print to', :stdout, 'yum install -y epel-release'
+      it_behaves_like 'should print to', :stdout, 'yum install -y ansible'
 
       it_behaves_like 'should install keitarotds'
     end
 
     context 'yum not presented' do
       let(:commands) { ['rm /usr/bin/yum'] }
-      it_behaves_like 'should print to log', "Try to found yum\nNOT FOUND"
+      it_behaves_like 'should print to', :log, "Try to found yum\nNOT FOUND"
       it_behaves_like 'should exit with error', 'This installer works only on yum-based systems'
     end
   end
@@ -236,7 +236,7 @@ RSpec.describe 'install.sh' do
     context 'successful installation' do
       let(:command_stubs) { {yum: '/bin/true', ansible: '/bin/true', curl: '/bin/true', tar: '/bin/true', 'ansible-playbook': '/bin/true'} }
 
-      it_behaves_like 'should print to stdout',
+      it_behaves_like 'should print to', :stdout,
                       %r{Everything done!\nhttp://8.8.8.8/admin\nlogin: admin\npassword: \w+}
     end
 
@@ -244,7 +244,7 @@ RSpec.describe 'install.sh' do
       let(:command_stubs) { {yum: '/bin/true', ansible: '/bin/true', curl: '/bin/true', tar: '/bin/true', 'ansible-playbook': '/bin/false'} }
 
       it_behaves_like 'should exit with error', [
-        'There was an error evaluating command `ansible-playbook',
+        /There was an error evaluating current command\n(.*\n){3}  ANSIBLE_FORCE_COLOR=true ansible-playbook/,
         'Installation log saved to install.log',
         'Configuration settings saved to hosts.txt',
         'You can rerun `install.sh`'
