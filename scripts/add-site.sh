@@ -674,6 +674,7 @@ save_command_script(){
   debug "$(print_content_of ${CURRENT_COMMAND_SCRIPT})"
 }
 
+
 print_current_command_fail_message(){
   local print_fail_message_method="${1}"
   remove_colors_from_file "${CURRENT_COMMAND_OUTPUT_LOG}"

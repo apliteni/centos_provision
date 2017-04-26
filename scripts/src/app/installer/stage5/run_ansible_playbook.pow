@@ -5,10 +5,6 @@ ANSIBLE_TASK_HEADER="^TASK \[(.*)\].*"
 ANSIBLE_TASK_FAILURE_HEADER="^fatal: "
 ANSIBLE_FAILURE_JSON_FILEPATH="ansible_failure.json"
 
-declare -A ANSIBLE_MODULE_FIELDS
-ANSIBLE_MODULE_FIELDS['core_commands_command']='stdout stderr'
-
-
 run_ansible_playbook()
   local command="ANSIBLE_FORCE_COLOR=true ansible-playbook -vvv -i ${INVENTORY_FILE} ${PROVISION_DIRECTORY}/playbook.yml"
   if isset $ANSIBLE_TAGS
@@ -77,28 +73,49 @@ remove_text_before_last_pattern_occurence(pattern, file)
   sed -n -i -r "H;/${pattern}/h;\${g;p;}" $file
 
 
-get_failed_module_name()
-  head -n3 $CURRENT_COMMAND_OUTPUT_LOG | \
-    tail -n1 | \
-    grep -oE 'modules/.*' | \
-    sed -e 's|^modules/||g' -e 's|/|_|g' -e 's|\.py||'
-
-
 print_ansible_task_module_info(json_filepath)
-  failed_module=$(get_failed_module_name)
-  fail_json={}
-  eval "fail_json=$(cat $ANSIBLE_FAILURE_JSON_FILEPATH | json2dict)"
-  for field in ${ANSIBLE_MODULE_FIELDS[$failed_module]}
-    print_field_content "Task ${field}" "${fail_json["${field}"]}"
+  json={}
+  eval "json=$(cat $ANSIBLE_FAILURE_JSON_FILEPATH | json2dict)"
+  ansible_module=$json['invocation.module_name']
+  echo "Ansible module: ${json['invocation.module_name']}"
+  if isset "${json['msg']}"
+    print_field_content "Field 'msg'" "${json['msg']}"
+  if need_print_stdout_stderr $ansible_module "${json['stdout']}" "${json['stderr']}"
+    print_field_content "Field 'stdout'" "${json['stdout']}"
+    print_field_content "Field 'stderr'" "${json['stderr']}"
+  if need_print_full_json $ansible_module "${json['stdout']}" "${json['stderr']}" "${json['msg']}"
+    print_content_of $ANSIBLE_FAILURE_JSON_FILEPATH
 
 
-print_field_content(field_name, field_content)
+print_field_content(field_caption, field_content)
   if empty "${field_content}"
-    echo "${field_name} is empty"
+    echo "${field_caption} is empty"
   else
-    echo "${field_name}:"
+    echo "${field_caption}:"
     echo -e "${field_content}" | add_indentation
 
+
+need_print_stdout_stderr(ansible_module, stdout, stderr)
+  isset "${stdout}"
+  local is_stdout_set=$?
+  isset "${stderr}"
+  local is_stderr_set=$?
+  # [[ $ansible_module == 'cmd' || ${is_stdout_set} || ${is_stderr_set} ]]
+  [[ $ansible_module == 'cmd' || ${is_stdout_set} == ${SUCCESS_RESULT} || ${is_stderr_set} == ${SUCCESS_RESULT} ]]
+
+
+need_print_full_json(ansible_module, stdout, stderr, msg)
+  need_print_stdout_stderr $ansible_module $stdout $stderr
+  local need_print_output_fields=$?
+  isset $msg
+  is_msg_set=$?
+  [[ ${need_print_output_fields} != ${SUCCESS_RESULT} && ${is_msg_set} != ${SUCCESS_RESULT}  ]]
+
+
+
+
+get_printable_fields(ansible_module, fields)
+  echo $fields
 
 add_indentation()
   sed "s/^/  /g"
