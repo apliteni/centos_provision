@@ -4,7 +4,7 @@
 print_content_of(filepath)
   if [ -f $filepath ]
     if [ -s $filepath ]
-      echo "Content of '${filepath}':\n$(cat $filepath | sed 's/^/  /g')"
+      echo "Content of '${filepath}':\n$(cat $filepath | add_indentation)"
     else
       echo "File '${filepath}' is empty"
   else

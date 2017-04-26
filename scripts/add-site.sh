@@ -66,6 +66,9 @@ CURRENT_COMMAND_OUTPUT_LOG="current_command.output.log"
 CURRENT_COMMAND_ERROR_LOG="current_command.error.log"
 CURRENT_COMMAND_SCRIPT="current_command.sh"
 
+INDENTATION_LENGTH=2
+INDENTATION_SPACES=$(printf "%${INDENTATION_LENGTH}s")
+
 if [[ "${SHELL_NAME}" == 'bash' ]]; then
   if ! empty ${@}; then
     SCRIPT_COMMAND="curl -sSL "$SCRIPT_URL" | bash -s -- ${@}"
@@ -296,6 +299,12 @@ is_installed(){
 
 
 
+add_indentation(){
+  sed -r "s/^/$INDENTATION_SPACES/g"
+}
+
+
+
 get_user_var(){
   local var_name="${1}"
   local validation_methods="${2}"
@@ -470,7 +479,7 @@ print_content_of(){
   local filepath="${1}"
   if [ -f "$filepath" ]; then
     if [ -s "$filepath" ]; then
-      echo "Content of '${filepath}':\n$(cat "$filepath" | sed 's/^/  /g')"
+      echo "Content of '${filepath}':\n$(cat "$filepath" | add_indentation)"
     else
       echo "File '${filepath}' is empty"
     fi

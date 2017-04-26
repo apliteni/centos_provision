@@ -67,6 +67,9 @@ CURRENT_COMMAND_OUTPUT_LOG="current_command.output.log"
 CURRENT_COMMAND_ERROR_LOG="current_command.error.log"
 CURRENT_COMMAND_SCRIPT="current_command.sh"
 
+INDENTATION_LENGTH=2
+INDENTATION_SPACES=$(printf "%${INDENTATION_LENGTH}s")
+
 if [[ "${SHELL_NAME}" == 'bash' ]]; then
   if ! empty ${@}; then
     SCRIPT_COMMAND="curl -sSL "$SCRIPT_URL" | bash -s -- ${@}"
@@ -156,6 +159,12 @@ translate(){
   if isset ${DICT[$i18n_key]}; then
     echo "${DICT[$i18n_key]}"
   fi
+}
+
+
+
+add_indentation(){
+  sed -r "s/^/$INDENTATION_SPACES/g"
 }
 
 
@@ -259,7 +268,7 @@ print_content_of(){
   local filepath="${1}"
   if [ -f "$filepath" ]; then
     if [ -s "$filepath" ]; then
-      echo "Content of '${filepath}':\n$(cat "$filepath" | sed 's/^/  /g')"
+      echo "Content of '${filepath}':\n$(cat "$filepath" | add_indentation)"
     else
       echo "File '${filepath}' is empty"
     fi
@@ -488,6 +497,8 @@ remove_current_command(){
 ANSIBLE_TASK_HEADER="^TASK \[(.*)\].*"
 ANSIBLE_TASK_FAILURE_HEADER="^fatal: "
 ANSIBLE_FAILURE_JSON_FILEPATH="ansible_failure.json"
+ANSIBLE_LAST_TASK_LOG="ansible_last_task.log"
+
 
 run_ansible_playbook(){
   local command="ANSIBLE_FORCE_COLOR=true ansible-playbook -vvv -i ${INVENTORY_FILE} ${PROVISION_DIRECTORY}/playbook.yml"
@@ -502,13 +513,13 @@ run_ansible_playbook(){
 
 
 print_ansible_fail_message(){
-  if ansible_task_found "$CURRENT_COMMAND_OUTPUT_LOG"; then
+  if ansible_task_found; then
     debug "Found last ansible task"
     print_tail_content_of "$CURRENT_COMMAND_ERROR_LOG"
-    # TODO Save only last task log in file
-    remove_text_before_last_pattern_occurence "$ANSIBLE_TASK_HEADER" "$CURRENT_COMMAND_OUTPUT_LOG"
-    print_ansible_task_info "$CURRENT_COMMAND_OUTPUT_LOG"
-    print_ansible_task_external_info "$CURRENT_COMMAND_OUTPUT_LOG"
+    cat "$CURRENT_COMMAND_OUTPUT_LOG" | remove_text_before_last_pattern_occurence "$ANSIBLE_TASK_HEADER" > "$ANSIBLE_LAST_TASK_LOG"
+    print_ansible_last_task_info
+    print_ansible_last_task_external_info
+    rm "$ANSIBLE_LAST_TASK_LOG"
   else
     print_common_fail_message
   fi
@@ -516,37 +527,34 @@ print_ansible_fail_message(){
 
 
 ansible_task_found(){
-  local task_output_filepath="${1}"
-  grep -qE "$ANSIBLE_TASK_HEADER" "$task_output_filepath"
+  grep -qE "$ANSIBLE_TASK_HEADER" "$CURRENT_COMMAND_OUTPUT_LOG"
 }
 
 
-print_ansible_task_info(){
-  local task_output_filepath="${1}"
+print_ansible_last_task_info(){
   echo "Task info:"
-  head -n3 "$task_output_filepath" | add_indentation
+  head -n3 "$ANSIBLE_LAST_TASK_LOG" | add_indentation
 }
 
 
-print_ansible_task_external_info(){
-  local task_output_filepath="${1}"
+print_ansible_last_task_external_info(){
   if ansible_task_failure_found; then
     debug "Found last ansible failure"
-    cp "$task_output_filepath" "$ANSIBLE_FAILURE_JSON_FILEPATH"
-    keep_json_only "$ANSIBLE_FAILURE_JSON_FILEPATH"
-    print_ansible_task_module_info "$ANSIBLE_FAILURE_JSON_FILEPATH"
+    cat "$ANSIBLE_LAST_TASK_LOG" \
+      | keep_json_only \
+      > "$ANSIBLE_FAILURE_JSON_FILEPATH"
+    fi
+    print_ansible_task_module_info
     rm "$ANSIBLE_FAILURE_JSON_FILEPATH"
-  fi
-}
+  }
 
 
 ansible_task_failure_found(){
-  grep -q "$ANSIBLE_TASK_FAILURE_HEADER" "$CURRENT_COMMAND_OUTPUT_LOG"
+  grep -q "$ANSIBLE_TASK_FAILURE_HEADER" "$ANSIBLE_LAST_TASK_LOG"
 }
 
 
 keep_json_only(){
-  local task_output_with_json="${1}"
   # The json with error is inbuilt into text. The structure of text is about:
   
   # TASK [$ROLE_NAME : "$TASK_NAME"] *******
@@ -559,24 +567,22 @@ keep_json_only(){
   # }
   # .....
   
-  # So remove all before "fatal: [localhost]: FAILED! => {" line
-  sed -n -i -r "/${ANSIBLE_TASK_FAILURE_HEADER}/,\$p" "$task_output_with_json"
-  # Replace first line to just '{'
-  sed -i '1c{' "$task_output_with_json"
-  # Remove all after '}'
-  sed -i -e '/^}$/q' "$task_output_with_json"
-}
+  # So, firstly remove all before "fatal: [localhost]: FAILED! => {" line
+  # then replace first line to just '{'
+  # then remove all after '}'
+  sed -n -r "/${ANSIBLE_TASK_FAILURE_HEADER}/,\$p" \
+    | sed '1c{' \
+    | sed -e '/^}$/q'
+  }
 
 
 remove_text_before_last_pattern_occurence(){
   local pattern="${1}"
-  local file="${2}"
-  sed -n -i -r "H;/${pattern}/h;\${g;p;}" "$file"
+  sed -n -r "H;/${pattern}/h;\${g;p;}"
 }
 
 
 print_ansible_task_module_info(){
-  local json_filepath="${1}"
   declare -A   json
   eval "json=$(cat "$ANSIBLE_FAILURE_JSON_FILEPATH" | json2dict)"
   ansible_module="${json['invocation.module_name']}"
@@ -601,7 +607,7 @@ print_field_content(){
     echo "${field_caption} is empty"
   else
     echo "${field_caption}:"
-    echo -e "${field_content}" | add_indentation
+    echo -e "${field_content}" | fold -s -w $((${COLUMNS:-80} - ${INDENTATION_LENGTH})) | add_indentation
   fi
 }
 
@@ -614,7 +620,6 @@ need_print_stdout_stderr(){
   local is_stdout_set=$?
   isset "${stderr}"
   local is_stderr_set=$?
-  # [[ "$ansible_module" == 'cmd' || ${is_stdout_set} || ${is_stderr_set} ]]
   [[ "$ansible_module" == 'cmd' || ${is_stdout_set} == ${SUCCESS_RESULT} || ${is_stderr_set} == ${SUCCESS_RESULT} ]]
 }
 
@@ -632,16 +637,10 @@ need_print_full_json(){
 }
 
 
-
-
 get_printable_fields(){
   local ansible_module="${1}"
   local fields="${2}"
   echo "$fields"
-}
-
-add_indentation(){
-  sed "s/^/  /g"
 }
 
 
