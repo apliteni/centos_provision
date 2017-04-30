@@ -8,4 +8,4 @@ fail(message, see_logs)
     log_and_print_err "$(translate errors.see_logs)"
   print_err
   clean_up
-  exit 1
+  exit ${FAILURE_RESULT}

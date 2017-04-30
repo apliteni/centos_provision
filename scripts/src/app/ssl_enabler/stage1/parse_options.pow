@@ -16,7 +16,7 @@ parse_options()
             UI_LANG=ru
           case *
             print_err "Specified language \"$OPTARG\" is not supported"
-            exit 1
+            exit ${FAILURE_RESULT}
       case a
         SKIP_SSL_AGREE_TOS=true
       case e
@@ -25,17 +25,17 @@ parse_options()
         SKIP_SSL_EMAIL=true
       case :
         print_err "Option -$OPTARG requires an argument."
-        exit 1
+        exit ${FAILURE_RESULT}
       case h
         usage
-        exit 0
+        exit ${SUCCESS_RESULT}
       case \?
         usage
-        exit 1
+        exit ${FAILURE_RESULT}
   shift $((OPTIND-1))
   if ${#} == 0
     usage
-    exit 1
+    exit ${FAILURE_RESULT}
   else
     while ${#} > 0
       if not "${1}" match ^(-)
@@ -45,7 +45,7 @@ parse_options()
 
 usage()
   set_ui_lang
-  if $UI_LANG = 'ru'
+  if $UI_LANG == 'ru'
     ru_usage
   else
     en_usage

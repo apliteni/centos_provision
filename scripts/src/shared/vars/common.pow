@@ -2,6 +2,10 @@
 
 SHELL_NAME=$(basename $0)
 
+SUCCESS_RESULT=0
+FAILURE_RESULT=1
+ROOT_UID=0
+
 KEITARO_URL="https://keitarotds.com"
 
 WEBROOT_PATH="/var/www/keitaro"
@@ -13,6 +17,13 @@ NGINX_KEITARO_CONF="${NGINX_VHOSTS_DIR}/vhosts.conf"
 SCRIPT_NAME="${PROGRAM_NAME}.sh"
 SCRIPT_URL="${KEITARO_URL}/${PROGRAM_NAME}.sh"
 SCRIPT_LOG="${PROGRAM_NAME}.log"
+
+CURRENT_COMMAND_OUTPUT_LOG="current_command.output.log"
+CURRENT_COMMAND_ERROR_LOG="current_command.error.log"
+CURRENT_COMMAND_SCRIPT="current_command.sh"
+
+INDENTATION_LENGTH=2
+INDENTATION_SPACES=$(printf "%${INDENTATION_LENGTH}s")
 
 if "${SHELL_NAME}" == 'bash'
   if not empty ${@}

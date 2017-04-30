@@ -46,6 +46,10 @@ PROGRAM_NAME='add-site'
 
 SHELL_NAME=$(basename "$0")
 
+SUCCESS_RESULT=0
+FAILURE_RESULT=1
+ROOT_UID=0
+
 KEITARO_URL="https://keitarotds.com"
 
 WEBROOT_PATH="/var/www/keitaro"
@@ -57,6 +61,13 @@ NGINX_KEITARO_CONF="${NGINX_VHOSTS_DIR}/vhosts.conf"
 SCRIPT_NAME="${PROGRAM_NAME}.sh"
 SCRIPT_URL="${KEITARO_URL}/${PROGRAM_NAME}.sh"
 SCRIPT_LOG="${PROGRAM_NAME}.log"
+
+CURRENT_COMMAND_OUTPUT_LOG="current_command.output.log"
+CURRENT_COMMAND_ERROR_LOG="current_command.error.log"
+CURRENT_COMMAND_SCRIPT="current_command.sh"
+
+INDENTATION_LENGTH=2
+INDENTATION_SPACES=$(printf "%${INDENTATION_LENGTH}s")
 
 if [[ "${SHELL_NAME}" == 'bash' ]]; then
   if ! empty ${@}; then
@@ -83,7 +94,7 @@ declare -A DICT
 
 DICT['en.errors.program_failed']='PROGRAM FAILED'
 DICT['en.errors.must_be_root']='You must run this program as root.'
-DICT['en.errors.run_command.fail']='There was an error evaluating command'
+DICT['en.errors.run_command.fail']='There was an error evaluating current command'
 DICT['en.errors.run_command.fail_extra']=''
 DICT['en.errors.terminated']='Terminated by user'
 DICT['en.messages.reload_nginx']="Reloading nginx"
@@ -96,12 +107,12 @@ DICT['en.prompt_errors.validate_yes_no']='Please answer "yes" or "no"'
 
 DICT['ru.errors.program_failed']='ОШИБКА ВЫПОЛНЕНИЯ ПРОГРАММЫ'
 DICT['ru.errors.must_be_root']='Эту программу может запускать только root.'
-DICT['ru.errors.run_command.fail']='Ошибка выполнения команды'
+DICT['ru.errors.run_command.fail']='Ошибка выполнения текущей команды'
 DICT['ru.errors.run_command.fail_extra']=''
 DICT['ru.errors.terminated']='Выполнение прервано'
 DICT['ru.messages.reload_nginx']="Перезагружается nginx"
 DICT['ru.messages.run_command']='Выполняется команда'
-DICT['ru.messages.successful']='Программа успешно завершена!'
+DICT['ru.messages.successful']='Готово!'
 DICT['ru.no']='нет'
 DICT['ru.prompt_errors.validate_domains_list']='Укажите список доменных имён через запятую без пробелов (например domain1.tld,www.domain1.tld). Каждое доменное имя должно состоять только из букв, цифр и тире и содержать хотябы одну точку.'
 DICT['ru.prompt_errors.validate_presence']='Введите значение'
@@ -134,7 +145,7 @@ assert_caller_root(){
   if isset "$SKIP_CHECKS"; then
     debug "SKIP: actual checking of current user"
   else
-    if [[ "$EUID" = 0 ]]; then
+    if [[ "$EUID" == "$ROOT_UID" ]]; then
       debug 'OK: current user is root'
     else
       debug 'NOK: current user is not root'
@@ -165,17 +176,17 @@ is_exists_directory(){
     debug "SKIP: аctual check of ${directory} directory existence disabled"
     if [[ "$result_on_skip" == "no" ]]; then
       debug "NO: simulate ${directory} directory does not exist"
-      return 1
+      return ${FAILURE_RESULT}
     fi
     debug "YES: simulate ${directory} directory exists"
-    return 0
+    return ${SUCCESS_RESULT}
   fi
   if [ -d "${directory}" ]; then
     debug "YES: ${directory} directory exists"
-    return 0
+    return ${SUCCESS_RESULT}
   else
     debug "NO: ${directory} directory does not exist"
-    return 1
+    return ${FAILURE_RESULT}
   fi
 }
 
@@ -189,17 +200,17 @@ is_exists_path(){
     debug "SKIP: аctual check of ${path} path existence disabled"
     if [[ "$result_on_skip" == "no" ]]; then
       debug "NO: simulate ${path} path does not exist"
-      return 1
+      return ${FAILURE_RESULT}
     fi
     debug "YES: simulate ${path} path exists"
-    return 0
+    return ${SUCCESS_RESULT}
   fi
   if [ -e "${path}" ]; then
     debug "YES: ${path} path exists"
-    return 0
+    return ${SUCCESS_RESULT}
   else
     debug "NO: ${path} path does not exist"
-    return 1
+    return ${FAILURE_RESULT}
   fi
 }
 
@@ -213,17 +224,17 @@ is_exists_file(){
     debug "SKIP: аctual check of ${file} file existence disabled"
     if [[ "$result_on_skip" == "no" ]]; then
       debug "NO: simulate ${file} file does not exist"
-      return 1
+      return ${FAILURE_RESULT}
     fi
     debug "YES: simulate ${file} file exists"
-    return 0
+    return ${SUCCESS_RESULT}
   fi
   if [ -f "${file}" ]; then
     debug "YES: ${file} file exists"
-    return 0
+    return ${SUCCESS_RESULT}
   else
     debug "NO: ${file} file does not exist"
-    return 1
+    return ${FAILURE_RESULT}
   fi
 }
 
@@ -281,9 +292,15 @@ is_installed(){
       debug "FOUND: "$command" found"
     else
       debug "NOT FOUND: "$command" not found"
-      return 1
+      return ${FAILURE_RESULT}
     fi
   fi
+}
+
+
+
+add_indentation(){
+  sed -r "s/^/$INDENTATION_SPACES/g"
 }
 
 
@@ -402,7 +419,7 @@ fail(){
   fi
   print_err
   clean_up
-  exit 1
+  exit ${FAILURE_RESULT}
 }
 
 
@@ -452,6 +469,7 @@ on_exit(){
   debug "Terminated by user"
   echo
   clean_up
+  remove_current_command
   fail "$(translate 'errors.terminated')"
 }
 
@@ -460,7 +478,11 @@ on_exit(){
 print_content_of(){
   local filepath="${1}"
   if [ -f "$filepath" ]; then
-    echo "Content of '${filepath}':\n$(cat "$filepath" | sed 's/^/  /g')"
+    if [ -s "$filepath" ]; then
+      echo "Content of '${filepath}':\n$(cat "$filepath" | add_indentation)"
+    else
+      echo "File '${filepath}' is empty"
+    fi
   else
     echo "Can't show '${filepath}' content - file does not exist"
   fi
@@ -530,12 +552,20 @@ reload_nginx(){
 
 
 
+remove_current_command(){
+  debug "Removing current_command script and logs"
+  rm -f ${CURRENT_COMMAND_OUTPUT_LOG} ${CURRENT_COMMAND_ERROR_LOG} ${CURRENT_COMMAND_SCRIPT}
+}
+
+
+
 run_command(){
   local command="${1}"
   local message="${2}"
   local hide_output="${3}"
   local allow_errors="${4}"
   local run_as="${5}"
+  local print_fail_message_method="${6}"
   debug "Evaluating command: ${command}"
   if empty "$message"; then
     run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
@@ -552,27 +582,7 @@ run_command(){
     print_command_status "$command" 'SKIPPED' 'yellow' "$hide_output"
     debug "Actual running disabled"
   else
-    if isset "$run_as"; then
-      evaluated_command="sudo -u '${run_as}' bash -c '${command}'"
-    else
-      evaluated_command="${command}"
-    fi
-    if isset "$hide_output"; then
-      evaluated_command="(set -o pipefail && (${evaluated_command}) >> ${SCRIPT_LOG} 2>&1)"
-    else
-      evaluated_command="(set -o pipefail && (${evaluated_command}) 2>&1 | tee -a ${SCRIPT_LOG})"
-    fi
-    debug "Real command: ${evaluated_command}"
-    if ! eval "${evaluated_command}"; then
-      print_command_status "$command" 'NOK' 'red' "$hide_output"
-      if isset "$allow_errors"; then
-        return 1 # false
-      else
-        fail "$(translate 'errors.run_command.fail') \`$command\`" "see_logs"
-      fi
-    else
-      print_command_status "$command" 'OK' 'green' "$hide_output"
-    fi
+    really_run_command "${command}" "${hide_output}" "${allow_errors}" "${run_as}" "${print_fail_message_method}"
   fi
 }
 
@@ -588,6 +598,117 @@ print_command_status(){
   fi
 }
 
+
+really_run_command(){
+  local command="${1}"
+  local hide_output="${2}"
+  local allow_errors="${3}"
+  local run_as="${4}"
+  local print_fail_message_method="${5}"
+  save_command_script "${command}"
+  local evaluated_command="./${CURRENT_COMMAND_SCRIPT}"
+  evaluated_command=$(command_run_as "${evaluated_command}" "${run_as}")
+  evaluated_command=$(unbuffer_streams "${evaluated_command}")
+  evaluated_command=$(save_command_logs "${evaluated_command}")
+  evaluated_command=$(hide_command_output "${evaluated_command}" "${hide_output}")
+  debug "Real command: ${evaluated_command}"
+  if ! eval "${evaluated_command}"; then
+    print_command_status "${command}" 'NOK' 'red' "${hide_output}"
+    if isset "$allow_errors"; then
+      remove_current_command
+      return ${FAILURE_RESULT}
+    else
+      fail_message="$(print_current_command_fail_message ${print_fail_message_method})"
+      remove_current_command
+      fail "${fail_message}" "see_logs"
+    fi
+  else
+    print_command_status "$command" 'OK' 'green' "$hide_output"
+    remove_current_command
+  fi
+}
+
+
+command_run_as(){
+  local command="${1}"
+  local run_as="${2}"
+  if isset "$run_as"; then
+    echo "sudo -u '${run_as}' bash -c '${command}'"
+  else
+    echo "${command}"
+  fi
+}
+
+
+unbuffer_streams(){
+  local command="${1}"
+  echo "stdbuf -i0 -o0 -e0 ${command}"
+}
+
+
+save_command_logs(){
+  local evaluated_command="${1}"
+  local output_log="${2}"
+  local error_log="${3}"
+  save_output_log="tee -i ${CURRENT_COMMAND_OUTPUT_LOG} | tee -ia ${SCRIPT_LOG}"
+  save_error_log="tee -i ${CURRENT_COMMAND_ERROR_LOG} | tee -ia ${SCRIPT_LOG}"
+  echo "((${evaluated_command}) 2> >(${save_error_log}) > >(${save_output_log}))"
+}
+
+
+remove_colors_from_file(){
+  local file="${1}"
+  debug "Removing colors from file ${file}"
+  sed -r -e 's/\x1b\[([0-9]{1,3}(;[0-9]{1,3}){,2})?[mGK]//g' -i "$file"
+}
+
+
+hide_command_output(){
+  local command="${1}"
+  local hide_output="${2}"
+  if isset "$hide_output"; then
+    echo "${command} > /dev/null"
+  else
+    echo "${command}"
+  fi
+}
+
+
+save_command_script(){
+  local command="${1}"
+  echo '#!/usr/bin/env bash' > "${CURRENT_COMMAND_SCRIPT}"
+  echo 'set -o pipefail' >> "${CURRENT_COMMAND_SCRIPT}"
+  echo -e "${command}" >> "${CURRENT_COMMAND_SCRIPT}"
+  chmod a+x "${CURRENT_COMMAND_SCRIPT}"
+  debug "$(print_content_of ${CURRENT_COMMAND_SCRIPT})"
+}
+
+
+print_current_command_fail_message(){
+  local print_fail_message_method="${1}"
+  remove_colors_from_file "${CURRENT_COMMAND_OUTPUT_LOG}"
+  remove_colors_from_file "${CURRENT_COMMAND_ERROR_LOG}"
+  if empty "$print_fail_message_method"; then
+    print_fail_message_method="print_common_fail_message"
+  fi
+  fail_message=$(translate 'errors.run_command.fail')
+  fail_message="${fail_message}\n$(eval ${print_fail_message_method})"
+  echo -e "${fail_message}"
+}
+
+
+print_common_fail_message(){
+  print_content_of ${CURRENT_COMMAND_SCRIPT}
+  print_tail_content_of "${CURRENT_COMMAND_OUTPUT_LOG}"
+  print_tail_content_of "${CURRENT_COMMAND_ERROR_LOG}"
+}
+
+
+print_tail_content_of(){
+  local file="${1}"
+  MAX_LINES_COUNT=20
+  print_content_of "${file}" |  tail -n "$MAX_LINES_COUNT"
+}
 
 
 
@@ -689,21 +810,21 @@ parse_options(){
             ;;
           *)
             print_err "Specified language \"$OPTARG\" is not supported"
-            exit 1
+            exit ${FAILURE_RESULT}
             ;;
         esac
         ;;
       :)
         print_err "Option -$OPTARG requires an argument."
-        exit 1
+        exit ${FAILURE_RESULT}
         ;;
       h)
         usage
-        exit 0
+        exit ${SUCCESS_RESULT}
         ;;
       \?)
         usage
-        exit 1
+        exit ${FAILURE_RESULT}
         ;;
     esac
   done
@@ -712,7 +833,7 @@ parse_options(){
 
 usage(){
   set_ui_lang
-  if [[ "$UI_LANG" = 'ru' ]]; then
+  if [[ "$UI_LANG" == 'ru' ]]; then
     ru_usage
   else
     en_usage
@@ -776,11 +897,11 @@ assert_nginx_configured(){
 is_nginx_properly_configured(){
   if ! is_exists_file "${NGINX_KEITARO_CONF}"; then
     log_and_print_err "ERROR: File ${NGINX_KEITARO_CONF} doesn't exists"
-    return 1
+    return ${FAILURE_RESULT}
   fi
   if ! is_exists_directory "${WEBROOT_PATH}"; then
     log_and_print_err "ERROR: Directory ${WEBROOT_PATH} doesn't exists"
-    return 1
+    return ${FAILURE_RESULT}
   fi
   is_keitaro_configured
 }
@@ -791,22 +912,22 @@ is_keitaro_configured(){
   if isset "$SKIP_CHECKS"; then
     debug "SKIP: аctual check of keitaro params in ${NGINX_KEITARO_CONF} disabled"
     FASTCGI_PASS_LINE="fastcgi_pass unix:/var/run/php70-fpm.sock;"
-    return 0
+    return ${SUCCESS_RESULT}
   fi
   if grep -q -e "root ${WEBROOT_PATH};" "${NGINX_KEITARO_CONF}"; then
     FASTCGI_PASS_LINE="$(cat "$NGINX_KEITARO_CONF" | grep fastcgi_pass | sed 's/^ +//')"
     if empty "${FASTCGI_PASS_LINE}"; then
       log_and_print_err "ERROR: ${NGINX_KEITARO_CONF} is not properly configured (can't find 'fastcgi_pass ...;' directive)"
       log_and_print_err "$(print_content_of ${NGINX_KEITARO_CONF})"
-      return 1
+      return ${FAILURE_RESULT}
     else
       debug "OK: it seems like ${NGINX_KEITARO_CONF} is properly configured"
-      return 0
+      return ${SUCCESS_RESULT}
     fi
   else
     log_and_print_err "ERROR: ${NGINX_KEITARO_CONF} is not properly configured (can't find 'root ${WEBROOT_PATH};' directive"
     log_and_print_err $(print_content_of ${NGINX_KEITARO_CONF})
-    return 1
+    return ${FAILURE_RESULT}
   fi
 }
 

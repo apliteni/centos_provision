@@ -16,7 +16,7 @@ parse_options()
             UI_LANG=ru
           case *
             print_err "Specified language \"$OPTARG\" is not supported"
-            exit 1
+            exit ${FAILURE_RESULT}
       case t
         ANSIBLE_TAGS=$OPTARG
       case i
@@ -24,17 +24,17 @@ parse_options()
       case k
         if $OPTARG != 6 && $OPTARG != 7 && $OPTARG != 8
           print_err "Specified Keitaro TDS Release \"$OPTARG\" is not supported"
-          exit 1
+          exit ${FAILURE_RESULT}
         KEITARO_RELEASE=$OPTARG
       case :
         print_err "Option -$OPTARG requires an argument."
-        exit 1
+        exit ${FAILURE_RESULT}
       case h
         usage
-        exit 0
+        exit ${SUCCESS_RESULT}
       case \?
         usage
-        exit 1
+        exit ${FAILURE_RESULT}
 
 
 usage()
