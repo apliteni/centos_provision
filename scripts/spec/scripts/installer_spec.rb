@@ -151,6 +151,10 @@ RSpec.describe 'install.sh' do
     it_behaves_like 'field with default', :admin_login, default: 'admin'
 
     it_behaves_like 'password field', :admin_password
+
+    describe 'correctly stores yes/no fields' do
+      it_behaves_like 'should print to', :log, /Write inventory file.*ssl=no/m
+    end
   end
 
   describe 'inventory file' do
