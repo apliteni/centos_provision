@@ -363,7 +363,7 @@ read_stdin(){
   else
     read -r variable
   fi
-  echo "$variable"
+  echo "$variable" | sed 's/[^a-zA-Z[:digit:][:punct:]]//g'
 }
 
 
