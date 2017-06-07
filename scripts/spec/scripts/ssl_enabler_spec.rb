@@ -8,7 +8,7 @@ RSpec.describe 'enable-ssl.sh' do
   let(:args) { options + ' ' + domains.join(' ') }
   let(:all_command_stubs) { {nginx: '/bin/true', certbot: '/bin/true', crontab: '/bin/true'} }
   let(:domains) { %w[domain1.tld] }
-  let(:nginx_conf) { "ssl_certificate /etc/nginx/cert.pem;\nssl_certificate_key /etc/nginx/ssl/privkey.pem;" }
+  let(:nginx_conf) { "ssl_certificate /etc/nginx/ssl/cert.pem;\nssl_certificate_key /etc/nginx/ssl/privkey.pem;" }
   let(:make_proper_nginx_conf) do
     [
       'mkdir -p /etc/nginx/conf.d /etc/nginx/ssl',
@@ -157,6 +157,15 @@ RSpec.describe 'enable-ssl.sh' do
     let(:commands) { make_proper_nginx_conf + emulate_sudo }
 
     context 'successful running certbot' do
+      let(:commands) { make_proper_nginx_conf + emulate_sudo + emulate_crontab }
+
+      let(:emulate_crontab) do
+        [
+          'echo "sleep 0.1" > /bin/crontab',
+          'chmod a+x /bin/crontab'
+        ]
+      end
+
       it_behaves_like 'should print to', :stdout, /Everything done!/
     end
 
@@ -178,7 +187,7 @@ RSpec.describe 'enable-ssl.sh' do
     let(:commands) { make_proper_nginx_conf + emulate_sudo }
 
     it_behaves_like 'should print to', :log,
-                    %r{certbot certonly.*\n.*sudo -u 'nginx' bash -c './current_command.sh}
+                    %r{certbot certonly.*\n.*sudo -u 'nginx' bash -c '/tmp/.*/current_command.sh}
   end
 
   context 'with agree LE SA option specified' do
