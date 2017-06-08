@@ -6,7 +6,7 @@ RSpec.describe 'enable-ssl.sh' do
 
   let(:script_name) { 'enable-ssl.sh' }
   let(:args) { options + ' ' + domains.join(' ') }
-  let(:all_command_stubs) { {nginx: '/bin/true', certbot: '/bin/true', crontab: '/bin/true'} }
+  let(:all_command_stubs) { {nginx: '/bin/true', certbot: '/bin/true', crontab: '/bin/true', chown: '/bin/true'} }
   let(:domains) { %w[domain1.tld] }
   let(:nginx_conf) { "ssl_certificate /etc/nginx/ssl/cert.pem;\nssl_certificate_key /etc/nginx/ssl/privkey.pem;" }
   let(:make_proper_nginx_conf) do
