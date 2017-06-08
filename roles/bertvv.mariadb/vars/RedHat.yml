@@ -2,8 +2,8 @@
 ---
 
 mariadb_packages:
-  - mariadb
-  - mariadb-server
+  - MariaDB
+  - MariaDB-server
   - MySQL-python
 
 mariadb_service: mariadb
