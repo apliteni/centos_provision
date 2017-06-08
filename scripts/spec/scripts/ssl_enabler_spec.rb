@@ -161,7 +161,7 @@ RSpec.describe 'enable-ssl.sh' do
 
       let(:emulate_crontab) do
         [
-          'echo "sleep 0.1" > /bin/crontab',
+          'echo "if [[ \"\${@:\$#}\" == \"-\" ]]; then while read line; do : ; done; fi" > /bin/crontab',
           'chmod a+x /bin/crontab'
         ]
       end
