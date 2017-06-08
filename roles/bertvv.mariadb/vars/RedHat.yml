@@ -11,4 +11,4 @@ mariadb_service: mariadb
 mariadb_config: /etc/my.cnf.d/network.cnf
 mariadb_my_config: ~/.my.cnf
 
-mariadb_version: 10.1
+mariadb_version: 10.2
