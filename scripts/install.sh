@@ -80,7 +80,7 @@ SCRIPT_LOG="${PROGRAM_NAME}.log"
 
 CURRENT_COMMAND_OUTPUT_LOG="current_command.output.log"
 CURRENT_COMMAND_ERROR_LOG="current_command.error.log"
-CURRENT_COMMAND_SCRIPT="current_command.sh"
+CURRENT_COMMAND_SCRIPT_NAME="current_command.sh"
 
 INDENTATION_LENGTH=2
 INDENTATION_SPACES=$(printf "%${INDENTATION_LENGTH}s")
@@ -395,7 +395,6 @@ on_exit(){
   debug "Terminated by user"
   echo
   clean_up
-  remove_current_command
   fail "$(translate 'errors.terminated')"
 }
 
@@ -517,9 +516,8 @@ really_run_command(){
   local allow_errors="${3}"
   local run_as="${4}"
   local print_fail_message_method="${5}"
-  save_command_script "${command}"
-  local evaluated_command="./${CURRENT_COMMAND_SCRIPT}"
-  evaluated_command=$(command_run_as "${evaluated_command}" "${run_as}")
+  local current_command_script=$(save_command_script "${command}")
+  local evaluated_command=$(command_run_as "${current_command_script}" "${run_as}")
   evaluated_command=$(unbuffer_streams "${evaluated_command}")
   evaluated_command=$(save_command_logs "${evaluated_command}")
   evaluated_command=$(hide_command_output "${evaluated_command}" "${hide_output}")
@@ -527,16 +525,16 @@ really_run_command(){
   if ! eval "${evaluated_command}"; then
     print_command_status "${command}" 'NOK' 'red' "${hide_output}"
     if isset "$allow_errors"; then
-      remove_current_command
+      remove_current_command "$current_command_script"
       return ${FAILURE_RESULT}
     else
-      fail_message="$(print_current_command_fail_message ${print_fail_message_method})"
-      remove_current_command
+      fail_message=$(print_current_command_fail_message "$print_fail_message_method" "$current_command_script")
+      remove_current_command "$current_command_script"
       fail "${fail_message}" "see_logs"
     fi
   else
     print_command_status "$command" 'OK' 'green' "$hide_output"
-    remove_current_command
+    remove_current_command "$current_command_script"
   fi
 }
 
@@ -545,6 +543,7 @@ command_run_as(){
   local command="${1}"
   local run_as="${2}"
   if isset "$run_as"; then
+    chown "${run_as}" "${command}"
     echo "sudo -u '${run_as}' bash -c '${command}'"
   else
     echo "${command}"
@@ -588,29 +587,34 @@ hide_command_output(){
 
 save_command_script(){
   local command="${1}"
-  echo '#!/usr/bin/env bash' > "${CURRENT_COMMAND_SCRIPT}"
-  echo 'set -o pipefail' >> "${CURRENT_COMMAND_SCRIPT}"
-  echo -e "${command}" >> "${CURRENT_COMMAND_SCRIPT}"
-  chmod a+x "${CURRENT_COMMAND_SCRIPT}"
-  debug "$(print_content_of ${CURRENT_COMMAND_SCRIPT})"
+  local current_command_dir=$(mktemp -d)
+  local current_command_script="${current_command_dir}/${CURRENT_COMMAND_SCRIPT_NAME}"
+  echo '#!/usr/bin/env bash' > "${current_command_script}"
+  echo 'set -o pipefail' >> "${current_command_script}"
+  echo -e "${command}" >> "${current_command_script}"
+  chmod a+x "${current_command_script}"
+  debug "$(print_content_of ${current_command_script})"
+  echo "${current_command_script}"
 }
 
 
 print_current_command_fail_message(){
   local print_fail_message_method="${1}"
+  local current_command_script="${2}"
   remove_colors_from_file "${CURRENT_COMMAND_OUTPUT_LOG}"
   remove_colors_from_file "${CURRENT_COMMAND_ERROR_LOG}"
   if empty "$print_fail_message_method"; then
     print_fail_message_method="print_common_fail_message"
   fi
-  fail_message=$(translate 'errors.run_command.fail')
-  fail_message="${fail_message}\n$(eval ${print_fail_message_method})"
-  echo -e "${fail_message}"
+  local fail_message_header=$(translate 'errors.run_command.fail')
+  local fail_message=$(eval "$print_fail_message_method" "$current_command_script")
+  echo -e "${fail_message_header}\n${fail_message}"
 }
 
 
 print_common_fail_message(){
-  print_content_of ${CURRENT_COMMAND_SCRIPT}
+  local current_command_script="${1}"
+  print_content_of ${current_command_script}
   print_tail_content_of "${CURRENT_COMMAND_OUTPUT_LOG}"
   print_tail_content_of "${CURRENT_COMMAND_ERROR_LOG}"
 }
@@ -623,10 +627,11 @@ print_tail_content_of(){
 }
 
 
-
 remove_current_command(){
-  debug "Removing current_command script and logs"
-  rm -f ${CURRENT_COMMAND_OUTPUT_LOG} ${CURRENT_COMMAND_ERROR_LOG} ${CURRENT_COMMAND_SCRIPT}
+  local current_command_script="${1}"
+  debug "Removing current command script and logs"
+  # rm -f "$CURRENT_COMMAND_OUTPUT_LOG" "$CURRENT_COMMAND_ERROR_LOG" "$current_command_script"
+  # rmdir $(dirname "$current_command_script")
 }
 
 
@@ -1122,6 +1127,7 @@ run_ansible_playbook(){
 
 
 print_ansible_fail_message(){
+  local current_command_script="${1}"
   if ansible_task_found; then
     debug "Found last ansible task"
     print_tail_content_of "$CURRENT_COMMAND_ERROR_LOG"
@@ -1130,7 +1136,7 @@ print_ansible_fail_message(){
     print_ansible_last_task_external_info
     rm "$ANSIBLE_LAST_TASK_LOG"
   else
-    print_common_fail_message
+    print_common_fail_message "$current_command_script"
   fi
 }
 

@@ -5,5 +5,4 @@ on_exit()
   debug "Terminated by user"
   echo
   clean_up
-  remove_current_command
   fail "$(translate 'errors.terminated')"

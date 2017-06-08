@@ -26,9 +26,8 @@ print_command_status(command, status, color, hide_output)
 
 
 really_run_command(command, hide_output, allow_errors, run_as, print_fail_message_method)
-  save_command_script "${command}"
-  local evaluated_command="./${CURRENT_COMMAND_SCRIPT}"
-  evaluated_command=$(command_run_as "${evaluated_command}" "${run_as}")
+  local current_command_script=$(save_command_script "${command}")
+  local evaluated_command=$(command_run_as "${current_command_script}" "${run_as}")
   evaluated_command=$(unbuffer_streams "${evaluated_command}")
   evaluated_command=$(save_command_logs "${evaluated_command}")
   evaluated_command=$(hide_command_output "${evaluated_command}" "${hide_output}")
@@ -36,19 +35,20 @@ really_run_command(command, hide_output, allow_errors, run_as, print_fail_messag
   if ! eval "${evaluated_command}"
     print_command_status "${command}" 'NOK' 'red' "${hide_output}"
     if isset $allow_errors
-      remove_current_command
+      remove_current_command $current_command_script
       return ${FAILURE_RESULT}
     else
-      fail_message="$(print_current_command_fail_message ${print_fail_message_method})"
-      remove_current_command
+      fail_message=$(print_current_command_fail_message $print_fail_message_method $current_command_script)
+      remove_current_command $current_command_script
       fail "${fail_message}" "see_logs"
   else
     print_command_status $command 'OK' 'green' $hide_output
-    remove_current_command
+    remove_current_command $current_command_script
 
 
 command_run_as(command, run_as)
   if isset $run_as
+    chown "${run_as}" "${command}"
     echo "sudo -u '${run_as}' bash -c '${command}'"
   else
     echo "${command}"
@@ -78,25 +78,28 @@ hide_command_output(command, hide_output)
 
 
 save_command_script(command)
-  echo '#!/usr/bin/env bash' > "${CURRENT_COMMAND_SCRIPT}"
-  echo 'set -o pipefail' >> "${CURRENT_COMMAND_SCRIPT}"
-  echo -e "${command}" >> "${CURRENT_COMMAND_SCRIPT}"
-  chmod a+x "${CURRENT_COMMAND_SCRIPT}"
-  debug "$(print_content_of ${CURRENT_COMMAND_SCRIPT})"
+  local current_command_dir=$(mktemp -d)
+  local current_command_script="${current_command_dir}/${CURRENT_COMMAND_SCRIPT_NAME}"
+  echo '#!/usr/bin/env bash' > "${current_command_script}"
+  echo 'set -o pipefail' >> "${current_command_script}"
+  echo -e "${command}" >> "${current_command_script}"
+  chmod a+x "${current_command_script}"
+  debug "$(print_content_of ${current_command_script})"
+  echo "${current_command_script}"
 
 
-print_current_command_fail_message(print_fail_message_method)
+print_current_command_fail_message(print_fail_message_method, current_command_script)
   remove_colors_from_file "${CURRENT_COMMAND_OUTPUT_LOG}"
   remove_colors_from_file "${CURRENT_COMMAND_ERROR_LOG}"
   if empty $print_fail_message_method
     print_fail_message_method="print_common_fail_message"
-  fail_message=$(translate 'errors.run_command.fail')
-  fail_message="${fail_message}\n$(eval ${print_fail_message_method})"
-  echo -e "${fail_message}"
+  local fail_message_header=$(translate 'errors.run_command.fail')
+  local fail_message=$(eval $print_fail_message_method $current_command_script)
+  echo -e "${fail_message_header}\n${fail_message}"
 
 
-print_common_fail_message()
-  print_content_of ${CURRENT_COMMAND_SCRIPT}
+print_common_fail_message(current_command_script)
+  print_content_of ${current_command_script}
   print_tail_content_of "${CURRENT_COMMAND_OUTPUT_LOG}"
   print_tail_content_of "${CURRENT_COMMAND_ERROR_LOG}"
 
@@ -104,3 +107,9 @@ print_common_fail_message()
 print_tail_content_of(file)
   MAX_LINES_COUNT=20
   print_content_of "${file}" |  tail -n $MAX_LINES_COUNT
+
+
+remove_current_command(current_command_script)
+  debug "Removing current command script and logs"
+  # rm -f $CURRENT_COMMAND_OUTPUT_LOG $CURRENT_COMMAND_ERROR_LOG $current_command_script
+  # rmdir $(dirname $current_command_script)
