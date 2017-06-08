@@ -16,7 +16,7 @@ run_ansible_playbook()
   run_command "${command}" '' '' '' '' 'print_ansible_fail_message'
 
 
-print_ansible_fail_message()
+print_ansible_fail_message(current_command_script)
   if ansible_task_found
     debug "Found last ansible task"
     print_tail_content_of $CURRENT_COMMAND_ERROR_LOG
@@ -25,7 +25,7 @@ print_ansible_fail_message()
     print_ansible_last_task_external_info
     rm $ANSIBLE_LAST_TASK_LOG
   else
-    print_common_fail_message
+    print_common_fail_message $current_command_script
 
 
 ansible_task_found()

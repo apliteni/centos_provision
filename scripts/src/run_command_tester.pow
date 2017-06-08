@@ -22,7 +22,6 @@ require 'lib/system/print_err.pow'
 require 'lib/system/print_translated.pow'
 require 'lib/system/print_with_color.pow'
 require 'lib/system/run_command.pow'
-require 'lib/system/remove_current_command.pow'
 
 require 'app/installer/stage5/run_ansible_playbook.pow'
 _require 'app/installer/stage5/json2dict.sh'
