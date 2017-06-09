@@ -688,8 +688,8 @@ print_tail_content_of(){
 remove_current_command(){
   local current_command_script="${1}"
   debug "Removing current command script and logs"
-  # rm -f "$CURRENT_COMMAND_OUTPUT_LOG" "$CURRENT_COMMAND_ERROR_LOG" "$current_command_script"
-  # rmdir $(dirname "$current_command_script")
+  rm -f "$CURRENT_COMMAND_OUTPUT_LOG" "$CURRENT_COMMAND_ERROR_LOG" "$current_command_script"
+  rmdir $(dirname "$current_command_script")
 }
 
 
