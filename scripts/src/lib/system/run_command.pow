@@ -111,5 +111,5 @@ print_tail_content_of(file)
 
 remove_current_command(current_command_script)
   debug "Removing current command script and logs"
-  # rm -f $CURRENT_COMMAND_OUTPUT_LOG $CURRENT_COMMAND_ERROR_LOG $current_command_script
-  # rmdir $(dirname $current_command_script)
+  rm -f $CURRENT_COMMAND_OUTPUT_LOG $CURRENT_COMMAND_ERROR_LOG $current_command_script
+  rmdir $(dirname $current_command_script)
