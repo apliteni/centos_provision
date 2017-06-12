@@ -49,9 +49,9 @@ really_run_command(command, hide_output, allow_errors, run_as, print_fail_messag
 command_run_as(command, run_as)
   if isset $run_as
     chown "${run_as}" "${command}"
-    echo "sudo -u '${run_as}' bash -c '${command}'"
+    echo "sudo -u '${run_as}' bash '${command}'"
   else
-    echo "${command}"
+    echo "bash ${command}"
 
 
 # unbuffer stdout to keep stderr/stdout lines ordering
