@@ -16,12 +16,6 @@ RSpec.describe 'enable-ssl.sh' do
       %Q{echo -e "#{nginx_conf}"> /etc/nginx/conf.d/vhosts.conf}
     ]
   end
-  let(:emulate_sudo) do
-    [
-      'echo "shift 4; bash -c \"\$@\"" > /bin/sudo',
-      'chmod a+x /bin/sudo'
-    ]
-  end
 
   let(:prompts) do
     {
@@ -187,7 +181,7 @@ RSpec.describe 'enable-ssl.sh' do
     let(:commands) { make_proper_nginx_conf + emulate_sudo }
 
     it_behaves_like 'should print to', :log,
-                    %r{certbot certonly.*\n.*sudo -u 'nginx' bash -c '/tmp/.*/current_command.sh}
+                    %r{certbot certonly.*\n.*sudo -u 'nginx' bash '/tmp/.*/current_command.sh}
   end
 
   context 'with agree LE SA option specified' do

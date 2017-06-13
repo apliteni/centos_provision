@@ -11,7 +11,7 @@ RSpec.shared_context 'build subject', build_subject: :yes do
   let(:save_files) { [] }
   let(:emulate_sudo) do
     [
-      'echo "shift 4; bash -c \"\$@\"" > /bin/sudo',
+      'echo "shift 3; bash \"\$@\"" > /bin/sudo',
       'chmod a+x /bin/sudo'
     ]
   end

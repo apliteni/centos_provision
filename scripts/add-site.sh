@@ -597,7 +597,7 @@ really_run_command(){
   local allow_errors="${3}"
   local run_as="${4}"
   local print_fail_message_method="${5}"
-  local current_command_script=$(save_command_script "${command}")
+  local current_command_script=$(save_command_script "${command}" "${run_as}")
   local evaluated_command=$(command_run_as "${current_command_script}" "${run_as}")
   evaluated_command=$(unbuffer_streams "${evaluated_command}")
   evaluated_command=$(save_command_logs "${evaluated_command}")
@@ -624,7 +624,6 @@ command_run_as(){
   local command="${1}"
   local run_as="${2}"
   if isset "$run_as"; then
-    chown "${run_as}" "${command}"
     echo "sudo -u '${run_as}' bash '${command}'"
   else
     echo "bash ${command}"
@@ -668,12 +667,15 @@ hide_command_output(){
 
 save_command_script(){
   local command="${1}"
+  local run_as="${2}"
   local current_command_dir=$(mktemp -d)
+  if isset "$run_as"; then
+    chown "$run_as" "$current_command_dir"
+  fi
   local current_command_script="${current_command_dir}/${CURRENT_COMMAND_SCRIPT_NAME}"
   echo '#!/usr/bin/env bash' > "${current_command_script}"
   echo 'set -o pipefail' >> "${current_command_script}"
   echo -e "${command}" >> "${current_command_script}"
-  chmod a+x "${current_command_script}"
   debug "$(print_content_of ${current_command_script})"
   echo "${current_command_script}"
 }
