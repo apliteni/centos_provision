@@ -26,7 +26,7 @@ print_command_status(command, status, color, hide_output)
 
 
 really_run_command(command, hide_output, allow_errors, run_as, print_fail_message_method)
-  local current_command_script=$(save_command_script "${command}")
+  local current_command_script=$(save_command_script "${command}" "${run_as}")
   local evaluated_command=$(command_run_as "${current_command_script}" "${run_as}")
   evaluated_command=$(unbuffer_streams "${evaluated_command}")
   evaluated_command=$(save_command_logs "${evaluated_command}")
@@ -48,10 +48,9 @@ really_run_command(command, hide_output, allow_errors, run_as, print_fail_messag
 
 command_run_as(command, run_as)
   if isset $run_as
-    chown "${run_as}" "${command}"
-    echo "sudo -u '${run_as}' bash -c '${command}'"
+    echo "sudo -u '${run_as}' bash '${command}'"
   else
-    echo "${command}"
+    echo "bash ${command}"
 
 
 # unbuffer stdout to keep stderr/stdout lines ordering
@@ -77,13 +76,14 @@ hide_command_output(command, hide_output)
     echo "${command}"
 
 
-save_command_script(command)
+save_command_script(command, run_as)
   local current_command_dir=$(mktemp -d)
+  if isset $run_as
+    chown $run_as $current_command_dir
   local current_command_script="${current_command_dir}/${CURRENT_COMMAND_SCRIPT_NAME}"
   echo '#!/usr/bin/env bash' > "${current_command_script}"
   echo 'set -o pipefail' >> "${current_command_script}"
   echo -e "${command}" >> "${current_command_script}"
-  chmod a+x "${current_command_script}"
   debug "$(print_content_of ${current_command_script})"
   echo "${current_command_script}"
 
