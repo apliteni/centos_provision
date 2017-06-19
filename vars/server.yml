@@ -20,22 +20,36 @@ mariadb_users:
 
 # NGinx
 nginx_worker_processes: auto
+nginx_worker_connections: 4000
 nginx_remove_default_vhost: true
+nginx_access_log: "/var/log/nginx/access.log main buffer=16k "
 nginx_extra_http_options: |
+
+  worker_rlimit_nofile 100000;
+
+  # Security
+  server_tokens off;
+
   # Compression
   gzip                on;
   gzip_comp_level     6;
-  gzip_min_length     512;
+  gzip_min_length     4096;
   gzip_buffers        8 64k;
   gzip_types          text/plain text/css text/javascript text/js text/xml application/json application/javascript application/x-javascript application/xml application/xml+rss
   gzip_proxied        any;
-  gzip_disable        "MSIE [1-6]\.";
+  gzip_disable        "msie";
 
-  # File cache settings
+  # cache informations about FDs, frequently accessed files
+  # can boost performance
   open_file_cache          max=10000 inactive=30s;
   open_file_cache_valid    60s;
   open_file_cache_min_uses 2;
   open_file_cache_errors   on;
+
+  # allow the server to close connection on non responding client, this will free up memory
+  reset_timedout_connection on;
+  # number of requests client can make over keep-alive
+  keepalive_requests 100;
 
   # Proxy settings
   proxy_buffering    off;
