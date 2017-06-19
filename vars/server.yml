@@ -24,12 +24,18 @@ nginx_remove_default_vhost: true
 nginx_extra_http_options: |
   # Compression
   gzip                on;
-  gzip_comp_level     9;
+  gzip_comp_level     6;
   gzip_min_length     512;
   gzip_buffers        8 64k;
   gzip_types          text/plain text/css text/javascript text/js text/xml application/json application/javascript application/x-javascript application/xml application/xml+rss
   gzip_proxied        any;
   gzip_disable        "MSIE [1-6]\.";
+
+  # File cache settings
+  open_file_cache          max=10000 inactive=30s;
+  open_file_cache_valid    60s;
+  open_file_cache_min_uses 2;
+  open_file_cache_errors   on;
 
   # Proxy settings
   proxy_buffering    off;
