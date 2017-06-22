@@ -1,4 +1,4 @@
-# Provision CentOS for Keitaro TDS
+# Provision CentOS for Keitaro
 
 This repository contains a bash installer and an Ansible playbook to provision new bare servers.
 
@@ -9,7 +9,7 @@ This repository contains a bash installer and an Ansible playbook to provision n
 
 ## Installation method 1 (preferred). Use provided bash installer
 
-### Install Keitaro TDS
+### Install Keitaro
 
 Connect to your CentOS server and run as root
 
@@ -22,7 +22,7 @@ Installer supports two locales: English (default) and Russian. In order to use R
 ### Install Let's Encrypt Free SSL certificates (optional)
 
 Installer will ask you to install Free SSL certificates. If you don't want to install certificates at a time of
-installing Keitaro TDS you may want to install they later.
+installing Keitaro you may want to install they later.
 
 Connect to your CentOS server and run as root
 
@@ -109,7 +109,7 @@ Take a look to ```vars/server.yml```.
 
 ### Install Let's Encrypt Free SSL certificates (optional)
 
-If you don't want to install certificates at a time of installing Keitaro TDS you may want to install they later.
+If you don't want to install certificates at a time of installing Keitaro you may want to install they later.
 In order to install certificates add the following lines to your ```hosts.txt```
 
     ssl_certificate=letsencrypt     # You must agree with terms of Let's Encrypt Subscriber Agreement (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf)
