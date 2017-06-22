@@ -23,7 +23,7 @@ parse_options()
         ANSIBLE_IGNORE_TAGS=$OPTARG
       case k
         if $OPTARG != 6 && $OPTARG != 7 && $OPTARG != 8
-          print_err "Specified Keitaro TDS Release \"$OPTARG\" is not supported"
+          print_err "Specified Keitaro Release \"$OPTARG\" is not supported"
           exit ${FAILURE_RESULT}
         KEITARO_RELEASE=$OPTARG
       case :
@@ -46,7 +46,7 @@ usage()
 
 
 ru_usage()
-  print_err "$SCRIPT_NAME устанавливает Keitaro TDS"
+  print_err "$SCRIPT_NAME устанавливает Keitaro"
   print_err
   print_err "Использование: $SCRIPT_NAME [-ps] [-l en|ru] [-t TAG1[,TAG2...]]"
   print_err
@@ -67,13 +67,13 @@ ru_usage()
   print_err "    Запуск ansible-playbook без выполнения указанных тэгов."
   print_err
   print_err "  -k <keitaro_release>"
-  print_err "    $SCRIPT_NAME по умолчанию устанавливает текущую стабильную версию Keitaro TDS. Вы можете явно задать устанавливаемую версию через этот параметр."
+  print_err "    $SCRIPT_NAME по умолчанию устанавливает текущую стабильную версию Keitaro. Вы можете явно задать устанавливаемую версию через этот параметр."
   print_err "    На данный момент поддерживаются значения 6, 7 и 8."
   print_err
 
 
 en_usage()
-  print_err "$SCRIPT_NAME installs Keitaro TDS"
+  print_err "$SCRIPT_NAME installs Keitaro"
   print_err
   print_err "Usage: $SCRIPT_NAME [-ps] [-l en|ru]"
   print_err
@@ -94,6 +94,6 @@ en_usage()
   print_err "    Runs ansible-playbook with skipping specified tags."
   print_err
   print_err "  -k <keitaro_release>"
-  print_err "    By default $SCRIPT_NAME installs current stable Keitaro TDS. You can specify Keitaro TDS release with this option."
+  print_err "    By default $SCRIPT_NAME installs current stable Keitaro. You can specify Keitaro release with this option."
   print_err "    Only 6, 7 and 8 values are supported now."
   print_err

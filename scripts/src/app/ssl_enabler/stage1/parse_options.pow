@@ -52,7 +52,7 @@ usage()
 
 
 ru_usage()
-  print_err "$SCRIPT_NAME подключает SSL сертификат от Let's Encrypt для указанных доменов Keitaro TDS"
+  print_err "$SCRIPT_NAME подключает SSL сертификат от Let's Encrypt для указанных доменов Keitaro"
   print_err
   print_err "Использование: $SCRIPT_NAME [-ps] [-l en|ru] [-e some.email@example.org] domain1.tld [domain2.tld] ..."
   print_err
@@ -75,7 +75,7 @@ ru_usage()
 
 
 en_usage()
-  print_err "$SCRIPT_NAME generates Let's Encrypt SSL for the specified domains of Keitaro TDS"
+  print_err "$SCRIPT_NAME generates Let's Encrypt SSL for the specified domains of Keitaro"
   print_err
   print_err "Usage: $SCRIPT_NAME [-ps] [-l en|ru] domain1.tld [domain2.tld] ..."
   print_err

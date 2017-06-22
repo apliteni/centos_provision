@@ -37,7 +37,7 @@ usage()
 
 
 ru_usage()
-  print_err "$SCRIPT_NAME позволяет запустить дополнительный сайт совместно с Keitaro TDS"
+  print_err "$SCRIPT_NAME позволяет запустить дополнительный сайт совместно с Keitaro"
   print_err
   print_err "Использование: $SCRIPT_NAME [-ps] [-l en|ru] "
   print_err
@@ -54,7 +54,7 @@ ru_usage()
 
 
 en_usage()
-  print_err "$SCRIPT_NAME allows to run additional site together with Keitaro TDS"
+  print_err "$SCRIPT_NAME allows to run additional site together with Keitaro"
   print_err
   print_err "Usage: $SCRIPT_NAME [-ps] [-l en|ru] domain1.tld [domain2.tld] ..."
   print_err

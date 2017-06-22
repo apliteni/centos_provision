@@ -173,7 +173,7 @@ RSpec.describe 'install.sh' do
 
       context 'specified -k with wrong value' do
         let(:options) { '-s -p -k 9' }
-        it_behaves_like 'should exit with error', 'Specified Keitaro TDS Release "9" is not supported'
+        it_behaves_like 'should exit with error', 'Specified Keitaro Release "9" is not supported'
       end
     end
   end
