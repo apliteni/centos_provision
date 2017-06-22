@@ -745,8 +745,8 @@ DICT['en.prompts.ssl_domains']='Please enter server domains, separated by comma 
 DICT['en.prompts.ssl_email']='Please enter your email (you can left this field empty)'
 DICT['en.prompts.ssl_email.help']='You can obtain SSL certificate with no email address. This is strongly discouraged, because in the event of key loss or LetsEncrypt account compromise you will irrevocably lose access to your LetsEncrypt account. You will also be unable to receive notice about impending expiration or revocation of your certificates.'
 DICT['en.welcome']=$(cat <<- END
-	Welcome to Keitaro TDS installer.
-	This installer will guide you through the steps required to install Keitaro TDS on your server.
+	Welcome to Keitaro installer.
+	This installer will guide you through the steps required to install Keitaro on your server.
 END
 )
 
@@ -778,8 +778,8 @@ DICT['ru.prompts.ssl_domains']='Укажите список доменов че�
 DICT['ru.prompts.ssl_email']='Укажите email (можно не указывать)'
 DICT['ru.prompts.ssl_email.help']='Вы можете получить SSL сертификат без указания email адреса. Однако LetsEncrypt настоятельно рекомендует указать его, так как в случае потери ключа или компрометации LetsEncrypt аккаунта вы полностью потеряете доступ к своему LetsEncrypt аккаунту. Без email вы также не сможете получить уведомление о предстоящем истечении срока действия или отзыве сертификата'
 DICT['ru.welcome']=$(cat <<- END
-	Добро пожаловать в программу установки Keitaro TDS.
-	Эта программа поможет собрать информацию необходимую для установки Keitaro TDS на вашем сервере.
+	Добро пожаловать в программу установки Keitaro.
+	Эта программа поможет собрать информацию необходимую для установки Keitaro на вашем сервере.
 END
 )
 
@@ -835,7 +835,7 @@ parse_options(){
         ;;
       k)
         if [[ "$OPTARG" -ne 6 && "$OPTARG" -ne 7 && "$OPTARG" -ne 8 ]]; then
-          print_err "Specified Keitaro TDS Release \"$OPTARG\" is not supported"
+          print_err "Specified Keitaro Release \"$OPTARG\" is not supported"
           exit ${FAILURE_RESULT}
         fi
         KEITARO_RELEASE=$OPTARG
@@ -868,7 +868,7 @@ usage(){
 
 
 ru_usage(){
-  print_err "$SCRIPT_NAME устанавливает Keitaro TDS"
+  print_err "$SCRIPT_NAME устанавливает Keitaro"
   print_err
   print_err "Использование: "$SCRIPT_NAME" [-ps] [-l en|ru] [-t TAG1[,TAG2...]]"
   print_err
@@ -889,14 +889,14 @@ ru_usage(){
   print_err "    Запуск ansible-playbook без выполнения указанных тэгов."
   print_err
   print_err "  -k <keitaro_release>"
-  print_err "    "$SCRIPT_NAME" по умолчанию устанавливает текущую стабильную версию Keitaro TDS. Вы можете явно задать устанавливаемую версию через этот параметр."
+  print_err "    "$SCRIPT_NAME" по умолчанию устанавливает текущую стабильную версию Keitaro. Вы можете явно задать устанавливаемую версию через этот параметр."
   print_err "    На данный момент поддерживаются значения 6, 7 и 8."
   print_err
 }
 
 
 en_usage(){
-  print_err "$SCRIPT_NAME installs Keitaro TDS"
+  print_err "$SCRIPT_NAME installs Keitaro"
   print_err
   print_err "Usage: "$SCRIPT_NAME" [-ps] [-l en|ru]"
   print_err
@@ -917,7 +917,7 @@ en_usage(){
   print_err "    Runs ansible-playbook with skipping specified tags."
   print_err
   print_err "  -k <keitaro_release>"
-  print_err "    By default "$SCRIPT_NAME" installs current stable Keitaro TDS. You can specify Keitaro TDS release with this option."
+  print_err "    By default "$SCRIPT_NAME" installs current stable Keitaro. You can specify Keitaro release with this option."
   print_err "    Only 6, 7 and 8 values are supported now."
   print_err
 }

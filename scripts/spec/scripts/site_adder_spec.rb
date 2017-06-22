@@ -78,7 +78,7 @@ RSpec.describe 'add-site.sh' do
     context 'nginx is not installed' do
       it_behaves_like 'should print to', :log, "Try to found nginx\nNOT FOUND"
 
-      it_behaves_like 'should exit with error', 'Your Keitaro TDS installation does not properly configured'
+      it_behaves_like 'should exit with error', 'Your Keitaro installation does not properly configured'
     end
 
     context 'keitaro is not installed' do
@@ -88,7 +88,7 @@ RSpec.describe 'add-site.sh' do
 
       it_behaves_like 'should print to', :log, "Checking /var/www/keitaro directory existence\nNO"
 
-      it_behaves_like 'should exit with error', 'Your Keitaro TDS installation does not properly configured'
+      it_behaves_like 'should exit with error', 'Your Keitaro installation does not properly configured'
     end
 
     context 'site is not installed' do
@@ -110,7 +110,7 @@ RSpec.describe 'add-site.sh' do
 
       it_behaves_like 'should print to', :log, "Checking keitaro params in /etc/nginx/conf.d/vhosts.conf\nERROR"
 
-      it_behaves_like 'should exit with error', 'Your Keitaro TDS installation does not properly configured'
+      it_behaves_like 'should exit with error', 'Your Keitaro installation does not properly configured'
     end
 
     context 'vhosts.conf is absent' do
@@ -120,7 +120,7 @@ RSpec.describe 'add-site.sh' do
 
       it_behaves_like 'should print to', :log, "Checking /etc/nginx/conf.d/vhosts.conf file existence\nNO"
 
-      it_behaves_like 'should exit with error', 'Your Keitaro TDS installation does not properly configured'
+      it_behaves_like 'should exit with error', 'Your Keitaro installation does not properly configured'
     end
   end
 
