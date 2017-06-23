@@ -24,9 +24,6 @@ nginx_worker_connections: 4000
 nginx_remove_default_vhost: true
 nginx_access_log: "/var/log/nginx/access.log main buffer=16k "
 nginx_extra_http_options: |
-
-  worker_rlimit_nofile 100000;
-
   # Security
   server_tokens off;
 
@@ -48,8 +45,6 @@ nginx_extra_http_options: |
 
   # allow the server to close connection on non responding client, this will free up memory
   reset_timedout_connection on;
-  # number of requests client can make over keep-alive
-  keepalive_requests 100;
 
   # Proxy settings
   proxy_buffering    off;
