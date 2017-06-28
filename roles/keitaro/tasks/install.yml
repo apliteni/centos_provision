@@ -15,7 +15,7 @@
                                        --admin-login={{ admin_login }} \
                                        --admin-password='{{ admin_password }}' \
                                        --draft-storage=redis \
-                                       --cache-storage=redis \
+                                       --cache-storage=files \
                                        {% if language is defined %}--language={{ language }}{% endif %} \
                                        {% if kversion is defined %}--kversion={{ kversion }}{% endif %}
   args:
