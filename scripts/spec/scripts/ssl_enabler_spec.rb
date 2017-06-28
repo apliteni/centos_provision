@@ -71,7 +71,7 @@ RSpec.describe 'enable-ssl.sh' do
 
     let(:options) { '-p' }
 
-    shared_examples_for 'should enable ssl for Keitaro TDS' do
+    shared_examples_for 'should enable ssl for Keitaro' do
       it_behaves_like 'should print to', :stdout, 'certbot certonly --webroot'
     end
 
@@ -89,7 +89,7 @@ RSpec.describe 'enable-ssl.sh' do
         "Checking ssl params in /etc/nginx/conf.d/vhosts.conf\nOK"
       ]
 
-      it_behaves_like 'should enable ssl for Keitaro TDS'
+      it_behaves_like 'should enable ssl for Keitaro'
     end
 
     context 'nginx is not installed' do
@@ -97,7 +97,7 @@ RSpec.describe 'enable-ssl.sh' do
 
       it_behaves_like 'should print to', :log, "Try to found nginx\nNOT FOUND"
 
-      it_behaves_like 'should exit with error', 'Your Keitaro TDS installation does not properly configured'
+      it_behaves_like 'should exit with error', 'Your Keitaro installation does not properly configured'
     end
 
     context 'crontab is not installed' do
@@ -105,7 +105,7 @@ RSpec.describe 'enable-ssl.sh' do
 
       it_behaves_like 'should print to', :log, "Try to found crontab\nNOT FOUND"
 
-      it_behaves_like 'should exit with error', 'Your Keitaro TDS installation does not properly configured'
+      it_behaves_like 'should exit with error', 'Your Keitaro installation does not properly configured'
     end
 
     context 'certbot is not installed' do
@@ -113,7 +113,7 @@ RSpec.describe 'enable-ssl.sh' do
 
       it_behaves_like 'should print to', :log, "Try to found certbot\nNOT FOUND"
 
-      it_behaves_like 'should exit with error', 'Nginx settings of your Keitaro TDS installation does not properly configured'
+      it_behaves_like 'should exit with error', 'Nginx settings of your Keitaro installation does not properly configured'
     end
 
     context 'certbot is installed, vhosts.conf is absent' do
@@ -124,7 +124,7 @@ RSpec.describe 'enable-ssl.sh' do
         "Checking /etc/nginx/conf.d/vhosts.conf file existence\nNO",
       ]
 
-      it_behaves_like 'should exit with error', 'Nginx settings of your Keitaro TDS installation does not properly configured'
+      it_behaves_like 'should exit with error', 'Nginx settings of your Keitaro installation does not properly configured'
     end
 
     context 'programs are installed, nginx is not configured properly' do
@@ -140,7 +140,7 @@ RSpec.describe 'enable-ssl.sh' do
         "Checking ssl params in /etc/nginx/conf.d/vhosts.conf\nERROR"
       ]
 
-      it_behaves_like 'should exit with error', 'Nginx settings of your Keitaro TDS installation does not properly configured'
+      it_behaves_like 'should exit with error', 'Nginx settings of your Keitaro installation does not properly configured'
     end
   end
 

@@ -87,7 +87,7 @@ RSpec.describe 'test-run-command.sh' do
       it_behaves_like 'should not print full json of ansible error'
 
       it_behaves_like 'should print to', :stderr, [
-        "Task info:\n  TASK [keitaro : Install Keitaro TDS]",
+        "Task info:\n  TASK [keitaro : Install Keitaro]",
         /Field 'stdout':\n  Server Configuration(.*\n)+  Key is invalid.*/,
         /Field 'stderr' is empty/
       ]
