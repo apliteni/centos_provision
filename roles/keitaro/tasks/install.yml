@@ -4,7 +4,7 @@
     url: "http://keitarotds.com/getfile/install"
     dest: "{{ keitaro.path }}/install.php"
 
-- name: Install Keitaro TDS
+- name: Install Keitaro
   tags: keitaro
   command: |
       /usr/bin/php install.php install --ip={{ license_ip }} \
