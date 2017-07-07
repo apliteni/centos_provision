@@ -1,0 +1,7 @@
+- name: Install TokuDB Engine
+  package:
+    name: MariaDB-tokudb-engine
+    state: installed
+    enablerepo: mariadb
+  notify: restart mariadb
+
