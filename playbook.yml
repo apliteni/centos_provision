@@ -22,12 +22,13 @@
     - {role: 'mikegleasonjr.swap', tags: 'swap', when: "ansible_memtotal_mb < 3000"}
     - {role: 'redis'}
     - {role: 'bertvv.mariadb', tags: 'mariadb'}
-    - {role: 'tune-mariadb', tags: 'mariadb'}
+    - {role: 'keitaro.mariadb-install_tokudb', tags: ['mariadb', 'tokudb']}
+    - {role: 'keitaro.mariadb-tune', tags: 'mariadb'}
     - {role: 'geerlingguy.nginx', tags: 'nginx'}
     - {role: 'php', tags: 'php'}
     - {role: 'ioncube', tags: 'ioncube', when: php_version >= 'php70'}
     - {role: 'monit'}
     - {role: 'geerlingguy.firewall', tags: 'firewall'}
-    - {role: 'prepare_keitaro_home', tags: ['keitaro', 'ssl']}
+    - {role: 'keitaro.prepare_home_dir', tags: ['keitaro', 'ssl']}
     - {role: 'letsencrypt', tags: 'ssl'}
     - {role: 'keitaro', tags: 'keitaro'}
