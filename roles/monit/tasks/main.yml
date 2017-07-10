@@ -7,7 +7,7 @@
 - name: add mariadb to monit
   copy:
     dest=/etc/monit.d/mariadb
-    content='check process mariadb with pidfile /var/run/mariadb/mariadb.pid\n
+    content='check process mariadb with pidfile /var/run/mariadb.pid\n
         start program = "/bin/systemctl start mariadb"\n
         stop program = "/bin/systemctl stop mariadb"'
 
@@ -21,9 +21,10 @@
 - name: add php-fpm to monit
   copy:
     dest=/etc/monit.d/php-fpm
-    content="check process {{php_version}}-php-fpm with pidfile /opt/remi/{{php_version}}/root/var/run/php-fpm/php-fpm.pid\n
+    content="check process {{php_version}}-php-fpm with pidfile /var/run/php-fpm.pid\n
           start program = \"/bin/systemctl start {{php_version}}-php-fpm\"\n
           stop program = \"/bin/systemctl stop {{php_version}}-php-fpm\""
+  notify: restart monit
 
 - name: run monit
   service:

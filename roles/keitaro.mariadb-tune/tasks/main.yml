@@ -3,6 +3,14 @@
     path: /etc/my.cnf.d/mysqld.cnf
     state: absent
 
+- name: Create pidfile
+  file:
+    path: /var/run/mariadb.pid
+    owner: mysql
+    group: mysql
+    mode: 0600
+    state: touch
+
 - name: Install config files
   copy:
     src: "{{ item }}"
@@ -11,6 +19,7 @@
   with_items:
     - etc/logrotate.d/mariadb
     - etc/my.cnf.d/mysqld-log_slow_queries.cnf
+    - etc/my.cnf.d/mysqld-set_pidfile_path.cnf
 
 - name: Install config templates
   template:
@@ -19,3 +28,4 @@
   notify: restart mariadb
   with_items:
     - etc/my.cnf.d/mysqld-optimize_performance.cnf
+
