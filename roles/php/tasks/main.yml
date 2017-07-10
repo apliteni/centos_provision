@@ -38,9 +38,11 @@
 
 - name: increase memory_limit
   lineinfile:
-    dest: /etc/php/php.ini
+    path: /etc/php/php.ini
     regexp: ^memory_limit
     line: memory_limit={{php_memory_limit}}
+  notify:
+    - restart php-fpm
 
 - name: upload a pool config
   template:
@@ -49,6 +51,20 @@
     owner: root
     group: root
     mode: 0644
+  notify:
+    - restart php-fpm
+
+- name: create php-fpm pidfile
+  file:
+    path: /var/run/php-fpm.pid
+    mode: 0600
+    state: touch
+
+- name: set php-fpm pidfile path
+  lineinfile:
+    path: /etc/php/php-fpm.conf
+    regexp: ^pid =
+    line: pid = /var/run/php-fpm.pid
   notify:
     - restart php-fpm
 
