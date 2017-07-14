@@ -133,11 +133,11 @@ DICT['en.errors.reinstall_keitaro']="Your Keitaro installation does not properly
 DICT['en.errors.reinstall_keitaro_ssl']="Nginx settings of your Keitaro installation does not properly configured. Please reconfigure Nginx by evaluating command \`${RECONFIGURE_KEITARO_SSL_COMMAND_EN}\`"
 DICT['en.errors.see_logs']="Evaluating log saved to ${SCRIPT_LOG}. Please rerun \`${SCRIPT_COMMAND}\` after resolving problems."
 DICT['en.messages.check_renewal_job_scheduled']="Check that the renewal job is scheduled"
-DICT['en.messages.check_renewal_job_relevant']="Check that the renewal job is relevant"
+DICT['en.messages.check_inactual_renewal_job_scheduled']="Check that inactual renewal job is scheduled"
 DICT['en.messages.make_ssl_cert_links']="Make SSL certificate links"
-DICT['en.messages.relevant_renewal_job_already_scheduled']="Relevant renewal job already scheduled"
-DICT['en.messages.renewal_job_actualized']="Renewal job actualized"
+DICT['en.messages.actual_renewal_job_already_scheduled']="Actual renewal job already scheduled"
 DICT['en.messages.schedule_renewal_job']="Schedule renewal SSL certificate cron job"
+DICT['en.messages.unschedule_inactual_renewal_job']="Unschedule inactual renewal job"
 DICT['en.messages.ssl_enabled_for_sites']="SSL certificates enabled for sites:"
 DICT['en.prompts.ssl_agree_tos']="Do you agree with terms of Let's Encrypt Subscriber Agreement?"
 DICT['en.prompts.ssl_agree_tos.help']=$(cat <<- END
@@ -152,11 +152,11 @@ DICT['ru.errors.reinstall_keitaro']="Keitaro отконфигурирована 
 DICT['ru.errors.reinstall_keitaro_ssl']="Настройки Nginx вашей Keitaro отконфигурированы неправильно. Пожалуйста выполните перенастройку Nginx выполнив команду \`${RECONFIGURE_KEITARO_SSL_COMMAND_RU}\`"
 DICT['ru.errors.see_logs']="Журнал выполнения сохранён в ${SCRIPT_LOG}. Пожалуйста запустите \`${SCRIPT_COMMAND}\` после устранения возникших проблем."
 DICT['ru.messages.check_renewal_job_scheduled']="Проверяем наличие cron задачи обновления сертификатов"
-DICT['ru.messages.check_renewal_job_relevant']="Проверяем что cron задача обновления сертификатов актуальная"
+DICT['ru.messages.check_inactual_renewal_job_scheduled']="Проверяем наличие неактуальной cron задачи"
 DICT['ru.messages.make_ssl_cert_links']="Создаются ссылки на SSL сертификаты"
-DICT['ru.messages.relevant_renewal_job_already_scheduled']="Актуальная cron задача обновления сертификатов уже существует"
-DICT['ru.messages.renewal_job_actualized']="Cron задача обновления сертификатов обновлена"
+DICT['ru.messages.actual_renewal_job_already_scheduled']="Актуальная cron задача обновления сертификатов уже существует"
 DICT['ru.messages.schedule_renewal_job']="Добавляется cron задача обновления сертификатов"
+DICT['ru.messages.unschedule_inactual_renewal_job']="Удаляется неактуальная cron задача обновления сертификатов"
 DICT['ru.messages.ssl_enabled_for_sites']="SSL сертификаты подключены для сайтов:"
 DICT['ru.prompts.ssl_agree_tos']="Вы согласны с условиями Абонентского Соглашения Let's Encrypt?"
 DICT['ru.prompts.ssl_agree_tos.help']=$(cat <<- END
@@ -988,33 +988,42 @@ stage4(){
 
 add_renewal_job(){
   debug "Add renewal certificates cron job"
-  local renew_cmd='certbot renew --allow-subset-of-names --quiet --renew-hook "systemctl reload nginx"'
+  local renew_cmd='certbot renew --allow-subset-of-names --quiet --renew-hook \"systemctl reload nginx\"'
   if crontab_matches "certbot renew" "messages.check_renewal_job_scheduled"; then
     debug "Renewal cron job already exists"
-    if crontab_matches "${renew_cmd}" "messages.check_renewal_job_relevant"; then
-      debug "Renewal cron job is relevant"
-      print_translated 'messages.relevant_renewal_job_already_scheduled'
-    else
-      debug "Renewal cron job is not relevant, updating"
-      sed_safe_renew_cmd="${renew_cmd//&/\&}"
-      actualize_renewal_job_cmd="crontab -l | sed 's/certbot renew.*/${sed_safe_renew_cmd}/g' | crontab -"
-      run_command "${actualize_renewal_job_cmd}" "$(translate 'messages.renewal_job_actualized')"
-    fi
+    print_translated 'messages.relevant_renewal_job_already_scheduled'
   else
-    debug "Renewal cron job does not exist. Adding renewal cron job"
-    local hour="$(date +'%H')"
-    local minute="$(date +'%M')"
-    local renew_job="${minute} ${hour} * * * ${renew_cmd}"
-    local schedule_renewal_job_cmd="(crontab -l; echo \"${renew_job}\") | crontab -"
-    run_command "${schedule_renewal_job_cmd}" "$(translate 'messages.schedule_renewal_job')" "hide_output"
+    schedule_renewal_job "$renew_cmd"
   fi
+  if crontab_matches "certbot renew" "messages.check_inactual_renewal_job_scheduled" "-u nginx"; then
+    unschedule_inactual_renewal_job
+  fi
+}
+
+
+unschedule_inactual_renewal_job(){
+  debug "Unschedule inactual renewal job"
+  local cmd="crontab -u nginx -l | sed '/certbot renew/d' | crontab -u nginx -"
+  run_command "${cmd}" "$(translate 'messages.unschedule_inactual_renewal_job')"
+}
+
+
+schedule_renewal_job(){
+  local renew_cmd="${1}"
+  debug "Schedule renewal job"
+  local hour="$(date +'%H')"
+  local minute="$(date +'%M')"
+  local renew_job="${minute} ${hour} * * * ${renew_cmd}"
+  local schedule_renewal_job_cmd="(crontab -l; echo \"${renew_job}\") | crontab -"
+  run_command "${schedule_renewal_job_cmd}" "$(translate 'messages.schedule_renewal_job')" "hide_output"
 }
 
 
 crontab_matches(){
   local pattern="${1}"
   local message_key="${2}"
-  local is_crontab_matches_pattern="crontab -l | grep -q '${pattern}'"
+  local crontab_options="${3}"
+  local is_crontab_matches_pattern="crontab ${crontab_options} -l | grep -q '${pattern}'"
   run_command "${is_crontab_matches_pattern}" "$(translate ${message_key})" "hide_output" "allow_errors"
 }
 
