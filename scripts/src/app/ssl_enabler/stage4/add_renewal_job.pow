@@ -3,12 +3,17 @@
 
 add_renewal_job()
   debug "Add renewal certificates cron job"
-  local renew_cmd="certbot renew --allow-subset-of-names --quiet"
-  local cron_task_installed=false
-  local check_renewal_job_cmd="crontab -l -u nginx | grep '${renew_cmd}'"
-  if run_command "${check_renewal_job_cmd}" "$(translate 'messages.check_renewal_job')" "hide_output" "allow_errors"
+  local renew_cmd="certbot renew --allow-subset-of-names --quiet && nginx -s reload"
+  if crontab_matches "certbot renew" "messages.check_renewal_job_scheduled"
     debug "Renewal cron job already exists"
-    print_translated 'messages.renewal_job_already_scheduled'
+    if crontab_matches "${renew_cmd}" "messages.check_renewal_job_relevant"
+      debug "Renewal cron job is relevant"
+      print_translated 'messages.relevant_renewal_job_already_scheduled'
+    else
+      debug "Renewal cron job is not relevant, updating"
+      sed_safe_renew_cmd="${renew_cmd//&/\&}"
+      actualize_renewal_job_cmd="crontab -l -u nginx | sed 's/certbot renew.*/${sed_safe_renew_cmd}/g' | crontab -u nginx -"
+      run_command "${actualize_renewal_job_cmd}" "$(translate 'messages.renewal_job_actualized')"
   else
     debug "Renewal cron job does not exist. Adding renewal cron job"
     local hour="$(date +'%H')"
@@ -16,3 +21,8 @@ add_renewal_job()
     local renew_job="${minute} ${hour} * * * ${renew_cmd}"
     local schedule_renewal_job_cmd="(crontab -l -u nginx; echo \"${renew_job}\") | crontab -u nginx -"
     run_command "${schedule_renewal_job_cmd}" "$(translate 'messages.schedule_renewal_job')" "hide_output"
+
+
+crontab_matches(pattern, message_key)
+  local is_crontab_matches_pattern="crontab -l -u nginx | grep '${pattern}'"
+  run_command "${is_crontab_matches_pattern}" "$(translate ${message_key})" "hide_output" "allow_errors"
