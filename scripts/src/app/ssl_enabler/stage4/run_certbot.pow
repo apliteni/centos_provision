@@ -10,4 +10,4 @@ run_certbot()
     certbot_command="${certbot_command} --email ${VARS['ssl_email']}"
   else
     certbot_command="${certbot_command} --register-unsafely-without-email"
-  run_command "${certbot_command}" '' '' '' 'nginx'
+  run_command "${certbot_command}"

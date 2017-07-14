@@ -6,9 +6,16 @@
                      --agree-tos \
                      --non-interactive \
                      --expand
-  become_user: "{{ os_user }}"
   notify:
     - reload nginx
+
+- name: Remove old certs
+  file:
+    path: '/etc/nginx/ssl/{{item}}'
+    state: absent
+  with_items:
+    cert.pem
+    privkey.pem
 
 - name: Make necessary symlinks
   file:
