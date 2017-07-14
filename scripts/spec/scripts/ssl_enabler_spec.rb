@@ -148,10 +148,10 @@ RSpec.describe 'enable-ssl.sh' do
     include_context 'run in docker'
 
     let(:command_stubs) { all_command_stubs }
-    let(:commands) { make_proper_nginx_conf + emulate_sudo }
+    let(:commands) { make_proper_nginx_conf }
 
     context 'successful running certbot' do
-      let(:commands) { make_proper_nginx_conf + emulate_sudo + emulate_crontab }
+      let(:commands) { make_proper_nginx_conf + emulate_crontab }
 
       let(:emulate_crontab) do
         [
@@ -172,16 +172,6 @@ RSpec.describe 'enable-ssl.sh' do
         'Please rerun `enable-ssl.sh domain1.tld`'
       ]
     end
-  end
-
-  describe 'run certbot as nginx' do
-    include_context 'run in docker'
-
-    let(:command_stubs) { all_command_stubs }
-    let(:commands) { make_proper_nginx_conf + emulate_sudo }
-
-    it_behaves_like 'should print to', :log,
-                    %r{certbot certonly.*\n.*sudo -u 'nginx' bash '/tmp/.*/current_command.sh}
   end
 
   context 'with agree LE SA option specified' do
@@ -221,22 +211,34 @@ RSpec.describe 'enable-ssl.sh' do
   describe 'adding cron task' do
     let(:docker_image) { 'centos' }
     let(:command_stubs) { all_command_stubs }
-    let(:commands) { make_proper_nginx_conf + emulate_sudo }
+    let(:commands) { make_proper_nginx_conf }
 
-    it_behaves_like 'should print to', :log, /Adding renewal cron job/
+    it_behaves_like 'should print to', :log, /Schedule renewal job/
 
-    context 'cron job already exists' do
+    context 'relevant cron job already scheduled' do
       let(:commands) do
         make_proper_nginx_conf +
-          emulate_sudo +
           [
-            'echo "echo certbot renew --allow-subset-of-names --quiet" > /bin/crontab',
+            %q(echo "if [[ \\"\\$2\\" != nginx ]]; then echo certbot renew; fi; if [[ \\${@:\\$#} == '-' ]]; then read -t 1; fi"  > /bin/crontab),
             'chmod a+x /bin/crontab'
           ]
       end
 
       it_behaves_like 'should print to', :log, /Renewal cron job already exists/
     end
+
+    context 'old cron job scheduled' do
+      let(:commands) do
+        make_proper_nginx_conf +
+          [
+            %q(echo "if [[ \\"\\$2\\" == nginx ]]; then echo certbot renew; fi; if [[ \\${@:\\$#} == '-' ]]; then read -t 1; fi"  > /bin/crontab),
+            'chmod a+x /bin/crontab'
+          ]
+      end
+
+      it_behaves_like 'should print to', :log, /Unschedule inactual renewal job/
+    end
+
   end
 
   describe 'reloading nginx' do
