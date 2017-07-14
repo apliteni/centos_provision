@@ -213,31 +213,32 @@ RSpec.describe 'enable-ssl.sh' do
     let(:command_stubs) { all_command_stubs }
     let(:commands) { make_proper_nginx_conf }
 
-    it_behaves_like 'should print to', :log, /Adding renewal cron job/
-
-    context 'old cron job already scheduled' do
-      let(:commands) do
-        make_proper_nginx_conf +
-          [
-            'echo "echo certbot renew --allow-subset-of-names --quiet" > /bin/crontab',
-            'chmod a+x /bin/crontab'
-          ]
-      end
-
-      it_behaves_like 'should print to', :stdout, /Renewal job actualized/
-    end
+    it_behaves_like 'should print to', :log, /Schedule renewal job/
 
     context 'relevant cron job already scheduled' do
       let(:commands) do
         make_proper_nginx_conf +
           [
-            'echo "echo \"certbot renew --allow-subset-of-names --quiet --renew-hook \\\\\\"systemctl reload nginx\\\\\\"\""  > /bin/crontab',
+            %q(echo "if [[ \\"\\$2\\" != nginx ]]; then echo certbot renew; fi; if [[ \\${@:\\$#} == '-' ]]; then read -t 1; fi"  > /bin/crontab),
             'chmod a+x /bin/crontab'
           ]
       end
 
-      it_behaves_like 'should print to', :log, /Renewal cron job is relevant/
+      it_behaves_like 'should print to', :log, /Renewal cron job already exists/
     end
+
+    context 'old cron job scheduled' do
+      let(:commands) do
+        make_proper_nginx_conf +
+          [
+            %q(echo "if [[ \\"\\$2\\" == nginx ]]; then echo certbot renew; fi; if [[ \\${@:\\$#} == '-' ]]; then read -t 1; fi"  > /bin/crontab),
+            'chmod a+x /bin/crontab'
+          ]
+      end
+
+      it_behaves_like 'should print to', :log, /Unschedule inactual renewal job/
+    end
+
   end
 
   describe 'reloading nginx' do
