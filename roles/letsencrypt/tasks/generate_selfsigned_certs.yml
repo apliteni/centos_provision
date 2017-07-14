@@ -9,4 +9,3 @@
       -subj "/CN={{license_ip}}"
   args:
      chdir: /etc/nginx/ssl
-     creates: /etc/nginx/ssl/cert.pem
