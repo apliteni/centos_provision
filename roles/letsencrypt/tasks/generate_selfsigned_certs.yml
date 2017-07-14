@@ -7,7 +7,6 @@
       -keyout privkey.pem \
       -out cert.pem \
       -subj "/CN={{license_ip}}"
-  become_user: "{{ os_user }}"
   args:
      chdir: /etc/nginx/ssl
      creates: /etc/nginx/ssl/cert.pem
