@@ -225,7 +225,7 @@ RSpec.describe 'enable-ssl.sh' do
 
     it_behaves_like 'should print to', :log, /Adding renewal cron job/
 
-    context 'cron job already exists' do
+    context 'old cron job already scheduled' do
       let(:commands) do
         make_proper_nginx_conf +
           emulate_sudo +
@@ -235,7 +235,20 @@ RSpec.describe 'enable-ssl.sh' do
           ]
       end
 
-      it_behaves_like 'should print to', :log, /Renewal cron job already exists/
+      it_behaves_like 'should print to', :stdout, /Renewal job actualized/
+    end
+
+    context 'relevant cron job already scheduled' do
+      let(:commands) do
+        make_proper_nginx_conf +
+          emulate_sudo +
+          [
+            'echo "echo certbot renew --allow-subset-of-names --quiet \&\& nginx -s reload" > /bin/crontab',
+            'chmod a+x /bin/crontab'
+          ]
+      end
+
+      it_behaves_like 'should print to', :log, /Renewal cron job is relevant/
     end
   end
 
