@@ -6,7 +6,6 @@
                      --agree-tos \
                      --non-interactive \
                      --expand
-  become_user: "{{ os_user }}"
   notify:
     - reload nginx
 
