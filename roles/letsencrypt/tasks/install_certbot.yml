@@ -11,3 +11,9 @@
     job: 'certbot renew --allow-subset-of-names --quiet --renew-hook "systemctl reload nginx"'
     hour: "{{ ansible_date_time.hour }}"
     minute: "{{ ansible_date_time.minute }}"
+
+- name: Remove old job
+  cron:
+    name: Renew Let's Encrypt certs
+    state: absent
+    user: "{{ os_user }}"
