@@ -148,10 +148,10 @@ RSpec.describe 'enable-ssl.sh' do
     include_context 'run in docker'
 
     let(:command_stubs) { all_command_stubs }
-    let(:commands) { make_proper_nginx_conf + emulate_sudo }
+    let(:commands) { make_proper_nginx_conf }
 
     context 'successful running certbot' do
-      let(:commands) { make_proper_nginx_conf + emulate_sudo + emulate_crontab }
+      let(:commands) { make_proper_nginx_conf + emulate_crontab }
 
       let(:emulate_crontab) do
         [
@@ -172,16 +172,6 @@ RSpec.describe 'enable-ssl.sh' do
         'Please rerun `enable-ssl.sh domain1.tld`'
       ]
     end
-  end
-
-  describe 'run certbot as nginx' do
-    include_context 'run in docker'
-
-    let(:command_stubs) { all_command_stubs }
-    let(:commands) { make_proper_nginx_conf + emulate_sudo }
-
-    it_behaves_like 'should print to', :log,
-                    %r{certbot certonly.*\n.*sudo -u 'nginx' bash '/tmp/.*/current_command.sh}
   end
 
   context 'with agree LE SA option specified' do
@@ -221,14 +211,13 @@ RSpec.describe 'enable-ssl.sh' do
   describe 'adding cron task' do
     let(:docker_image) { 'centos' }
     let(:command_stubs) { all_command_stubs }
-    let(:commands) { make_proper_nginx_conf + emulate_sudo }
+    let(:commands) { make_proper_nginx_conf }
 
     it_behaves_like 'should print to', :log, /Adding renewal cron job/
 
     context 'old cron job already scheduled' do
       let(:commands) do
         make_proper_nginx_conf +
-          emulate_sudo +
           [
             'echo "echo certbot renew --allow-subset-of-names --quiet" > /bin/crontab',
             'chmod a+x /bin/crontab'
@@ -241,9 +230,8 @@ RSpec.describe 'enable-ssl.sh' do
     context 'relevant cron job already scheduled' do
       let(:commands) do
         make_proper_nginx_conf +
-          emulate_sudo +
           [
-            'echo "echo certbot renew --allow-subset-of-names --quiet \&\& nginx -s reload" > /bin/crontab',
+            'echo "echo \"certbot renew --allow-subset-of-names --quiet --renew-hook \\\\\\"systemctl reload nginx\\\\\\"\""  > /bin/crontab',
             'chmod a+x /bin/crontab'
           ]
       end

@@ -9,12 +9,6 @@ RSpec.shared_context 'build subject', build_subject: :yes do
   let(:all_command_stubs) {}
   let(:commands) { [] }
   let(:save_files) { [] }
-  let(:emulate_sudo) do
-    [
-      'echo "shift 3; bash \"\$@\"" > /bin/sudo',
-      'chmod a+x /bin/sudo'
-    ]
-  end
   let(:prompts_with_values) { make_prompts_with_values(:en) }
   let(:prompts) { {en: {}, ru: {}} }
   let(:user_values) { {} }
