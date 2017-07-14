@@ -9,6 +9,14 @@
   notify:
     - reload nginx
 
+- name: Remove old certs
+  file:
+    path: '/etc/nginx/ssl/{{item}}'
+    state: absent
+  with_items:
+    cert.pem
+    privkey.pem
+
 - name: Make necessary symlinks
   file:
     src: "/etc/letsencrypt/live/{{ letsencrypt_cert_domains[0] }}/{{ item.src }}"
