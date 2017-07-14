@@ -988,7 +988,7 @@ stage4(){
 
 add_renewal_job(){
   debug "Add renewal certificates cron job"
-  local renew_cmd="certbot renew --allow-subset-of-names --quiet && nginx -s reload"
+  local renew_cmd='certbot renew --allow-subset-of-names --quiet --renew-hook "systemctl reload nginx"'
   if crontab_matches "certbot renew" "messages.check_renewal_job_scheduled"; then
     debug "Renewal cron job already exists"
     if crontab_matches "${renew_cmd}" "messages.check_renewal_job_relevant"; then
@@ -997,7 +997,7 @@ add_renewal_job(){
     else
       debug "Renewal cron job is not relevant, updating"
       sed_safe_renew_cmd="${renew_cmd//&/\&}"
-      actualize_renewal_job_cmd="crontab -l -u nginx | sed 's/certbot renew.*/${sed_safe_renew_cmd}/g' | crontab -u nginx -"
+      actualize_renewal_job_cmd="crontab -l | sed 's/certbot renew.*/${sed_safe_renew_cmd}/g' | crontab -"
       run_command "${actualize_renewal_job_cmd}" "$(translate 'messages.renewal_job_actualized')"
     fi
   else
@@ -1005,7 +1005,7 @@ add_renewal_job(){
     local hour="$(date +'%H')"
     local minute="$(date +'%M')"
     local renew_job="${minute} ${hour} * * * ${renew_cmd}"
-    local schedule_renewal_job_cmd="(crontab -l -u nginx; echo \"${renew_job}\") | crontab -u nginx -"
+    local schedule_renewal_job_cmd="(crontab -l; echo \"${renew_job}\") | crontab -"
     run_command "${schedule_renewal_job_cmd}" "$(translate 'messages.schedule_renewal_job')" "hide_output"
   fi
 }
@@ -1014,7 +1014,7 @@ add_renewal_job(){
 crontab_matches(){
   local pattern="${1}"
   local message_key="${2}"
-  local is_crontab_matches_pattern="crontab -l -u nginx | grep '${pattern}'"
+  local is_crontab_matches_pattern="crontab -l | grep -q '${pattern}'"
   run_command "${is_crontab_matches_pattern}" "$(translate ${message_key})" "hide_output" "allow_errors"
 }
 
@@ -1027,7 +1027,7 @@ make_cert_links(){
   local command="rm -f ${NGINX_SSL_CERT_PATH} && rm -f ${NGINX_SSL_PRIVKEY_PATH}"
   command="${command} && ln -s ${le_cert_path} ${NGINX_SSL_CERT_PATH}"
   command="${command} && ln -s ${le_privkey_path} ${NGINX_SSL_PRIVKEY_PATH}"
-  run_command "${command}" "$(translate 'messages.make_ssl_cert_links')" 'hide_output' '' 'nginx'
+  run_command "${command}" "$(translate 'messages.make_ssl_cert_links')" 'hide_output'
 }
 
 
@@ -1043,7 +1043,7 @@ run_certbot(){
   else
     certbot_command="${certbot_command} --register-unsafely-without-email"
   fi
-  run_command "${certbot_command}" '' '' '' 'nginx'
+  run_command "${certbot_command}"
 }
 
 
