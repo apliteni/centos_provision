@@ -241,7 +241,7 @@ RSpec.describe 'install.sh' do
       let(:command_stubs) { {yum: '/bin/true', ansible: '/bin/true', curl: '/bin/true', tar: '/bin/true', 'ansible-playbook': '/bin/true'} }
 
       it_behaves_like 'should print to', :stdout,
-                      %r{Everything done!\nhttp://8.8.8.8/admin\nlogin: admin\npassword: \w+}
+                      %r{Everything is done!\nhttp://8.8.8.8/admin\nlogin: admin\npassword: \w+}
     end
 
     context 'unsuccessful installation' do
