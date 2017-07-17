@@ -160,7 +160,7 @@ RSpec.describe 'enable-ssl.sh' do
         ]
       end
 
-      it_behaves_like 'should print to', :stdout, /Everything done!/
+      it_behaves_like 'should print to', :stdout, /Everything is done!/
     end
 
     context 'unsuccessful running certbot' do
@@ -179,7 +179,7 @@ RSpec.describe 'enable-ssl.sh' do
 
     it_behaves_like 'should not print to', :stdout, "Do you agree with terms of Let's Encrypt Subscriber Agreement?"
 
-    it_behaves_like 'should print to', :stdout, 'Everything done!'
+    it_behaves_like 'should print to', :stdout, 'Everything is done!'
   end
 
   context 'email specified' do

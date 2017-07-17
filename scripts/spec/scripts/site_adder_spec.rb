@@ -156,7 +156,7 @@ RSpec.describe 'add-site.sh' do
     let(:command_stubs) { all_command_stubs }
     let(:commands) { make_proper_nginx_conf + make_keitaro_root_dir + make_site_root_dir }
 
-    it_behaves_like 'should print to', :stdout, /Everything done!/
+    it_behaves_like 'should print to', :stdout, /Everything is done!/
   end
 
   describe 'reloading nginx' do
