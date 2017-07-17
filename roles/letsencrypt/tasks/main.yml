@@ -1,6 +1,6 @@
 ---
 
-- include: install_certbot.yml
+- include: prepare.yml
 
 - include: generate_selfsigned_certs.yml
   when: ssl_certificate is not defined or ssl_certificate == 'self-signed'
