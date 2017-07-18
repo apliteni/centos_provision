@@ -3,5 +3,8 @@
     name: MariaDB-tokudb-engine
     state: installed
     enablerepo: mariadb
-  notify: restart mariadb
 
+- name: Restart MariaDB service
+  service:
+    name: mariadb
+    state: restarted
