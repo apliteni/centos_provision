@@ -19,7 +19,7 @@
     - {role: 'mrlesmithjr.timezone'}
     - {role: 'geerlingguy.repo-epel'}
     - {role: 'geerlingguy.repo-remi'}
-    - {role: 'mikegleasonjr.swap', tags: 'swap', when: "ansible_memtotal_mb < 3000"}
+    - {role: 'mikegleasonjr.swap', tags: 'swap', when: "ansible_memtotal_mb < 4000"}
     - {role: 'redis'}
     - {role: 'bertvv.mariadb', tags: 'mariadb'}
     - {role: 'keitaro.mariadb-install_tokudb', tags: ['mariadb', 'tokudb']}
