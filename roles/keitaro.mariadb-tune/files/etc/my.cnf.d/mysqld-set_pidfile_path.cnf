@@ -1,2 +1,2 @@
 [mysqld]
-pid-file = /var/run/mariadb.pid
+pid-file = /var/lib/mysql/mariadb.pid
