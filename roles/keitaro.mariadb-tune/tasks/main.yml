@@ -5,7 +5,7 @@
 
 - name: Create pidfile
   file:
-    path: /var/run/mariadb.pid
+    path: /var/lib/mysql/mariadb.pid
     owner: mysql
     group: mysql
     mode: 0600
