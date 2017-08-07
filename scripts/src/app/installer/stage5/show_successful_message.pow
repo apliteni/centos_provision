@@ -3,6 +3,8 @@
 
 show_successful_message()
   print_with_color "$(translate 'messages.successful')" 'green'
+  if $RECONFIGURE
+    return
   if "${VARS['ssl_certificate']}" == 'letsencrypt'
     protocol='https'
     domain=$(expr match "${VARS['ssl_domains']}" '\([^,]*\)')
