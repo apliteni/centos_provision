@@ -10,6 +10,7 @@
     content='check process mariadb with pidfile /var/lib/mysql/mariadb.pid\n
         start program = "/bin/systemctl start mariadb"\n
         stop program = "/bin/systemctl stop mariadb"'
+  notify: restart monit
 
 - name: add nginx to monit
   copy:
@@ -17,6 +18,7 @@
     content='check process nginx with pidfile /var/run/nginx.pid\n
       start program = "/bin/systemctl start nginx"\n
       stop program = "/bin/systemctl stop nginx"'
+  notify: restart monit
 
 - name: add php-fpm to monit
   copy:
