@@ -70,7 +70,10 @@ install()
   init $@
   stage1 $@
   stage2
-  stage3
+  if ! $RECONFIGURE
+    stage3
+  else
+    echo -e "[server]\nlocalhost connection=local" > hosts.txt
   stage4
   stage5
 

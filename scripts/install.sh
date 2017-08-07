@@ -805,7 +805,7 @@ stage1(){
 
 
 parse_options(){
-  while getopts ":hpsl:t:k:i:" opt; do
+  while getopts ":hpsrl:t:k:i:" opt; do
     case $opt in
       p)
         PRESERVE_RUNNING=true
@@ -840,6 +840,9 @@ parse_options(){
         fi
         KEITARO_RELEASE=$OPTARG
         ;;
+      r)
+        RECONFIGURE=true
+        ;;
       :)
         print_err "Option -$OPTARG requires an argument."
         exit ${FAILURE_RESULT}
@@ -870,10 +873,13 @@ usage(){
 ru_usage(){
   print_err "$SCRIPT_NAME устанавливает Keitaro"
   print_err
-  print_err "Использование: "$SCRIPT_NAME" [-ps] [-l en|ru] [-t TAG1[,TAG2...]]"
+  print_err "Использование: "$SCRIPT_NAME" [-prs] [-l en|ru] [-t TAG1[,TAG2...]]"
   print_err
   print_err "  -p"
   print_err "    С опцией -p (preserve installation) "$SCRIPT_NAME" не запускает установочные команды. Вместо этого текс команд будет показан на экране."
+  print_err
+  print_err "  -r"
+  print_err "    Используется только для переконфигурирования сервисов. В этом режиме не будет создаваться hosts.txt"
   print_err
   print_err "  -s"
   print_err "    С опцией -s (skip checks) "$SCRIPT_NAME" не будет проверять присутствие yum/ansible в системе, не будет проверять факт запуска из под root."
@@ -898,10 +904,13 @@ ru_usage(){
 en_usage(){
   print_err "$SCRIPT_NAME installs Keitaro"
   print_err
-  print_err "Usage: "$SCRIPT_NAME" [-ps] [-l en|ru]"
+  print_err "Usage: "$SCRIPT_NAME" [-prs] [-l en|ru]"
   print_err
   print_err "  -p"
   print_err "    The -p (preserve installation) option causes "$SCRIPT_NAME" to preserve the invoking of installation commands. Installation commands will be printed to stdout instead."
+  print_err
+  print_err "  -r"
+  print_err "    Use only for reconfiguration of services. In this mode installer does not create hosts.txt."
   print_err
   print_err "  -s"
   print_err "    The -s (skip checks) option causes "$SCRIPT_NAME" to skip checks of yum/ansible presence, skip check root running"
@@ -1264,6 +1273,9 @@ get_printable_fields(){
 
 show_successful_message(){
   print_with_color "$(translate 'messages.successful')" 'green'
+  if [[ "$RECONFIGURE" ]]; then
+    return
+  fi
   if [[ "${VARS['ssl_certificate']}" == 'letsencrypt' ]]; then
     protocol='https'
     domain=$(expr match "${VARS['ssl_domains']}" '\([^,]*\)')
@@ -1456,7 +1468,11 @@ install(){
   init "$@"
   stage1 "$@"
   stage2
-  stage3
+  if [[ ! "$RECONFIGURE" ]]; then
+    stage3
+  else
+    echo -e "[server]\nlocalhost connection=local" > hosts.txt
+  fi
   stage4
   stage5
 }
