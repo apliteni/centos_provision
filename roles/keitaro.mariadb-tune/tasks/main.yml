@@ -3,13 +3,12 @@
     path: /etc/my.cnf.d/mysqld.cnf
     state: absent
 
-- name: Create pidfile
+- name: Create log directory
   file:
-    path: /var/lib/mysql/mariadb.pid
+    path: /var/log/mariadb
     owner: mysql
     group: mysql
-    mode: 0600
-    state: touch
+    state: directory
 
 - name: Install config files
   copy:
@@ -18,6 +17,7 @@
   notify: restart mariadb
   with_items:
     - etc/logrotate.d/mariadb
+    - etc/my.cnf.d/mysqld-error_log.cnf
     - etc/my.cnf.d/mysqld-log_slow_queries.cnf
     - etc/my.cnf.d/mysqld-set_pidfile_path.cnf
 
