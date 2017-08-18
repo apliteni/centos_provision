@@ -27,7 +27,7 @@
     - {role: 'geerlingguy.nginx', tags: 'nginx'}
     - {role: 'keitaro.php', tags: 'php'}
     - {role: 'keitaro.php-install_ioncube', tags: ['php', 'ioncube'], when: php_version >= 'php70'}
-    - {role: 'monit', tags: 'monit'}
+    - {role: 'keitaro.monit', tags: 'monit'}
     - {role: 'geerlingguy.firewall', tags: 'firewall'}
     - {role: 'keitaro.prepare_home_dir', tags: ['keitaro', 'ssl']}
     - {role: 'letsencrypt', tags: 'ssl'}
