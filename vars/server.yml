@@ -1,5 +1,5 @@
 ---
-php_version: 'php70'
+php_version: 'php71'
 timezone: Europe/Moscow
 swap_size: 2048
 os_user: nginx
