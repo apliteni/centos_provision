@@ -748,6 +748,7 @@ PROVISION_DIRECTORY=centos_provision-master
 SSL_ENABLER_COMMAND_EN="curl -sSL ${KEITARO_URL}/enable-ssl.sh | bash -s -- domain1.tld [domain2.tld...]"
 SSL_ENABLER_COMMAND_RU="curl -sSL ${KEITARO_URL}/enable-ssl.sh | bash -s -- -l ru domain1.tld [domain2.tld...]"
 
+DICT['en.messages.check_ability_firewall_installing']="Checking the ability of installing a firewall"
 DICT['en.errors.see_logs']=$(cat <<- END
 	Installation log saved to ${SCRIPT_LOG}. Configuration settings saved to ${INVENTORY_FILE}.
 	You can rerun \`${SCRIPT_COMMAND}\` with saved settings after resolving installation problems.
@@ -758,7 +759,7 @@ DICT['en.errors.cant_install_firewall']='Please run this program in system with 
 DICT['en.prompts.skip_firewall']='Do you want to skip installing firewall?'
 DICT['en.prompts.skip_firewall.help']=$(cat <<- END
 	It looks that your system does not support firewall. This can be happen, for example, if you are using a virtual machine based on OpenVZ and the hosting provider has disabled conntrack support (see http://forum.firstvds.ru/viewtopic.php?f=3&t=10759).
-	WARNING: Firewall can help prevent hackers or malicious software from gaining access to your server through Internet. You can continue installing the system without firewall, however we strongly recommend to run this program on the system with firewall support.
+	WARNING: Firewall can help prevent hackers or malicious software from gaining access to your server through Internet. You can continue installing the system without firewall, however we strongly recommend you to run this program on system with firewall support.
 END
 )
 DICT['en.prompts.admin_login']='Please enter keitaro admin login'
@@ -792,6 +793,7 @@ DICT['en.prompt_errors.validate_license_key']='Please enter valid license key (e
 DICT['en.prompt_errors.validate_alnumdash']='Only Latin letters, numbers, dash and underscore allowed'
 DICT['en.prompt_errors.validate_starts_with_latin_letter']='The value must begin with a Latin letter'
 
+DICT['ru.messages.check_ability_firewall_installing']="Проверяем возможность установки фаервола"
 DICT['ru.errors.see_logs']=$(cat <<- END
 	Журнал установки сохранён в ${SCRIPT_LOG}. Настройки сохранены в ${INVENTORY_FILE}.
 	Вы можете повторно запустить \`${SCRIPT_COMMAND}\` с этими настройками после устранения возникших проблем.
@@ -986,21 +988,23 @@ en_usage(){
 }
 
 
-firewall_supported(){
-  return 1
-}
-
 stage2(){
   debug "Starting stage 2: make some asserts"
   assert_caller_root
   assert_installed 'yum' 'errors.yum_not_installed'
-  if ! firewall_supported; then
+  if ! can_install_firewall; then
     VARS['skip_firewall']=$(translate 'no')
     get_user_var 'skip_firewall' 'validate_yes_no'
     if is_no ${VARS['skip_firewall']}; then
       fail "$(translate 'errors.cant_install_firewall')"
     fi
   fi
+}
+
+
+
+can_install_firewall(){
+  run_command 'iptables -t nat -L' "$(translate 'messages.check_ability_firewall_installing')" 'hide_output' 'allow_errors'
 }
 
 
