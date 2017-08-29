@@ -3,6 +3,7 @@
 SSL_ENABLER_COMMAND_EN="curl -sSL ${KEITARO_URL}/enable-ssl.sh | bash -s -- domain1.tld [domain2.tld...]"
 SSL_ENABLER_COMMAND_RU="curl -sSL ${KEITARO_URL}/enable-ssl.sh | bash -s -- -l ru domain1.tld [domain2.tld...]"
 
+DICT['en.messages.check_ability_firewall_installing']="Checking the ability of installing a firewall"
 DICT['en.errors.see_logs']=$(cat <<- END
 	Installation log saved to ${SCRIPT_LOG}. Configuration settings saved to ${INVENTORY_FILE}.
 	You can rerun \`${SCRIPT_COMMAND}\` with saved settings after resolving installation problems.
@@ -47,6 +48,7 @@ DICT['en.prompt_errors.validate_license_key']='Please enter valid license key (e
 DICT['en.prompt_errors.validate_alnumdash']='Only Latin letters, numbers, dash and underscore allowed'
 DICT['en.prompt_errors.validate_starts_with_latin_letter']='The value must begin with a Latin letter'
 
+DICT['ru.messages.check_ability_firewall_installing']="Проверяем возможность установки фаервола"
 DICT['ru.errors.see_logs']=$(cat <<- END
 	Журнал установки сохранён в ${SCRIPT_LOG}. Настройки сохранены в ${INVENTORY_FILE}.
 	Вы можете повторно запустить \`${SCRIPT_COMMAND}\` с этими настройками после устранения возникших проблем.

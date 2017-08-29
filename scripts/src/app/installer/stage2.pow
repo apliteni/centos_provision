@@ -1,13 +1,10 @@
 #!/usr/bin/env powscript
 
-firewall_supported()
-  return 1
-
 stage2()
   debug "Starting stage 2: make some asserts"
   assert_caller_root
   assert_installed 'yum' 'errors.yum_not_installed'
-  if ! firewall_supported
+  if ! can_install_firewall
     VARS['skip_firewall']=$(translate 'no')
     get_user_var 'skip_firewall' 'validate_yes_no'
     if is_no ${VARS['skip_firewall']}

@@ -1,0 +1,5 @@
+#!/usr/bin/env powscript
+
+
+can_install_firewall()
+  run_command 'iptables -t nat -L' "$(translate 'messages.check_ability_firewall_installing')" 'hide_output' 'allow_errors'
