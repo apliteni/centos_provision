@@ -67,20 +67,23 @@ require 'app/installer/stage5/run_ansible_playbook.pow'
 require 'app/installer/stage5/show_successful_message.pow'
 _require 'app/installer/stage5/json2dict.sh'
 
+write_emtpy_hosts_txt()
+  echo -e "[server]\nlocalhost connection=local" > hosts.txt
+
 # We wrap the entire script in a big function which we only call at the very end, in order to
 # protect against the possibility of the connection dying mid-script. This protects us against
 # the problem described in this blog post:
 #   http://blog.existentialize.com/dont-pipe-to-your-shell.html
 install()
   init $@
-  stage1 $@
-  stage2
+  stage1 $@                 # initial script setup
+  stage2                    # make some asserts
   if ! $RECONFIGURE
-    stage3
+    stage3                  # generate inventory file
   else
-    echo -e "[server]\nlocalhost connection=local" > hosts.txt
-  stage4
-  stage5
+    write_emtpy_hosts_txt
+  stage4                    # install ansible
+  stage5                    # run ansible playbook
 
 
 install $@
