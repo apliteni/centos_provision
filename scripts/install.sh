@@ -301,6 +301,7 @@ read_stdin(){
 
 install_package(){
   local package="${1}"
+  debug "Installing ${package}"
   run_command "yum install -y "$package""
 }
 
@@ -1066,15 +1067,17 @@ print_line_to_inventory_file(){
 
 
 stage4(){
-  debug "Starting stage 4: install ansible"
-  install_ansible_if_not_installed
+  debug "Starting stage 4: install necessary packages"
+  install_packages
 }
 
 
 
-install_ansible_if_not_installed(){
+install_packages(){
+  if ! is_installed tar; then
+    install_package tar
+  fi
   if ! is_installed ansible; then
-    debug "Try to install ansible"
     install_package epel-release
     install_package ansible
   fi
