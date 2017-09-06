@@ -2,5 +2,5 @@
 
 
 stage4()
-  debug "Starting stage 4: install ansible"
-  install_ansible_if_not_installed
+  debug "Starting stage 4: install necessary packages"
+  install_packages
