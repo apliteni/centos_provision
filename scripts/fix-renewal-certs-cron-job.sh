@@ -22,8 +22,6 @@ ensure_caller_is_root() {
 }
 
 fix_cron_jobs() {
-  ensure_caller_is_root
-
   if [[ $(crontab -l -u nginx 2>/dev/null | grep 'certbot renew') ]]; then
     remove_old_job
 
@@ -35,7 +33,18 @@ fix_cron_jobs() {
   else
     echo 'Old cron job already removed'
   fi
-
 }
 
-fix_cron_jobs
+renew_certs() {
+  certbot renew --allow-subset-of-names --quiet --renew-hook "systemctl reload nginx"
+}
+
+
+fix_cron_jobs_and_renew_certs() {
+  ensure_caller_is_root
+  fix_cron_jobs
+  renew_certs
+}
+
+fix_cron_jobs_and_renew_certs
+
