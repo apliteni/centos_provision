@@ -27,4 +27,4 @@ write_inventory_file()
 
 print_line_to_inventory_file(line)
   debug "  $line" 'light.blue'
-  echo "$line" >> $INVENTORY_FILE
+  echo "$line" | filter_non_ascii >> $INVENTORY_FILE
