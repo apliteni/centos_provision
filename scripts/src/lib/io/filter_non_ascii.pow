@@ -1,0 +1,5 @@
+#!/usr/bin/env powscript
+
+
+filter_non_ascii()
+  sed 's/[^a-zA-Z[:digit:][:punct:]]//g'
