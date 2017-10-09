@@ -212,6 +212,12 @@ add_indentation(){
 
 
 
+filter_non_ascii(){
+  sed 's/[^a-zA-Z[:digit:][:punct:]]//g'
+}
+
+
+
 get_user_var(){
   local var_name="${1}"
   local validation_methods="${2}"
@@ -293,7 +299,7 @@ read_stdin(){
   else
     read -r variable
   fi
-  echo "$variable" | sed 's/[^a-zA-Z[:digit:][:punct:]]//g'
+  echo "$variable" | filter_non_ascii
 }
 
 
@@ -1061,7 +1067,7 @@ write_inventory_file(){
 print_line_to_inventory_file(){
   local line="${1}"
   debug "  "$line"" 'light.blue'
-  echo "$line" >> "$INVENTORY_FILE"
+  echo "$line" | filter_non_ascii >> "$INVENTORY_FILE"
 }
 
 
