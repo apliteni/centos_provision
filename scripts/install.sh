@@ -1061,7 +1061,7 @@ write_inventory_file(){
 print_line_to_inventory_file(){
   local line="${1}"
   debug "  "$line"" 'light.blue'
-  echo "$line" >> "$INVENTORY_FILE"
+  echo "$line" | sed 's/[^a-zA-Z[:digit:][:punct:] ]//g' >> "$INVENTORY_FILE"
 }
 
 
