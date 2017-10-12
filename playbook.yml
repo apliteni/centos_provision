@@ -5,13 +5,9 @@
   become_method: sudo
   vars_files:
     - vars/server.yml
-  pre_tasks:
-    - name: Upgrade all packages
-      yum:
-        name=*
-        state=latest
 
   roles:
+    - {role: 'system.upgrade_packages', tags: ['system', 'upgrade', 'packages'] }
     - {role: 'kernel', tags: 'kernel'}
     - {role: 'tools'}
     - {role: 'selinux', tags: 'selinux'}
@@ -32,4 +28,3 @@
     - {role: 'keitaro.prepare_home_dir', tags: ['keitaro', 'ssl']}
     - {role: 'letsencrypt', tags: 'ssl'}
     - {role: 'keitaro', tags: 'keitaro'}
-    - {role: 'upgrades'}
