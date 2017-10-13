@@ -977,7 +977,7 @@ function vhost_content() {
 	cat <<-END
       server {
         listen 80;
-        server_name ${VARS['site_domains']};
+        server_name ${VARS['site_domains']//,/ };
         root ${VARS['site_root']};
         index index.php index.html;
         access_log /var/log/nginx/$(first_domain).access.log main;
