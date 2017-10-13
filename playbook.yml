@@ -7,6 +7,7 @@
     - vars/server.yml
 
   roles:
+    - {role: 'upgrades.pretasks' }
     - {role: 'system.upgrade_packages', tags: ['system', 'upgrade', 'packages'] }
     - {role: 'kernel', tags: 'kernel'}
     - {role: 'tools'}
@@ -28,3 +29,4 @@
     - {role: 'keitaro.prepare_home_dir', tags: ['keitaro', 'ssl']}
     - {role: 'letsencrypt', tags: 'ssl'}
     - {role: 'keitaro', tags: 'keitaro'}
+    - {role: 'upgrades.tasks' }
