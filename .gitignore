@@ -2,4 +2,5 @@
 .vagrant
 doc
 hosts.txt
+hosts-gitlab
 *.retry

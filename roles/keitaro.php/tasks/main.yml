@@ -35,6 +35,7 @@
     - {from: "/usr/bin/{{php_version}}", to: '/usr/bin/php'}
     - {from: "/opt/remi/{{php_version}}/root/bin/php-config", to: '/usr/bin/php-config'}
     - {from: "/etc/opt/remi/{{php_version}}", to: '/etc/php'}
+    - {from: "/var/opt/remi/{{php_version}}/log/php-fpm/", to: '/var/log/php-fpm'}
 
 - name: increase memory_limit
   lineinfile:
@@ -56,7 +57,7 @@
 
 - name: create php-fpm pidfile
   file:
-    path: /var/run/php-fpm.pid
+    path: "/var/run/{{php_version}}-php-fpm.pid"
     mode: 0600
     state: touch
 
@@ -64,7 +65,7 @@
   lineinfile:
     path: /etc/php/php-fpm.conf
     regexp: ^pid =
-    line: pid = /var/run/php-fpm.pid
+    line: "pid = /var/run/{{php_version}}-php-fpm.pid"
   notify:
     - restart php-fpm
 

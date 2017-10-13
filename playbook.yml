@@ -5,13 +5,10 @@
   become_method: sudo
   vars_files:
     - vars/server.yml
-  pre_tasks:
-    - name: Upgrade all packages
-      yum:
-        name=*
-        state=latest
 
   roles:
+    - {role: 'upgrades.pretasks' }
+    - {role: 'system.upgrade_packages', tags: ['system', 'upgrade', 'packages'] }
     - {role: 'kernel', tags: 'kernel'}
     - {role: 'tools'}
     - {role: 'selinux', tags: 'selinux'}
@@ -25,10 +22,11 @@
     - {role: 'keitaro.mariadb-install_tokudb', tags: ['mariadb', 'tokudb']}
     - {role: 'keitaro.mariadb-tune', tags: ['mariadb', 'tune-mariadb']}
     - {role: 'geerlingguy.nginx', tags: 'nginx'}
-    - {role: 'php', tags: 'php'}
-    - {role: 'ioncube', tags: 'ioncube', when: php_version >= 'php70'}
-    - {role: 'monit', tags: 'monit'}
+    - {role: 'keitaro.php', tags: 'php'}
+    - {role: 'keitaro.php-install_ioncube', tags: ['php', 'ioncube'], when: php_version >= 'php70'}
+    - {role: 'keitaro.monit', tags: 'monit'}
     - {role: 'geerlingguy.firewall', tags: 'firewall'}
     - {role: 'keitaro.prepare_home_dir', tags: ['keitaro', 'ssl']}
     - {role: 'letsencrypt', tags: 'ssl'}
     - {role: 'keitaro', tags: 'keitaro'}
+    - {role: 'upgrades.tasks' }
