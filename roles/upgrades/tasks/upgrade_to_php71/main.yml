@@ -1,7 +1,0 @@
-- shell: /bin/true
-  register: upgrade_to_php71
-
-- name: Upgrade php to 7.1
-  include: upgrade.yml
-  when: upgrade_to_php71 is not defined
-  tags: upgrade_to_php71
