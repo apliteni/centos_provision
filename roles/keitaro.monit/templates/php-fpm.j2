@@ -1,0 +1,3 @@
+check process {{php_version}}-php-fpm with pidfile /var/run/{{php_version}}-php-fpm.pid
+start program = "/bin/systemctl start {{php_version}}-php-fpm"
+stop program = "/bin/systemctl stop {{php_version}}-php-fpm"
