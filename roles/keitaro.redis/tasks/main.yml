@@ -4,12 +4,6 @@
     name=redis
     state=latest
 
-- name: Tune redis tcp-backlog
-  lineinfile:
-    dest=/etc/redis.conf
-    regexp='^tcp-backlog \d+'
-    line='tcp-backlog 65535'
-
 - name: Update kernel params
   sysctl:
     name: "{{ item.key }}"
@@ -32,6 +26,21 @@
     name: disable-transparent-hugepages
     state: started
     enabled: yes
+
+- name: Tune redis tcp-backlog
+  lineinfile:
+    dest: /etc/redis.conf
+    regexp: '^tcp-backlog \d+'
+    line: 'tcp-backlog 65535'
+  notify: restart redis
+
+- name: Save pid to file
+  lineinfile:
+    dest: /usr/lib/systemd/system/redis.service
+    insertafter: 'ExecStart='
+    regexp: '^ExecStartPost='
+    line: 'ExecStartPost=/bin/sh -c "echo $MAINPID > /var/run/redis/redis.pid"'
+  notify: restart redis
 
 - name: Run redis service
   service:

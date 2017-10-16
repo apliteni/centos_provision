@@ -4,28 +4,15 @@
     name: monit
     state: latest
 
-- name: add mariadb to monit
-  copy:
-    dest=/etc/monit.d/mariadb
-    content='check process mariadb with pidfile /var/lib/mysql/mariadb.pid\n
-        start program = "/bin/systemctl start mariadb"\n
-        stop program = "/bin/systemctl stop mariadb"'
-  notify: restart monit
-
-- name: add nginx to monit
-  copy:
-    dest=/etc/monit.d/nginx
-    content='check process nginx with pidfile /var/run/nginx.pid\n
-      start program = "/bin/systemctl start nginx"\n
-      stop program = "/bin/systemctl stop nginx"'
-  notify: restart monit
-
-- name: add php-fpm to monit
-  copy:
-    dest=/etc/monit.d/php-fpm
-    content="check process {{php_version}}-php-fpm with pidfile /var/run/{{php_version}}-php-fpm.pid\n
-          start program = \"/bin/systemctl start {{php_version}}-php-fpm\"\n
-          stop program = \"/bin/systemctl stop {{php_version}}-php-fpm\""
+- name: add services to monit
+  template:
+    src: "{{ item }}.j2"
+    dest: "/etc/monit.d/{{ item }}"
+  with_items:
+    - mariadb
+    - nginx
+    - php-fpm
+    - redis
   notify: restart monit
 
 - name: run monit
