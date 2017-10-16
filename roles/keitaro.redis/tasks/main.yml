@@ -40,6 +40,7 @@
     insertafter: 'ExecStart='
     regexp: '^ExecStartPost='
     line: 'ExecStartPost=/bin/sh -c "echo $MAINPID > /var/run/redis/redis.pid"'
+  notify: restart redis
 
 - name: Run redis service
   service:
