@@ -4,16 +4,6 @@
     name=redis
     state=latest
 
-- name: Configure redis
-  lineinfile:
-    dest: /etc/redis.conf
-    regexp: '{{ item.regexp }}'
-    line: '{{ item.line }}'
-  with_items:
-    - { regexp: '^tcp-backlog \d+', line: 'tcp-backlog 65535' }   # tune redis backlog
-    - { regexp: '^daemonize ', line: 'daemonize yes' }            # daemonize redis
-    - { regexp: '^pidfile ', line: 'pidfile /var/run/redis.pid' } # save pid
-
 - name: Update kernel params
   sysctl:
     name: "{{ item.key }}"
@@ -36,6 +26,17 @@
     name: disable-transparent-hugepages
     state: started
     enabled: yes
+
+- name: Configure redis
+  lineinfile:
+    dest: /etc/redis.conf
+    regexp: '{{ item.regexp }}'
+    line: '{{ item.line }}'
+  with_items:
+    - { regexp: '^tcp-backlog \d+', line: 'tcp-backlog 65535' }   # tune redis backlog
+    - { regexp: '^daemonize ', line: 'daemonize yes' }            # daemonize redis
+    - { regexp: '^pidfile ', line: 'pidfile /var/run/redis.pid' } # save pid
+  notify: restart redis
 
 - name: Run redis service
   service:
