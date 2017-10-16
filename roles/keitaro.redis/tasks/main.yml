@@ -27,16 +27,19 @@
     state: started
     enabled: yes
 
-- name: Configure redis
+- name: Tune redis tcp-backlog
   lineinfile:
     dest: /etc/redis.conf
-    regexp: '{{ item.regexp }}'
-    line: '{{ item.line }}'
-  with_items:
-    - { regexp: '^tcp-backlog \d+', line: 'tcp-backlog 65535' }   # tune redis backlog
-    - { regexp: '^daemonize ', line: 'daemonize yes' }            # daemonize redis
-    - { regexp: '^pidfile ', line: 'pidfile /var/run/redis.pid' } # save pid
+    regexp: '^tcp-backlog \d+'
+    line: 'tcp-backlog 65535'
   notify: restart redis
+
+- name: Save pid to file
+  lineinfile:
+    dest: /usr/lib/systemd/system/redis.service
+    insertafter: 'ExecStart='
+    regexp: '^ExecStartPost='
+    line: 'ExecStartPost=/bin/sh -c "echo $MAINPID > /var/run/redis/redis.pid"'
 
 - name: Run redis service
   service:
