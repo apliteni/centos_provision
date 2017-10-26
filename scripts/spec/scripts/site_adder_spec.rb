@@ -142,6 +142,21 @@ RSpec.describe 'add-site.sh' do
       expect(content).to match('server_name example.com;')
     end
 
+    context 'alias specified' do
+      let(:user_values) do
+        {
+          site_domains: 'example.com,www.example.com,www1.example.com',
+          site_root: '/var/www/example.com',
+        }
+      end
+
+      it 'vhost file should be properly configured' do
+        run_script
+        content = File.read("#{@current_dir}/example.com.conf")
+        expect(content).to match('server_name example.com www.example.com www1.example.com;')
+      end
+    end
+
     context '/etc/nginx/conf.d/example.com.conf already exists' do
       let(:make_example_com_vhost) { ['touch /etc/nginx/conf.d/example.com.conf'] }
       let(:commands) { make_proper_nginx_conf + make_keitaro_root_dir + make_site_root_dir + make_example_com_vhost }
