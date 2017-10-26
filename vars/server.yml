@@ -1,5 +1,5 @@
 ---
-php_version: 'php71'
+php_version: "{% if kversion is defined and kversion == 7 %}php70{% else %}php71{% endif %}"
 timezone: Europe/Moscow
 swap_size: 2048
 os_user: nginx
