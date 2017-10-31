@@ -1,14 +1,14 @@
 ---
 php_version: "{% if kversion is defined and kversion == 7 %}php70{% else %}php71{% endif %}"
+php_memory_limit: 500M
+php_max_upload_size: 20M
+
 timezone: Europe/Moscow
 swap_size: 2048
 os_user: nginx
-php_memory_limit: 500M
 
 keitaro:
   path: /var/www/keitaro
-
-ioncube_package: https://www.ioncube.com/php7-linux-x86-64-beta8.tgz
 
 # MariaDB
 mariadb_databases:
