@@ -37,11 +37,15 @@
     - {from: "/etc/opt/remi/{{php_version}}", to: '/etc/php'}
     - {from: "/var/opt/remi/{{php_version}}/log/php-fpm/", to: '/var/log/php-fpm'}
 
-- name: increase memory_limit
+- name: increase limits
   lineinfile:
     path: /etc/php/php.ini
-    regexp: ^memory_limit
-    line: memory_limit={{php_memory_limit}}
+    regexp: '^{{ item.key }}'
+    line: '{{ item.key }} = {{ item.value }}'
+  with_dict:
+    memory_limit: '{{ php_memory_limit }}'
+    post_max_size: '{{ php_max_upload_size }}'
+    upload_max_filesize: '{{ php_max_upload_size }}'
   notify:
     - restart php-fpm
 
