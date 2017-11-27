@@ -1030,13 +1030,17 @@ crontab_matches(){
 
 
 make_cert_links(){
-  debug "Make certificate links"
-  local le_cert_path="/etc/letsencrypt/live/${DOMAINS[0]}/fullchain.pem"
-  local le_privkey_path="/etc/letsencrypt/live/${DOMAINS[0]}/privkey.pem"
-  local command="rm -f ${NGINX_SSL_CERT_PATH} && rm -f ${NGINX_SSL_PRIVKEY_PATH}"
-  command="${command} && ln -s ${le_cert_path} ${NGINX_SSL_CERT_PATH}"
-  command="${command} && ln -s ${le_privkey_path} ${NGINX_SSL_PRIVKEY_PATH}"
-  run_command "${command}" "$(translate 'messages.make_ssl_cert_links')" 'hide_output'
+  if [ -f ${NGINX_SSL_CERT_PATH} ]; then
+    debug "Make certificate links"
+    local le_cert_path="/etc/letsencrypt/live/${DOMAINS[0]}/fullchain.pem"
+    local le_privkey_path="/etc/letsencrypt/live/${DOMAINS[0]}/privkey.pem"
+    local command="rm -f ${NGINX_SSL_CERT_PATH} && rm -f ${NGINX_SSL_PRIVKEY_PATH}"
+    command="${command} && ln -s ${le_cert_path} ${NGINX_SSL_CERT_PATH}"
+    command="${command} && ln -s ${le_privkey_path} ${NGINX_SSL_PRIVKEY_PATH}"
+    run_command "${command}" "$(translate 'messages.make_ssl_cert_links')" 'hide_output'
+  else
+    debug "${NGINX_SSL_CERT_PATH} is already link"
+  fi
 }
 
 
@@ -1044,9 +1048,7 @@ make_cert_links(){
 run_certbot(){
   debug "Run certbot"
   certbot_command="certbot certonly --webroot --webroot-path=${WEBROOT_PATH} --agree-tos --non-interactive --expand"
-  for domain in "${DOMAINS[@]}"; do
-    certbot_command="${certbot_command} --domain ${domain}"
-  done
+  certbot_command="${certbot_command} $(with_existent_domains) $(with_new_domains)"
   if isset "${VARS['ssl_email']}"; then
     certbot_command="${certbot_command} --email ${VARS['ssl_email']}"
   else
@@ -1054,6 +1056,26 @@ run_certbot(){
   fi
   run_command "${certbot_command}"
 }
+
+with_existent_domains(){
+  if [ -L "$NGINX_SSL_CERT_PATH" ]; then
+    debug "Getting domains from existent cert"
+    local dns_records=$(openssl x509 -text < "$NGINX_SSL_CERT_PATH" | grep DNS)
+    debug "Current dns records in ${NGINX_SSL_CERT_PATH}: ${dns_records}"
+    echo "$dns_records" | sed -r -e 's/(DNS:|,)//g' -e 's/\s+/ --domain /g'
+  else
+    debug "Lets Encrypt certificate is not issued yet"
+  fi
+}
+
+with_new_domains(){
+  local result=""
+  for domain in "${DOMAINS[@]}"; do
+    result="${result} --domain ${domain}"
+  done
+  echo "$result"
+}
+
 
 
 
