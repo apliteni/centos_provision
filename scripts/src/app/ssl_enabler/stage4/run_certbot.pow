@@ -4,10 +4,24 @@
 run_certbot()
   debug "Run certbot"
   certbot_command="certbot certonly --webroot --webroot-path=${WEBROOT_PATH} --agree-tos --non-interactive --expand"
-  for domain in "${DOMAINS[@]}"
-    certbot_command="${certbot_command} --domain ${domain}"
+  certbot_command="${certbot_command} $(with_existent_domains) $(with_new_domains)"
   if isset "${VARS['ssl_email']}"
     certbot_command="${certbot_command} --email ${VARS['ssl_email']}"
   else
     certbot_command="${certbot_command} --register-unsafely-without-email"
   run_command "${certbot_command}"
+
+with_existent_domains()
+  if [ -L $NGINX_SSL_CERT_PATH ]
+    debug "Getting domains from existent cert"
+    local dns_records=$(openssl x509 -text < $NGINX_SSL_CERT_PATH | grep DNS)
+    debug "Current dns records in ${NGINX_SSL_CERT_PATH}: ${dns_records}"
+    echo $dns_records | sed -r -e 's/(DNS:|,)//g' -e 's/\s+/ --domain /g'
+  else
+    debug "Lets Encrypt certificate is not issued yet"
+
+with_new_domains()
+  local result=""
+  for domain in "${DOMAINS[@]}"
+    result="${result} --domain ${domain}"
+  echo $result
