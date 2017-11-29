@@ -970,7 +970,7 @@ get_user_vars(){
   hack_stdin_if_pipe_mode
   print_translated "welcome"
   get_user_ssl_vars
-  get_user_var 'license_ip' 'validate_presence'
+  get_user_var 'license_ip' 'validate_presence validate_ip'
   get_user_var 'license_key' 'validate_presence'
   get_user_var 'db_name' 'validate_presence'
   get_user_var 'db_user' 'validate_presence'
@@ -1307,6 +1307,29 @@ show_successful_message(){
 
 
 
+
+
+
+validate_ip(){
+  local value="${1}"
+  [[ "$value" =~  ^([[:digit:]]+(\.[[:digit:]]+){3})$ ]] && valid_ip_segments "$value"
+}
+
+
+valid_ip_segments(){
+  local ip="${1}"
+  local segments="${ip//./ }"
+  for segment in "$segments"; do
+    if ! valid_ip_segment $segment; then
+      return ${FAILURE_RESULT}
+    fi
+  done
+}
+
+valid_ip_segment(){
+  local ip_segment="${1}"
+  [ $ip_segment -ge 0 ] && [ $ip_segment -le 255 ]
+}
 
 
 
