@@ -3,6 +3,7 @@
 
 init()
   init_log
+  force_utf8_input
   debug "Starting init stage: log basic info"
   debug "Command: ${SCRIPT_COMMAND}"
   debug "User ID: $EUID"

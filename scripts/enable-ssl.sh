@@ -286,6 +286,15 @@ add_indentation(){
 
 
 
+force_utf8_input(){
+  LC_CTYPE=en_US.UTF-8
+  if [ -f /proc/$$/fd/1 ]; then
+    stty -F /proc/$$/fd/1 iutf8
+  fi
+}
+
+
+
 get_user_var(){
   local var_name="${1}"
   local validation_methods="${2}"
@@ -407,6 +416,7 @@ fail(){
 
 init(){
   init_log
+  force_utf8_input
   debug "Starting init stage: log basic info"
   debug "Command: ${SCRIPT_COMMAND}"
   debug "User ID: "$EUID""

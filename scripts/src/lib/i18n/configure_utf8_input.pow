@@ -1,6 +1,0 @@
-#!/usr/bin/env powscript
-
-
-configure_utf8_input()
-  LC_CTYPE=en_US.UTF-8
-  stty iutf8
