@@ -3,4 +3,4 @@
 
 is_yes(answer)
   shopt -s nocasematch
-  [[ $answer =~ ^(yes|y|да|д) ]]
+  [[ $answer =~ ^(yes|y|да|д)$ ]]

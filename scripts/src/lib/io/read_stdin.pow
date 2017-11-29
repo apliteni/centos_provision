@@ -10,5 +10,5 @@ read_stdin()
     read -r -u 3 variable
   else
     read -r variable
-  echo $variable | sed 's/[^a-zA-Z[:digit:][:punct:]]//g'
+  echo $variable
 
