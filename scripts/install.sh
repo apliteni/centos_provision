@@ -196,13 +196,6 @@ detect_language_from_var(){
 
 
 
-configure_utf8_input(){
-  LC_CTYPE=en_US.UTF-8
-  stty iutf8
-}
-
-
-
 translate(){
   local key="${1}"
   local i18n_key=$UI_LANG.$key
@@ -240,6 +233,15 @@ get_user_var(){
       break
     fi
   done
+}
+
+
+
+force_utf8_input(){
+  LC_CTYPE=en_US.UTF-8
+  if [ -f /proc/$$/fd/1 ]; then
+    stty -F /proc/$$/fd/1 iutf8
+  fi
 }
 
 
@@ -360,6 +362,7 @@ fail(){
 
 init(){
   init_log
+  force_utf8_input
   debug "Starting init stage: log basic info"
   debug "Command: ${SCRIPT_COMMAND}"
   debug "User ID: "$EUID""
@@ -808,7 +811,6 @@ stage1(){
   debug "Starting stage 1: initial script setup"
   parse_options "$@"
   set_ui_lang
-  configure_utf8_input
 }
 
 
