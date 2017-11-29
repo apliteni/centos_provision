@@ -196,6 +196,13 @@ detect_language_from_var(){
 
 
 
+configure_utf8_input(){
+  LC_CTYPE=en_US.UTF-8
+  stty iutf8
+}
+
+
+
 translate(){
   local key="${1}"
   local i18n_key=$UI_LANG.$key
@@ -801,6 +808,7 @@ stage1(){
   debug "Starting stage 1: initial script setup"
   parse_options "$@"
   set_ui_lang
+  configure_utf8_input
 }
 
 
