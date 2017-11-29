@@ -120,6 +120,7 @@ DICT['en.no']='no'
 DICT['en.prompt_errors.validate_domains_list']='Please enter domains list, separated by comma without spaces (i.e. domain1.tld,www.domain1.tld). Each domain name must consist of only letters, numbers and hyphens and contain at least one dot.'
 DICT['en.prompt_errors.validate_presence']='Please enter value'
 DICT['en.prompt_errors.validate_yes_no']='Please answer "yes" or "no"'
+DICT['en.prompt_errors.validate_ip']='Please enter valid IPv4 address (ex. 8.8.8.8)'
 
 DICT['ru.errors.program_failed']='ОШИБКА ВЫПОЛНЕНИЯ ПРОГРАММЫ'
 DICT['ru.errors.must_be_root']='Эту программу может запускать только root.'
@@ -133,6 +134,7 @@ DICT['ru.no']='нет'
 DICT['ru.prompt_errors.validate_domains_list']='Укажите список доменных имён через запятую без пробелов (например domain1.tld,www.domain1.tld). Каждое доменное имя должно состоять только из букв, цифр и тире и содержать хотябы одну точку.'
 DICT['ru.prompt_errors.validate_presence']='Введите значение'
 DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
+DICT['ru.prompt_errors.validate_ip']='Введите корректный IPv4 адрес (например 8.8.8.8)'
 
 
 
@@ -302,7 +304,7 @@ read_stdin(){
   else
     read -r variable
   fi
-  echo "$variable" | sed 's/[^a-zA-Z[:digit:][:punct:]]//g'
+  echo "$variable"
 }
 
 
@@ -668,13 +670,6 @@ get_error(){
 }
 
 
-
-validate_presence(){
-  local value="${1}"
-  isset "$value"
-}
-
-
 SUBDOMAIN_REGEXP="[[:alnum:]-]+"
 DOMAIN_REGEXP="(${SUBDOMAIN_REGEXP}\.)+[[:alpha:]]${SUBDOMAIN_REGEXP}"
 DOMAIN_LIST_REGEXP="${DOMAIN_REGEXP}(,${DOMAIN_REGEXP})*"
@@ -686,10 +681,17 @@ validate_domains_list(){
 
 
 
+validate_presence(){
+  local value="${1}"
+  isset "$value"
+}
+
+
+
 is_no(){
   local answer="${1}"
   shopt -s nocasematch
-  [[ "$answer" =~ ^(no|n|нет|н) ]]
+  [[ "$answer" =~ ^(no|n|нет|н)$ ]]
 }
 
 
@@ -697,7 +699,7 @@ is_no(){
 is_yes(){
   local answer="${1}"
   shopt -s nocasematch
-  [[ "$answer" =~ ^(yes|y|да|д) ]]
+  [[ "$answer" =~ ^(yes|y|да|д)$ ]]
 }
 
 
@@ -1071,7 +1073,7 @@ write_inventory_file(){
 print_line_to_inventory_file(){
   local line="${1}"
   debug "  "$line"" 'light.blue'
-  echo "$line" | sed 's/[^a-zA-Z[:digit:][:punct:] ]//g' >> "$INVENTORY_FILE"
+  echo "$line" >> "$INVENTORY_FILE"
 }
 
 
