@@ -73,7 +73,7 @@ RSpec.describe 'install.sh' do
 
     let(:options) { '-spl en' }
 
-    shared_examples_for 'field without default' do |field, value: 'user.value'|
+    shared_examples_for 'field without default' do |field, value: 'user-value'|
       context 'field not stored in inventory' do
         it_behaves_like 'should not show default value', field
 
@@ -89,7 +89,7 @@ RSpec.describe 'install.sh' do
 
         it_behaves_like 'should store default value', field, readed_inventory_value: default
 
-        it_behaves_like 'should store user value', field, readed_inventory_value: 'user.value'
+        it_behaves_like 'should store user value', field, readed_inventory_value: 'user-value'
       end
 
       it_behaves_like 'should take value from previously saved inventory', field
@@ -101,13 +101,13 @@ RSpec.describe 'install.sh' do
 
         it_behaves_like 'should store default value', field, readed_inventory_value: /\w+{16}/
 
-        it_behaves_like 'should store user value', field, readed_inventory_value: 'user.value'
+        it_behaves_like 'should store user value', field, readed_inventory_value: 'user-value'
       end
 
       it_behaves_like 'should take value from previously saved inventory', field
     end
 
-    shared_examples_for 'should take value from previously saved inventory' do |field, value: 'stored.value'|
+    shared_examples_for 'should take value from previously saved inventory' do |field, value: 'stored-value'|
       context 'field stored in inventory' do
         let(:stored_values) { {field => value} }
 

@@ -120,6 +120,7 @@ DICT['en.no']='no'
 DICT['en.prompt_errors.validate_domains_list']='Please enter domains list, separated by comma without spaces (i.e. domain1.tld,www.domain1.tld). Each domain name must consist of only letters, numbers and hyphens and contain at least one dot.'
 DICT['en.prompt_errors.validate_presence']='Please enter value'
 DICT['en.prompt_errors.validate_yes_no']='Please answer "yes" or "no"'
+DICT['en.prompt_errors.validate_alnumdash']='Only latin letters, numbers, dash and underscore allowed'
 
 DICT['ru.errors.program_failed']='ОШИБКА ВЫПОЛНЕНИЯ ПРОГРАММЫ'
 DICT['ru.errors.must_be_root']='Эту программу может запускать только root.'
@@ -133,6 +134,7 @@ DICT['ru.no']='нет'
 DICT['ru.prompt_errors.validate_domains_list']='Укажите список доменных имён через запятую без пробелов (например domain1.tld,www.domain1.tld). Каждое доменное имя должно состоять только из букв, цифр и тире и содержать хотябы одну точку.'
 DICT['ru.prompt_errors.validate_presence']='Введите значение'
 DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
+DICT['ru.prompt_errors.validate_alnumdash']='Можно использовать только латинские бувы, цифры, тире и подчёркивание'
 
 
 
@@ -679,6 +681,13 @@ validate_domains_list(){
 
 
 
+validate_alnumdash(){
+  local value="${1}"
+  [[ "$value" =~  ^([0-9A-Za-z_-]+)$ ]]
+}
+
+
+
 validate_license_key(){
   local value="${1}"
   [[ "$value" =~  ^([0-9A-Z]{4}(-[0-9A-Z]{4}){3})$ ]]
@@ -981,11 +990,11 @@ get_user_vars(){
   get_user_ssl_vars
   get_user_var 'license_ip' 'validate_presence validate_ip'
   get_user_var 'license_key' 'validate_presence validate_license_key'
-  get_user_var 'db_name' 'validate_presence'
-  get_user_var 'db_user' 'validate_presence'
-  get_user_var 'db_password' 'validate_presence'
-  get_user_var 'admin_login' 'validate_presence'
-  get_user_var 'admin_password' 'validate_presence'
+  get_user_var 'db_name' 'validate_presence validate_alnumdash'
+  get_user_var 'db_user' 'validate_presence validate_alnumdash'
+  get_user_var 'db_password' 'validate_presence validate_alnumdash'
+  get_user_var 'admin_login' 'validate_presence validate_alnumdash'
+  get_user_var 'admin_password' 'validate_presence validate_alnumdash'
 }
 
 
