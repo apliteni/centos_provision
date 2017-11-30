@@ -2,7 +2,7 @@
 
 validate_ip(){
   local value="${1}"
-  [[ "$value" =~  ^([[:digit:]]+(\.[[:digit:]]+){3})$ ]] && valid_ip_segments "$value"
+  [[ "$value" =~  ^[[:digit:]]+(\.[[:digit:]]+){3}$ ]] && valid_ip_segments "$value"
 }
 
 
