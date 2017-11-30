@@ -120,7 +120,6 @@ DICT['en.no']='no'
 DICT['en.prompt_errors.validate_domains_list']='Please enter domains list, separated by comma without spaces (i.e. domain1.tld,www.domain1.tld). Each domain name must consist of only letters, numbers and hyphens and contain at least one dot.'
 DICT['en.prompt_errors.validate_presence']='Please enter value'
 DICT['en.prompt_errors.validate_yes_no']='Please answer "yes" or "no"'
-DICT['en.prompt_errors.validate_ip']='Please enter valid IPv4 address (ex. 8.8.8.8)'
 
 DICT['ru.errors.program_failed']='ОШИБКА ВЫПОЛНЕНИЯ ПРОГРАММЫ'
 DICT['ru.errors.must_be_root']='Эту программу может запускать только root.'
@@ -134,7 +133,6 @@ DICT['ru.no']='нет'
 DICT['ru.prompt_errors.validate_domains_list']='Укажите список доменных имён через запятую без пробелов (например domain1.tld,www.domain1.tld). Каждое доменное имя должно состоять только из букв, цифр и тире и содержать хотябы одну точку.'
 DICT['ru.prompt_errors.validate_presence']='Введите значение'
 DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
-DICT['ru.prompt_errors.validate_ip']='Введите корректный IPv4 адрес (например 8.8.8.8)'
 
 
 
@@ -681,6 +679,13 @@ validate_domains_list(){
 
 
 
+validate_license_key(){
+  local value="${1}"
+  [[ "$value" =~  ^([0-9A-Z]{4}(-[0-9A-Z]{4}){3})$ ]]
+}
+
+
+
 validate_presence(){
   local value="${1}"
   isset "$value"
@@ -762,6 +767,8 @@ DICT['en.welcome']=$(cat <<- END
 	This installer will guide you through the steps required to install Keitaro on your server.
 END
 )
+DICT['en.prompt_errors.validate_ip']='Please enter valid IPv4 address (ex. 8.8.8.8)'
+DICT['en.prompt_errors.validate_license_key']='Please enter valid license key (ex. AAAA-BBBB-CCCC-DDDD)'
 
 DICT['ru.errors.see_logs']=$(cat <<- END
 	Журнал установки сохранён в ${SCRIPT_LOG}. Настройки сохранены в ${INVENTORY_FILE}.
@@ -795,8 +802,10 @@ DICT['ru.welcome']=$(cat <<- END
 	Эта программа поможет собрать информацию необходимую для установки Keitaro на вашем сервере.
 END
 )
+DICT['ru.prompt_errors.validate_ip']='Введите корректный IPv4 адрес (например 8.8.8.8)'
+DICT['ru.prompt_errors.validate_license_key']='Введите корректный ключ лицензии (например AAAA-BBBB-CCCC-DDDD)'
 
-COMMENT_ME_IF_POWSCRIPT_DONT_COMPILE_PROJECT="'"
+COMMENT_ME_IF_POWSCRIPT_WANNT_COMPILE_PROJECT="'"
 
 
 
@@ -971,7 +980,7 @@ get_user_vars(){
   print_translated "welcome"
   get_user_ssl_vars
   get_user_var 'license_ip' 'validate_presence validate_ip'
-  get_user_var 'license_key' 'validate_presence'
+  get_user_var 'license_key' 'validate_presence validate_license_key'
   get_user_var 'db_name' 'validate_presence'
   get_user_var 'db_user' 'validate_presence'
   get_user_var 'db_password' 'validate_presence'

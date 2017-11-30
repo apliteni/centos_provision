@@ -140,7 +140,7 @@ RSpec.describe 'install.sh' do
 
     it_behaves_like 'field without default', :license_ip, value: '1.2.3.4'
 
-    it_behaves_like 'field without default', :license_key
+    it_behaves_like 'field without default', :license_key, value: 'AAAA-BBBB-CCCC-DDDD'
 
     it_behaves_like 'field with default', :db_name, default: 'keitaro'
 

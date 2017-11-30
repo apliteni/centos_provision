@@ -36,6 +36,8 @@ DICT['en.welcome']=$(cat <<- END
 	This installer will guide you through the steps required to install Keitaro on your server.
 END
 )
+DICT['en.prompt_errors.validate_ip']='Please enter valid IPv4 address (ex. 8.8.8.8)'
+DICT['en.prompt_errors.validate_license_key']='Please enter valid license key (ex. AAAA-BBBB-CCCC-DDDD)'
 
 DICT['ru.errors.see_logs']=$(cat <<- END
 	Журнал установки сохранён в ${SCRIPT_LOG}. Настройки сохранены в ${INVENTORY_FILE}.
@@ -69,5 +71,7 @@ DICT['ru.welcome']=$(cat <<- END
 	Эта программа поможет собрать информацию необходимую для установки Keitaro на вашем сервере.
 END
 )
+DICT['ru.prompt_errors.validate_ip']='Введите корректный IPv4 адрес (например 8.8.8.8)'
+DICT['ru.prompt_errors.validate_license_key']='Введите корректный ключ лицензии (например AAAA-BBBB-CCCC-DDDD)'
 
-COMMENT_ME_IF_POWSCRIPT_DONT_COMPILE_PROJECT="'"
+COMMENT_ME_IF_POWSCRIPT_WANNT_COMPILE_PROJECT="'"
