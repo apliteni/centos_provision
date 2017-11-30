@@ -73,14 +73,14 @@ RSpec.describe 'install.sh' do
 
     let(:options) { '-spl en' }
 
-    shared_examples_for 'field without default' do |field|
+    shared_examples_for 'field without default' do |field, value: 'user-value'|
       context 'field not stored in inventory' do
         it_behaves_like 'should not show default value', field
 
-        it_behaves_like 'should store user value', field, readed_inventory_value: 'user.value'
+        it_behaves_like 'should store user value', field, readed_inventory_value: value
       end
 
-      it_behaves_like 'should take value from previously saved inventory', field
+      it_behaves_like 'should take value from previously saved inventory', field, value: value
     end
 
     shared_examples_for 'field with default' do |field, default:|
@@ -89,7 +89,7 @@ RSpec.describe 'install.sh' do
 
         it_behaves_like 'should store default value', field, readed_inventory_value: default
 
-        it_behaves_like 'should store user value', field, readed_inventory_value: 'user.value'
+        it_behaves_like 'should store user value', field, readed_inventory_value: 'user-value'
       end
 
       it_behaves_like 'should take value from previously saved inventory', field
@@ -101,21 +101,21 @@ RSpec.describe 'install.sh' do
 
         it_behaves_like 'should store default value', field, readed_inventory_value: /\w+{16}/
 
-        it_behaves_like 'should store user value', field, readed_inventory_value: 'user.value'
+        it_behaves_like 'should store user value', field, readed_inventory_value: 'user-value'
       end
 
       it_behaves_like 'should take value from previously saved inventory', field
     end
 
-    shared_examples_for 'should take value from previously saved inventory' do |field|
+    shared_examples_for 'should take value from previously saved inventory' do |field, value: 'stored-value'|
       context 'field stored in inventory' do
-        let(:stored_values) { {field => 'stored.value'} }
+        let(:stored_values) { {field => value} }
 
-        it_behaves_like 'should show default value', field, showed_value: 'stored.value'
+        it_behaves_like 'should show default value', field, showed_value: value
 
-        it_behaves_like 'should store default value', field, readed_inventory_value: 'stored.value'
+        it_behaves_like 'should store default value', field, readed_inventory_value: value
 
-        it_behaves_like 'should store user value', field, readed_inventory_value: 'user.value'
+        it_behaves_like 'should store user value', field, readed_inventory_value: value
       end
     end
 
@@ -138,9 +138,9 @@ RSpec.describe 'install.sh' do
       end
     end
 
-    it_behaves_like 'field without default', :license_ip
+    it_behaves_like 'field without default', :license_ip, value: '1.2.3.4'
 
-    it_behaves_like 'field without default', :license_key
+    it_behaves_like 'field without default', :license_key, value: 'AAAA-BBBB-CCCC-DDDD'
 
     it_behaves_like 'field with default', :db_name, default: 'keitaro'
 

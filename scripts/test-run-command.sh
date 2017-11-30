@@ -169,13 +169,22 @@ add_indentation(){
 
 
 
+force_utf8_input(){
+  LC_CTYPE=en_US.UTF-8
+  if [ -f /proc/$$/fd/1 ]; then
+    stty -F /proc/$$/fd/1 iutf8
+  fi
+}
+
+
+
 read_stdin(){
   if is_pipe_mode; then
     read -r -u 3 variable
   else
     read -r variable
   fi
-  echo "$variable" | sed 's/[^a-zA-Z[:digit:][:punct:]]//g'
+  echo "$variable"
 }
 
 
@@ -215,6 +224,7 @@ fail(){
 
 init(){
   init_log
+  force_utf8_input
   debug "Starting init stage: log basic info"
   debug "Command: ${SCRIPT_COMMAND}"
   debug "User ID: "$EUID""

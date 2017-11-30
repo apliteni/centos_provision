@@ -1,0 +1,5 @@
+#!/usr/bin/env powscript
+
+
+validate_license_key(value)
+  [[ $value =~  ^[0-9A-Z]{4}(-[0-9A-Z]{4}){3}$ ]]

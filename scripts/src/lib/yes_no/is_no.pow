@@ -3,4 +3,4 @@
 
 is_no(answer)
   shopt -s nocasematch
-  [[ $answer =~ ^(no|n|нет|н) ]]
+  [[ $answer =~ ^(no|n|нет|н)$ ]]

@@ -1,0 +1,5 @@
+#!/usr/bin/env powscript
+
+
+validate_starts_with_latin_letter(value)
+  [[ $value =~  ^[A-Za-z] ]]

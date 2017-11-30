@@ -305,6 +305,15 @@ add_indentation(){
 
 
 
+force_utf8_input(){
+  LC_CTYPE=en_US.UTF-8
+  if [ -f /proc/$$/fd/1 ]; then
+    stty -F /proc/$$/fd/1 iutf8
+  fi
+}
+
+
+
 get_user_var(){
   local var_name="${1}"
   local validation_methods="${2}"
@@ -386,7 +395,7 @@ read_stdin(){
   else
     read -r variable
   fi
-  echo "$variable" | sed 's/[^a-zA-Z[:digit:][:punct:]]//g'
+  echo "$variable"
 }
 
 
@@ -426,6 +435,7 @@ fail(){
 
 init(){
   init_log
+  force_utf8_input
   debug "Starting init stage: log basic info"
   debug "Command: ${SCRIPT_COMMAND}"
   debug "User ID: "$EUID""
@@ -751,7 +761,7 @@ DOMAIN_LIST_REGEXP="${DOMAIN_REGEXP}(,${DOMAIN_REGEXP})*"
 
 validate_domains_list(){
   local value="${1}"
-  [[ "$value" =~ ^(${DOMAIN_LIST_REGEXP})$ ]]
+  [[ "$value" =~ ^${DOMAIN_LIST_REGEXP}$ ]]
 }
 
 
@@ -759,7 +769,7 @@ validate_domains_list(){
 is_no(){
   local answer="${1}"
   shopt -s nocasematch
-  [[ "$answer" =~ ^(no|n|нет|н) ]]
+  [[ "$answer" =~ ^(no|n|нет|н)$ ]]
 }
 
 
@@ -767,7 +777,7 @@ is_no(){
 is_yes(){
   local answer="${1}"
   shopt -s nocasematch
-  [[ "$answer" =~ ^(yes|y|да|д) ]]
+  [[ "$answer" =~ ^(yes|y|да|д)$ ]]
 }
 
 

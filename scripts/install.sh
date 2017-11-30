@@ -236,6 +236,15 @@ get_user_var(){
 }
 
 
+
+force_utf8_input(){
+  LC_CTYPE=en_US.UTF-8
+  if [ -f /proc/$$/fd/1 ]; then
+    stty -F /proc/$$/fd/1 iutf8
+  fi
+}
+
+
 hack_stdin_if_pipe_mode(){
   if is_pipe_mode; then
     debug 'Detected pipe bash mode. Stdin hack enabled'
@@ -293,7 +302,7 @@ read_stdin(){
   else
     read -r variable
   fi
-  echo "$variable" | sed 's/[^a-zA-Z[:digit:][:punct:]]//g'
+  echo "$variable"
 }
 
 
@@ -353,6 +362,7 @@ fail(){
 
 init(){
   init_log
+  force_utf8_input
   debug "Starting init stage: log basic info"
   debug "Command: ${SCRIPT_COMMAND}"
   debug "User ID: "$EUID""
@@ -658,6 +668,30 @@ get_error(){
 }
 
 
+SUBDOMAIN_REGEXP="[[:alnum:]-]+"
+DOMAIN_REGEXP="(${SUBDOMAIN_REGEXP}\.)+[[:alpha:]]${SUBDOMAIN_REGEXP}"
+DOMAIN_LIST_REGEXP="${DOMAIN_REGEXP}(,${DOMAIN_REGEXP})*"
+
+validate_domains_list(){
+  local value="${1}"
+  [[ "$value" =~ ^${DOMAIN_LIST_REGEXP}$ ]]
+}
+
+
+
+validate_alnumdash(){
+  local value="${1}"
+  [[ "$value" =~  ^([0-9A-Za-z_-]+)$ ]]
+}
+
+
+
+validate_license_key(){
+  local value="${1}"
+  [[ "$value" =~  ^[0-9A-Z]{4}(-[0-9A-Z]{4}){3}$ ]]
+}
+
+
 
 validate_presence(){
   local value="${1}"
@@ -665,13 +699,10 @@ validate_presence(){
 }
 
 
-SUBDOMAIN_REGEXP="[[:alnum:]-]+"
-DOMAIN_REGEXP="(${SUBDOMAIN_REGEXP}\.)+[[:alpha:]]${SUBDOMAIN_REGEXP}"
-DOMAIN_LIST_REGEXP="${DOMAIN_REGEXP}(,${DOMAIN_REGEXP})*"
 
-validate_domains_list(){
+validate_starts_with_latin_letter(){
   local value="${1}"
-  [[ "$value" =~ ^(${DOMAIN_LIST_REGEXP})$ ]]
+  [[ "$value" =~  ^[A-Za-z] ]]
 }
 
 
@@ -679,7 +710,7 @@ validate_domains_list(){
 is_no(){
   local answer="${1}"
   shopt -s nocasematch
-  [[ "$answer" =~ ^(no|n|нет|н) ]]
+  [[ "$answer" =~ ^(no|n|нет|н)$ ]]
 }
 
 
@@ -687,7 +718,7 @@ is_no(){
 is_yes(){
   local answer="${1}"
   shopt -s nocasematch
-  [[ "$answer" =~ ^(yes|y|да|д) ]]
+  [[ "$answer" =~ ^(yes|y|да|д)$ ]]
 }
 
 
@@ -750,6 +781,10 @@ DICT['en.welcome']=$(cat <<- END
 	This installer will guide you through the steps required to install Keitaro on your server.
 END
 )
+DICT['en.prompt_errors.validate_ip']='Please enter valid IPv4 address (ex. 8.8.8.8)'
+DICT['en.prompt_errors.validate_license_key']='Please enter valid license key (ex. AAAA-BBBB-CCCC-DDDD)'
+DICT['en.prompt_errors.validate_alnumdash']='Only Latin letters, numbers, dash and underscore allowed'
+DICT['en.prompt_errors.validate_starts_with_latin_letter']='The value must begin with a Latin letter'
 
 DICT['ru.errors.see_logs']=$(cat <<- END
 	Журнал установки сохранён в ${SCRIPT_LOG}. Настройки сохранены в ${INVENTORY_FILE}.
@@ -783,8 +818,12 @@ DICT['ru.welcome']=$(cat <<- END
 	Эта программа поможет собрать информацию необходимую для установки Keitaro на вашем сервере.
 END
 )
+DICT['ru.prompt_errors.validate_ip']='Введите корректный IPv4 адрес (например 8.8.8.8)'
+DICT['ru.prompt_errors.validate_license_key']='Введите корректный ключ лицензии (например AAAA-BBBB-CCCC-DDDD)'
+DICT['ru.prompt_errors.validate_alnumdash']='Можно использовать только латинские бувы, цифры, тире и подчёркивание'
+DICT['ru.prompt_errors.validate_starts_with_latin_letter']='Значение должно начинаться с латинской буквы'
 
-COMMENT_ME_IF_POWSCRIPT_DONT_COMPILE_PROJECT="'"
+COMMENT_ME_IF_POWSCRIPT_WANNT_COMPILE_PROJECT="'"
 
 
 
@@ -958,13 +997,13 @@ get_user_vars(){
   hack_stdin_if_pipe_mode
   print_translated "welcome"
   get_user_ssl_vars
-  get_user_var 'license_ip' 'validate_presence'
-  get_user_var 'license_key' 'validate_presence'
-  get_user_var 'db_name' 'validate_presence'
-  get_user_var 'db_user' 'validate_presence'
-  get_user_var 'db_password' 'validate_presence'
-  get_user_var 'admin_login' 'validate_presence'
-  get_user_var 'admin_password' 'validate_presence'
+  get_user_var 'license_ip' 'validate_presence validate_ip'
+  get_user_var 'license_key' 'validate_presence validate_license_key'
+  get_user_var 'db_name' 'validate_presence validate_alnumdash validate_starts_with_latin_letter'
+  get_user_var 'db_user' 'validate_presence validate_alnumdash validate_starts_with_latin_letter'
+  get_user_var 'db_password' 'validate_presence validate_alnumdash'
+  get_user_var 'admin_login' 'validate_presence validate_alnumdash validate_starts_with_latin_letter'
+  get_user_var 'admin_password' 'validate_presence validate_alnumdash'
 }
 
 
@@ -1061,7 +1100,7 @@ write_inventory_file(){
 print_line_to_inventory_file(){
   local line="${1}"
   debug "  "$line"" 'light.blue'
-  echo "$line" | sed 's/[^a-zA-Z[:digit:][:punct:] ]//g' >> "$INVENTORY_FILE"
+  echo "$line" >> "$INVENTORY_FILE"
 }
 
 
@@ -1295,6 +1334,29 @@ show_successful_message(){
 
 
 
+
+
+
+validate_ip(){
+  local value="${1}"
+  [[ "$value" =~  ^[[:digit:]]+(\.[[:digit:]]+){3}$ ]] && valid_ip_segments "$value"
+}
+
+
+valid_ip_segments(){
+  local ip="${1}"
+  local segments="${ip//./ }"
+  for segment in "$segments"; do
+    if ! valid_ip_segment $segment; then
+      return ${FAILURE_RESULT}
+    fi
+  done
+}
+
+valid_ip_segment(){
+  local ip_segment="${1}"
+  [ $ip_segment -ge 0 ] && [ $ip_segment -le 255 ]
+}
 
 
 
