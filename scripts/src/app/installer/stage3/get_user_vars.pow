@@ -8,11 +8,11 @@ get_user_vars()
   get_user_ssl_vars
   get_user_var 'license_ip' 'validate_presence validate_ip'
   get_user_var 'license_key' 'validate_presence validate_license_key'
-  get_user_var 'db_name' 'validate_presence'
-  get_user_var 'db_user' 'validate_presence'
-  get_user_var 'db_password' 'validate_presence'
-  get_user_var 'admin_login' 'validate_presence'
-  get_user_var 'admin_password' 'validate_presence'
+  get_user_var 'db_name' 'validate_presence validate_alnumdash'
+  get_user_var 'db_user' 'validate_presence validate_alnumdash'
+  get_user_var 'db_password' 'validate_presence validate_alnumdash'
+  get_user_var 'admin_login' 'validate_presence validate_alnumdash'
+  get_user_var 'admin_password' 'validate_presence validate_alnumdash'
 
 
 get_user_ssl_vars()
