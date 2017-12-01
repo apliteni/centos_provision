@@ -4,7 +4,6 @@
 get_user_vars()
   debug 'Read vars from user input'
   hack_stdin_if_pipe_mode
-  print_translated "welcome"
   get_user_ssl_vars
   get_user_var 'license_ip' 'validate_presence validate_ip'
   get_user_var 'license_key' 'validate_presence validate_license_key'

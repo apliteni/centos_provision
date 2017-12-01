@@ -18,6 +18,7 @@ RSpec.describe 'install.sh' do
   let(:prompts) do
     {
       en: {
+        skip_firewall: 'Do you want to skip installing firewall?',
         ssl: "Do you want to install Free SSL certificates from Let's Encrypt?",
         license_ip: 'Please enter server IP',
         license_key: 'Please enter license key',
@@ -42,6 +43,7 @@ RSpec.describe 'install.sh' do
 
   let(:user_values) do
     {
+      skip_firewall: 'yes',
       ssl: 'no',
       license_ip: '8.8.8.8',
       license_key: 'WWWW-XXXX-YYYY-ZZZZ',
@@ -253,6 +255,36 @@ RSpec.describe 'install.sh' do
         'Configuration settings saved to hosts.txt',
         'You can rerun `install.sh`'
       ]
+    end
+  end
+
+  describe 'nat support checking' do
+    context 'nat is unsupported' do
+      let(:docker_image) { 'centos' }
+
+      let(:command_stubs) { {yum: '/bin/true', ansible: '/bin/true', iptables: '/bin/false'} }
+
+      it_behaves_like 'should print to', :stdout,
+                      'It looks that your system does not support firewall'
+
+      context 'user cancels installation' do
+        let(:user_values) do
+          {
+            skip_firewall: 'no',
+          }
+        end
+
+        it_behaves_like 'should exit with error', 'Please run this program in system with firewall support'
+      end
+    end
+
+    context 'nat is supported' do
+      let(:docker_image) { 'centos' }
+
+      let(:command_stubs) { {yum: '/bin/true', ansible: '/bin/true', iptables: '/bin/true'} }
+
+      it_behaves_like 'should not print to', :stdout,
+                      'It looks that your system does not support firewall'
     end
   end
 end
