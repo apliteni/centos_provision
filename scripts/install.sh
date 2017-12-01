@@ -992,6 +992,7 @@ stage2(){
   debug "Starting stage 2: make some asserts"
   assert_caller_root
   assert_installed 'yum' 'errors.yum_not_installed'
+  print_translated "welcome"
   if ! can_install_firewall; then
     VARS['skip_firewall']=$(translate 'no')
     get_user_var 'skip_firewall' 'validate_yes_no'
@@ -1022,7 +1023,6 @@ stage3(){
 get_user_vars(){
   debug 'Read vars from user input'
   hack_stdin_if_pipe_mode
-  print_translated "welcome"
   get_user_ssl_vars
   get_user_var 'license_ip' 'validate_presence validate_ip'
   get_user_var 'license_key' 'validate_presence validate_license_key'
