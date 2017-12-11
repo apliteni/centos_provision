@@ -69,6 +69,20 @@ RSpec.describe 'install.sh' do
 
   it_behaves_like 'should rotate log files', log_file_name: 'install.log'
 
+  shared_examples_for 'inventory contains value' do |field, value|
+    it "inventory file contains field #{field.inspect} with value #{value.inspect}" do
+      run_script
+      expect(@inventory.values[field]).to match(value)
+    end
+  end
+
+  shared_examples_for 'inventory does not contain field' do |field|
+    it "inventory file does not contain field #{field.inspect}" do
+      run_script
+      expect(@inventory.values).not_to have_key(field)
+    end
+  end
+
   describe 'fields' do
     # `-s` option disables yum/ansible checks
     # `-p` option disables invoking install commands
@@ -131,13 +145,6 @@ RSpec.describe 'install.sh' do
       let(:prompts_with_values) { make_prompts_with_values(:en).merge(prompts[:en][field] => readed_inventory_value) }
 
       it_behaves_like 'inventory contains value', field, readed_inventory_value
-    end
-
-    shared_examples_for 'inventory contains value' do |field, value|
-      it "inventory file contains field #{field.inspect} with value #{value.inspect}" do
-        run_script
-        expect(@inventory.values[field]).to match(value)
-      end
     end
 
     it_behaves_like 'field without default', :license_ip, value: '1.2.3.4'
@@ -267,6 +274,8 @@ RSpec.describe 'install.sh' do
       it_behaves_like 'should print to', :stdout,
                       'It looks that your system does not support firewall'
 
+      it_behaves_like 'inventory contains value', :skip_firewall, 'yes'
+
       context 'user cancels installation' do
         let(:user_values) do
           {
@@ -285,6 +294,8 @@ RSpec.describe 'install.sh' do
 
       it_behaves_like 'should not print to', :stdout,
                       'It looks that your system does not support firewall'
+
+      it_behaves_like 'inventory does not contain field', :skip_firewall
     end
   end
 end

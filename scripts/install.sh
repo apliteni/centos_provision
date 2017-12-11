@@ -992,20 +992,6 @@ stage2(){
   debug "Starting stage 2: make some asserts"
   assert_caller_root
   assert_installed 'yum' 'errors.yum_not_installed'
-  print_translated "welcome"
-  if ! can_install_firewall; then
-    VARS['skip_firewall']=$(translate 'no')
-    get_user_var 'skip_firewall' 'validate_yes_no'
-    if is_no ${VARS['skip_firewall']}; then
-      fail "$(translate 'errors.cant_install_firewall')"
-    fi
-  fi
-}
-
-
-
-can_install_firewall(){
-  run_command 'iptables -t nat -L' "$(translate 'messages.check_ability_firewall_installing')" 'hide_output' 'allow_errors'
 }
 
 
@@ -1023,6 +1009,14 @@ stage3(){
 get_user_vars(){
   debug 'Read vars from user input'
   hack_stdin_if_pipe_mode
+  print_translated "welcome"
+  if ! can_install_firewall; then
+    VARS['skip_firewall']=$(translate 'no')
+    get_user_var 'skip_firewall' 'validate_yes_no'
+    if is_no ${VARS['skip_firewall']}; then
+      fail "$(translate 'errors.cant_install_firewall')"
+    fi
+  fi
   get_user_ssl_vars
   get_user_var 'license_ip' 'validate_presence validate_ip'
   get_user_var 'license_key' 'validate_presence validate_license_key'
@@ -1045,6 +1039,11 @@ get_user_ssl_vars(){
       get_user_var 'ssl_email'
     fi
   fi
+}
+
+
+can_install_firewall(){
+  run_command 'iptables -t nat -L' "$(translate 'messages.check_ability_firewall_installing')" 'hide_output' 'allow_errors'
 }
 
 
@@ -1118,6 +1117,9 @@ write_inventory_file(){
   print_line_to_inventory_file "admin_login="${VARS['admin_login']}""
   print_line_to_inventory_file "admin_password="${VARS['admin_password']}""
   print_line_to_inventory_file "language=${UI_LANG}"
+  if isset ${VARS['skip_firewall']}; then
+    print_line_to_inventory_file "skip_firewall=${VARS['skip_firewall']}"
+  fi
   if isset "$KEITARO_RELEASE"; then
     print_line_to_inventory_file "kversion=$KEITARO_RELEASE"
   fi
