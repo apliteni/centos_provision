@@ -217,12 +217,20 @@ RSpec.describe 'install.sh' do
       end
     end
 
+    context 'yum presented' do
+      describe 'should upgrade system' do
+        let(:command_stubs) { {yum: '/bin/true'} }
+
+        it_behaves_like 'should print to', :stdout, 'yum update -y'
+      end
+    end
+
     context 'yum presented, ansible presented' do
       let(:command_stubs) { {yum: '/bin/true', ansible: '/bin/true'} }
 
       it_behaves_like 'should print to', :log, "Try to found yum\nFOUND"
       it_behaves_like 'should print to', :log, "Try to found ansible\nFOUND"
-      it_behaves_like 'should not print to', :stdout, 'Execute command: yum install -y ansible'
+      it_behaves_like 'should not print to', :stdout, 'yum install -y ansible'
 
       it_behaves_like 'should install keitarotds'
     end

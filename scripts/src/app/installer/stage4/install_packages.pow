@@ -1,9 +1,0 @@
-#!/usr/bin/env powscript
-
-
-install_packages()
-  if ! is_installed tar
-    install_package tar
-  if ! is_installed ansible
-    install_package epel-release
-    install_package ansible

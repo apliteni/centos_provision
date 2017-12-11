@@ -58,7 +58,6 @@ require 'app/installer/stage3/setup_vars.pow'
 require 'app/installer/stage3/transform_yes_no_vars.pow'
 require 'app/installer/stage3/write_inventory_file.pow'
 require 'app/installer/stage4.pow'
-require 'app/installer/stage4/install_packages.pow'
 require 'app/installer/stage5.pow'
 require 'app/installer/stage5/download_provision.pow'
 require 'app/installer/stage5/remove_inventory_file.pow'
@@ -82,7 +81,7 @@ install()
     stage3                  # generate inventory file
   else
     write_emtpy_hosts_txt
-  stage4                    # install ansible
+  stage4                    # upgrade packages and install ansible
   stage5                    # run ansible playbook
 
 
