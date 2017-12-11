@@ -1117,6 +1117,7 @@ write_inventory_file(){
   print_line_to_inventory_file "admin_login="${VARS['admin_login']}""
   print_line_to_inventory_file "admin_password="${VARS['admin_password']}""
   print_line_to_inventory_file "language=${UI_LANG}"
+  print_line_to_inventory_file "evaluated_by_installer=yes"
   if isset ${VARS['skip_firewall']}; then
     print_line_to_inventory_file "skip_firewall=${VARS['skip_firewall']}"
   fi
@@ -1135,10 +1136,16 @@ print_line_to_inventory_file(){
 
 
 stage4(){
-  debug "Starting stage 4: install necessary packages"
+  debug "Starting stage 4: upgrade current and install necessary packages"
+  upgrade_packages
   install_packages
 }
 
+
+upgrade_packages(){
+  debug "Upgrading packages"
+  run_command "yum update -y"
+}
 
 
 install_packages(){
@@ -1571,7 +1578,7 @@ install(){
   else
     write_emtpy_hosts_txt
   fi
-  stage4                    # install ansible
+  stage4                    # upgrade packages and install ansible
   stage5                    # run ansible playbook
 }
 
