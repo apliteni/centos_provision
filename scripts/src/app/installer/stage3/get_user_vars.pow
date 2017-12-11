@@ -4,6 +4,12 @@
 get_user_vars()
   debug 'Read vars from user input'
   hack_stdin_if_pipe_mode
+  print_translated "welcome"
+  if ! can_install_firewall
+    VARS['skip_firewall']=$(translate 'no')
+    get_user_var 'skip_firewall' 'validate_yes_no'
+    if is_no ${VARS['skip_firewall']}
+      fail "$(translate 'errors.cant_install_firewall')"
   get_user_ssl_vars
   get_user_var 'license_ip' 'validate_presence validate_ip'
   get_user_var 'license_key' 'validate_presence validate_license_key'
@@ -23,3 +29,7 @@ get_user_ssl_vars()
       VARS['ssl_certificate']='letsencrypt'
       get_user_var 'ssl_domains' 'validate_presence validate_domains_list'
       get_user_var 'ssl_email'
+
+
+can_install_firewall()
+  run_command 'iptables -t nat -L' "$(translate 'messages.check_ability_firewall_installing')" 'hide_output' 'allow_errors'
