@@ -161,6 +161,8 @@ RSpec.describe 'install.sh' do
 
     it_behaves_like 'password field', :admin_password
 
+    it_behaves_like 'inventory contains value', :evaluated_by_installer, 'yes'
+
     describe 'correctly stores yes/no fields' do
       it_behaves_like 'should print to', :log, /Write inventory file.*ssl=no/m
     end
@@ -298,4 +300,5 @@ RSpec.describe 'install.sh' do
       it_behaves_like 'inventory does not contain field', :skip_firewall
     end
   end
+
 end
