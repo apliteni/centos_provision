@@ -7,8 +7,8 @@
     - vars/server.yml
 
   roles:
-    - {role: 'upgrades.pretasks' }
-    - {role: 'system.upgrade_packages', tags: ['system', 'upgrade', 'packages'] }
+    - {role: 'upgrades.pretasks'}
+    - {role: 'system.upgrade_packages', tags: ['system', 'upgrade', 'packages'], when: "evaluated_by_installer is not defined"}
     - {role: 'kernel', tags: 'kernel'}
     - {role: 'tools'}
     - {role: 'selinux', tags: 'selinux'}
