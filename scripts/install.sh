@@ -774,8 +774,8 @@ DICT['en.prompts.admin_password']='Please enter keitaro admin password'
 DICT['en.prompts.db_name']='Please enter database name'
 DICT['en.prompts.db_password']='Please enter database user password'
 DICT['en.prompts.db_user']='Please enter database user name'
-DICT['en.prompts.db_import']='Do you want to restore the database from sql-dump?'
-DICT['en.prompts.db_import_path']='Please enter the path to the sql dump file'
+DICT['en.prompts.db_restore']='Do you want to restore the database from sql-dump?'
+DICT['en.prompts.db_restore_path']='Please enter the path to the sql dump file'
 DICT['en.prompts.license_ip']='Please enter server IP'
 DICT['en.prompts.license_key']='Please enter license key'
 DICT['en.prompts.ssl']="Do you want to install Free SSL certificates from Let's Encrypt?"
@@ -822,8 +822,8 @@ DICT['ru.prompts.admin_password']='Укажите пароль админист�
 DICT['ru.prompts.db_name']='Укажите имя базы данных'
 DICT['ru.prompts.db_password']='Укажите пароль пользователя базы данных'
 DICT['ru.prompts.db_user']='Укажите пользователя базы данных'
-DICT['ru.prompts.db_import']='Хотите восстановить базу данных из sql-дампа?'
-DICT['ru.prompts.db_import_path']='Укажите путь до файла sql-дампа'
+DICT['ru.prompts.db_restore']='Хотите восстановить базу данных из sql-дампа?'
+DICT['ru.prompts.db_restore_path']='Укажите путь до файла sql-дампа'
 DICT['ru.prompts.license_ip']='Укажите IP адрес сервера'
 DICT['ru.prompts.license_key']='Укажите лицензионный ключ'
 DICT['ru.prompts.ssl']="Вы хотите установить бесплатные SSL сертификаты, предоставляемые Let's Encrypt?"
@@ -1036,9 +1036,9 @@ get_user_vars(){
   get_user_var 'db_name' 'validate_presence validate_alnumdash validate_starts_with_latin_letter'
   get_user_var 'db_user' 'validate_presence validate_alnumdash validate_starts_with_latin_letter'
   get_user_var 'db_password' 'validate_presence validate_alnumdash'
-  get_user_var 'db_import' 'validate_presence validate_yes_no'
-  if is_yes "${VARS['db_import']}"; then
-    get_user_var 'db_import_path' 'validate_presence validate_file_existence'
+  get_user_var 'db_restore' 'validate_presence validate_yes_no'
+  if is_yes "${VARS['db_restore']}"; then
+    get_user_var 'db_restore_path' 'validate_presence validate_file_existence'
   fi
   get_user_var 'admin_login' 'validate_presence validate_alnumdash validate_starts_with_latin_letter'
   get_user_var 'admin_password' 'validate_presence validate_alnumdash'
@@ -1094,7 +1094,7 @@ setup_vars(){
   VARS['db_name']='keitaro'
   VARS['db_user']='keitaro'
   VARS['db_password']=$(generate_password)
-  VARS['db_import']=$(translate 'no')
+  VARS['db_restore']=$(translate 'no')
   VARS['admin_login']='admin'
   VARS['admin_password']=$(generate_password)
 }
@@ -1132,8 +1132,8 @@ write_inventory_file(){
   print_line_to_inventory_file "db_name="${VARS['db_name']}""
   print_line_to_inventory_file "db_user="${VARS['db_user']}""
   print_line_to_inventory_file "db_password="${VARS['db_password']}""
-  print_line_to_inventory_file "db_import="${VARS['db_import']}""
-  print_line_to_inventory_file "db_import_path="${VARS['db_import_path']}""
+  print_line_to_inventory_file "db_restore="${VARS['db_restore']}""
+  print_line_to_inventory_file "db_restore_path="${VARS['db_restore_path']}""
   print_line_to_inventory_file "admin_login="${VARS['admin_login']}""
   print_line_to_inventory_file "admin_password="${VARS['admin_password']}""
   print_line_to_inventory_file "language=${UI_LANG}"
