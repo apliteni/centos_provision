@@ -7,7 +7,7 @@ setup_vars()
   VARS['db_name']='keitaro'
   VARS['db_user']='keitaro'
   VARS['db_password']=$(generate_password)
-  VARS['db_import']=$(translate 'no')
+  VARS['db_restore']=$(translate 'no')
   VARS['admin_login']='admin'
   VARS['admin_password']=$(generate_password)
 
