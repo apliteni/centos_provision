@@ -700,6 +700,13 @@ validate_presence(){
 
 
 
+validate_file_existence(){
+  local value="${1}"
+  [[ -f "$value" ]]
+}
+
+
+
 validate_starts_with_latin_letter(){
   local value="${1}"
   [[ "$value" =~  ^[A-Za-z] ]]
@@ -794,6 +801,7 @@ DICT['en.prompt_errors.validate_ip']='Please enter valid IPv4 address (ex. 8.8.8
 DICT['en.prompt_errors.validate_license_key']='Please enter valid license key (ex. AAAA-BBBB-CCCC-DDDD)'
 DICT['en.prompt_errors.validate_alnumdash']='Only Latin letters, numbers, dash and underscore allowed'
 DICT['en.prompt_errors.validate_starts_with_latin_letter']='The value must begin with a Latin letter'
+DICT['en.prompt_errors.validate_file_existence']='The file was not found by the specified path, please enter the correct path to the file'
 
 DICT['ru.messages.check_ability_firewall_installing']="Проверяем возможность установки фаервола"
 DICT['ru.errors.see_logs']=$(cat <<- END
@@ -841,6 +849,7 @@ DICT['ru.prompt_errors.validate_ip']='Введите корректный IPv4 �
 DICT['ru.prompt_errors.validate_license_key']='Введите корректный ключ лицензии (например AAAA-BBBB-CCCC-DDDD)'
 DICT['ru.prompt_errors.validate_alnumdash']='Можно использовать только латинские бувы, цифры, тире и подчёркивание'
 DICT['ru.prompt_errors.validate_starts_with_latin_letter']='Значение должно начинаться с латинской буквы'
+DICT['ru.prompt_errors.validate_file_existence']='Файл по заданному пути не обнаружен, введите правильный путь к файлу'
 
 COMMENT_ME_IF_POWSCRIPT_WANNT_COMPILE_PROJECT="'"
 
@@ -1029,7 +1038,7 @@ get_user_vars(){
   get_user_var 'db_password' 'validate_presence validate_alnumdash'
   get_user_var 'db_import' 'validate_presence validate_yes_no'
   if is_yes "${VARS['db_import']}"; then
-    get_user_var 'db_import_path' 'validate_presence'
+    get_user_var 'db_import_path' 'validate_presence validate_file_existence'
   fi
   get_user_var 'admin_login' 'validate_presence validate_alnumdash validate_starts_with_latin_letter'
   get_user_var 'admin_password' 'validate_presence validate_alnumdash'
