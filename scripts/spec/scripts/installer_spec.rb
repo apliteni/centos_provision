@@ -25,6 +25,8 @@ RSpec.describe 'install.sh' do
         db_name: 'Please enter database name',
         db_user: 'Please enter database user name',
         db_password: 'Please enter database user password',
+        db_import: 'Do you want to restore the database from sql-dump?',
+        db_import_path: 'Please enter the path to the sql dump file',
         admin_login: 'Please enter keitaro admin login',
         admin_password: 'Please enter keitaro admin password'
       },
@@ -35,6 +37,7 @@ RSpec.describe 'install.sh' do
         db_name: 'Укажите имя базы данных',
         db_user: 'Укажите пользователя базы данных',
         db_password: 'Укажите пароль пользователя базы данных',
+        db_import: 'Хотите восстановить базу данных из sql-дампа?',
         admin_login: 'Укажите имя администратора keitaro',
         admin_password: 'Укажите пароль администратора keitaro',
       }
@@ -50,6 +53,7 @@ RSpec.describe 'install.sh' do
       db_name: 'keitarodb',
       db_user: 'keitarodb_user',
       db_password: 'keitarodb_password',
+      db_import: 'no',
       admin_login: 'admin',
       admin_password: 'admin_password',
     }
@@ -156,6 +160,10 @@ RSpec.describe 'install.sh' do
     it_behaves_like 'field with default', :db_user, default: 'keitaro'
 
     it_behaves_like 'password field', :db_password
+
+    it_behaves_like 'should show default value', :db_import, showed_value: 'no'
+
+    it_behaves_like 'should store default value', :db_import, readed_inventory_value: 'no'
 
     it_behaves_like 'field with default', :admin_login, default: 'admin'
 

@@ -8,7 +8,7 @@ get_user_vars()
   if ! can_install_firewall
     VARS['skip_firewall']=$(translate 'no')
     get_user_var 'skip_firewall' 'validate_yes_no'
-    if is_no ${VARS['skip_firewall']}
+    if is_no "${VARS['skip_firewall']}"
       fail "$(translate 'errors.cant_install_firewall')"
   get_user_ssl_vars
   get_user_var 'license_ip' 'validate_presence validate_ip'
@@ -16,6 +16,9 @@ get_user_vars()
   get_user_var 'db_name' 'validate_presence validate_alnumdash validate_starts_with_latin_letter'
   get_user_var 'db_user' 'validate_presence validate_alnumdash validate_starts_with_latin_letter'
   get_user_var 'db_password' 'validate_presence validate_alnumdash'
+  get_user_var 'db_import' 'validate_presence validate_yes_no'
+  if is_yes "${VARS['db_import']}"
+    get_user_var 'db_import_path' 'validate_presence'
   get_user_var 'admin_login' 'validate_presence validate_alnumdash validate_starts_with_latin_letter'
   get_user_var 'admin_password' 'validate_presence validate_alnumdash'
 
