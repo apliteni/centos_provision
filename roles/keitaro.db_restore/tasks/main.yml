@@ -1,5 +1,6 @@
 - name: Restore DB from sql dump
-  shell:
-    mysql --user={{ db_user }} --password={{ db_password }} {{ db_name }} < '{{ db_restore_path }}'
+  shell: mysql --user={{ db_user }} --password={{ db_password }} {{ db_name }} < '{{ db_restore_path }}'
+  args:
+    chdir: ../
 
 
