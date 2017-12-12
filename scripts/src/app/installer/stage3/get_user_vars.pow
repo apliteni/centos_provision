@@ -18,7 +18,7 @@ get_user_vars()
   get_user_var 'db_password' 'validate_presence validate_alnumdash'
   get_user_var 'db_import' 'validate_presence validate_yes_no'
   if is_yes "${VARS['db_import']}"
-    get_user_var 'db_import_path' 'validate_presence'
+    get_user_var 'db_import_path' 'validate_presence validate_file_existence'
   get_user_var 'admin_login' 'validate_presence validate_alnumdash validate_starts_with_latin_letter'
   get_user_var 'admin_password' 'validate_presence validate_alnumdash'
 

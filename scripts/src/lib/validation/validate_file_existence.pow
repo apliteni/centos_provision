@@ -1,0 +1,5 @@
+#!/usr/bin/env powscript
+
+
+validate_file_existence(value)
+  [[ -f $value ]]
