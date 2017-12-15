@@ -679,9 +679,9 @@ validate_domains_list(){
 
 
 
-validate_alnumdash(){
+validate_alnumdashdot(){
   local value="${1}"
-  [[ "$value" =~  ^([0-9A-Za-z_-]+)$ ]]
+  [[ "$value" =~  ^([0-9A-Za-z_\.\-]+)$ ]]
 }
 
 
@@ -696,6 +696,13 @@ validate_license_key(){
 validate_presence(){
   local value="${1}"
   isset "$value"
+}
+
+
+
+validate_file_existence(){
+  local value="${1}"
+  [[ -f "$value" ]]
 }
 
 
@@ -767,6 +774,9 @@ DICT['en.prompts.admin_password']='Please enter keitaro admin password'
 DICT['en.prompts.db_name']='Please enter database name'
 DICT['en.prompts.db_password']='Please enter database user password'
 DICT['en.prompts.db_user']='Please enter database user name'
+DICT['en.prompts.db_restore']='Do you want to restore the database from sql-dump?'
+DICT['en.prompts.db_restore_path']='Please enter the path to the sql dump file'
+DICT['en.prompts.db_restore_salt']='Please enter the value of "salt" parameter from the old config (application/config/config.ini.php)'
 DICT['en.prompts.license_ip']='Please enter server IP'
 DICT['en.prompts.license_key']='Please enter license key'
 DICT['en.prompts.ssl']="Do you want to install Free SSL certificates from Let's Encrypt?"
@@ -790,8 +800,9 @@ END
 )
 DICT['en.prompt_errors.validate_ip']='Please enter valid IPv4 address (ex. 8.8.8.8)'
 DICT['en.prompt_errors.validate_license_key']='Please enter valid license key (ex. AAAA-BBBB-CCCC-DDDD)'
-DICT['en.prompt_errors.validate_alnumdash']='Only Latin letters, numbers, dash and underscore allowed'
+DICT['en.prompt_errors.validate_alnumdashdot']='Only Latin letters, numbers, dashes, underscores and dots allowed'
 DICT['en.prompt_errors.validate_starts_with_latin_letter']='The value must begin with a Latin letter'
+DICT['en.prompt_errors.validate_file_existence']='The file was not found by the specified path, please enter the correct path to the file'
 
 DICT['ru.messages.check_ability_firewall_installing']="Проверяем возможность установки фаервола"
 DICT['ru.errors.see_logs']=$(cat <<- END
@@ -812,6 +823,9 @@ DICT['ru.prompts.admin_password']='Укажите пароль админист�
 DICT['ru.prompts.db_name']='Укажите имя базы данных'
 DICT['ru.prompts.db_password']='Укажите пароль пользователя базы данных'
 DICT['ru.prompts.db_user']='Укажите пользователя базы данных'
+DICT['ru.prompts.db_restore']='Хотите восстановить базу данных из sql-дампа?'
+DICT['ru.prompts.db_restore_path']='Укажите путь до файла sql-дампа'
+DICT['ru.prompts.db_restore_salt']='Укажите значение параметра salt из старой конфигурации (application/config/config.ini.php)'
 DICT['ru.prompts.license_ip']='Укажите IP адрес сервера'
 DICT['ru.prompts.license_key']='Укажите лицензионный ключ'
 DICT['ru.prompts.ssl']="Вы хотите установить бесплатные SSL сертификаты, предоставляемые Let's Encrypt?"
@@ -835,8 +849,9 @@ END
 )
 DICT['ru.prompt_errors.validate_ip']='Введите корректный IPv4 адрес (например 8.8.8.8)'
 DICT['ru.prompt_errors.validate_license_key']='Введите корректный ключ лицензии (например AAAA-BBBB-CCCC-DDDD)'
-DICT['ru.prompt_errors.validate_alnumdash']='Можно использовать только латинские бувы, цифры, тире и подчёркивание'
+DICT['ru.prompt_errors.validate_alnumdashdot']='Можно использовать только латинские бувы, цифры, тире, подчёркивание и точку'
 DICT['ru.prompt_errors.validate_starts_with_latin_letter']='Значение должно начинаться с латинской буквы'
+DICT['ru.prompt_errors.validate_file_existence']='Файл по заданному пути не обнаружен, введите правильный путь к файлу'
 
 COMMENT_ME_IF_POWSCRIPT_WANNT_COMPILE_PROJECT="'"
 
@@ -855,7 +870,6 @@ stage1(){
   debug "Starting stage 1: initial script setup"
   parse_options "$@"
   set_ui_lang
-  setup_vars
 }
 
 
@@ -998,6 +1012,7 @@ stage2(){
 
 stage3(){
   debug "Starting stage 3: generate inventory file"
+  setup_vars
   read_inventory_file
   get_user_vars
   transform_yes_no_vars
@@ -1013,18 +1028,24 @@ get_user_vars(){
   if ! can_install_firewall; then
     VARS['skip_firewall']=$(translate 'no')
     get_user_var 'skip_firewall' 'validate_yes_no'
-    if is_no ${VARS['skip_firewall']}; then
+    if is_no "${VARS['skip_firewall']}"; then
       fail "$(translate 'errors.cant_install_firewall')"
     fi
   fi
   get_user_ssl_vars
   get_user_var 'license_ip' 'validate_presence validate_ip'
   get_user_var 'license_key' 'validate_presence validate_license_key'
-  get_user_var 'db_name' 'validate_presence validate_alnumdash validate_starts_with_latin_letter'
-  get_user_var 'db_user' 'validate_presence validate_alnumdash validate_starts_with_latin_letter'
-  get_user_var 'db_password' 'validate_presence validate_alnumdash'
-  get_user_var 'admin_login' 'validate_presence validate_alnumdash validate_starts_with_latin_letter'
-  get_user_var 'admin_password' 'validate_presence validate_alnumdash'
+  get_user_var 'db_name' 'validate_presence validate_alnumdashdot validate_starts_with_latin_letter'
+  get_user_var 'db_user' 'validate_presence validate_alnumdashdot validate_starts_with_latin_letter'
+  get_user_var 'db_password' 'validate_presence validate_alnumdashdot'
+  get_user_var 'db_restore' 'validate_presence validate_yes_no'
+  if is_yes "${VARS['db_restore']}"; then
+    get_user_var 'db_restore_path' 'validate_presence validate_file_existence'
+    get_user_var 'db_restore_salt' 'validate_presence validate_alnumdashdot'
+  else
+    get_user_var 'admin_login' 'validate_presence validate_alnumdashdot validate_starts_with_latin_letter'
+    get_user_var 'admin_password' 'validate_presence validate_alnumdashdot'
+  fi
 }
 
 
@@ -1077,6 +1098,7 @@ setup_vars(){
   VARS['db_name']='keitaro'
   VARS['db_user']='keitaro'
   VARS['db_password']=$(generate_password)
+  VARS['db_restore']=$(translate 'no')
   VARS['admin_login']='admin'
   VARS['admin_password']=$(generate_password)
 }
@@ -1114,6 +1136,9 @@ write_inventory_file(){
   print_line_to_inventory_file "db_name="${VARS['db_name']}""
   print_line_to_inventory_file "db_user="${VARS['db_user']}""
   print_line_to_inventory_file "db_password="${VARS['db_password']}""
+  print_line_to_inventory_file "db_restore="${VARS['db_restore']}""
+  print_line_to_inventory_file "db_restore_path="${VARS['db_restore_path']}""
+  print_line_to_inventory_file "db_restore_salt="${VARS['db_restore_salt']}""
   print_line_to_inventory_file "admin_login="${VARS['admin_login']}""
   print_line_to_inventory_file "admin_password="${VARS['admin_password']}""
   print_line_to_inventory_file "language=${UI_LANG}"

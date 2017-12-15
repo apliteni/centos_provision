@@ -1,0 +1,16 @@
+- name: Drop newly created keitaro DB
+  shell: mysql -e "DROP DATABASE {{ db_name }}; CREATE DATABASE {{ db_name }}"
+
+- name: Restore DB from sql dump
+  shell: mysql --user={{ db_user }} --password={{ db_password }} {{ db_name }} < '{{ db_restore_path }}'
+  args:
+    chdir: ../
+
+- name: Reset Keitaro salt
+  lineinfile:
+    path: "{{ keitaro.path }}/application/config/config.ini.php"
+    regexp: '^salt'
+    line: 'salt = {{ db_restore_salt }}'
+  notify: restart php-fpm
+
+
