@@ -1,5 +1,5 @@
 - name: Drop newly created keitaro DB
-  shell: mysql -e "DROP DATABASE keitaro"
+  shell: mysql -e "DROP DATABASE {{ db_name }}; CREATE DATABASE {{ db_name }}"
 
 - name: Restore DB from sql dump
   shell: mysql --user={{ db_user }} --password={{ db_password }} {{ db_name }} < '{{ db_restore_path }}'
