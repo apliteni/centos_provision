@@ -1,0 +1,5 @@
+#!/usr/bin/env powscript
+
+
+validate_alnumdashdot(value)
+  [[ $value =~  ^([0-9A-Za-z_\.\-]+)$ ]]

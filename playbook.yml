@@ -29,4 +29,5 @@
     - {role: 'keitaro.prepare_home_dir', tags: ['keitaro', 'ssl']}
     - {role: 'letsencrypt', tags: 'ssl'}
     - {role: 'keitaro', tags: 'keitaro'}
+    - {role: 'keitaro.db_restore', tags: ['db_restore', 'keitaro'], when: "db_restore is defined and db_restore == 'yes'"}
     - {role: 'upgrades.tasks' }
