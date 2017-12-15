@@ -679,9 +679,9 @@ validate_domains_list(){
 
 
 
-validate_alnumdash(){
+validate_alnumdashdot(){
   local value="${1}"
-  [[ "$value" =~  ^([0-9A-Za-z_-]+)$ ]]
+  [[ "$value" =~  ^([0-9A-Za-z_\.\-]+)$ ]]
 }
 
 
@@ -776,6 +776,7 @@ DICT['en.prompts.db_password']='Please enter database user password'
 DICT['en.prompts.db_user']='Please enter database user name'
 DICT['en.prompts.db_restore']='Do you want to restore the database from sql-dump?'
 DICT['en.prompts.db_restore_path']='Please enter the path to the sql dump file'
+DICT['en.prompts.db_restore_salt']='Please enter the value of "salt" parameter from the old config (application/config/config.ini.php)'
 DICT['en.prompts.license_ip']='Please enter server IP'
 DICT['en.prompts.license_key']='Please enter license key'
 DICT['en.prompts.ssl']="Do you want to install Free SSL certificates from Let's Encrypt?"
@@ -799,7 +800,7 @@ END
 )
 DICT['en.prompt_errors.validate_ip']='Please enter valid IPv4 address (ex. 8.8.8.8)'
 DICT['en.prompt_errors.validate_license_key']='Please enter valid license key (ex. AAAA-BBBB-CCCC-DDDD)'
-DICT['en.prompt_errors.validate_alnumdash']='Only Latin letters, numbers, dash and underscore allowed'
+DICT['en.prompt_errors.validate_alnumdashdot']='Only Latin letters, numbers, dashes, underscores and dots allowed'
 DICT['en.prompt_errors.validate_starts_with_latin_letter']='The value must begin with a Latin letter'
 DICT['en.prompt_errors.validate_file_existence']='The file was not found by the specified path, please enter the correct path to the file'
 
@@ -824,6 +825,7 @@ DICT['ru.prompts.db_password']='Укажите пароль пользовате
 DICT['ru.prompts.db_user']='Укажите пользователя базы данных'
 DICT['ru.prompts.db_restore']='Хотите восстановить базу данных из sql-дампа?'
 DICT['ru.prompts.db_restore_path']='Укажите путь до файла sql-дампа'
+DICT['ru.prompts.db_restore_salt']='Укажите значение параметра salt из старой конфигурации (application/config/config.ini.php)'
 DICT['ru.prompts.license_ip']='Укажите IP адрес сервера'
 DICT['ru.prompts.license_key']='Укажите лицензионный ключ'
 DICT['ru.prompts.ssl']="Вы хотите установить бесплатные SSL сертификаты, предоставляемые Let's Encrypt?"
@@ -847,7 +849,7 @@ END
 )
 DICT['ru.prompt_errors.validate_ip']='Введите корректный IPv4 адрес (например 8.8.8.8)'
 DICT['ru.prompt_errors.validate_license_key']='Введите корректный ключ лицензии (например AAAA-BBBB-CCCC-DDDD)'
-DICT['ru.prompt_errors.validate_alnumdash']='Можно использовать только латинские бувы, цифры, тире и подчёркивание'
+DICT['ru.prompt_errors.validate_alnumdashdot']='Можно использовать только латинские бувы, цифры, тире, подчёркивание и точку'
 DICT['ru.prompt_errors.validate_starts_with_latin_letter']='Значение должно начинаться с латинской буквы'
 DICT['ru.prompt_errors.validate_file_existence']='Файл по заданному пути не обнаружен, введите правильный путь к файлу'
 
@@ -1033,15 +1035,17 @@ get_user_vars(){
   get_user_ssl_vars
   get_user_var 'license_ip' 'validate_presence validate_ip'
   get_user_var 'license_key' 'validate_presence validate_license_key'
-  get_user_var 'db_name' 'validate_presence validate_alnumdash validate_starts_with_latin_letter'
-  get_user_var 'db_user' 'validate_presence validate_alnumdash validate_starts_with_latin_letter'
-  get_user_var 'db_password' 'validate_presence validate_alnumdash'
+  get_user_var 'db_name' 'validate_presence validate_alnumdashdot validate_starts_with_latin_letter'
+  get_user_var 'db_user' 'validate_presence validate_alnumdashdot validate_starts_with_latin_letter'
+  get_user_var 'db_password' 'validate_presence validate_alnumdashdot'
   get_user_var 'db_restore' 'validate_presence validate_yes_no'
   if is_yes "${VARS['db_restore']}"; then
     get_user_var 'db_restore_path' 'validate_presence validate_file_existence'
+    get_user_var 'db_restore_salt' 'validate_presence validate_alnumdashdot'
+  else
+    get_user_var 'admin_login' 'validate_presence validate_alnumdashdot validate_starts_with_latin_letter'
+    get_user_var 'admin_password' 'validate_presence validate_alnumdashdot'
   fi
-  get_user_var 'admin_login' 'validate_presence validate_alnumdash validate_starts_with_latin_letter'
-  get_user_var 'admin_password' 'validate_presence validate_alnumdash'
 }
 
 
