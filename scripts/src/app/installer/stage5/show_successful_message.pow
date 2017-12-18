@@ -12,7 +12,10 @@ show_successful_message()
     protocol='http'
     domain="${VARS['license_ip']}"
   print_with_color "${protocol}://${domain}/admin" 'light.green'
-  colored_login=$(print_with_color "${VARS['admin_login']}" 'light.green')
-  colored_password=$(print_with_color "${VARS['admin_password']}" 'light.green')
-  echo -e "login: ${colored_login}"
-  echo -e "password: ${colored_password}"
+  if is_yes "${VARS['db_restore']}"
+    echo "$(translate 'messages.successful.use_old_credentials')"
+  else
+    colored_login=$(print_with_color "${VARS['admin_login']}" 'light.green')
+    colored_password=$(print_with_color "${VARS['admin_password']}" 'light.green')
+    echo -e "login: ${colored_login}"
+    echo -e "password: ${colored_password}"
