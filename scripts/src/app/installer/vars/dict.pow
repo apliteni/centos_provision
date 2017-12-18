@@ -4,6 +4,7 @@ SSL_ENABLER_COMMAND_EN="curl -sSL ${KEITARO_URL}/enable-ssl.sh | bash -s -- doma
 SSL_ENABLER_COMMAND_RU="curl -sSL ${KEITARO_URL}/enable-ssl.sh | bash -s -- -l ru domain1.tld [domain2.tld...]"
 
 DICT['en.messages.check_ability_firewall_installing']="Checking the ability of installing a firewall"
+DICT['en.messages.successful.use_old_credentials']="Use old login data"
 DICT['en.errors.see_logs']=$(cat <<- END
 	Installation log saved to ${SCRIPT_LOG}. Configuration settings saved to ${INVENTORY_FILE}.
 	You can rerun \`${SCRIPT_COMMAND}\` with saved settings after resolving installation problems.
@@ -53,6 +54,7 @@ DICT['en.prompt_errors.validate_starts_with_latin_letter']='The value must begin
 DICT['en.prompt_errors.validate_file_existence']='The file was not found by the specified path, please enter the correct path to the file'
 
 DICT['ru.messages.check_ability_firewall_installing']="Проверяем возможность установки фаервола"
+DICT["ru.messages.successful.use_old_credentials"]="Используйте старые данные для входа в систему"
 DICT['ru.errors.see_logs']=$(cat <<- END
 	Журнал установки сохранён в ${SCRIPT_LOG}. Настройки сохранены в ${INVENTORY_FILE}.
 	Вы можете повторно запустить \`${SCRIPT_COMMAND}\` с этими настройками после устранения возникших проблем.
