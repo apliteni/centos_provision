@@ -185,14 +185,14 @@ RSpec.describe 'install.sh' do
       end
 
       context '-k specified' do
-        let(:options) { '-s -p -k 7' }
+        let(:options) { '-s -p -k 9' }
         before { run_script }
-        it { expect(@inventory.values[:kversion]).to eq('7') }
+        it { expect(@inventory.values[:kversion]).to eq('9') }
       end
 
       context 'specified -k with wrong value' do
-        let(:options) { '-s -p -k 9' }
-        it_behaves_like 'should exit with error', 'Specified Keitaro Release "9" is not supported'
+        let(:options) { '-s -p -k 10' }
+        it_behaves_like 'should exit with error', 'Specified Keitaro Release "10" is not supported'
       end
     end
   end

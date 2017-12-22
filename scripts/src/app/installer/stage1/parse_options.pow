@@ -22,7 +22,7 @@ parse_options()
       case i
         ANSIBLE_IGNORE_TAGS=$OPTARG
       case k
-        if $OPTARG != 6 && $OPTARG != 7 && $OPTARG != 8
+        if $OPTARG != 6 && $OPTARG != 7 && $OPTARG != 8 && $OPTARG != 9
           print_err "Specified Keitaro Release \"$OPTARG\" is not supported"
           exit ${FAILURE_RESULT}
         KEITARO_RELEASE=$OPTARG
