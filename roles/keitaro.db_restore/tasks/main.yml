@@ -1,10 +1,23 @@
 - name: Drop newly created keitaro DB
   shell: mysql -e "DROP DATABASE {{ db_name }}; CREATE DATABASE {{ db_name }}"
 
-- name: Restore DB from sql dump
-  shell: mysql --user={{ db_user }} --password={{ db_password }} {{ db_name }} < '{{ db_restore_path }}'
+- name: Get mime of dump
+  shell: "file '{{ db_restore_path }}' --mime-type --brief"
   args:
     chdir: ../
+  register: db_restore_dump_file_mime
+
+- name: Restore DB from gzipped SQL dump
+  include: restore_from_packed_dump.yml cat=zcat
+  when: "db_restore_dump_file_mime.stdout == 'application/x-gzip'"
+
+- name: Restore DB from bzipped SQL dump
+  include: restore_from_packed_dump.yml cat=bzcat
+  when: "db_restore_dump_file_mime.stdout == 'application/x-bzip2'"
+
+- name: Restore DB from unpacked SQL dump
+  include: restore_from_unpacked_dump.yml
+  when: "db_restore_dump_file_mime.stdout != 'application/x-gzip' and db_restore_dump_file_mime.stdout != 'application/x-bzip2'"
 
 - name: Reset Keitaro salt
   lineinfile:
