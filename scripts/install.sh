@@ -906,7 +906,7 @@ parse_options(){
         ANSIBLE_IGNORE_TAGS=$OPTARG
         ;;
       k)
-        if [[ "$OPTARG" -ne 6 && "$OPTARG" -ne 7 && "$OPTARG" -ne 8 ]]; then
+        if [[ "$OPTARG" -ne 6 && "$OPTARG" -ne 7 && "$OPTARG" -ne 8 && "$OPTARG" -ne 9 ]]; then
           print_err "Specified Keitaro Release \"$OPTARG\" is not supported"
           exit ${FAILURE_RESULT}
         fi
