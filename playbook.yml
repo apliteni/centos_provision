@@ -14,8 +14,8 @@
     - {role: 'selinux', tags: 'selinux'}
     - {role: 'resmo.ntp', tags: 'ntp'}
     - {role: 'mrlesmithjr.timezone'}
-    - {role: 'geerlingguy.repo-epel'}
-    - {role: 'geerlingguy.repo-remi'}
+    - {role: 'geerlingguy.repo-epel', tags: 'repo-epel'}
+    - {role: 'geerlingguy.repo-remi', tags: 'repo-remi'}
     - {role: 'mikegleasonjr.swap', tags: 'swap', when: "ansible_memtotal_mb < 4000"}
     - {role: 'keitaro.redis', tags: 'redis'}
     - {role: 'bertvv.mariadb', tags: 'mariadb'}
