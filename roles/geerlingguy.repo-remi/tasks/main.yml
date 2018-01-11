@@ -8,3 +8,18 @@
   rpm_key:
     key: "{{ remi_repo_gpg_key_url }}"
     state: present
+
+- name: List all remi files
+  find:
+    paths: /etc/yum.repos.d
+    patterns: "remi*.repo"
+  register: remi_repo
+
+- name: Cleanup tmp files
+  lineinfile:
+    path: "{{ item.path }}"
+    regexp: '^mirrorlist=http.*(/enterprise/.*)$'
+    line: 'mirrorlist={{ remi_repo_base_url }}\1'
+    backrefs: yes
+  with_items:
+    - "{{ remi_repo.files }}"
