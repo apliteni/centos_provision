@@ -15,11 +15,10 @@
     patterns: "remi*.repo"
   register: remi_repo
 
-- name: Cleanup tmp files
-  lineinfile:
+- name: Use keitarotds mirror
+  replace:
     path: "{{ item.path }}"
     regexp: '^mirrorlist=http.*(/enterprise/.*)$'
-    line: 'mirrorlist={{ remi_repo_base_url }}\1'
-    backrefs: yes
+    replace: 'mirrorlist={{ remi_repo_base_url }}\1'
   with_items:
     - "{{ remi_repo.files }}"
