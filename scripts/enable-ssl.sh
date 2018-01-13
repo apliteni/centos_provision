@@ -312,6 +312,9 @@ get_user_var(){
       print_prompt_error "$error"
       VARS[$var_name]=''
     else
+      if [[ "$validation_methods" =~ 'validate_yes_no' ]]; then
+        transform_to_yes_no "$var_name"
+      fi
       debug "  ${var_name}=${value}" 'light.blue'
       break
     fi
@@ -752,6 +755,19 @@ is_yes(){
 }
 
 
+
+transform_to_yes_no(){
+  local var_name="${1}"
+  if is_yes "${VARS[$var_name]}"; then
+    debug "Transform ${var_name}: ${VARS[$var_name]} => yes"
+    VARS[$var_name]='yes'
+  else
+    debug "Transform ${var_name}: ${VARS[$var_name]} => no"
+    VARS[$var_name]='no'
+  fi
+}
+
+
 validate_yes_no(){
   local value="${1}"
   (is_yes "$value" || is_no "$value")
@@ -964,7 +980,7 @@ get_user_le_sa_agreement(){
     VARS['ssl_agree_tos']='yes'
     debug "Do not request SSL user agreement because appropriate option specified"
   else
-    VARS['ssl_agree_tos']=$(translate 'no')
+    VARS['ssl_agree_tos']='no'
     get_user_var 'ssl_agree_tos' 'validate_yes_no'
   fi
 }

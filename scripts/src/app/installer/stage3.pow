@@ -6,5 +6,4 @@ stage3()
   setup_vars
   read_inventory_file
   get_user_vars
-  transform_yes_no_vars
   write_inventory_file
