@@ -331,6 +331,9 @@ get_user_var(){
       print_prompt_error "$error"
       VARS[$var_name]=''
     else
+      if [[ "$validation_methods" =~ 'validate_yes_no' ]]; then
+        transform_to_yes_no "$var_name"
+      fi
       debug "  ${var_name}=${value}" 'light.blue'
       break
     fi
@@ -778,6 +781,19 @@ is_yes(){
   local answer="${1}"
   shopt -s nocasematch
   [[ "$answer" =~ ^(yes|y|да|д)$ ]]
+}
+
+
+
+transform_to_yes_no(){
+  local var_name="${1}"
+  if is_yes "${VARS[$var_name]}"; then
+    debug "Transform ${var_name}: ${VARS[$var_name]} => yes"
+    VARS[$var_name]='yes'
+  else
+    debug "Transform ${var_name}: ${VARS[$var_name]} => no"
+    VARS[$var_name]='no'
+  fi
 }
 
 
