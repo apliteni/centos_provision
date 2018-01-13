@@ -43,6 +43,7 @@ require 'lib/validation/validate_presence.pow'
 require 'lib/validation/validate_domains_list.pow'
 require 'lib/yes_no/is_no.pow'
 require 'lib/yes_no/is_yes.pow'
+require 'lib/yes_no/transform_to_yes_no.pow'
 require 'lib/yes_no/validate_yes_no.pow'
 
 require 'app/site_adder/lib/first_domain.pow'

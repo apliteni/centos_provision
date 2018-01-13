@@ -229,6 +229,9 @@ get_user_var(){
       print_prompt_error "$error"
       VARS[$var_name]=''
     else
+      if [[ "$validation_methods" =~ 'validate_yes_no' ]]; then
+        transform_to_yes_no "$var_name"
+      fi
       debug "  ${var_name}=${value}" 'light.blue'
       break
     fi
@@ -1017,7 +1020,6 @@ stage3(){
   setup_vars
   read_inventory_file
   get_user_vars
-  transform_yes_no_vars
   write_inventory_file
 }
 
@@ -1028,7 +1030,7 @@ get_user_vars(){
   hack_stdin_if_pipe_mode
   print_translated "welcome"
   if ! can_install_firewall; then
-    VARS['skip_firewall']=$(translate 'no')
+    VARS['skip_firewall']='no'
     get_user_var 'skip_firewall' 'validate_yes_no'
     if is_no "${VARS['skip_firewall']}"; then
       fail "$(translate 'errors.cant_install_firewall')"
@@ -1109,14 +1111,6 @@ setup_vars(){
 generate_password(){
   local PASSWORD_LENGTH=16
   LC_ALL=C tr -cd '[:alnum:]' < /dev/urandom | head -c${PASSWORD_LENGTH}
-}
-
-
-
-transform_yes_no_vars(){
-  debug "Transform binary values to yes/no"
-  transform_to_yes_no 'ssl'
-  transform_to_yes_no 'ssl_agree_tos'
 }
 
 

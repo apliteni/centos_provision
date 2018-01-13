@@ -15,5 +15,7 @@ get_user_var(var_name, validation_methods)
       print_prompt_error $error
       VARS[$var_name]=''
     else
+      if "$validation_methods" =~ 'validate_yes_no'
+        transform_to_yes_no $var_name
       debug "  ${var_name}=${value}" 'light.blue'
       break
