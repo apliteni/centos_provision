@@ -44,7 +44,7 @@ RSpec.describe 'install.sh' do
     }
   end
 
-  let(:user_values) do
+  let(:default_user_values) do
     {
       skip_firewall: 'yes',
       ssl: 'no',
@@ -54,10 +54,13 @@ RSpec.describe 'install.sh' do
       db_user: 'keitarodb_user',
       db_password: 'keitarodb_password',
       db_restore: 'no',
+      db_restore_path: __FILE__,
       admin_login: 'admin',
       admin_password: 'admin_password',
     }
   end
+
+  let(:user_values) { default_user_values }
 
   before { Inventory.write(stored_values) }
 
@@ -284,9 +287,10 @@ RSpec.describe 'install.sh' do
   end
 
   describe 'nat support checking' do
-    context 'nat is unsupported' do
-      let(:docker_image) { 'centos' }
 
+    let(:docker_image) { 'centos' }
+
+    context 'nat is unsupported' do
       let(:command_stubs) { {yum: '/bin/true', ansible: '/bin/true', iptables: '/bin/false'} }
 
       it_behaves_like 'should print to', :stdout,
@@ -306,8 +310,6 @@ RSpec.describe 'install.sh' do
     end
 
     context 'nat is supported' do
-      let(:docker_image) { 'centos' }
-
       let(:command_stubs) { {yum: '/bin/true', ansible: '/bin/true', iptables: '/bin/true'} }
 
       it_behaves_like 'should not print to', :stdout,
@@ -316,5 +318,27 @@ RSpec.describe 'install.sh' do
       it_behaves_like 'inventory does not contain field', :skip_firewall
     end
   end
+
+  describe 'dump checking' do
+
+    let(:docker_image) { 'centos' }
+
+    context 'dump is valid' do
+      let(:user_values) do
+        default_user_values.merge(db_restore: 'yes', db_restore_path: "#{ROOT_PATH}/spec/files/valid.sql")
+      end
+
+      it_behaves_like 'should print to', :stdout, 'Checking SQL dump . OK'
+    end
+
+    context 'dump is invalid' do
+      let(:user_values) do
+        default_user_values.merge(db_restore: 'yes', db_restore_path: __FILE__)
+      end
+
+      it_behaves_like 'should print to', :stdout, 'Checking SQL dump . NOK'
+    end
+  end
+
 
 end
