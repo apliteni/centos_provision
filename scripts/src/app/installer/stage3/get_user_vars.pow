@@ -18,7 +18,7 @@ get_user_vars()
   get_user_var 'db_password' 'validate_presence validate_alnumdashdot'
   get_user_var 'db_restore' 'validate_presence validate_yes_no'
   if is_yes "${VARS['db_restore']}"
-    get_user_var 'db_restore_path' 'validate_presence validate_file_existence'
+    get_user_var_db_restore_path
     get_user_var 'db_restore_salt' 'validate_presence validate_alnumdashdot'
   else
     get_user_var 'admin_login' 'validate_presence validate_alnumdashdot validate_starts_with_latin_letter'
@@ -36,5 +36,24 @@ get_user_ssl_vars()
       get_user_var 'ssl_email'
 
 
+get_user_var_db_restore_path()
+  get_user_var 'db_restore_path' 'validate_presence validate_file_existence'
+  if not is_keitaro_dump_valid ${VARS['db_restore_path']}
+    print_prompt_error 'validate_keitaro_dump'
+    if empty "${VARS['db_restore_path_want_exit']}"
+      VARS['db_restore_path_want_exit']=no
+    get_user_var 'db_restore_path_want_exit' 'validate_yes_no'
+    if is_yes "${VARS['db_restore_path_want_exit']}"
+      fail 'errors.keitaro_dump_invalid'
+    else
+      get_user_var_db_restore_path
+
+
+is_keitaro_dump_valid(file)
+  local cat_command='cat'
+  run_command "${cat_command} ${file} | grep -q 'DROP TABLE IF EXISTS \`schema_version\`;'" \
+              "$(translate 'messages.check_keitaro_dump_validity')" 'hide_output' 'allow_errors'
+
 can_install_firewall()
-  run_command 'iptables -t nat -L' "$(translate 'messages.check_ability_firewall_installing')" 'hide_output' 'allow_errors'
+  run_command 'iptables -t nat -L' \
+              "$(translate 'messages.check_ability_firewall_installing')" 'hide_output' 'allow_errors'
