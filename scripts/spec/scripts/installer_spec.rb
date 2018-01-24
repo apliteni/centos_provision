@@ -7,11 +7,17 @@ RSpec.describe 'install.sh' do
   let(:stored_values) { {} }
   let(:script_name) { 'install.sh' }
 
+  let(:ssl) { 'no' }
+  let(:skip_firewall) { 'yes' }
   let(:license_ip) { '8.8.8.8' }
   let(:license_key) { 'WWWW-XXXX-YYYY-ZZZZ' }
   let(:db_name) { 'keitarodb' }
   let(:db_user) { 'keitarodb_user' }
   let(:db_password) { 'keitarodb_password' }
+  let(:db_restore) { 'no' }
+  let(:db_restore_path) { nil }
+  let(:db_restore_path_want_exit) { nil }
+  let(:db_restore_salt) { nil }
   let(:admin_login) { 'admin' }
   let(:admin_password) { 'admin_password' }
 
@@ -25,8 +31,10 @@ RSpec.describe 'install.sh' do
         db_name: 'Please enter database name',
         db_user: 'Please enter database user name',
         db_password: 'Please enter database user password',
-        db_restore: 'Do you want to restore the database from sql-dump?',
-        db_restore_path: 'Please enter the path to the sql dump file',
+        db_restore: 'Do you want to restore the database from SQL dump?',
+        db_restore_path: 'Please enter the path to the SQL dump file',
+        db_restore_salt: 'Please enter the value of "salt" parameter from the old config (application/config/config.ini.php)',
+        db_restore_path_want_exit: 'Do you want to exit?',
         admin_login: 'Please enter keitaro admin login',
         admin_password: 'Please enter keitaro admin password'
       },
@@ -37,7 +45,7 @@ RSpec.describe 'install.sh' do
         db_name: 'Укажите имя базы данных',
         db_user: 'Укажите пользователя базы данных',
         db_password: 'Укажите пароль пользователя базы данных',
-        db_restore: 'Хотите восстановить базу данных из sql-дампа?',
+        db_restore: 'Хотите восстановить базу данных из SQL дампа?',
         admin_login: 'Укажите имя администратора keitaro',
         admin_password: 'Укажите пароль администратора keitaro',
       }
@@ -46,16 +54,19 @@ RSpec.describe 'install.sh' do
 
   let(:user_values) do
     {
-      skip_firewall: 'yes',
-      ssl: 'no',
-      license_ip: '8.8.8.8',
-      license_key: 'WWWW-XXXX-YYYY-ZZZZ',
-      db_name: 'keitarodb',
-      db_user: 'keitarodb_user',
-      db_password: 'keitarodb_password',
-      db_restore: 'no',
-      admin_login: 'admin',
-      admin_password: 'admin_password',
+      skip_firewall: skip_firewall,
+      ssl: ssl,
+      license_ip: license_ip,
+      license_key: license_key,
+      db_name: db_name,
+      db_user: db_user,
+      db_password: db_password,
+      db_restore: db_restore,
+      db_restore_path: db_restore_path,
+      db_restore_path_want_exit: db_restore_path_want_exit,
+      db_restore_salt: db_restore_salt,
+      admin_login: admin_login,
+      admin_password: admin_password,
     }
   end
 
@@ -284,9 +295,10 @@ RSpec.describe 'install.sh' do
   end
 
   describe 'nat support checking' do
-    context 'nat is unsupported' do
-      let(:docker_image) { 'centos' }
 
+    let(:docker_image) { 'centos' }
+
+    context 'nat is unsupported' do
       let(:command_stubs) { {yum: '/bin/true', ansible: '/bin/true', iptables: '/bin/false'} }
 
       it_behaves_like 'should print to', :stdout,
@@ -295,19 +307,13 @@ RSpec.describe 'install.sh' do
       it_behaves_like 'inventory contains value', :skip_firewall, 'yes'
 
       context 'user cancels installation' do
-        let(:user_values) do
-          {
-            skip_firewall: 'no',
-          }
-        end
+        let(:skip_firewall) { 'no' }
 
         it_behaves_like 'should exit with error', 'Please run this program in system with firewall support'
       end
     end
 
     context 'nat is supported' do
-      let(:docker_image) { 'centos' }
-
       let(:command_stubs) { {yum: '/bin/true', ansible: '/bin/true', iptables: '/bin/true'} }
 
       it_behaves_like 'should not print to', :stdout,
@@ -316,5 +322,28 @@ RSpec.describe 'install.sh' do
       it_behaves_like 'inventory does not contain field', :skip_firewall
     end
   end
+
+  describe 'dump checking' do
+
+    let(:options) { '-s' }
+
+    let(:db_restore) { 'yes' }
+    let(:db_restore_salt) { 'some.salt' }
+
+    context 'dump is valid' do
+      let(:db_restore_path) { "#{ROOT_PATH}/spec/files/valid.sql" }
+
+      it_behaves_like 'should print to', :stdout, 'Checking SQL dump . OK'
+    end
+
+    context 'dump is invalid' do
+      let(:db_restore_path) { __FILE__ }
+      let(:db_restore_path_want_exit) { 'yes' }
+
+      it_behaves_like 'should print to', :stdout, 'Checking SQL dump . NOK'
+      it_behaves_like 'should exit with error', 'SQL dump is broken'
+    end
+  end
+
 
 end
