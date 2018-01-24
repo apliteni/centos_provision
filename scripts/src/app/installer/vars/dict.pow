@@ -13,6 +13,7 @@ END
 )
 DICT['en.errors.yum_not_installed']='This installer works only on yum-based systems. Please run this programm in CentOS/RHEL/Fedora distro'
 DICT['en.errors.cant_install_firewall']='Please run this program in system with firewall support'
+DICT['en.errors.keitaro_dump_invalid']='SQL dump is broken'
 DICT['en.prompts.skip_firewall']='Do you want to skip installing firewall?'
 DICT['en.prompts.skip_firewall.help']=$(cat <<- END
 	It looks that your system does not support firewall. This can be happen, for example, if you are using a virtual machine based on OpenVZ and the hosting provider has disabled conntrack support (see http://forum.firstvds.ru/viewtopic.php?f=3&t=10759).
@@ -66,6 +67,7 @@ END
 )
 DICT['ru.errors.yum_not_installed']='Установщик keitaro работает только с пакетным менеджером yum. Пожалуйста, запустите эту программу в CentOS/RHEL/Fedora дистрибутиве'
 DICT['ru.errors.cant_install_firewall']='Пожалуйста, запустите эту программу на системе с поддержкой фаервола'
+DICT['ru.errors.keitaro_dump_invalid']='Указанный файл не является дампом Keitaro или загружен не полностью.'
 DICT['ru.prompts.skip_firewall']='Продолжить установку системы без фаервола?'
 DICT['ru.prompts.skip_firewall.help']=$(cat <<- END
 	Похоже, что на этот сервер невозможно установить фаервол. Такое может произойти, например если вы используете виртуальную машину на базе OpenVZ и хостинг провайдер отключил поддержку модуля conntrack (см. http://forum.firstvds.ru/viewtopic.php?f=3&t=10759).

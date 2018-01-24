@@ -44,7 +44,7 @@ get_user_var_db_restore_path()
       VARS['db_restore_path_want_exit']=no
     get_user_var 'db_restore_path_want_exit' 'validate_yes_no'
     if is_yes "${VARS['db_restore_path_want_exit']}"
-      fail 'errors.keitaro_dump_invalid'
+      fail "$(translate 'errors.keitaro_dump_invalid')"
     else
       get_user_var_db_restore_path
 
