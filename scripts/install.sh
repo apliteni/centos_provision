@@ -768,6 +768,7 @@ END
 )
 DICT['en.errors.yum_not_installed']='This installer works only on yum-based systems. Please run this programm in CentOS/RHEL/Fedora distro'
 DICT['en.errors.cant_install_firewall']='Please run this program in system with firewall support'
+DICT['en.errors.keitaro_dump_invalid']='SQL dump is broken'
 DICT['en.prompts.skip_firewall']='Do you want to skip installing firewall?'
 DICT['en.prompts.skip_firewall.help']=$(cat <<- END
 	It looks that your system does not support firewall. This can be happen, for example, if you are using a virtual machine based on OpenVZ and the hosting provider has disabled conntrack support (see http://forum.firstvds.ru/viewtopic.php?f=3&t=10759).
@@ -821,6 +822,7 @@ END
 )
 DICT['ru.errors.yum_not_installed']='Установщик keitaro работает только с пакетным менеджером yum. Пожалуйста, запустите эту программу в CentOS/RHEL/Fedora дистрибутиве'
 DICT['ru.errors.cant_install_firewall']='Пожалуйста, запустите эту программу на системе с поддержкой фаервола'
+DICT['ru.errors.keitaro_dump_invalid']='Указанный файл не является дампом Keitaro или загружен не полностью.'
 DICT['ru.prompts.skip_firewall']='Продолжить установку системы без фаервола?'
 DICT['ru.prompts.skip_firewall.help']=$(cat <<- END
 	Похоже, что на этот сервер невозможно установить фаервол. Такое может произойти, например если вы используете виртуальную машину на базе OpenVZ и хостинг провайдер отключил поддержку модуля conntrack (см. http://forum.firstvds.ru/viewtopic.php?f=3&t=10759).
@@ -862,7 +864,7 @@ DICT['ru.prompt_errors.validate_license_key']='Введите корректны
 DICT['ru.prompt_errors.validate_alnumdashdot']='Можно использовать только латинские бувы, цифры, тире, подчёркивание и точку'
 DICT['ru.prompt_errors.validate_starts_with_latin_letter']='Значение должно начинаться с латинской буквы'
 DICT['ru.prompt_errors.validate_file_existence']='Файл по заданному пути не обнаружен, введите правильный путь к файлу'
-DICT['ru.prompt_errors.validate_keitaro_dump']='Указанный файл не является дампом Keitaro или загружен не полнотью. Укажите путь до корректного SQL дампа'
+DICT['ru.prompt_errors.validate_keitaro_dump']='Указанный файл не является дампом Keitaro или загружен не полностью. Укажите путь до корректного SQL дампа'
 
 COMMENT_ME_IF_POWSCRIPT_WANNT_COMPILE_PROJECT="'"
 
@@ -1082,7 +1084,7 @@ get_user_var_db_restore_path(){
     fi
     get_user_var 'db_restore_path_want_exit' 'validate_yes_no'
     if is_yes "${VARS['db_restore_path_want_exit']}"; then
-      fail 'errors.keitaro_dump_invalid'
+      fail "$(translate 'errors.keitaro_dump_invalid')"
     else
       get_user_var_db_restore_path
     fi

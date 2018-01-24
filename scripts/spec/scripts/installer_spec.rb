@@ -25,8 +25,9 @@ RSpec.describe 'install.sh' do
         db_name: 'Please enter database name',
         db_user: 'Please enter database user name',
         db_password: 'Please enter database user password',
-        db_restore: 'Do you want to restore the database from sql-dump?',
-        db_restore_path: 'Please enter the path to the sql dump file',
+        db_restore: 'Do you want to restore the database from SQL dump?',
+        db_restore_path: 'Please enter the path to the SQL dump file',
+        db_restore_path_want_exit: 'Do you want to exit?',
         admin_login: 'Please enter keitaro admin login',
         admin_password: 'Please enter keitaro admin password'
       },
@@ -37,7 +38,7 @@ RSpec.describe 'install.sh' do
         db_name: 'Укажите имя базы данных',
         db_user: 'Укажите пользователя базы данных',
         db_password: 'Укажите пароль пользователя базы данных',
-        db_restore: 'Хотите восстановить базу данных из sql-дампа?',
+        db_restore: 'Хотите восстановить базу данных из SQL дампа?',
         admin_login: 'Укажите имя администратора keitaro',
         admin_password: 'Укажите пароль администратора keitaro',
       }
@@ -321,7 +322,7 @@ RSpec.describe 'install.sh' do
 
   describe 'dump checking' do
 
-    let(:docker_image) { 'centos' }
+    let(:options) { '-s' }
 
     context 'dump is valid' do
       let(:user_values) do
@@ -333,10 +334,11 @@ RSpec.describe 'install.sh' do
 
     context 'dump is invalid' do
       let(:user_values) do
-        default_user_values.merge(db_restore: 'yes', db_restore_path: __FILE__)
+        default_user_values.merge(db_restore: 'yes', db_restore_path: __FILE__, db_restore_path_want_exit: 'yes')
       end
 
       it_behaves_like 'should print to', :stdout, 'Checking SQL dump . NOK'
+      it_behaves_like 'should exit with error', 'SQL dump is broken'
     end
   end
 
