@@ -1056,7 +1056,6 @@ get_user_vars(){
   hack_stdin_if_pipe_mode
   print_translated "welcome"
   if ! can_install_firewall; then
-    VARS['skip_firewall']='no'
     get_user_var 'skip_firewall' 'validate_yes_no'
     if is_no "${VARS['skip_firewall']}"; then
       fail "$(translate 'errors.cant_install_firewall')"
@@ -1097,9 +1096,6 @@ get_user_var_db_restore_path(){
   get_user_var 'db_restore_path' 'validate_presence validate_file_existence'
   if ! is_keitaro_dump_valid ${VARS['db_restore_path']}; then
     print_prompt_error 'validate_keitaro_dump'
-    if empty "${VARS['db_restore_path_want_exit']}"; then
-      VARS['db_restore_path_want_exit']=no
-    fi
     get_user_var 'db_restore_path_want_exit' 'validate_yes_no'
     if is_yes "${VARS['db_restore_path_want_exit']}"; then
       fail "$(translate 'errors.keitaro_dump_invalid')"
@@ -1155,12 +1151,14 @@ parse_line_from_inventory_file(){
 
 
 setup_vars(){
-  VARS['ssl']=$(translate 'no')
-  VARS['ssl_agree_tos']=$(translate 'no')
+  VARS['skip_firewall']='no'
+  VARS['ssl']='no'
+  VARS['ssl_agree_tos']='no'
   VARS['db_name']='keitaro'
   VARS['db_user']='keitaro'
   VARS['db_password']=$(generate_password)
-  VARS['db_restore']=$(translate 'no')
+  VARS['db_restore']='no'
+  VARS['db_restore_path_want_exit']='no'
   VARS['admin_login']='admin'
   VARS['admin_password']=$(generate_password)
 }
