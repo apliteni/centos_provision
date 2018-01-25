@@ -2,7 +2,8 @@ require 'open3'
 require 'tmpdir'
 
 class Script
-  attr_accessor :env, :args, :prompts_with_values, :stored_values, :docker_image, :command_stubs, :commands, :save_files
+  attr_accessor :env, :args, :prompts_with_values, :stored_values, :docker_image, :command_stubs, :commands,
+                :save_files, :copy_files
   attr_reader :stdout, :stderr, :log, :ret_value, :script_command
 
   DOCKER_DATA_DIR = '/data'
@@ -15,14 +16,15 @@ class Script
     docker_image: nil,
     command_stubs: {},
     commands: [],
-    save_files: []
+    save_files: [],
+    copy_files: []
   )
     @script_command = script_command
     @base_name = File.basename(script_command, '.*')
     @log_file = "#{@base_name}.log"
 
-    @env, @args, @prompts_with_values, @docker_image, @command_stubs, @commands, @save_files =
-      env, args, prompts_with_values, docker_image, command_stubs, commands, [*save_files]
+    @env, @args, @prompts_with_values, @docker_image, @command_stubs, @commands, @save_files, @copy_files =
+      env, args, prompts_with_values, docker_image, command_stubs, commands, [*save_files], [*copy_files]
   end
 
   def call(current_dir:)
@@ -37,6 +39,8 @@ class Script
   private
 
   def invoke_script_cmd(current_dir)
+    puts(*make_cmd(current_dir))
+    byebug
     Open3.popen3(*make_cmd(current_dir)) do |stdin, stdout, stderr, wait_thr|
       stdout.sync = true
       stdin.sync = true
@@ -56,7 +60,11 @@ class Script
     if docker_image
       docker_run = "docker run #{docker_env} --name keitaro_scripts_test -i --rm -v #{current_dir}:#{DOCKER_DATA_DIR} -w #{DOCKER_DATA_DIR} #{docker_image}"
       evaluated_commands = make_command_stubs + commands + [command_with_args("./#{@script_command}", args)]
-      %Q{#{docker_run} sh -c '#{evaluated_commands.join(' && ')}'}
+      cmd = %Q{#{docker_run} sh -c '#{evaluated_commands.join(' && ')}'}
+      copy_files.each do |filepath|
+        cmd.prepend("cp #{filepath} #{current_dir} && ")
+      end
+      cmd
     else
       raise "Cann't stub fake commands in real system. Please use docker mode." if command_stubs.any? || commands.any?
       [stringified_env, command_with_args("#{current_dir}/#{@script_command}", args)]
@@ -79,10 +87,8 @@ class Script
 
   def command_with_args(script_command, args)
     "#{script_command} #{args}".tap do |cmd|
-      if save_files.any?
-        save_files.each do |filepath|
-          cmd << " && cp #{filepath} #{DOCKER_DATA_DIR}"
-        end
+      save_files.each do |filepath|
+        cmd.append(" && cp #{filepath} #{DOCKER_DATA_DIR}")
       end
     end
   end

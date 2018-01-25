@@ -212,6 +212,30 @@ add_indentation(){
 
 
 
+detect_mime_type(){
+  local file="${1}"
+  if is_installed "$file"; then
+    file --brief --mime-type "$file"
+  else
+    filename=$(basename "$file")
+    extension="${filename##*.}"
+    case $extension in
+      'gz')
+        echo 'application/x-gzip'
+        ;;
+      'bz2')
+        echo 'application/x-bzip2'
+        ;;
+      *)
+        echo 'text/plain'
+        ;;
+    esac
+  fi
+}
+
+
+
+
 get_user_var(){
   local var_name="${1}"
   local validation_methods="${2}"
@@ -1094,7 +1118,20 @@ get_user_var_db_restore_path(){
 
 is_keitaro_dump_valid(){
   local file="${1}"
-  local cat_command='cat'
+  local cat_command=''
+  local mime_type="$(detect_mime_type ${file})"
+  debug "Detected mime type: ${mime_type}"
+  case $mime_type in
+    'application/x-gzip')
+      cat_command='zcat'
+      ;;
+    'application/x-bzip2')
+      cat_command='bzcat'
+      ;;
+    *)
+      cat_command='cat'
+      ;;
+  esac
   run_command "${cat_command} ${file} | grep -q 'DROP TABLE IF EXISTS \`schema_version\`;'" \
               "$(translate 'messages.check_keitaro_dump_validity')" 'hide_output' 'allow_errors'
             }
