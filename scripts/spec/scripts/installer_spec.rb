@@ -255,7 +255,7 @@ RSpec.describe 'install.sh' do
     end
 
     context 'yum presented, ansible not presented' do
-      let(:command_stubs) { {yum: '/bin/true'} }
+      let(:command_stubs) { {yum: '/bin/true', curl: '/bin/false'} }
 
       it_behaves_like 'should print to', :log, "Try to found yum\nFOUND"
       it_behaves_like 'should print to', :log, "Try to found ansible\nNOT FOUND"
@@ -299,7 +299,7 @@ RSpec.describe 'install.sh' do
     let(:docker_image) { 'centos' }
 
     context 'nat is unsupported' do
-      let(:command_stubs) { {yum: '/bin/true', ansible: '/bin/true', iptables: '/bin/false'} }
+      let(:command_stubs) { {yum: '/bin/true', ansible: '/bin/true', iptables: '/bin/false', curl: '/bin/false'} }
 
       it_behaves_like 'should print to', :stdout,
                       'It looks that your system does not support firewall'
@@ -314,7 +314,7 @@ RSpec.describe 'install.sh' do
     end
 
     context 'nat is supported' do
-      let(:command_stubs) { {yum: '/bin/true', ansible: '/bin/true', iptables: '/bin/true'} }
+      let(:command_stubs) { {yum: '/bin/true', ansible: '/bin/true', iptables: '/bin/true', curl: '/bin/false'} }
 
       it_behaves_like 'should not print to', :stdout,
                       'It looks that your system does not support firewall'
@@ -324,26 +324,35 @@ RSpec.describe 'install.sh' do
   end
 
   describe 'dump checking' do
-
-    let(:options) { '-s' }
+    let(:docker_image) { 'centos' }
+    let(:command_stubs) { {yum: '/bin/false'} }
 
     let(:db_restore) { 'yes' }
     let(:db_restore_salt) { 'some.salt' }
+    let(:db_restore_path_want_exit) { 'yes' }
 
-    context 'dump is valid' do
-      let(:db_restore_path) { "#{ROOT_PATH}/spec/files/valid.sql" }
+    context 'valid plain text dump' do
+      let(:copy_files) { ["#{ROOT_PATH}/spec/files/valid.sql"] }
+      let(:db_restore_path) { 'valid.sql' }
 
       it_behaves_like 'should print to', :stdout, 'Checking SQL dump . OK'
+      it_behaves_like 'should print to', :log, ' cat valid.sql | grep'
+    end
+
+    context 'valid gzipped dump' do
+      let(:copy_files) { ["#{ROOT_PATH}/spec/files/valid.sql.gz"] }
+      let(:db_restore_path) { 'valid.sql.gz' }
+
+      it_behaves_like 'should print to', :stdout, 'Checking SQL dump . OK'
+      it_behaves_like 'should print to', :log, ' zcat valid.sql.gz | grep'
     end
 
     context 'dump is invalid' do
-      let(:db_restore_path) { __FILE__ }
-      let(:db_restore_path_want_exit) { 'yes' }
+      let(:copy_files) { [__FILE__] }
+      let(:db_restore_path) { File.basename(__FILE__) }
 
       it_behaves_like 'should print to', :stdout, 'Checking SQL dump . NOK'
       it_behaves_like 'should exit with error', 'SQL dump is broken'
     end
   end
-
-
 end
