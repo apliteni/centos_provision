@@ -1,6 +1,11 @@
 - name: Drop newly created keitaro DB
   shell: mysql -e "DROP DATABASE {{ db_name }}; CREATE DATABASE {{ db_name }}"
 
+- name: Install file utility
+  package:
+    name: file
+    state: present
+
 - name: Get mime of dump
   shell: "file '{{ db_restore_path }}' --mime-type --brief"
   args:
@@ -11,13 +16,9 @@
   include: restore_from_packed_dump.yml cat=zcat
   when: "db_restore_dump_file_mime.stdout == 'application/x-gzip'"
 
-- name: Restore DB from bzipped SQL dump
-  include: restore_from_packed_dump.yml cat=bzcat
-  when: "db_restore_dump_file_mime.stdout == 'application/x-bzip2'"
-
 - name: Restore DB from unpacked SQL dump
   include: restore_from_unpacked_dump.yml
-  when: "db_restore_dump_file_mime.stdout != 'application/x-gzip' and db_restore_dump_file_mime.stdout != 'application/x-bzip2'"
+  when: "db_restore_dump_file_mime.stdout != 'application/x-gzip'"
 
 - name: Reset Keitaro salt
   lineinfile:

@@ -79,10 +79,8 @@ class Script
 
   def command_with_args(script_command, args)
     "#{script_command} #{args}".tap do |cmd|
-      if save_files.any?
-        save_files.each do |filepath|
-          cmd << " && cp #{filepath} #{DOCKER_DATA_DIR}"
-        end
+      save_files.each do |filepath|
+        cmd << " && cp #{filepath} #{DOCKER_DATA_DIR}"
       end
     end
   end
