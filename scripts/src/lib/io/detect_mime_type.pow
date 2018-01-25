@@ -7,11 +7,8 @@ detect_mime_type(file)
   else
     filename=$(basename $file)
     extension="${filename##*.}"
-    switch $extension
-      case 'gz'
-        echo 'application/x-gzip'
-      case 'bz2'
-        echo 'application/x-bzip2'
-      case *
-        echo 'text/plain'
+    if $extension == 'gz'
+      echo 'application/x-gzip'
+    else
+      echo 'text/plain'
 

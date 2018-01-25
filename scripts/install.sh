@@ -219,17 +219,11 @@ detect_mime_type(){
   else
     filename=$(basename "$file")
     extension="${filename##*.}"
-    case $extension in
-      'gz')
-        echo 'application/x-gzip'
-        ;;
-      'bz2')
-        echo 'application/x-bzip2'
-        ;;
-      *)
-        echo 'text/plain'
-        ;;
-    esac
+    if [[ "$extension" == 'gz' ]]; then
+      echo 'application/x-gzip'
+    else
+      echo 'text/plain'
+    fi
   fi
 }
 
@@ -1121,17 +1115,11 @@ is_keitaro_dump_valid(){
   local cat_command=''
   local mime_type="$(detect_mime_type ${file})"
   debug "Detected mime type: ${mime_type}"
-  case $mime_type in
-    'application/x-gzip')
-      cat_command='zcat'
-      ;;
-    'application/x-bzip2')
-      cat_command='bzcat'
-      ;;
-    *)
-      cat_command='cat'
-      ;;
-  esac
+  if [[ "$mime_type" == 'application/x-gzip' ]]; then
+    cat_command='zcat'
+  else
+    cat_command='cat'
+  fi
   run_command "${cat_command} ${file} | grep -q 'DROP TABLE IF EXISTS \`schema_version\`;'" \
               "$(translate 'messages.check_keitaro_dump_validity')" 'hide_output' 'allow_errors'
             }
