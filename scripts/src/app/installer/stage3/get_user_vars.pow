@@ -50,7 +50,16 @@ get_user_var_db_restore_path()
 
 
 is_keitaro_dump_valid(file)
-  local cat_command='cat'
+  local cat_command=''
+  local mime_type="$(detect_mime_type ${file})"
+  debug "Detected mime type: ${mime_type}"
+  switch $mime_type
+    case 'application/x-gzip'
+      cat_command='zcat'
+    case 'application/x-bzip2'
+      cat_command='bzcat'
+    case *
+      cat_command='cat'
   run_command "${cat_command} ${file} | grep -q 'DROP TABLE IF EXISTS \`schema_version\`;'" \
               "$(translate 'messages.check_keitaro_dump_validity')" 'hide_output' 'allow_errors'
 

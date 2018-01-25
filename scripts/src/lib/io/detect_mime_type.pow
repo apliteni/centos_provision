@@ -1,0 +1,17 @@
+#!/usr/bin/env powscript
+
+
+detect_mime_type(file)
+  if is_installed $file
+    file --brief --mime-type $file
+  else
+    filename=$(basename $file)
+    extension="${filename##*.}"
+    switch $extension
+      case 'gz'
+        echo 'application/x-gzip'
+      case 'bz2'
+        echo 'application/x-bzip2'
+      case *
+        echo 'text/plain'
+
