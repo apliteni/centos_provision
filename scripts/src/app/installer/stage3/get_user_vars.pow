@@ -20,6 +20,8 @@ get_user_vars()
   if is_no "${VARS['db_restore']}"
     get_user_var 'admin_login' 'validate_presence validate_alnumdashdot validate_starts_with_latin_letter'
     get_user_var 'admin_password' 'validate_presence validate_alnumdashdot'
+  if empty "${VARS['license_ip']}"
+    VARS['license_ip']=$(get_host_ip)
   get_user_var 'license_ip' 'validate_presence validate_ip'
   get_user_var 'license_key' 'validate_presence validate_license_key'
 
@@ -58,3 +60,7 @@ is_keitaro_dump_valid(file)
 can_install_firewall()
   run_command 'iptables -t nat -L' \
               "$(translate 'messages.check_ability_firewall_installing')" 'hide_output' 'allow_errors'
+
+
+get_host_ip()
+  (hostname -I 2>/dev/null || true) | grep -oP '(\d+\.){3}\d+' | awk '{print $1}'
