@@ -8,6 +8,7 @@ write_inventory_file()
   print_line_to_inventory_file "localhost connection=local"
   print_line_to_inventory_file
   print_line_to_inventory_file "[server:vars]"
+  print_line_to_inventory_file "skip_firewall=${VARS['skip_firewall']}"
   print_line_to_inventory_file "ssl=$VARS['ssl']"
   print_line_to_inventory_file "ssl_certificate=$VARS['ssl_certificate']"
   print_line_to_inventory_file "ssl_domains=$VARS['ssl_domains']"
@@ -24,8 +25,6 @@ write_inventory_file()
   print_line_to_inventory_file "admin_password=$VARS['admin_password']"
   print_line_to_inventory_file "language=${UI_LANG}"
   print_line_to_inventory_file "evaluated_by_installer=yes"
-  if isset ${VARS['skip_firewall']}
-    print_line_to_inventory_file "skip_firewall=${VARS['skip_firewall']}"
   if isset $KEITARO_RELEASE
     print_line_to_inventory_file "kversion=$KEITARO_RELEASE"
 

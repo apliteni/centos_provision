@@ -319,7 +319,7 @@ RSpec.describe 'install.sh' do
       it_behaves_like 'should not print to', :stdout,
                       'It looks that your system does not support firewall'
 
-      it_behaves_like 'inventory does not contain field', :skip_firewall
+      it_behaves_like 'inventory contains value', :skip_firewall, 'no'
     end
   end
 

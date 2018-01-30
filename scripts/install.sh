@@ -1060,19 +1060,20 @@ get_user_vars(){
     fi
   fi
   get_user_ssl_vars
-  get_user_var 'license_ip' 'validate_presence validate_ip'
-  get_user_var 'license_key' 'validate_presence validate_license_key'
-  get_user_var 'db_name' 'validate_presence validate_alnumdashdot validate_starts_with_latin_letter'
-  get_user_var 'db_user' 'validate_presence validate_alnumdashdot validate_starts_with_latin_letter'
-  get_user_var 'db_password' 'validate_presence validate_alnumdashdot'
   get_user_var 'db_restore' 'validate_presence validate_yes_no'
   if is_yes "${VARS['db_restore']}"; then
     get_user_var_db_restore_path
     get_user_var 'db_restore_salt' 'validate_presence validate_alnumdashdot'
-  else
+  fi
+  get_user_var 'db_name' 'validate_presence validate_alnumdashdot validate_starts_with_latin_letter'
+  get_user_var 'db_user' 'validate_presence validate_alnumdashdot validate_starts_with_latin_letter'
+  get_user_var 'db_password' 'validate_presence validate_alnumdashdot'
+  if is_no "${VARS['db_restore']}"; then
     get_user_var 'admin_login' 'validate_presence validate_alnumdashdot validate_starts_with_latin_letter'
     get_user_var 'admin_password' 'validate_presence validate_alnumdashdot'
   fi
+  get_user_var 'license_ip' 'validate_presence validate_ip'
+  get_user_var 'license_key' 'validate_presence validate_license_key'
 }
 
 
@@ -1172,6 +1173,7 @@ write_inventory_file(){
   print_line_to_inventory_file "localhost connection=local"
   print_line_to_inventory_file
   print_line_to_inventory_file "[server:vars]"
+  print_line_to_inventory_file "skip_firewall=${VARS['skip_firewall']}"
   print_line_to_inventory_file "ssl="${VARS['ssl']}""
   print_line_to_inventory_file "ssl_certificate="${VARS['ssl_certificate']}""
   print_line_to_inventory_file "ssl_domains="${VARS['ssl_domains']}""
@@ -1188,9 +1190,6 @@ write_inventory_file(){
   print_line_to_inventory_file "admin_password="${VARS['admin_password']}""
   print_line_to_inventory_file "language=${UI_LANG}"
   print_line_to_inventory_file "evaluated_by_installer=yes"
-  if isset ${VARS['skip_firewall']}; then
-    print_line_to_inventory_file "skip_firewall=${VARS['skip_firewall']}"
-  fi
   if isset "$KEITARO_RELEASE"; then
     print_line_to_inventory_file "kversion=$KEITARO_RELEASE"
   fi
