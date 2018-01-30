@@ -810,11 +810,10 @@ DICT['en.prompts.ssl.help']=$(cat <<- END
 	1. Agree with terms of Let's Encrypt Subscriber Agreement (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf).
 	2. Have at least one domain associated with this server.
 	3. Make sure all the domains are already linked to this server in the DNS.
+	Continuing the installation, you confirm that you agree to the terms of the Let's Encrypt User Agreement (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf).
 	If you don't ready install SSL certificates right now you can install they later by running \`${SSL_ENABLER_COMMAND_EN}\`.
 END
 )
-DICT['en.prompts.ssl_agree_tos']="Do you agree with terms of Let's Encrypt Subscriber Agreement?"
-DICT['en.prompts.ssl_agree_tos.help']="Let's Encrypt Subscriber Agreement located at https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf."
 DICT['en.prompts.ssl_domains']='Please enter server domains, separated by comma without spaces (i.e. domain1.tld,domain2.tld)'
 DICT['en.prompts.ssl_email']='Please enter your email (you can left this field empty)'
 DICT['en.prompts.ssl_email.help']='You can obtain SSL certificate with no email address. This is strongly discouraged, because in the event of key loss or LetsEncrypt account compromise you will irrevocably lose access to your LetsEncrypt account. You will also be unable to receive notice about impending expiration or revocation of your certificates.'
@@ -864,11 +863,10 @@ DICT['ru.prompts.ssl.help']=$(cat <<- END
 	1. Согласиться с условиями Абонентского Соглашения Let's Encrypt (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf).
 	2. Иметь хотя бы один домен для этого сервера.
 	3. Убедиться, что все домены привязаны к этому серверу в DNS.
+	Устанавливая SSL сертификаты вы подтверждаете, что соглашаетесь с условиями Абонентского Соглашения Let's Encrypt (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf).
 	Если сейчас вы не готовы к установке SSL сертификатов, то вы можете установить их позже, запустив \`${SSL_ENABLER_COMMAND_RU}\`.
 END
 )
-DICT['ru.prompts.ssl_agree_tos']="Вы согласны с условиями Абонентского Соглашения Let's Encrypt?"
-DICT['ru.prompts.ssl_agree_tos.help']="Абонентское Соглашение Let's Encrypt находится по адресу https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf."
 DICT['ru.prompts.ssl_domains']='Укажите список доменов через запятую без пробелов (например domain1.tld,domain2.tld)'
 DICT['ru.prompts.ssl_email']='Укажите email (можно не указывать)'
 DICT['ru.prompts.ssl_email.help']='Вы можете получить SSL сертификат без указания email адреса. Однако LetsEncrypt настоятельно рекомендует указать его, так как в случае потери ключа или компрометации LetsEncrypt аккаунта вы полностью потеряете доступ к своему LetsEncrypt аккаунту. Без email вы также не сможете получить уведомление о предстоящем истечении срока действия или отзыве сертификата'
@@ -1062,19 +1060,23 @@ get_user_vars(){
     fi
   fi
   get_user_ssl_vars
-  get_user_var 'license_ip' 'validate_presence validate_ip'
-  get_user_var 'license_key' 'validate_presence validate_license_key'
-  get_user_var 'db_name' 'validate_presence validate_alnumdashdot validate_starts_with_latin_letter'
-  get_user_var 'db_user' 'validate_presence validate_alnumdashdot validate_starts_with_latin_letter'
-  get_user_var 'db_password' 'validate_presence validate_alnumdashdot'
   get_user_var 'db_restore' 'validate_presence validate_yes_no'
   if is_yes "${VARS['db_restore']}"; then
     get_user_var_db_restore_path
     get_user_var 'db_restore_salt' 'validate_presence validate_alnumdashdot'
-  else
+  fi
+  get_user_var 'db_name' 'validate_presence validate_alnumdashdot validate_starts_with_latin_letter'
+  get_user_var 'db_user' 'validate_presence validate_alnumdashdot validate_starts_with_latin_letter'
+  get_user_var 'db_password' 'validate_presence validate_alnumdashdot'
+  if is_no "${VARS['db_restore']}"; then
     get_user_var 'admin_login' 'validate_presence validate_alnumdashdot validate_starts_with_latin_letter'
     get_user_var 'admin_password' 'validate_presence validate_alnumdashdot'
   fi
+  if empty "${VARS['license_ip']}"; then
+    VARS['license_ip']=$(get_host_ip)
+  fi
+  get_user_var 'license_ip' 'validate_presence validate_ip'
+  get_user_var 'license_key' 'validate_presence validate_license_key'
 }
 
 
@@ -1082,12 +1084,9 @@ get_user_ssl_vars(){
   VARS['ssl_certificate']='self-signed'
   get_user_var 'ssl' 'validate_yes_no'
   if is_yes ${VARS['ssl']}; then
-    get_user_var 'ssl_agree_tos' 'validate_yes_no'
-    if is_yes ${VARS['ssl_agree_tos']}; then
-      VARS['ssl_certificate']='letsencrypt'
-      get_user_var 'ssl_domains' 'validate_presence validate_domains_list'
-      get_user_var 'ssl_email'
-    fi
+    VARS['ssl_certificate']='letsencrypt'
+    get_user_var 'ssl_domains' 'validate_presence validate_domains_list'
+    get_user_var 'ssl_email'
   fi
 }
 
@@ -1126,6 +1125,11 @@ can_install_firewall(){
             }
 
 
+get_host_ip(){
+  (hostname -I 2>/dev/null || true) | grep -oP '(\d+\.){3}\d+' | awk '{print $1}'
+}
+
+
 
 read_inventory_file(){
   if [ -f "$INVENTORY_FILE" ]; then
@@ -1153,7 +1157,6 @@ parse_line_from_inventory_file(){
 setup_vars(){
   VARS['skip_firewall']='no'
   VARS['ssl']='no'
-  VARS['ssl_agree_tos']='no'
   VARS['db_name']='keitaro'
   VARS['db_user']='keitaro'
   VARS['db_password']=$(generate_password)
@@ -1178,9 +1181,9 @@ write_inventory_file(){
   print_line_to_inventory_file "localhost connection=local"
   print_line_to_inventory_file
   print_line_to_inventory_file "[server:vars]"
+  print_line_to_inventory_file "skip_firewall=${VARS['skip_firewall']}"
   print_line_to_inventory_file "ssl="${VARS['ssl']}""
   print_line_to_inventory_file "ssl_certificate="${VARS['ssl_certificate']}""
-  print_line_to_inventory_file "ssl_agree_tos="${VARS['ssl_agree_tos']}""
   print_line_to_inventory_file "ssl_domains="${VARS['ssl_domains']}""
   print_line_to_inventory_file "ssl_email="${VARS['ssl_email']}""
   print_line_to_inventory_file "license_ip="${VARS['license_ip']}""
@@ -1195,9 +1198,6 @@ write_inventory_file(){
   print_line_to_inventory_file "admin_password="${VARS['admin_password']}""
   print_line_to_inventory_file "language=${UI_LANG}"
   print_line_to_inventory_file "evaluated_by_installer=yes"
-  if isset ${VARS['skip_firewall']}; then
-    print_line_to_inventory_file "skip_firewall=${VARS['skip_firewall']}"
-  fi
   if isset "$KEITARO_RELEASE"; then
     print_line_to_inventory_file "kversion=$KEITARO_RELEASE"
   fi
