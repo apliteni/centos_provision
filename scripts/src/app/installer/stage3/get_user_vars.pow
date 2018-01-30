@@ -10,29 +10,29 @@ get_user_vars()
     if is_no "${VARS['skip_firewall']}"
       fail "$(translate 'errors.cant_install_firewall')"
   get_user_ssl_vars
-  get_user_var 'license_ip' 'validate_presence validate_ip'
-  get_user_var 'license_key' 'validate_presence validate_license_key'
-  get_user_var 'db_name' 'validate_presence validate_alnumdashdot validate_starts_with_latin_letter'
-  get_user_var 'db_user' 'validate_presence validate_alnumdashdot validate_starts_with_latin_letter'
-  get_user_var 'db_password' 'validate_presence validate_alnumdashdot'
   get_user_var 'db_restore' 'validate_presence validate_yes_no'
   if is_yes "${VARS['db_restore']}"
     get_user_var_db_restore_path
     get_user_var 'db_restore_salt' 'validate_presence validate_alnumdashdot'
-  else
+  get_user_var 'db_name' 'validate_presence validate_alnumdashdot validate_starts_with_latin_letter'
+  get_user_var 'db_user' 'validate_presence validate_alnumdashdot validate_starts_with_latin_letter'
+  get_user_var 'db_password' 'validate_presence validate_alnumdashdot'
+  if is_no "${VARS['db_restore']}"
     get_user_var 'admin_login' 'validate_presence validate_alnumdashdot validate_starts_with_latin_letter'
     get_user_var 'admin_password' 'validate_presence validate_alnumdashdot'
+  if empty "${VARS['license_ip']}"
+    VARS['license_ip']=$(get_host_ip)
+  get_user_var 'license_ip' 'validate_presence validate_ip'
+  get_user_var 'license_key' 'validate_presence validate_license_key'
 
 
 get_user_ssl_vars()
   VARS['ssl_certificate']='self-signed'
   get_user_var 'ssl' 'validate_yes_no'
   if is_yes ${VARS['ssl']}
-    get_user_var 'ssl_agree_tos' 'validate_yes_no'
-    if is_yes ${VARS['ssl_agree_tos']}
-      VARS['ssl_certificate']='letsencrypt'
-      get_user_var 'ssl_domains' 'validate_presence validate_domains_list'
-      get_user_var 'ssl_email'
+    VARS['ssl_certificate']='letsencrypt'
+    get_user_var 'ssl_domains' 'validate_presence validate_domains_list'
+    get_user_var 'ssl_email'
 
 
 get_user_var_db_restore_path()
@@ -60,3 +60,7 @@ is_keitaro_dump_valid(file)
 can_install_firewall()
   run_command 'iptables -t nat -L' \
               "$(translate 'messages.check_ability_firewall_installing')" 'hide_output' 'allow_errors'
+
+
+get_host_ip()
+  (hostname -I 2>/dev/null || true) | grep -oP '(\d+\.){3}\d+' | awk '{print $1}'
