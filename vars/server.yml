@@ -1,7 +1,9 @@
 ---
+max_upload_size: 100M
+
 php_version: "{% if kversion is defined and kversion == 7 %}php70{% elif kversion is defined and kversion == 8 %}php71{% else %}php72{% endif %}"
 php_memory_limit: 500M
-php_max_upload_size: 20M
+php_max_upload_size: "{{ max_upload_size }}"
 
 timezone: Europe/Moscow
 swap_size: 2048
@@ -23,6 +25,7 @@ nginx_worker_processes: auto
 nginx_worker_connections: 4000
 nginx_remove_default_vhost: true
 nginx_access_log: "/var/log/nginx/access.log main buffer=16k "
+nginx_client_max_body_size: "{{ max_upload_size }}"
 nginx_extra_http_options: |
   # Security
   server_tokens off;
