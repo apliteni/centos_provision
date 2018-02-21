@@ -4,3 +4,4 @@ stage2()
   debug "Starting stage 2: make some asserts"
   assert_caller_root
   assert_installed 'yum' 'errors.yum_not_installed'
+  assert_old_mysql_not_installed
