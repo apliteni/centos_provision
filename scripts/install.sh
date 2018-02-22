@@ -1057,6 +1057,7 @@ assert_pannels_not_installed(){
 
 assert_isp_manager_not_installed(){
   if isp_manager_installed; then
+    debug "ISP Manager databases detected"
     fail "$(translate errors.isp_manager_installed)"
   fi
 }
@@ -1064,31 +1065,27 @@ assert_isp_manager_not_installed(){
 
 assert_vesta_cp_not_installed(){
   if vesta_cp_installed; then
+    debug "Vesta CP databases detected"
     fail "$(translate errors.vesta_cp_installed)"
   fi
 }
 
 
 isp_manager_installed(){
-  local detect_dbs_command="$(build_detect_databases_command roundcube test)"
-  run_command "${detect_dbs_command}" \
-              "$(translate 'messages.check_isp_manager_installed')" \
-              'hide_output' 'allow_errors' '' '' 'reverse_ok_nok'
-            }
+  databases_exist roundcube test
+}
 
 
 vesta_cp_installed(){
-  local detect_dbs_command="$(build_detect_databases_command admin_default roundcube)"
-  run_command "${detect_dbs_command}" \
-              "$(translate 'messages.check_vesta_cp_installed')" \
-              'hide_output' 'allow_errors' '' '' 'reverse_ok_nok'
-            }
+  databases_exist admin_default roundcube
+}
 
 
-build_detect_databases_command(){
+databases_exist(){
   local db1="${1}"
   local db2="${2}"
-  echo "mysql -Nse 'show databases' | tr '\n' ' ' | grep -P '${db1}.*${db2}'"
+  debug "Detect exist databases ${db1} ${db2}"
+  mysql -Nse 'show databases' | tr '\n' ' ' | grep -Pq "${db1}.*${db2}"
 }
 
 
