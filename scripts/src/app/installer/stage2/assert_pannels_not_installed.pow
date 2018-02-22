@@ -21,13 +21,13 @@ assert_vesta_cp_not_installed()
 
 
 isp_manager_installed()
-  local detect_dbs_command = $(build_detext_databases_comand roundcube test)
+  local detect_dbs_command="$(build_detect_databases_command roundcube test)"
   run_command "${detect_dbs_command}" \
               "$(translate 'messages.check_isp_manager_installed')" 'hide_output' 'allow_errors'
 
 
 vesta_cp_installed()
-  local detect_dbs_command = $(build_detext_databases_comand admin_default roundcube)
+  local detect_dbs_command="$(build_detect_databases_command admin_default roundcube)"
   run_command "${detect_dbs_command}" \
               "$(translate 'messages.check_vesta_cp_installed')" 'hide_output' 'allow_errors'
 
