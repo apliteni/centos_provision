@@ -82,8 +82,6 @@ RSpec.describe 'install.sh' do
 
   it_behaves_like 'should not run under non-root'
 
-  it_behaves_like 'should rotate log files', log_file_name: 'install.log'
-
   shared_examples_for 'inventory contains value' do |field, value|
     it "inventory file contains field #{field.inspect} with value #{value.inspect}" do
       run_script
@@ -281,7 +279,7 @@ RSpec.describe 'install.sh' do
     context 'yum not presented' do
       let(:commands) { ['rm /usr/bin/yum'] }
       it_behaves_like 'should print to', :log, "Try to found yum\nNOT FOUND"
-      it_behaves_like 'should exit with error', 'This installer works only on yum-based systems'
+      it_behaves_like 'should exit with error', 'This installer works only on CentOS'
     end
   end
 

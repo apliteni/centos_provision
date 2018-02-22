@@ -53,8 +53,6 @@ RSpec.describe 'enable-ssl.sh' do
 
   it_behaves_like 'should not run under non-root'
 
-  it_behaves_like 'should rotate log files', log_file_name: 'enable-ssl.log'
-
   describe 'fields' do
     # `-s` option disables cerbot/nginx conf checks
     # `-p` option disables invoking certbot command
