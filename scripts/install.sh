@@ -509,6 +509,7 @@ run_command(){
   local allow_errors="${4}"
   local run_as="${5}"
   local print_fail_message_method="${6}"
+  local reverse_ok_nok="${7}"
   debug "Evaluating command: ${command}"
   if empty "$message"; then
     run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
@@ -525,9 +526,10 @@ run_command(){
     print_command_status "$command" 'SKIPPED' 'yellow' "$hide_output"
     debug "Actual running disabled"
   else
-    really_run_command "${command}" "${hide_output}" "${allow_errors}" "${run_as}" "${print_fail_message_method}"
-  fi
-}
+    really_run_command "${command}" "${hide_output}" "${allow_errors}" "${run_as}" \
+      "${print_fail_message_method}" "${reverse_ok_nok}"
+    fi
+  }
 
 
 print_command_status(){
@@ -548,6 +550,7 @@ really_run_command(){
   local allow_errors="${3}"
   local run_as="${4}"
   local print_fail_message_method="${5}"
+  local reverse_ok_nok="${6}"
   local current_command_script=$(save_command_script "${command}" "${run_as}")
   local evaluated_command=$(command_run_as "${current_command_script}" "${run_as}")
   evaluated_command=$(unbuffer_streams "${evaluated_command}")
@@ -555,7 +558,11 @@ really_run_command(){
   evaluated_command=$(hide_command_output "${evaluated_command}" "${hide_output}")
   debug "Real command: ${evaluated_command}"
   if ! eval "${evaluated_command}"; then
-    print_command_status "${command}" 'NOK' 'red' "${hide_output}"
+    if empty "$reverse_ok_nok"; then
+      print_command_status "${command}" 'NOK' 'red' "${hide_output}"
+    else
+      print_command_status "${command}" 'OK' 'green' "${hide_output}"
+    fi
     if isset "$allow_errors"; then
       remove_current_command "$current_command_script"
       return ${FAILURE_RESULT}
@@ -565,7 +572,11 @@ really_run_command(){
       fail "${fail_message}" "see_logs"
     fi
   else
-    print_command_status "$command" 'OK' 'green' "$hide_output"
+    if empty "$reverse_ok_nok"; then
+      print_command_status "${command}" 'OK' 'green' "${hide_output}"
+    else
+      print_command_status "${command}" 'NOK' 'red' "${hide_output}"
+    fi
     remove_current_command "$current_command_script"
   fi
 }
@@ -778,8 +789,8 @@ SSL_ENABLER_COMMAND_RU="curl -sSL ${KEITARO_URL}/enable-ssl.sh | bash -s -- -l r
 
 DICT['en.messages.check_ability_firewall_installing']="Checking the ability of installing a firewall"
 DICT['en.messages.check_keitaro_dump_validity']="Checking SQL dump"
-DICT['en.messages.check_isp_manager_installed']="Detecting ISP Manager"
-DICT['en.messages.check_vesta_cp_installed']="Detecting Vesta CP"
+DICT['en.messages.check_isp_manager_installed']="Make sure that ISP Manager is not installed"
+DICT['en.messages.check_vesta_cp_installed']="Make sure that Vesta CP is not installed"
 DICT['en.messages.successful.use_old_credentials']="The database was successfully restored from the archive. Use old login data"
 DICT['en.errors.see_logs']=$(cat <<- END
 	Installation log saved to ${SCRIPT_LOG}. Configuration settings saved to ${INVENTORY_FILE}.
@@ -835,8 +846,8 @@ DICT['en.prompt_errors.validate_keitaro_dump']='The SQL dump is broken, please s
 
 DICT['ru.messages.check_ability_firewall_installing']="Проверяем возможность установки фаервола"
 DICT['ru.messages.check_keitaro_dump_validity']="Проверяем SQL дамп"
-DICT['ru.messages.check_isp_manager_installed']="Проверяем наличие ISP Manager"
-DICT['ru.messages.check_vesta_cp_installed']="Проверяем наличие Vesta CP"
+DICT['ru.messages.check_isp_manager_installed']="Убеждаемся что ISP Manager не установлен"
+DICT['ru.messages.check_vesta_cp_installed']="Убеждаемся что Vesta CP не установлена"
 DICT["ru.messages.successful.use_old_credentials"]="База данных успешно восстановлена из архива. Используйте старые данные для входа в систему"
 DICT['ru.errors.see_logs']=$(cat <<- END
 	Журнал установки сохранён в ${SCRIPT_LOG}. Настройки сохранены в ${INVENTORY_FILE}.
@@ -1077,14 +1088,16 @@ assert_vesta_cp_not_installed(){
 isp_manager_installed(){
   local detect_dbs_command="$(build_detect_databases_command roundcube test)"
   run_command "${detect_dbs_command}" \
-              "$(translate 'messages.check_isp_manager_installed')" 'hide_output' 'allow_errors'
+              "$(translate 'messages.check_isp_manager_installed')" \
+              'hide_output' 'allow_errors' '' '' 'reverse_ok_nok'
             }
 
 
 vesta_cp_installed(){
   local detect_dbs_command="$(build_detect_databases_command admin_default roundcube)"
   run_command "${detect_dbs_command}" \
-              "$(translate 'messages.check_vesta_cp_installed')" 'hide_output' 'allow_errors'
+              "$(translate 'messages.check_vesta_cp_installed')" \
+              'hide_output' 'allow_errors' '' '' 'reverse_ok_nok'
             }
 
 
