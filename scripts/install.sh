@@ -773,8 +773,6 @@ SSL_ENABLER_COMMAND_RU="curl -sSL ${KEITARO_URL}/enable-ssl.sh | bash -s -- -l r
 
 DICT['en.messages.check_ability_firewall_installing']="Checking the ability of installing a firewall"
 DICT['en.messages.check_keitaro_dump_validity']="Checking SQL dump"
-DICT['en.messages.check_isp_manager_installed']="Make sure that ISP Manager is not installed"
-DICT['en.messages.check_vesta_cp_installed']="Make sure that Vesta CP is not installed"
 DICT['en.messages.successful.use_old_credentials']="The database was successfully restored from the archive. Use old login data"
 DICT['en.errors.see_logs']=$(cat <<- END
 	Installation log saved to ${SCRIPT_LOG}. Configuration settings saved to ${INVENTORY_FILE}.
@@ -786,6 +784,7 @@ DICT['en.errors.cant_install_firewall']='Please run this program in system with 
 DICT['en.errors.keitaro_dump_invalid']='SQL dump is broken'
 DICT['en.errors.isp_manager_installed']='You can not install Keitaro on the server with ISP Manager installed. Please run this program on a clean CentOS server.'
 DICT['en.errors.vesta_cp_installed']='You can not install Keitaro on the server with Vesta CP installed. Please run this program on a clean CentOS server.'
+DICT['en.errors.apache_installed']='You can not install Keitaro on the server with Apache HTTP server installed. Please run this program on a clean CentOS server.'
 DICT['en.prompts.skip_firewall']='Do you want to skip installing firewall?'
 DICT['en.prompts.skip_firewall.help']=$(cat <<- END
 	It looks that your system does not support firewall. This can be happen, for example, if you are using a virtual machine based on OpenVZ and the hosting provider has disabled conntrack support (see http://forum.firstvds.ru/viewtopic.php?f=3&t=10759).
@@ -830,8 +829,6 @@ DICT['en.prompt_errors.validate_keitaro_dump']='The SQL dump is broken, please s
 
 DICT['ru.messages.check_ability_firewall_installing']="Проверяем возможность установки фаервола"
 DICT['ru.messages.check_keitaro_dump_validity']="Проверяем SQL дамп"
-DICT['ru.messages.check_isp_manager_installed']="Убеждаемся что ISP Manager не установлен"
-DICT['ru.messages.check_vesta_cp_installed']="Убеждаемся что Vesta CP не установлена"
 DICT["ru.messages.successful.use_old_credentials"]="База данных успешно восстановлена из архива. Используйте старые данные для входа в систему"
 DICT['ru.errors.see_logs']=$(cat <<- END
 	Журнал установки сохранён в ${SCRIPT_LOG}. Настройки сохранены в ${INVENTORY_FILE}.
@@ -842,7 +839,8 @@ DICT['ru.errors.yum_not_installed']='Установщик keitaro работае
 DICT['ru.errors.cant_install_firewall']='Пожалуйста, запустите эту программу на системе с поддержкой фаервола'
 DICT['ru.errors.keitaro_dump_invalid']='Указанный файл не является дампом Keitaro или загружен не полностью.'
 DICT['ru.errors.isp_manager_installed']="Программа установки не может быть запущена на серверах с установленным ISP Manager. Пожалуйста, запустите эту программу на чистом CentOS сервере."
-DICT['ru.errors.vesta_cp_installed']="Программа установки не может быть запущена на серверах с установленным Vesta CP. Пожалуйста, запустите эту программу на чистом CentOS сервере."
+DICT['ru.errors.vesta_cp_installed']="Программа установки не может быть запущена на серверах с установленной Vesta CP. Пожалуйста, запустите эту программу на чистом CentOS сервере."
+DICT['ru.errors.apache_installed']="Программа установки не может быть запущена на серверах с установленным Apache HTTP server. Пожалуйста, запустите эту программу на чистом CentOS сервере."
 DICT['ru.prompts.skip_firewall']='Продолжить установку системы без фаервола?'
 DICT['ru.prompts.skip_firewall.help']=$(cat <<- END
 	Похоже, что на этот сервер невозможно установить фаервол. Такое может произойти, например если вы используете виртуальную машину на базе OpenVZ и хостинг провайдер отключил поддержку модуля conntrack (см. http://forum.firstvds.ru/viewtopic.php?f=3&t=10759).
@@ -1039,6 +1037,7 @@ stage2(){
   assert_caller_root
   assert_installed 'yum' 'errors.yum_not_installed'
   assert_pannels_not_installed
+  assert_apache_not_installed
 }
 
 
@@ -1087,6 +1086,19 @@ databases_exist(){
   debug "Detect exist databases ${db1} ${db2}"
   mysql -Nse 'show databases' | tr '\n' ' ' | grep -Pq "${db1}.*${db2}"
 }
+
+
+
+assert_apache_not_installed(){
+  if isset "$SKIP_CHECKS"; then
+    debug "SKIPPED: actual checking of httpd skipped"
+  else
+    if is_installed httpd; then
+      fail "$(translate errors.apache_installed)"
+    fi
+  fi
+}
+
 
 
 
