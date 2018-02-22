@@ -164,6 +164,30 @@ assert_installed(){
 
 
 
+is_exists_file(){
+  local file="${1}"
+  local result_on_skip="${2}"
+  debug "Checking ${file} file existence"
+  if isset "$SKIP_CHECKS"; then
+    debug "SKIP: аctual check of ${file} file existence disabled"
+    if [[ "$result_on_skip" == "no" ]]; then
+      debug "NO: simulate ${file} file does not exist"
+      return ${FAILURE_RESULT}
+    fi
+    debug "YES: simulate ${file} file exists"
+    return ${SUCCESS_RESULT}
+  fi
+  if [ -f "${file}" ]; then
+    debug "YES: ${file} file exists"
+    return ${SUCCESS_RESULT}
+  else
+    debug "NO: ${file} file does not exist"
+    return ${FAILURE_RESULT}
+  fi
+}
+
+
+
 set_ui_lang(){
   if empty "$UI_LANG"; then
     UI_LANG=$(detect_language)
@@ -779,7 +803,7 @@ DICT['en.errors.see_logs']=$(cat <<- END
 	You can rerun \`${SCRIPT_COMMAND}\` with saved settings after resolving installation problems.
 END
 )
-DICT['en.errors.yum_not_installed']='This installer works only on yum-based systems. Please run this program in CentOS distro'
+DICT['en.errors.wrong_distro']='This installer works only on CentOS 7.x. Please run this program on clean CentOS server'
 DICT['en.errors.cant_install_firewall']='Please run this program in system with firewall support'
 DICT['en.errors.keitaro_dump_invalid']='SQL dump is broken'
 DICT['en.errors.isp_manager_installed']='You can not install Keitaro on the server with ISP Manager installed. Please run this program on a clean CentOS server.'
@@ -835,7 +859,7 @@ DICT['ru.errors.see_logs']=$(cat <<- END
 	Вы можете повторно запустить \`${SCRIPT_COMMAND}\` с этими настройками после устранения возникших проблем.
 END
 )
-DICT['ru.errors.yum_not_installed']='Установщик keitaro работает только с пакетным менеджером yum. Пожалуйста, запустите эту программу в CentOS дистрибутиве'
+DICT['ru.errors.wrong_distro']='Установщик Keitaro работает только в CentOS 7.x. Пожалуйста, запустите эту программу в CentOS дистрибутиве'
 DICT['ru.errors.cant_install_firewall']='Пожалуйста, запустите эту программу на системе с поддержкой фаервола'
 DICT['ru.errors.keitaro_dump_invalid']='Указанный файл не является дампом Keitaro или загружен не полностью.'
 DICT['ru.errors.isp_manager_installed']="Программа установки не может быть запущена на серверах с установленным ISP Manager. Пожалуйста, запустите эту программу на чистом CentOS сервере."
@@ -1035,10 +1059,33 @@ en_usage(){
 stage2(){
   debug "Starting stage 2: make some asserts"
   assert_caller_root
-  assert_installed 'yum' 'errors.yum_not_installed'
+  assert_centos_distro
   assert_pannels_not_installed
   assert_apache_not_installed
 }
+
+
+
+assert_apache_not_installed(){
+  if isset "$SKIP_CHECKS"; then
+    debug "SKIPPED: actual checking of httpd skipped"
+  else
+    if is_installed httpd; then
+      fail "$(translate errors.apache_installed)"
+    fi
+  fi
+}
+
+
+
+
+assert_centos_distro(){
+  assert_installed 'yum' 'errors.wrong_distro'
+  if ! is_exists_file /etc/centos-release; then
+    fail "$(translate errors.wrong_distro)" "see_logs"
+  fi
+}
+
 
 
 
@@ -1086,19 +1133,6 @@ databases_exist(){
   debug "Detect exist databases ${db1} ${db2}"
   mysql -Nse 'show databases' | tr '\n' ' ' | grep -Pq "${db1}.*${db2}"
 }
-
-
-
-assert_apache_not_installed(){
-  if isset "$SKIP_CHECKS"; then
-    debug "SKIPPED: actual checking of httpd skipped"
-  else
-    if is_installed httpd; then
-      fail "$(translate errors.apache_installed)"
-    fi
-  fi
-}
-
 
 
 

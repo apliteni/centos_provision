@@ -279,7 +279,7 @@ RSpec.describe 'install.sh' do
     context 'yum not presented' do
       let(:commands) { ['rm /usr/bin/yum'] }
       it_behaves_like 'should print to', :log, "Try to found yum\nNOT FOUND"
-      it_behaves_like 'should exit with error', 'This installer works only on yum-based systems'
+      it_behaves_like 'should exit with error', 'This installer works only on CentOS'
     end
   end
 
