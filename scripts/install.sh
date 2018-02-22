@@ -356,7 +356,7 @@ read_stdin(){
 install_package(){
   local package="${1}"
   debug "Installing ${package}"
-  run_command "yum install -y "$package""
+  run_command "yum install -y ${package}"
 }
 
 
@@ -1317,6 +1317,8 @@ stage4(){
 
 
 upgrade_packages(){
+  debug "Installing deltarpm"
+  install_package deltarpm
   debug "Upgrading packages"
   run_command "yum update -y"
 }
