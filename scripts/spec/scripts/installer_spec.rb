@@ -82,8 +82,6 @@ RSpec.describe 'install.sh' do
 
   it_behaves_like 'should not run under non-root'
 
-  it_behaves_like 'should rotate log files', log_file_name: 'install.log'
-
   shared_examples_for 'inventory contains value' do |field, value|
     it "inventory file contains field #{field.inspect} with value #{value.inspect}" do
       run_script
