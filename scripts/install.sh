@@ -1039,17 +1039,18 @@ stage2(){
   debug "Starting stage 2: make some asserts"
   assert_caller_root
   assert_installed 'yum' 'errors.yum_not_installed'
-  assert_old_mysql_not_installed
+  assert_pannels_not_installed
 }
 
 
 
-assert_old_mysql_not_installed(){
+assert_pannels_not_installed(){
   if isset "$SKIP_CHECKS"; then
     debug "SKIPPED: actual checking of panels skipped"
   else
     if is_installed mysql; then
       assert_isp_manager_not_installed
+      assert_vesta_cp_not_installed
     fi
   fi
 }
@@ -1062,10 +1063,32 @@ assert_isp_manager_not_installed(){
 }
 
 
+assert_vesta_cp_not_installed(){
+  if vesta_cp_installed; then
+    fail "$(translate errors.vesta_cp_installed)"
+  fi
+}
+
+
 isp_manager_installed(){
-  run_command 'mysql -Nse "show databases" | grep -q roundcube' \
+  local detect_dbs_command = $(build_detext_databases_comand roundcube test)
+  run_command "${detect_dbs_command}" \
               "$(translate 'messages.check_isp_manager_installed')" 'hide_output' 'allow_errors'
             }
+
+
+vesta_cp_installed(){
+  local detect_dbs_command = $(build_detext_databases_comand admin_default roundcube)
+  run_command "${detect_dbs_command}" \
+              "$(translate 'messages.check_vesta_cp_installed')" 'hide_output' 'allow_errors'
+            }
+
+
+build_detect_databases_command(){
+  local db1="${1}"
+  local db2="${2}"
+  echo "mysql -Nse 'show databases' | tr '\n' ' ' | grep -P '${db1}.*${db2}'"
+}
 
 
 
