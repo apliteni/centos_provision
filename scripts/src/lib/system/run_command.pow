@@ -1,7 +1,7 @@
 #!/usr/bin/env powscript
 
 
-run_command(command, message, hide_output, allow_errors, run_as, print_fail_message_method)
+run_command(command, message, hide_output, allow_errors, run_as, print_fail_message_method, reverse_ok_nok)
   debug "Evaluating command: ${command}"
   if empty $message
     run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
@@ -16,7 +16,8 @@ run_command(command, message, hide_output, allow_errors, run_as, print_fail_mess
     print_command_status $command 'SKIPPED' 'yellow' $hide_output
     debug "Actual running disabled"
   else
-    really_run_command "${command}" "${hide_output}" "${allow_errors}" "${run_as}" "${print_fail_message_method}"
+    really_run_command "${command}" "${hide_output}" "${allow_errors}" "${run_as}" \
+      "${print_fail_message_method}" "${reverse_ok_nok}"
 
 
 print_command_status(command, status, color, hide_output)
@@ -25,7 +26,7 @@ print_command_status(command, status, color, hide_output)
     print_with_color $status $color
 
 
-really_run_command(command, hide_output, allow_errors, run_as, print_fail_message_method)
+really_run_command(command, hide_output, allow_errors, run_as, print_fail_message_method, reverse_ok_nok)
   local current_command_script=$(save_command_script "${command}" "${run_as}")
   local evaluated_command=$(command_run_as "${current_command_script}" "${run_as}")
   evaluated_command=$(unbuffer_streams "${evaluated_command}")
@@ -33,7 +34,10 @@ really_run_command(command, hide_output, allow_errors, run_as, print_fail_messag
   evaluated_command=$(hide_command_output "${evaluated_command}" "${hide_output}")
   debug "Real command: ${evaluated_command}"
   if ! eval "${evaluated_command}"
-    print_command_status "${command}" 'NOK' 'red' "${hide_output}"
+    if empty $reverse_ok_nok
+      print_command_status "${command}" 'NOK' 'red' "${hide_output}"
+    else
+      print_command_status "${command}" 'OK' 'green' "${hide_output}"
     if isset $allow_errors
       remove_current_command $current_command_script
       return ${FAILURE_RESULT}
@@ -42,7 +46,10 @@ really_run_command(command, hide_output, allow_errors, run_as, print_fail_messag
       remove_current_command $current_command_script
       fail "${fail_message}" "see_logs"
   else
-    print_command_status $command 'OK' 'green' $hide_output
+    if empty $reverse_ok_nok
+      print_command_status "${command}" 'OK' 'green' "${hide_output}"
+    else
+      print_command_status "${command}" 'NOK' 'red' "${hide_output}"
     remove_current_command $current_command_script
 
 
