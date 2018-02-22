@@ -449,23 +449,7 @@ init(){
 
 
 init_log(){
-  if [ -f ${SCRIPT_LOG} ]; then
-    name_for_old_log=$(get_name_for_old_log ${SCRIPT_LOG})
-    mv "$SCRIPT_LOG" "$name_for_old_log"
-    debug "Old log ${SCRIPT_LOG} moved to "$name_for_old_log""
-  else
-    debug "${SCRIPT_LOG} created"
-  fi
-}
-
-get_name_for_old_log(){
-  local basename="${1}"
-  old_suffix=0
-  if [ -f ${basename}.1 ]; then
-    old_suffix=$(ls ${basename}.* | grep -oP '\d+$' | sort | tail -1)
-  fi
-  current_suffix=$(expr "$old_suffix" + 1)
-  echo "$basename".$current_suffix
+  > ${SCRIPT_LOG}
 }
 
 

@@ -55,8 +55,6 @@ RSpec.describe 'add-site.sh' do
 
   it_behaves_like 'should not run under non-root'
 
-  it_behaves_like 'should rotate log files', log_file_name: 'add-site.log'
-
   context 'without actual running commands' do
     include_context 'run in docker'
     let(:options) { '-p' }
