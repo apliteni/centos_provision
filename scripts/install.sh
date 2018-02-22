@@ -164,6 +164,30 @@ assert_installed(){
 
 
 
+is_exists_file(){
+  local file="${1}"
+  local result_on_skip="${2}"
+  debug "Checking ${file} file existence"
+  if isset "$SKIP_CHECKS"; then
+    debug "SKIP: аctual check of ${file} file existence disabled"
+    if [[ "$result_on_skip" == "no" ]]; then
+      debug "NO: simulate ${file} file does not exist"
+      return ${FAILURE_RESULT}
+    fi
+    debug "YES: simulate ${file} file exists"
+    return ${SUCCESS_RESULT}
+  fi
+  if [ -f "${file}" ]; then
+    debug "YES: ${file} file exists"
+    return ${SUCCESS_RESULT}
+  else
+    debug "NO: ${file} file does not exist"
+    return ${FAILURE_RESULT}
+  fi
+}
+
+
+
 set_ui_lang(){
   if empty "$UI_LANG"; then
     UI_LANG=$(detect_language)
@@ -394,23 +418,7 @@ init(){
 
 
 init_log(){
-  if [ -f ${SCRIPT_LOG} ]; then
-    name_for_old_log=$(get_name_for_old_log ${SCRIPT_LOG})
-    mv "$SCRIPT_LOG" "$name_for_old_log"
-    debug "Old log ${SCRIPT_LOG} moved to "$name_for_old_log""
-  else
-    debug "${SCRIPT_LOG} created"
-  fi
-}
-
-get_name_for_old_log(){
-  local basename="${1}"
-  old_suffix=0
-  if [ -f ${basename}.1 ]; then
-    old_suffix=$(ls ${basename}.* | grep -oP '\d+$' | sort | tail -1)
-  fi
-  current_suffix=$(expr "$old_suffix" + 1)
-  echo "$basename".$current_suffix
+  > ${SCRIPT_LOG}
 }
 
 
@@ -509,6 +517,7 @@ run_command(){
   local allow_errors="${4}"
   local run_as="${5}"
   local print_fail_message_method="${6}"
+  local reverse_ok_nok="${7}"
   debug "Evaluating command: ${command}"
   if empty "$message"; then
     run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
@@ -525,9 +534,10 @@ run_command(){
     print_command_status "$command" 'SKIPPED' 'yellow' "$hide_output"
     debug "Actual running disabled"
   else
-    really_run_command "${command}" "${hide_output}" "${allow_errors}" "${run_as}" "${print_fail_message_method}"
-  fi
-}
+    really_run_command "${command}" "${hide_output}" "${allow_errors}" "${run_as}" \
+      "${print_fail_message_method}" "${reverse_ok_nok}"
+    fi
+  }
 
 
 print_command_status(){
@@ -548,6 +558,7 @@ really_run_command(){
   local allow_errors="${3}"
   local run_as="${4}"
   local print_fail_message_method="${5}"
+  local reverse_ok_nok="${6}"
   local current_command_script=$(save_command_script "${command}" "${run_as}")
   local evaluated_command=$(command_run_as "${current_command_script}" "${run_as}")
   evaluated_command=$(unbuffer_streams "${evaluated_command}")
@@ -555,7 +566,11 @@ really_run_command(){
   evaluated_command=$(hide_command_output "${evaluated_command}" "${hide_output}")
   debug "Real command: ${evaluated_command}"
   if ! eval "${evaluated_command}"; then
-    print_command_status "${command}" 'NOK' 'red' "${hide_output}"
+    if empty "$reverse_ok_nok"; then
+      print_command_status "${command}" 'NOK' 'red' "${hide_output}"
+    else
+      print_command_status "${command}" 'OK' 'green' "${hide_output}"
+    fi
     if isset "$allow_errors"; then
       remove_current_command "$current_command_script"
       return ${FAILURE_RESULT}
@@ -565,7 +580,11 @@ really_run_command(){
       fail "${fail_message}" "see_logs"
     fi
   else
-    print_command_status "$command" 'OK' 'green' "$hide_output"
+    if empty "$reverse_ok_nok"; then
+      print_command_status "${command}" 'OK' 'green' "${hide_output}"
+    else
+      print_command_status "${command}" 'NOK' 'red' "${hide_output}"
+    fi
     remove_current_command "$current_command_script"
   fi
 }
@@ -784,9 +803,12 @@ DICT['en.errors.see_logs']=$(cat <<- END
 	You can rerun \`${SCRIPT_COMMAND}\` with saved settings after resolving installation problems.
 END
 )
-DICT['en.errors.yum_not_installed']='This installer works only on yum-based systems. Please run this programm in CentOS/RHEL/Fedora distro'
+DICT['en.errors.wrong_distro']='This installer works only on CentOS 7.x. Please run this program on clean CentOS server'
 DICT['en.errors.cant_install_firewall']='Please run this program in system with firewall support'
 DICT['en.errors.keitaro_dump_invalid']='SQL dump is broken'
+DICT['en.errors.isp_manager_installed']='You can not install Keitaro on the server with ISP Manager installed. Please run this program on a clean CentOS server.'
+DICT['en.errors.vesta_cp_installed']='You can not install Keitaro on the server with Vesta CP installed. Please run this program on a clean CentOS server.'
+DICT['en.errors.apache_installed']='You can not install Keitaro on the server with Apache HTTP server installed. Please run this program on a clean CentOS server.'
 DICT['en.prompts.skip_firewall']='Do you want to skip installing firewall?'
 DICT['en.prompts.skip_firewall.help']=$(cat <<- END
 	It looks that your system does not support firewall. This can be happen, for example, if you are using a virtual machine based on OpenVZ and the hosting provider has disabled conntrack support (see http://forum.firstvds.ru/viewtopic.php?f=3&t=10759).
@@ -837,9 +859,12 @@ DICT['ru.errors.see_logs']=$(cat <<- END
 	Вы можете повторно запустить \`${SCRIPT_COMMAND}\` с этими настройками после устранения возникших проблем.
 END
 )
-DICT['ru.errors.yum_not_installed']='Установщик keitaro работает только с пакетным менеджером yum. Пожалуйста, запустите эту программу в CentOS/RHEL/Fedora дистрибутиве'
+DICT['ru.errors.wrong_distro']='Установщик Keitaro работает только в CentOS 7.x. Пожалуйста, запустите эту программу в CentOS дистрибутиве'
 DICT['ru.errors.cant_install_firewall']='Пожалуйста, запустите эту программу на системе с поддержкой фаервола'
 DICT['ru.errors.keitaro_dump_invalid']='Указанный файл не является дампом Keitaro или загружен не полностью.'
+DICT['ru.errors.isp_manager_installed']="Программа установки не может быть запущена на серверах с установленным ISP Manager. Пожалуйста, запустите эту программу на чистом CentOS сервере."
+DICT['ru.errors.vesta_cp_installed']="Программа установки не может быть запущена на серверах с установленной Vesta CP. Пожалуйста, запустите эту программу на чистом CentOS сервере."
+DICT['ru.errors.apache_installed']="Программа установки не может быть запущена на серверах с установленным Apache HTTP server. Пожалуйста, запустите эту программу на чистом CentOS сервере."
 DICT['ru.prompts.skip_firewall']='Продолжить установку системы без фаервола?'
 DICT['ru.prompts.skip_firewall.help']=$(cat <<- END
 	Похоже, что на этот сервер невозможно установить фаервол. Такое может произойти, например если вы используете виртуальную машину на базе OpenVZ и хостинг провайдер отключил поддержку модуля conntrack (см. http://forum.firstvds.ru/viewtopic.php?f=3&t=10759).
@@ -1034,7 +1059,79 @@ en_usage(){
 stage2(){
   debug "Starting stage 2: make some asserts"
   assert_caller_root
-  assert_installed 'yum' 'errors.yum_not_installed'
+  assert_centos_distro
+  assert_pannels_not_installed
+  assert_apache_not_installed
+}
+
+
+
+assert_apache_not_installed(){
+  if isset "$SKIP_CHECKS"; then
+    debug "SKIPPED: actual checking of httpd skipped"
+  else
+    if is_installed httpd; then
+      fail "$(translate errors.apache_installed)"
+    fi
+  fi
+}
+
+
+
+
+assert_centos_distro(){
+  assert_installed 'yum' 'errors.wrong_distro'
+  if ! is_exists_file /etc/centos-release; then
+    fail "$(translate errors.wrong_distro)" "see_logs"
+  fi
+}
+
+
+
+
+assert_pannels_not_installed(){
+  if isset "$SKIP_CHECKS"; then
+    debug "SKIPPED: actual checking of panels skipped"
+  else
+    if is_installed mysql; then
+      assert_isp_manager_not_installed
+      assert_vesta_cp_not_installed
+    fi
+  fi
+}
+
+
+assert_isp_manager_not_installed(){
+  if isp_manager_installed; then
+    debug "ISP Manager databases detected"
+    fail "$(translate errors.isp_manager_installed)"
+  fi
+}
+
+
+assert_vesta_cp_not_installed(){
+  if vesta_cp_installed; then
+    debug "Vesta CP databases detected"
+    fail "$(translate errors.vesta_cp_installed)"
+  fi
+}
+
+
+isp_manager_installed(){
+  databases_exist roundcube test
+}
+
+
+vesta_cp_installed(){
+  databases_exist admin_default roundcube
+}
+
+
+databases_exist(){
+  local db1="${1}"
+  local db2="${2}"
+  debug "Detect exist databases ${db1} ${db2}"
+  mysql -Nse 'show databases' | tr '\n' ' ' | grep -Pq "${db1}.*${db2}"
 }
 
 
