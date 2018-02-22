@@ -1,12 +1,13 @@
 #!/usr/bin/env powscript
 
 
-assert_old_mysql_not_installed()
+assert_pannels_not_installed()
   if isset $SKIP_CHECKS
     debug "SKIPPED: actual checking of panels skipped"
   else
-    if is_installed mysql && mysql_database_exists roundcube
+    if is_installed mysql
       assert_isp_manager_not_installed
+      assert_vesta_cp_not_installed
 
 
 assert_isp_manager_not_installed()
@@ -14,10 +15,21 @@ assert_isp_manager_not_installed()
     fail "$(translate errors.isp_manager_installed)"
 
 
+assert_vesta_cp_not_installed()
+  if vesta_cp_installed
+    fail "$(translate errors.vesta_cp_installed)"
+
+
 isp_manager_installed()
   local detect_dbs_command = $(build_detext_databases_comand roundcube test)
   run_command "${detect_dbs_command}" \
               "$(translate 'messages.check_isp_manager_installed')" 'hide_output' 'allow_errors'
+
+
+vesta_cp_installed()
+  local detect_dbs_command = $(build_detext_databases_comand admin_default roundcube)
+  run_command "${detect_dbs_command}" \
+              "$(translate 'messages.check_vesta_cp_installed')" 'hide_output' 'allow_errors'
 
 
 build_detect_databases_command(db1, db2)
