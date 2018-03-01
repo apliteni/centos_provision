@@ -1,8 +1,14 @@
 ---
+- name: install scl repo
+  yum:
+    name: centos-release-scl
+    state: latest
+
 - name: install php extensions
-  yum: name={{item}}
+  yum:
+    name: "{{ item }}"
+    state: installed
   with_items:
-    - centos-release-scl
     - "{{php_version}}"
     - "{{php_version}}-php-fpm"
     - "{{php_version}}-php-devel"
