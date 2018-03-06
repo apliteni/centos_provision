@@ -89,6 +89,14 @@ nginx_vhosts:
         try_files $uri $uri/ /index.php?$args;
       }
 
+      location /status {
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_pass unix:/var/run/php72-fpm.sock;
+        include fastcgi_params;
+        allow 127.0.0.1;
+        deny all;
+      }
+
       location /admin/ {
         access_log /var/log/nginx/admin.access.log combined buffer=16k;
       }
