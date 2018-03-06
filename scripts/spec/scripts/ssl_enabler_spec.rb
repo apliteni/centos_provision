@@ -59,7 +59,7 @@ RSpec.describe 'enable-ssl.sh' do
 
     let(:options) { '-s -p -l en' }
 
-    it_behaves_like 'should show default value', :ssl_agree_tos, showed_value: 'no'
+    it_behaves_like 'should show default value', :ssl_agree_tos, showed_value: 'yes'
 
     it_behaves_like 'should not show default value', :ssl_email
   end

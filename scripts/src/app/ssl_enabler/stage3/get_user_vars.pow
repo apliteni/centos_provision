@@ -12,11 +12,10 @@ get_user_vars()
 
 
 get_user_le_sa_agreement()
+  VARS['ssl_agree_tos']='yes'
   if isset $SKIP_SSL_AGREE_TOS
-    VARS['ssl_agree_tos']='yes'
     debug "Do not request SSL user agreement because appropriate option specified"
   else
-    VARS['ssl_agree_tos']='no'
     get_user_var 'ssl_agree_tos' 'validate_yes_no'
 
 
