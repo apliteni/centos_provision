@@ -42,6 +42,7 @@ require 'lib/yes_no/is_no.pow'
 require 'lib/yes_no/is_yes.pow'
 require 'lib/yes_no/transform_to_yes_no.pow'
 require 'lib/yes_no/validate_yes_no.pow'
+require 'lib/util/join_by.pow'
 
 require 'app/ssl_enabler/stage1.pow'
 require 'app/ssl_enabler/stage1/parse_options.pow'
