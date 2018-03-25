@@ -93,7 +93,7 @@ RSpec.describe 'enable-ssl.sh' do
     let(:options) { '-p' }
 
     shared_examples_for 'should enable ssl for Keitaro' do
-      it_behaves_like 'should print to', :stdout, 'certbot certonly --webroot'
+      it_behaves_like 'should print to', :log, 'certbot certonly --webroot'
     end
 
     context 'nginx is installed, certbot is installed, crontab is installed, nginx is configured properly' do
@@ -201,7 +201,7 @@ RSpec.describe 'enable-ssl.sh' do
 
     it_behaves_like 'should not print to', :stdout, 'Please enter your email'
 
-    it_behaves_like 'should print to', :stdout, /certbot certonly .* --email some.mail@example.com/
+    it_behaves_like 'should print to', :log, /certbot certonly .* --email some.mail@example.com/
   end
 
   context 'without email option specified' do
@@ -209,7 +209,7 @@ RSpec.describe 'enable-ssl.sh' do
 
     it_behaves_like 'should not print to', :stdout, 'Please enter your email'
 
-    it_behaves_like 'should print to', :stdout, /certbot certonly .* --register-unsafely-without-email/
+    it_behaves_like 'should print to', :log, /certbot certonly .* --register-unsafely-without-email/
   end
 
   # describe 'making symlinks' do
@@ -259,10 +259,10 @@ RSpec.describe 'enable-ssl.sh' do
     let(:options) { '-s -p' }
     let(:domains) { %w[d1.com d2.com] }
 
-    it_behaves_like 'should print to', :stdout,
+    it_behaves_like 'should print to', :log,
                     /certbot .* --non-interactive --domain d1.com --register-unsafely-without-email/
 
-    it_behaves_like 'should print to', :stdout,
+    it_behaves_like 'should print to', :log,
                     /certbot .* --non-interactive --domain d2.com --register-unsafely-without-email/
   end
 
