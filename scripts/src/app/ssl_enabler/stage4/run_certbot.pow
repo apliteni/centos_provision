@@ -25,4 +25,5 @@ run_certbot_for_domain(domain)
     certbot_command="${certbot_command} --email ${VARS['ssl_email']}"
   else
     certbot_command="${certbot_command} --register-unsafely-without-email"
-  run_command "${certbot_command}"
+  requesting_message=$(translate "messages.requesting_certificate_for")
+  run_command "${certbot_command}" "${requesting_message} ${domain}" "hide_output"
