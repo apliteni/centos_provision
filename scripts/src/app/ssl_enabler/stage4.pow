@@ -4,7 +4,7 @@
 stage4()
   debug "Starting stage 4: install LE certificates"
   run_certbot
-  make_cert_links
+  generate_nginx_configs
   add_renewal_job
   reload_nginx
   show_successful_message

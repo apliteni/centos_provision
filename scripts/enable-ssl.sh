@@ -135,6 +135,7 @@ DICT['en.errors.see_logs']="Evaluating log saved to ${SCRIPT_LOG}. Please rerun 
 DICT['en.messages.check_renewal_job_scheduled']="Check that the renewal job is scheduled"
 DICT['en.messages.check_inactual_renewal_job_scheduled']="Check that inactual renewal job is scheduled"
 DICT['en.messages.make_ssl_cert_links']="Make SSL certificate links"
+DICT['en.messages.generating_nginx_config_for']="Generating nginx config for"
 DICT['en.messages.actual_renewal_job_already_scheduled']="Actual renewal job already scheduled"
 DICT['en.messages.schedule_renewal_job']="Schedule renewal SSL certificate cron job"
 DICT['en.messages.unschedule_inactual_renewal_job']="Unschedule inactual renewal job"
@@ -154,6 +155,7 @@ DICT['ru.errors.see_logs']="Журнал выполнения сохранён �
 DICT['ru.messages.check_renewal_job_scheduled']="Проверяем наличие cron задачи обновления сертификатов"
 DICT['ru.messages.check_inactual_renewal_job_scheduled']="Проверяем наличие неактуальной cron задачи"
 DICT['ru.messages.make_ssl_cert_links']="Создаются ссылки на SSL сертификаты"
+DICT['ru.messages.generating_nginx_config_for']="Генерация конфигурации для"
 DICT['ru.messages.actual_renewal_job_already_scheduled']="Актуальная cron задача обновления сертификатов уже существует"
 DICT['ru.messages.schedule_renewal_job']="Добавляется cron задача обновления сертификатов"
 DICT['ru.messages.unschedule_inactual_renewal_job']="Удаляется неактуальная cron задача обновления сертификатов"
@@ -770,6 +772,14 @@ validate_yes_no(){
 
 
 
+join_by(){
+  local IFS="$1"
+  shift
+  echo "$*"
+}
+
+
+
 stage1(){
   debug "Starting stage 1: initial script setup"
   parse_options "$@"
@@ -998,7 +1008,7 @@ get_user_email(){
 stage4(){
   debug "Starting stage 4: install LE certificates"
   run_certbot
-  make_cert_links
+  generate_nginx_configs
   add_renewal_job
   reload_nginx
   show_successful_message
@@ -1067,8 +1077,19 @@ make_cert_links(){
 
 run_certbot(){
   debug "Run certbot"
-  certbot_command="certbot certonly --webroot --webroot-path=${WEBROOT_PATH} --agree-tos --non-interactive --expand"
-  certbot_command="${certbot_command} $(with_existent_domains) $(with_new_domains)"
+  local new_domains=$(join_by " " ${DOMAINS[@]})
+  echo "${new_domains}"
+  for domain in $new_domains; do
+    run_certbot_for_domain "${domain}"
+  done
+}
+
+
+run_certbot_for_domain(){
+  local domain="${1}"
+  debug "Running certbot for domain ${domain}"
+  certbot_command="certbot certonly --webroot --webroot-path=${WEBROOT_PATH} --agree-tos --non-interactive"
+  certbot_command="${certbot_command} --domain ${domain}"
   if isset "${VARS['ssl_email']}"; then
     certbot_command="${certbot_command} --email ${VARS['ssl_email']}"
   else
@@ -1077,23 +1098,29 @@ run_certbot(){
   run_command "${certbot_command}"
 }
 
-with_existent_domains(){
-  if [ -L "$NGINX_SSL_CERT_PATH" ]; then
-    debug "Getting domains from existent cert"
-    local dns_records=$(openssl x509 -text < "$NGINX_SSL_CERT_PATH" | grep DNS)
-    debug "Current dns records in ${NGINX_SSL_CERT_PATH}: ${dns_records}"
-    echo "$dns_records" | sed -r -e 's/(DNS:|,)//g' -e 's/\s+/ --domain /g'
-  else
-    debug "Lets Encrypt certificate is not issued yet"
-  fi
+
+
+generate_nginx_configs(){
+  debug "Generate nginx configs"
+  local new_domains=$(join_by " " ${DOMAINS[@]})
+  for domain in "${DOMAINS[@]}"; do
+    generate_nginx_config_for_domain "${domain}"
+  done
 }
 
-with_new_domains(){
-  local result=""
-  for domain in "${DOMAINS[@]}"; do
-    result="${result} --domain ${domain}"
-  done
-  echo "$result"
+generate_nginx_config_for_domain(){
+  local domain="${1}"
+  changes="-e 's|listen 80.*|listen 80;|g'"
+  changes="${changes} -e 's|server_name .*|server_name ${domain};|g'"
+  changes="${changes} -e 's|ssl_certificate .*|ssl_certificate /etc/letsencrypt/live/${domain}/fullchain.pem;|g'"
+  changes="${changes} -e 's|ssl_certificate_key .*|ssl_certificate_key /etc/letsencrypt/live/${domain}/privkey.pem;|g'"
+  changes="${changes} -e 's|error_log .*|error_log /var/log/nginx/${domain}-error.log;|g'"
+  changes="${changes} -e '/error_log/a    access_log /var/log/nginx/${domain}-access.log combined buffer=16k;'"
+  changes="${changes} -e 's|admin.access.log|${domain}-admin.access.log|g'"
+  changes="${changes} -e '/admin.access.log/a    error_log /var/log/nginx/${domain}-admin.error.log;'"
+  command="cat /etc/nginx/conf.d/vhosts.conf | sed ${changes} > /etc/nginx/conf.d/${domain}.conf"
+  generating_message=$(translate "messages.generating_nginx_config_for")
+  run_command "${command}" "${generating_message} ${domain}"
 }
 
 
@@ -1114,15 +1141,15 @@ show_successful_message(){
 
 
 enable_ssl(){
-  init "$@"
-  stage1 "$@"
+  init $@
+  stage1 $@
   stage2
   stage3
   stage4
 }
 
 
-enable_ssl "$@"
+enable_ssl $@
 
 # wait for all async child processes (because "await ... then" is used in powscript)
 [[ $ASYNC == 1 ]] && wait

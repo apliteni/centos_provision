@@ -1,0 +1,21 @@
+#!/usr/bin/env powscript
+
+
+generate_nginx_configs()
+  debug "Generate nginx configs"
+  local new_domains=$(join_by " " ${DOMAINS[@]})
+  for domain in "${DOMAINS[@]}"
+    generate_nginx_config_for_domain "${domain}"
+
+generate_nginx_config_for_domain(domain)
+  changes="-e 's|listen 80.*|listen 80;|g'"
+  changes="${changes} -e 's|server_name .*|server_name ${domain};|g'"
+  changes="${changes} -e 's|ssl_certificate .*|ssl_certificate /etc/letsencrypt/live/${domain}/fullchain.pem;|g'"
+  changes="${changes} -e 's|ssl_certificate_key .*|ssl_certificate_key /etc/letsencrypt/live/${domain}/privkey.pem;|g'"
+  changes="${changes} -e 's|error_log .*|error_log /var/log/nginx/${domain}-error.log;|g'"
+  changes="${changes} -e '/error_log/a    access_log /var/log/nginx/${domain}-access.log combined buffer=16k;'"
+  changes="${changes} -e 's|admin.access.log|${domain}-admin.access.log|g'"
+  changes="${changes} -e '/admin.access.log/a    error_log /var/log/nginx/${domain}-admin.error.log;'"
+  command="cat /etc/nginx/conf.d/vhosts.conf | sed ${changes} > /etc/nginx/conf.d/${domain}.conf"
+  generating_message=$(translate "messages.generating_nginx_config_for")
+  run_command "${command}" "${generating_message} ${domain}"
