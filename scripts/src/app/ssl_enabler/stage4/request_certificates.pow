@@ -1,21 +1,11 @@
 #!/usr/bin/env powscript
 
 
-run_certbot()
-  debug "Run certbot"
-  local new_domains=$(join_by " " ${DOMAINS[@]})
-  echo "${new_domains}"
-  for domain in $new_domains
+request_certificates()
+  debug "Requesting certificates"
+  for domain in $(get_domains)
     run_certbot_for_domain "${domain}"
 
-#with_existent_domains()
-#  if [ -L $NGINX_SSL_CERT_PATH ]
-#    debug "Getting domains from existent cert"
-#    local dns_records=$(openssl x509 -text < $NGINX_SSL_CERT_PATH | grep DNS)
-#    debug "Current dns records in ${NGINX_SSL_CERT_PATH}: ${dns_records}"
-#    echo $dns_records | sed -r -e 's/(DNS:|,)//g' -e 's/\s+/ --domain /g'
-#  else
-#    debug "Lets Encrypt certificate is not issued yet"
 
 run_certbot_for_domain(domain)
   debug "Running certbot for domain ${domain}"

@@ -3,8 +3,7 @@
 
 generate_nginx_configs()
   debug "Generate nginx configs"
-  local new_domains=$(join_by " " ${DOMAINS[@]})
-  for domain in "${DOMAINS[@]}"
+  for domain in $(get_domains)
     generate_nginx_config_for_domain "${domain}"
 
 generate_nginx_config_for_domain(domain)

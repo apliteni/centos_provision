@@ -782,6 +782,14 @@ join_by(){
 
 
 
+
+
+get_domains(){
+  join_by " " "${DOMAINS[@]}"
+}
+
+
+
 stage1(){
   debug "Starting stage 1: initial script setup"
   parse_options "$@"
@@ -917,6 +925,7 @@ stage2(){
   assert_installed 'crontab' 'errors.reinstall_keitaro'
   assert_installed 'certbot' 'errors.reinstall_keitaro_ssl'
   assert_nginx_configured
+  assert_nginx_config_for_domains_not_exist
 }
 
 
@@ -963,6 +972,22 @@ is_ssl_configured(){
 
 
 
+assert_nginx_config_for_domains_not_exist(){
+  for domain in $(get_domains); do
+    if nginx_config_for_domain_exist $domain; then
+      fail "$(translate 'errors.config_exists_for_domain')"
+    fi
+  done
+}
+
+
+nginx_config_for_domain_exist(){
+  local domain="${1}"
+  is_exist_file "/etc/nginx/conf.d/${domain}.conf" "no"
+}
+
+
+
 stage3(){
   debug "Starting stage 3: get user vars"
   get_user_vars
@@ -984,7 +1009,7 @@ get_user_vars(){
 
 get_user_le_sa_agreement(){
   VARS['ssl_agree_tos']='yes'
-  if isset "$SKIP_SSL_AGREE_TOS"; then
+  if isset $SKIP_SSL_AGREE_TOS; then
     debug "Do not request SSL user agreement because appropriate option specified"
   else
     get_user_var 'ssl_agree_tos' 'validate_yes_no'
@@ -993,10 +1018,10 @@ get_user_le_sa_agreement(){
 
 
 get_user_email(){
-  if isset "$SKIP_SSL_EMAIL"; then
+  if isset $SKIP_SSL_EMAIL; then
     debug "Do not request SSL email because appropriate option specified"
   else
-    if isset "$EMAIL"; then
+    if isset $EMAIL; then
       debug "Do not request SSL email because email specified by option"
       VARS['ssl_email']="${EMAIL}"
     else
@@ -1009,7 +1034,7 @@ get_user_email(){
 
 stage4(){
   debug "Starting stage 4: install LE certificates"
-  run_certbot
+  request_certificates
   generate_nginx_configs
   add_renewal_job
   reload_nginx
@@ -1025,7 +1050,7 @@ add_renewal_job(){
     debug "Renewal cron job already exists"
     print_translated 'messages.relevant_renewal_job_already_scheduled'
   else
-    schedule_renewal_job "$renew_cmd"
+    schedule_renewal_job $renew_cmd
   fi
   if crontab_matches "certbot renew" "messages.check_inactual_renewal_job_scheduled" "-u nginx"; then
     unschedule_inactual_renewal_job
@@ -1077,11 +1102,9 @@ make_cert_links(){
 
 
 
-run_certbot(){
-  debug "Run certbot"
-  local new_domains=$(join_by " " ${DOMAINS[@]})
-  echo "${new_domains}"
-  for domain in $new_domains; do
+request_certificates(){
+  debug "Requesting certificates"
+  for domain in $(get_domains); do
     run_certbot_for_domain "${domain}"
   done
 }
@@ -1105,8 +1128,7 @@ run_certbot_for_domain(){
 
 generate_nginx_configs(){
   debug "Generate nginx configs"
-  local new_domains=$(join_by " " ${DOMAINS[@]})
-  for domain in "${DOMAINS[@]}"; do
+  for domain in $(get_domains); do
     generate_nginx_config_for_domain "${domain}"
   done
 }

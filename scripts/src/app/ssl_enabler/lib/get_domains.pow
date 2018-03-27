@@ -1,0 +1,15 @@
+#!/usr/bin/env powscript
+
+
+#with_existent_domains()
+#  if [ -L $NGINX_SSL_CERT_PATH ]
+#    debug "Getting domains from existent cert"
+#    local dns_records=$(openssl x509 -text < $NGINX_SSL_CERT_PATH | grep DNS)
+#    debug "Current dns records in ${NGINX_SSL_CERT_PATH}: ${dns_records}"
+#    echo $dns_records | sed -r -e 's/(DNS:|,)//g' -e 's/\s+/ --domain /g'
+#  else
+#    debug "Lets Encrypt certificate is not issued yet"
+
+
+get_domains()
+  join_by " " "${DOMAINS[@]}"
