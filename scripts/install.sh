@@ -689,6 +689,12 @@ remove_current_command(){
 
 
 
+get_host_ip(){
+  (hostname -I 2>/dev/null || echo 127.0.0.1) | grep -oP '(\d+\.){3}\d+' | tr "\n" ' ' | awk '{print $1}'
+}
+
+
+
 get_error(){
   local var_name="${1}"
   local validation_methods_string="${2}"
@@ -1220,11 +1226,6 @@ can_install_firewall(){
   run_command 'iptables -t nat -L' \
               "$(translate 'messages.check_ability_firewall_installing')" 'hide_output' 'allow_errors'
             }
-
-
-get_host_ip(){
-  (hostname -I 2>/dev/null || true) | grep -oP '(\d+\.){3}\d+' | tr "\n" ' ' | awk '{print $1}'
-}
 
 
 
