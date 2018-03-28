@@ -1,0 +1,40 @@
+#!/usr/bin/env powscript
+
+
+regenerate_self_signed_cert()
+  if [ -L ${NGINX_SSL_CERT_PATH} ]
+    debug "${NGINX_SSL_CERT_PATH} is link. Getting cert domains"
+    local domains=$(get_domains_from_cert)
+    local main_domain=$(awk '{print $1}' <<< "${str}")
+    debug "Current domains in ${NGINX_SSL_CERT_PATH}: ${domains}"
+    save_cert_domains "${domains}"
+    remove_letsencrypt_certificate $main_domain
+    remove_certificate_links
+    generate_self_signed_certificate
+  else
+    debug "${NGINX_SSL_CERT_PATH} is not link, do not regenerate self-signed cert"
+
+
+get_domains_from_cert()
+  debug "Getting domains from existent cert"
+  openssl x509 -text < $NGINX_SSL_CERT_PATH | grep DNS | sed -r -e 's/(DNS:|,)//g'
+
+
+save_cert_domains(domains)
+  echo ${domains} > $CERT_DOMAINS_PATH
+
+
+remove_letsencrypt_certificate(domain)
+  rm -rf "/etc/letsencrypt/{live,archive}/${main_domain}"
+  rm -f "/etc/letsencrypt/${main_domain}.conf"
+
+
+remove_certificate_links()
+  rm -f $NGINX_SSL_CERT_PATH $NGINX_SSL_PRIVKEY_PATH
+
+
+generate_self_signed_certificate()
+  openssl req -x509 -newkey rsa:4096 -sha256 -nodes -days 3650 \
+    -out $NGINX_SSL_CERT_PATH \
+    -keyout $NGINX_SSL_PRIVKEY_PATH \
+    -subj "/CN=$(get_host_ip)"

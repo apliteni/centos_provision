@@ -60,7 +60,3 @@ is_keitaro_dump_valid(file)
 can_install_firewall()
   run_command 'iptables -t nat -L' \
               "$(translate 'messages.check_ability_firewall_installing')" 'hide_output' 'allow_errors'
-
-
-get_host_ip()
-  (hostname -I 2>/dev/null || true) | grep -oP '(\d+\.){3}\d+' | tr "\n" ' ' | awk '{print $1}'

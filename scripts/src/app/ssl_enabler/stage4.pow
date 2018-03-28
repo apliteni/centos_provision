@@ -3,6 +3,7 @@
 
 stage4()
   debug "Starting stage 4: install LE certificates"
+  regenerate_self_signed_cert
   request_certificates
   generate_nginx_configs
   add_renewal_job

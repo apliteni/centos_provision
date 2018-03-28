@@ -1,0 +1,5 @@
+#!/usr/bin/env powscript
+
+
+get_host_ip()
+  (hostname -I 2>/dev/null || echo 127.0.0.1) | grep -oP '(\d+\.){3}\d+' | tr "\n" ' ' | awk '{print $1}'

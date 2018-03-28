@@ -286,25 +286,24 @@ RSpec.describe 'enable-ssl.sh' do
     end
   end
 
-  # context 'certs already point to letsencrypt certs' do
-  #   include_context 'run in docker'
-  #
-  #   let(:command_stubs) { all_command_stubs }
-  #
-  #   let(:domains) { %w[d3.com d4.com] }
-  #   let(:commands) do
-  #     [
-  #       'mkdir -p /etc/letsencrypt/live/domain1.tld /etc/nginx/conf.d /etc/nginx/ssl',
-  #       'touch /etc/letsencrypt/live/domain1.tld/{cert,privkey}.pem',
-  #       'ln -s /etc/letsencrypt/live/domain1.tld/cert.pem /etc/nginx/ssl/cert.pem',
-  #       'ln -s /etc/letsencrypt/live/domain1.tld/privkey.pem /etc/nginx/ssl/privkey.pem',
-  #       %q(echo "echo \\"    DNS:d2.com, DNS:d1.com\\"" > /bin/openssl),
-  #       'chmod a+x /bin/openssl',
-  #       %Q{echo -e "#{nginx_conf}"> /etc/nginx/conf.d/vhosts.conf}
-  #     ]
-  #   end
-  #
-  #   it_behaves_like 'should print to', :stdout,
-  #                   /certbot .* --domain d2.com --domain d1.com  --domain d3.com --domain d4.com/
-  # end
+  context 'certs already point to letsencrypt certs' do
+    include_context 'run in docker'
+
+    let(:command_stubs) { all_command_stubs }
+
+    let(:domains) { %w[d3.com d4.com] }
+    let(:commands) do
+      [
+        'mkdir -p /etc/letsencrypt/live/d1.com /etc/nginx/conf.d /etc/nginx/ssl',
+        'touch /etc/letsencrypt/live/d1.com/{cert,privkey}.pem',
+        'ln -s /etc/letsencrypt/live/d1.com/cert.pem /etc/nginx/ssl/cert.pem',
+        'ln -s /etc/letsencrypt/live/d1.com/privkey.pem /etc/nginx/ssl/privkey.pem',
+        %q(echo "echo \\"    DNS:d1.com, DNS:d2.com\\"" > /bin/openssl),
+        'chmod a+x /bin/openssl',
+      ] + make_proper_nginx_conf
+    end
+
+    it_behaves_like 'should print to', :log,
+                    /certbot .* --domain d1.com/
+  end
 end

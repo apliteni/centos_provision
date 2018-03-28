@@ -123,6 +123,7 @@ declare -a DOMAINS
 NGINX_SSL_PATH="${NGINX_ROOT_PATH}/ssl"
 NGINX_SSL_CERT_PATH="${NGINX_SSL_PATH}/cert.pem"
 NGINX_SSL_PRIVKEY_PATH="${NGINX_SSL_PATH}/privkey.pem"
+CERT_DOMAINS_PATH=/root/.ssl_enabler_cert_domains
 
 
 RECONFIGURE_KEITARO_SSL_COMMAND_EN="curl -sSL ${KEITARO_URL}/install.sh | bash -s -- -l en -t nginx,ssl"
@@ -712,6 +713,20 @@ remove_current_command(){
 
 
 
+get_host_ip(){
+  (hostname -I 2>/dev/null || echo 127.0.0.1) | grep -oP '(\d+\.){3}\d+' | tr "\n" ' ' | awk '{print $1}'
+}
+
+
+
+join_by(){
+  local IFS="$1"
+  shift
+  echo "$*"
+}
+
+
+
 get_error(){
   local var_name="${1}"
   local validation_methods_string="${2}"
@@ -774,18 +789,8 @@ validate_yes_no(){
 
 
 
-join_by(){
-  local IFS="$1"
-  shift
-  echo "$*"
-}
-
-
-
-
-
 get_domains(){
-  join_by " " "${DOMAINS[@]}"
+  (cat "${CERT_DOMAINS_PATH}" 2>/dev/null; join_by " " "${DOMAINS[@]}")
 }
 
 
@@ -1034,6 +1039,7 @@ get_user_email(){
 
 stage4(){
   debug "Starting stage 4: install LE certificates"
+  regenerate_self_signed_cert
   request_certificates
   generate_nginx_configs
   add_renewal_job
@@ -1086,6 +1092,30 @@ crontab_matches(){
 
 
 
+generate_nginx_configs(){
+  debug "Generate nginx configs"
+  for domain in $(get_domains); do
+    generate_nginx_config_for_domain "${domain}"
+  done
+}
+
+generate_nginx_config_for_domain(){
+  local domain="${1}"
+  changes="-e 's|listen 80.*|listen 80;|g'"
+  changes="${changes} -e 's|server_name .*|server_name ${domain};|g'"
+  changes="${changes} -e 's|ssl_certificate .*|ssl_certificate /etc/letsencrypt/live/${domain}/fullchain.pem;|g'"
+  changes="${changes} -e 's|ssl_certificate_key .*|ssl_certificate_key /etc/letsencrypt/live/${domain}/privkey.pem;|g'"
+  changes="${changes} -e 's|error_log .*|error_log /var/log/nginx/${domain}-error.log;|g'"
+  changes="${changes} -e '/error_log/a    access_log /var/log/nginx/${domain}-access.log combined buffer=16k;'"
+  changes="${changes} -e 's|admin.access.log|${domain}-admin.access.log|g'"
+  changes="${changes} -e '/admin.access.log/a    error_log /var/log/nginx/${domain}-admin.error.log;'"
+  command="cat /etc/nginx/conf.d/vhosts.conf | sed ${changes} > /etc/nginx/conf.d/${domain}.conf"
+  generating_message=$(translate "messages.generating_nginx_config_for")
+  run_command "${command}" "${generating_message} ${domain}"
+}
+
+
+
 make_cert_links(){
   if [ -L ${NGINX_SSL_CERT_PATH} ]; then
     debug "${NGINX_SSL_CERT_PATH} is already link"
@@ -1099,6 +1129,55 @@ make_cert_links(){
     run_command "${command}" "$(translate 'messages.make_ssl_cert_links')" 'hide_output'
   fi
 }
+
+
+
+regenerate_self_signed_cert(){
+  if [ -L ${NGINX_SSL_CERT_PATH} ]; then
+    debug "${NGINX_SSL_CERT_PATH} is link. Getting cert domains"
+    local domains=$(get_domains_from_cert)
+    local main_domain=$(awk '{print $1}' <<< "${str}")
+    debug "Current domains in ${NGINX_SSL_CERT_PATH}: ${domains}"
+    save_cert_domains "${domains}"
+    remove_letsencrypt_certificate $main_domain
+    remove_certificate_links
+    generate_self_signed_certificate
+  else
+    debug "${NGINX_SSL_CERT_PATH} is not link, do not regenerate self-signed cert"
+  fi
+}
+
+
+get_domains_from_cert(){
+  debug "Getting domains from existent cert"
+  openssl x509 -text < $NGINX_SSL_CERT_PATH | grep DNS | sed -r -e 's/(DNS:|,)//g'
+}
+
+
+save_cert_domains(){
+  local domains="${1}"
+  echo ${domains} > $CERT_DOMAINS_PATH
+}
+
+
+remove_letsencrypt_certificate(){
+  local domain="${1}"
+  rm -rf "/etc/letsencrypt/{live,archive}/${main_domain}"
+  rm -f "/etc/letsencrypt/${main_domain}.conf"
+}
+
+
+remove_certificate_links(){
+  rm -f $NGINX_SSL_CERT_PATH $NGINX_SSL_PRIVKEY_PATH
+}
+
+
+generate_self_signed_certificate(){
+  openssl req -x509 -newkey rsa:4096 -sha256 -nodes -days 3650 \
+    -out $NGINX_SSL_CERT_PATH \
+    -keyout $NGINX_SSL_PRIVKEY_PATH \
+    -subj "/CN=$(get_host_ip)"
+  }
 
 
 
@@ -1122,30 +1201,6 @@ run_certbot_for_domain(){
   fi
   requesting_message=$(translate "messages.requesting_certificate_for")
   run_command "${certbot_command}" "${requesting_message} ${domain}" "hide_output"
-}
-
-
-
-generate_nginx_configs(){
-  debug "Generate nginx configs"
-  for domain in $(get_domains); do
-    generate_nginx_config_for_domain "${domain}"
-  done
-}
-
-generate_nginx_config_for_domain(){
-  local domain="${1}"
-  changes="-e 's|listen 80.*|listen 80;|g'"
-  changes="${changes} -e 's|server_name .*|server_name ${domain};|g'"
-  changes="${changes} -e 's|ssl_certificate .*|ssl_certificate /etc/letsencrypt/live/${domain}/fullchain.pem;|g'"
-  changes="${changes} -e 's|ssl_certificate_key .*|ssl_certificate_key /etc/letsencrypt/live/${domain}/privkey.pem;|g'"
-  changes="${changes} -e 's|error_log .*|error_log /var/log/nginx/${domain}-error.log;|g'"
-  changes="${changes} -e '/error_log/a    access_log /var/log/nginx/${domain}-access.log combined buffer=16k;'"
-  changes="${changes} -e 's|admin.access.log|${domain}-admin.access.log|g'"
-  changes="${changes} -e '/admin.access.log/a    error_log /var/log/nginx/${domain}-admin.error.log;'"
-  command="cat /etc/nginx/conf.d/vhosts.conf | sed ${changes} > /etc/nginx/conf.d/${domain}.conf"
-  generating_message=$(translate "messages.generating_nginx_config_for")
-  run_command "${command}" "${generating_message} ${domain}"
 }
 
 
