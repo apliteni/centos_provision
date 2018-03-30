@@ -47,7 +47,9 @@ PROGRAM_NAME='enable-ssl'
 SHELL_NAME=$(basename "$0")
 
 SUCCESS_RESULT=0
+TRUE=0
 FAILURE_RESULT=1
+FALSE=1
 ROOT_UID=0
 
 KEITARO_URL="https://keitarotds.com"
@@ -142,6 +144,9 @@ DICT['en.messages.actual_renewal_job_already_scheduled']="Actual renewal job alr
 DICT['en.messages.schedule_renewal_job']="Schedule renewal SSL certificate cron job"
 DICT['en.messages.unschedule_inactual_renewal_job']="Unschedule inactual renewal job"
 DICT['en.messages.ssl_enabled_for_sites']="SSL certificates enabled for sites:"
+DICT['en.warningns.nginx_config_exists_for_domain']="nginx config already exists"
+DICT['en.warningns.certificate_exists_for_domain']="certificate already exists"
+DICT['en.warningns.skip_nginx_config_generation']="skip nginx config generation"
 DICT['en.prompts.ssl_agree_tos']="Do you agree with terms of Let's Encrypt Subscriber Agreement?"
 DICT['en.prompts.ssl_agree_tos.help']=$(cat <<- END
 	Make sure all the domains are already linked to this server in the DNS
@@ -163,6 +168,9 @@ DICT['ru.messages.actual_renewal_job_already_scheduled']="Актуальная c
 DICT['ru.messages.schedule_renewal_job']="Добавляется cron задача обновления сертификатов"
 DICT['ru.messages.unschedule_inactual_renewal_job']="Удаляется неактуальная cron задача обновления сертификатов"
 DICT['ru.messages.ssl_enabled_for_sites']="SSL сертификаты подключены для сайтов:"
+DICT['ru.warningns.nginx_config_exists_for_domain']="nginx конфигурация уже существует"
+DICT['ru.warningns.certificate_exists_for_domain']="сертификат уже существует"
+DICT['ru.warningns.skip_nginx_config_generation']="пропускаем генерацию конфигурации nginx"
 DICT['ru.prompts.ssl_agree_tos']="Вы согласны с условиями Абонентского Соглашения Let's Encrypt?"
 DICT['ru.prompts.ssl_agree_tos.help']=$(cat <<- END
 	Убедитесь, что все указанные домены привязаны к этому серверу в DNS.
@@ -220,6 +228,30 @@ is_exists_file(){
     return ${SUCCESS_RESULT}
   else
     debug "NO: ${file} file does not exist"
+    return ${FAILURE_RESULT}
+  fi
+}
+
+
+
+is_exists_directory(){
+  local directory="${1}"
+  local result_on_skip="${2}"
+  debug "Checking ${directory} directory existence"
+  if isset "$SKIP_CHECKS"; then
+    debug "SKIP: аctual check of ${directory} directory existence disabled"
+    if [[ "$result_on_skip" == "no" ]]; then
+      debug "NO: simulate ${directory} directory does not exist"
+      return ${FAILURE_RESULT}
+    fi
+    debug "YES: simulate ${directory} directory exists"
+    return ${SUCCESS_RESULT}
+  fi
+  if [ -d "${directory}" ]; then
+    debug "YES: ${directory} directory exists"
+    return ${SUCCESS_RESULT}
+  else
+    debug "NO: ${directory} directory does not exist"
     return ${FAILURE_RESULT}
   fi
 }
@@ -930,7 +962,6 @@ stage2(){
   assert_installed 'crontab' 'errors.reinstall_keitaro'
   assert_installed 'certbot' 'errors.reinstall_keitaro_ssl'
   assert_nginx_configured
-  assert_nginx_config_for_domains_not_exist
 }
 
 
@@ -977,22 +1008,6 @@ is_ssl_configured(){
 
 
 
-assert_nginx_config_for_domains_not_exist(){
-  for domain in $(get_domains); do
-    if nginx_config_for_domain_exist $domain; then
-      fail "$(translate 'errors.config_exists_for_domain')"
-    fi
-  done
-}
-
-
-nginx_config_for_domain_exist(){
-  local domain="${1}"
-  is_exist_file "/etc/nginx/conf.d/${domain}.conf" "no"
-}
-
-
-
 stage3(){
   debug "Starting stage 3: get user vars"
   get_user_vars
@@ -1014,7 +1029,7 @@ get_user_vars(){
 
 get_user_le_sa_agreement(){
   VARS['ssl_agree_tos']='yes'
-  if isset $SKIP_SSL_AGREE_TOS; then
+  if isset "$SKIP_SSL_AGREE_TOS"; then
     debug "Do not request SSL user agreement because appropriate option specified"
   else
     get_user_var 'ssl_agree_tos' 'validate_yes_no'
@@ -1023,10 +1038,10 @@ get_user_le_sa_agreement(){
 
 
 get_user_email(){
-  if isset $SKIP_SSL_EMAIL; then
+  if isset "$SKIP_SSL_EMAIL"; then
     debug "Do not request SSL email because appropriate option specified"
   else
-    if isset $EMAIL; then
+    if isset "$EMAIL"; then
       debug "Do not request SSL email because email specified by option"
       VARS['ssl_email']="${EMAIL}"
     else
@@ -1040,8 +1055,7 @@ get_user_email(){
 stage4(){
   debug "Starting stage 4: install LE certificates"
   regenerate_self_signed_cert
-  request_certificates
-  generate_nginx_configs
+  generate_certificates
   add_renewal_job
   reload_nginx
   show_successful_message
@@ -1056,7 +1070,7 @@ add_renewal_job(){
     debug "Renewal cron job already exists"
     print_translated 'messages.relevant_renewal_job_already_scheduled'
   else
-    schedule_renewal_job $renew_cmd
+    schedule_renewal_job "$renew_cmd"
   fi
   if crontab_matches "certbot renew" "messages.check_inactual_renewal_job_scheduled" "-u nginx"; then
     unschedule_inactual_renewal_job
@@ -1092,14 +1106,115 @@ crontab_matches(){
 
 
 
-generate_nginx_configs(){
-  debug "Generate nginx configs"
-  for domain in $(get_domains); do
-    generate_nginx_config_for_domain "${domain}"
-  done
+regenerate_self_signed_cert(){
+  if [ -L ${NGINX_SSL_CERT_PATH} ]; then
+    debug "${NGINX_SSL_CERT_PATH} is link. Getting cert domains"
+    local domains=$(get_domains_from_cert)
+    local main_domain=$(awk '{print $1}' <<< "${domains}")
+    debug "Current domains in ${NGINX_SSL_CERT_PATH}: ${domains}. Main domain: ${main_domain}"
+    save_cert_domains "${domains}"
+    remove_letsencrypt_certificate "$main_domain"
+    generate_self_signed_certificate
+  else
+    debug "${NGINX_SSL_CERT_PATH} is not link, do not regenerate self-signed cert"
+  fi
 }
 
-generate_nginx_config_for_domain(){
+
+get_domains_from_cert(){
+  debug "Getting domains from existent cert"
+  openssl x509 -text < "$NGINX_SSL_CERT_PATH" | grep DNS | sed -r -e 's/(DNS:|,)//g'
+}
+
+
+save_cert_domains(){
+  local domains="${1}"
+  debug "Saving cert domains"
+  echo ${domains} > "$CERT_DOMAINS_PATH"
+}
+
+
+remove_letsencrypt_certificate(){
+  local domain="${1}"
+  debug "Removing old certificate for domain ${domain}"
+  rm -rf "/etc/letsencrypt/live/${domain}"
+  rm -rf "/etc/letsencrypt/archive/${domain}"
+  rm -f "/etc/letsencrypt/renewal/${domain}.conf"
+  rm -f "$NGINX_SSL_CERT_PATH" "$NGINX_SSL_PRIVKEY_PATH"
+}
+
+
+generate_self_signed_certificate(){
+  command="openssl req -x509 -newkey rsa:4096 -sha256 -nodes -days 3650"
+  command="${command} -out "$NGINX_SSL_CERT_PATH" -keyout "$NGINX_SSL_PRIVKEY_PATH""
+  command="${command} -subj '/CN=$(get_host_ip)'"
+  run_command "${command}" 'Generating self-signed certificate' 'hide_output'
+}
+
+
+
+generate_certificates(){
+  debug "Requesting certificates"
+  for domain in $(get_domains); do
+    certificate_generated=${FALSE}
+    if domaindomainsdomain; then
+      debug "Certificate already exists for domain ${domain}"
+      print_with_color "${domain}: $(translate 'warnings.certificate_exists_for_domain')" "yellow"
+      certificate_generated=${TRUE}
+    else
+      debug "Certificate for domain ${domain} does not exist"
+      if request_certificate_for "${domain}"; then
+        debug "Certificate for domain ${domain} successfully issued"
+        certificate_generated=${TRUE}
+      else
+        debug "There was an error while issuing certificate for domain ${domain}"
+      fi
+    fi
+    if [[ ${certificate_generated} ]]; then
+      if nginx_config_exists_for_domain $domain; then
+        debug "Nginx config for ${domain} already exists, skip generation"
+        print_with_color "${domain}: $(translate 'warnings.nginx_config_exists_for_domain')" "yellow"
+      else
+        debug "Generating config for ${domain}"
+        generate_nginx_config_for "${domain}"
+      fi
+    else
+      debug "Skip generation nginx config ${domain} due errors while cert issuing"
+      print_with_color "${domain}: $(translate 'warnings.skip_nginx_config_generation')" "yellow"
+    fi
+  done
+  rm -f "${CERT_DOMAINS_PATH}"
+}
+
+
+nginx_config_exists_for_domain(){
+  local domain="${1}"
+  is_exists_file "/etc/nginx/conf.d/${domain}.conf" "no"
+}
+
+
+request_certificate_for(){
+  local domain="${1}"
+  debug "Requesting certificate for domain ${domain}"
+  certbot_command="certbot certonly --webroot --webroot-path=${WEBROOT_PATH} --agree-tos --non-interactive"
+  certbot_command="${certbot_command} --domain ${domain}"
+  if isset "${VARS['ssl_email']}"; then
+    certbot_command="${certbot_command} --email ${VARS['ssl_email']}"
+  else
+    certbot_command="${certbot_command} --register-unsafely-without-email"
+  fi
+  requesting_message=$(translate "messages.requesting_certificate_for")
+  run_command "${certbot_command}" "${requesting_message} ${domain}" "hide_output"
+}
+
+
+certificate_exists_for_domain(){
+  local domain="${1}"
+  is_exists_directory "/etc/letsencrypt/live/${domain}" "no"
+}
+
+
+generate_nginx_config_for(){
   local domain="${1}"
   changes="-e 's|listen 80.*|listen 80;|g'"
   changes="${changes} -e 's|server_name .*|server_name ${domain};|g'"
@@ -1111,96 +1226,7 @@ generate_nginx_config_for_domain(){
   changes="${changes} -e '/admin.access.log/a    error_log /var/log/nginx/${domain}-admin.error.log;'"
   command="cat /etc/nginx/conf.d/vhosts.conf | sed ${changes} > /etc/nginx/conf.d/${domain}.conf"
   generating_message=$(translate "messages.generating_nginx_config_for")
-  run_command "${command}" "${generating_message} ${domain}"
-}
-
-
-
-make_cert_links(){
-  if [ -L ${NGINX_SSL_CERT_PATH} ]; then
-    debug "${NGINX_SSL_CERT_PATH} is already link"
-  else
-    debug "Make certificate links"
-    local le_cert_path="/etc/letsencrypt/live/${DOMAINS[0]}/fullchain.pem"
-    local le_privkey_path="/etc/letsencrypt/live/${DOMAINS[0]}/privkey.pem"
-    local command="rm -f ${NGINX_SSL_CERT_PATH} && rm -f ${NGINX_SSL_PRIVKEY_PATH}"
-    command="${command} && ln -s ${le_cert_path} ${NGINX_SSL_CERT_PATH}"
-    command="${command} && ln -s ${le_privkey_path} ${NGINX_SSL_PRIVKEY_PATH}"
-    run_command "${command}" "$(translate 'messages.make_ssl_cert_links')" 'hide_output'
-  fi
-}
-
-
-
-regenerate_self_signed_cert(){
-  if [ -L ${NGINX_SSL_CERT_PATH} ]; then
-    debug "${NGINX_SSL_CERT_PATH} is link. Getting cert domains"
-    local domains=$(get_domains_from_cert)
-    local main_domain=$(awk '{print $1}' <<< "${str}")
-    debug "Current domains in ${NGINX_SSL_CERT_PATH}: ${domains}"
-    save_cert_domains "${domains}"
-    remove_letsencrypt_certificate $main_domain
-    remove_certificate_links
-    generate_self_signed_certificate
-  else
-    debug "${NGINX_SSL_CERT_PATH} is not link, do not regenerate self-signed cert"
-  fi
-}
-
-
-get_domains_from_cert(){
-  debug "Getting domains from existent cert"
-  openssl x509 -text < $NGINX_SSL_CERT_PATH | grep DNS | sed -r -e 's/(DNS:|,)//g'
-}
-
-
-save_cert_domains(){
-  local domains="${1}"
-  echo ${domains} > $CERT_DOMAINS_PATH
-}
-
-
-remove_letsencrypt_certificate(){
-  local domain="${1}"
-  rm -rf "/etc/letsencrypt/{live,archive}/${main_domain}"
-  rm -f "/etc/letsencrypt/${main_domain}.conf"
-}
-
-
-remove_certificate_links(){
-  rm -f $NGINX_SSL_CERT_PATH $NGINX_SSL_PRIVKEY_PATH
-}
-
-
-generate_self_signed_certificate(){
-  openssl req -x509 -newkey rsa:4096 -sha256 -nodes -days 3650 \
-    -out $NGINX_SSL_CERT_PATH \
-    -keyout $NGINX_SSL_PRIVKEY_PATH \
-    -subj "/CN=$(get_host_ip)"
-  }
-
-
-
-request_certificates(){
-  debug "Requesting certificates"
-  for domain in $(get_domains); do
-    run_certbot_for_domain "${domain}"
-  done
-}
-
-
-run_certbot_for_domain(){
-  local domain="${1}"
-  debug "Running certbot for domain ${domain}"
-  certbot_command="certbot certonly --webroot --webroot-path=${WEBROOT_PATH} --agree-tos --non-interactive"
-  certbot_command="${certbot_command} --domain ${domain}"
-  if isset "${VARS['ssl_email']}"; then
-    certbot_command="${certbot_command} --email ${VARS['ssl_email']}"
-  else
-    certbot_command="${certbot_command} --register-unsafely-without-email"
-  fi
-  requesting_message=$(translate "messages.requesting_certificate_for")
-  run_command "${certbot_command}" "${requesting_message} ${domain}" "hide_output"
+  run_command "${command}" "${generating_message} ${domain}" "hide_output"
 }
 
 
