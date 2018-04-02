@@ -5,7 +5,7 @@ generate_certificates()
   debug "Requesting certificates"
   for domain in $(get_domains)
     certificate_generated=${FALSE}
-    if domaindomainsdomain
+    if certificate_exists_for_domain $domain
       debug "Certificate already exists for domain ${domain}"
       print_with_color "${domain}: $(translate 'warnings.certificate_exists_for_domain')" "yellow"
       certificate_generated=${TRUE}
@@ -18,15 +18,18 @@ generate_certificates()
         debug "There was an error while issuing certificate for domain ${domain}"
     if ${certificate_generated}
       if nginx_config_exists_for_domain $domain
-        debug "Nginx config for ${domain} already exists, skip generation"
-        print_with_color "${domain}: $(translate 'warnings.nginx_config_exists_for_domain')" "yellow"
-      else
-        debug "Generating config for ${domain}"
-        generate_nginx_config_for "${domain}"
+        debug "Saving old nginx config for ${domain}"
+        cp /etc/nginx/conf.d/${domain}.conf /etc/nginx/conf.d/${domain}.conf.$(date +%Y%m%d%H%M)
+      debug "Generating nginx config for ${domain}"
+      generate_nginx_config_for "${domain}"
     else
       debug "Skip generation nginx config ${domain} due errors while cert issuing"
       print_with_color "${domain}: $(translate 'warnings.skip_nginx_config_generation')" "yellow"
   rm -f "${CERT_DOMAINS_PATH}"
+
+
+certificate_exists_for_domain(domain)
+  is_exists_directory "/etc/letsencrypt/live/${domain}" "no"
 
 
 nginx_config_exists_for_domain(domain)
@@ -43,10 +46,6 @@ request_certificate_for(domain)
     certbot_command="${certbot_command} --register-unsafely-without-email"
   requesting_message=$(translate "messages.requesting_certificate_for")
   run_command "${certbot_command}" "${requesting_message} ${domain}" "hide_output"
-
-
-certificate_exists_for_domain(domain)
-  is_exists_directory "/etc/letsencrypt/live/${domain}" "no"
 
 
 generate_nginx_config_for(domain)

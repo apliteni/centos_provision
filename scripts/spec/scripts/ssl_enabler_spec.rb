@@ -292,6 +292,7 @@ RSpec.describe 'enable-ssl.sh' do
     let(:command_stubs) { all_command_stubs }
 
     let(:domains) { %w[d3.com d4.com] }
+    let(:extra_commands) { [] }
     let(:commands) do
       [
         'mkdir -p /etc/letsencrypt/live/d1.com /etc/nginx/conf.d /etc/nginx/ssl',
@@ -300,10 +301,35 @@ RSpec.describe 'enable-ssl.sh' do
         'ln -s /etc/letsencrypt/live/d1.com/privkey.pem /etc/nginx/ssl/privkey.pem',
         %q(echo "echo \\"    DNS:d1.com, DNS:d2.com\\"" > /bin/openssl),
         'chmod a+x /bin/openssl',
-      ] + make_proper_nginx_conf
+      ] + make_proper_nginx_conf + extra_commands
     end
 
-    it_behaves_like 'should print to', :log,
-                    /certbot .* --domain d1.com/
+    it_behaves_like 'should print to', :log, ['Requesting certificate for domain d1.com',
+                                              'Requesting certificate for domain d2.com',
+                                              'Requesting certificate for domain d3.com',
+                                              'Requesting certificate for domain d4.com']
+
+
+    it_behaves_like 'should print to', :log, ['Generating nginx config for d1.com',
+                                              'Generating nginx config for d2.com',
+                                              'Generating nginx config for d3.com',
+                                              'Generating nginx config for d4.com']
+
+    context 'certificate for domain d3.com already exists' do
+      let(:extra_commands) { ['mkdir -p /etc/letsencrypt/live/d3.com'] }
+
+      it_behaves_like 'should not print to', :log, 'Requesting certificate for domain d3.com'
+
+      it_behaves_like 'should print to', :log, 'Generating nginx config for d3.com'
+    end
+
+    context 'nginx config for domain d3.com already exists' do
+      let(:extra_commands) { ['touch /etc/nginx/conf.d/d3.com.conf'] }
+
+      it_behaves_like 'should print to', :log, ['Requesting certificate for domain d3.com',
+                                                'Saving old nginx config for d3.com',
+                                                'Generating nginx config for d3.com']
+    end
   end
 end
+
