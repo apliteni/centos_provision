@@ -176,16 +176,6 @@ RSpec.describe 'enable-ssl.sh' do
 
       it_behaves_like 'should print to', :stdout, /Everything is done!/
     end
-
-    context 'unsuccessful running certbot' do
-      let(:command_stubs) { all_command_stubs.merge(certbot: '/bin/false') }
-
-      it_behaves_like 'should exit with error', [
-        /There was an error evaluating current command\n(.*\n){3}  certbot certonly/,
-        'Evaluating log saved to enable-ssl.log',
-        'Please rerun `enable-ssl.sh domain1.tld`'
-      ]
-    end
   end
 
   context 'with agree LE SA option specified' do
@@ -329,6 +319,20 @@ RSpec.describe 'enable-ssl.sh' do
       it_behaves_like 'should print to', :log, ['Requesting certificate for domain d3.com',
                                                 'Saving old nginx config for d3.com',
                                                 'Generating nginx config for d3.com']
+    end
+
+    describe 'tries to issue certificate for all domains, even on requesting error' do
+      let(:command_stubs) { all_command_stubs.merge(certbot: '/bin/false') }
+
+
+      it_behaves_like 'should print to', :log, ['Requesting certificate for domain d1.com',
+                                                'Requesting certificate for domain d2.com',
+                                                'Requesting certificate for domain d3.com',
+                                                'Requesting certificate for domain d4.com']
+      it_behaves_like 'should not print to', :log, ['Generating nginx config for d1.com',
+                                                    'Generating nginx config for d2.com',
+                                                    'Generating nginx config for d3.com',
+                                                    'Generating nginx config for d4.com']
     end
   end
 end

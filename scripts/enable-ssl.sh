@@ -144,9 +144,9 @@ DICT['en.messages.actual_renewal_job_already_scheduled']="Actual renewal job alr
 DICT['en.messages.schedule_renewal_job']="Schedule renewal SSL certificate cron job"
 DICT['en.messages.unschedule_inactual_renewal_job']="Unschedule inactual renewal job"
 DICT['en.messages.ssl_enabled_for_sites']="SSL certificates enabled for sites:"
-DICT['en.warningns.nginx_config_exists_for_domain']="nginx config already exists"
-DICT['en.warningns.certificate_exists_for_domain']="certificate already exists"
-DICT['en.warningns.skip_nginx_config_generation']="skip nginx config generation"
+DICT['en.warnings.nginx_config_exists_for_domain']="nginx config already exists"
+DICT['en.warnings.certificate_exists_for_domain']="certificate already exists"
+DICT['en.warnings.skip_nginx_config_generation']="skip nginx config generation"
 DICT['en.prompts.ssl_agree_tos']="Do you agree with terms of Let's Encrypt Subscriber Agreement?"
 DICT['en.prompts.ssl_agree_tos.help']=$(cat <<- END
 	Make sure all the domains are already linked to this server in the DNS
@@ -168,9 +168,9 @@ DICT['ru.messages.actual_renewal_job_already_scheduled']="Актуальная c
 DICT['ru.messages.schedule_renewal_job']="Добавляется cron задача обновления сертификатов"
 DICT['ru.messages.unschedule_inactual_renewal_job']="Удаляется неактуальная cron задача обновления сертификатов"
 DICT['ru.messages.ssl_enabled_for_sites']="SSL сертификаты подключены для сайтов:"
-DICT['ru.warningns.nginx_config_exists_for_domain']="nginx конфигурация уже существует"
-DICT['ru.warningns.certificate_exists_for_domain']="сертификат уже существует"
-DICT['ru.warningns.skip_nginx_config_generation']="пропускаем генерацию конфигурации nginx"
+DICT['ru.warnings.nginx_config_exists_for_domain']="nginx конфигурация уже существует"
+DICT['ru.warnings.certificate_exists_for_domain']="сертификат уже существует"
+DICT['ru.warnings.skip_nginx_config_generation']="пропускаем генерацию конфигурации nginx"
 DICT['ru.prompts.ssl_agree_tos']="Вы согласны с условиями Абонентского Соглашения Let's Encrypt?"
 DICT['ru.prompts.ssl_agree_tos.help']=$(cat <<- END
 	Убедитесь, что все указанные домены привязаны к этому серверу в DNS.
@@ -1170,7 +1170,7 @@ generate_certificates(){
         debug "There was an error while issuing certificate for domain ${domain}"
       fi
     fi
-    if [[ ${certificate_generated} ]]; then
+    if [[ ${certificate_generated} == ${TRUE} ]]; then
       if nginx_config_exists_for_domain $domain; then
         debug "Saving old nginx config for ${domain}"
         cp /etc/nginx/conf.d/${domain}.conf /etc/nginx/conf.d/${domain}.conf.$(date +%Y%m%d%H%M)
@@ -1209,7 +1209,7 @@ request_certificate_for(){
     certbot_command="${certbot_command} --register-unsafely-without-email"
   fi
   requesting_message=$(translate "messages.requesting_certificate_for")
-  run_command "${certbot_command}" "${requesting_message} ${domain}" "hide_output"
+  run_command "${certbot_command}" "${requesting_message} ${domain}" "hide_output" "allow_errors"
 }
 
 
