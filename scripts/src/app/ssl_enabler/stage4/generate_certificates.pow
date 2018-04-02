@@ -16,7 +16,7 @@ generate_certificates()
         certificate_generated=${TRUE}
       else
         debug "There was an error while issuing certificate for domain ${domain}"
-    if ${certificate_generated}
+    if ${certificate_generated} == ${TRUE}
       if nginx_config_exists_for_domain $domain
         debug "Saving old nginx config for ${domain}"
         cp /etc/nginx/conf.d/${domain}.conf /etc/nginx/conf.d/${domain}.conf.$(date +%Y%m%d%H%M)
@@ -45,7 +45,7 @@ request_certificate_for(domain)
   else
     certbot_command="${certbot_command} --register-unsafely-without-email"
   requesting_message=$(translate "messages.requesting_certificate_for")
-  run_command "${certbot_command}" "${requesting_message} ${domain}" "hide_output"
+  run_command "${certbot_command}" "${requesting_message} ${domain}" "hide_output" "allow_errors"
 
 
 generate_nginx_config_for(domain)
