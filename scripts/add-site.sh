@@ -47,7 +47,9 @@ PROGRAM_NAME='add-site'
 SHELL_NAME=$(basename "$0")
 
 SUCCESS_RESULT=0
+TRUE=0
 FAILURE_RESULT=1
+FALSE=1
 ROOT_UID=0
 
 KEITARO_URL="https://keitarotds.com"

@@ -122,6 +122,8 @@ DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет
 
 
 declare -a DOMAINS
+declare -a SUCCESSFUL_DOMAINS
+declare -a FAILED_DOMAINS
 NGINX_SSL_PATH="${NGINX_ROOT_PATH}/ssl"
 NGINX_SSL_CERT_PATH="${NGINX_SSL_PATH}/cert.pem"
 NGINX_SSL_PRIVKEY_PATH="${NGINX_SSL_PATH}/privkey.pem"
@@ -143,7 +145,8 @@ DICT['en.messages.generating_nginx_config_for']="Generating nginx config for"
 DICT['en.messages.actual_renewal_job_already_scheduled']="Actual renewal job already scheduled"
 DICT['en.messages.schedule_renewal_job']="Schedule renewal SSL certificate cron job"
 DICT['en.messages.unschedule_inactual_renewal_job']="Unschedule inactual renewal job"
-DICT['en.messages.ssl_enabled_for_sites']="SSL certificates enabled for sites:"
+DICT['en.messages.ssl_enabled_for_sites']="SSL certificates are issued for sites:"
+DICT['en.messages.ssl_not_enabled_for_sites']="SSL certificates are not issued (see details in ${SCRIPT_LOG}) for sites:"
 DICT['en.warnings.nginx_config_exists_for_domain']="nginx config already exists"
 DICT['en.warnings.certificate_exists_for_domain']="certificate already exists"
 DICT['en.warnings.skip_nginx_config_generation']="skip nginx config generation"
@@ -167,7 +170,8 @@ DICT['ru.messages.generating_nginx_config_for']="Генерация конфиг
 DICT['ru.messages.actual_renewal_job_already_scheduled']="Актуальная cron задача обновления сертификатов уже существует"
 DICT['ru.messages.schedule_renewal_job']="Добавляется cron задача обновления сертификатов"
 DICT['ru.messages.unschedule_inactual_renewal_job']="Удаляется неактуальная cron задача обновления сертификатов"
-DICT['ru.messages.ssl_enabled_for_sites']="SSL сертификаты подключены для сайтов:"
+DICT['ru.messages.ssl_enabled_for_sites']="SSL сертификаты выпущены для сайтов:"
+DICT['ru.messages.ssl_not_enabled_for_sites']="SSL сертификаты не выпущены (смотрите детали в ${SCRIPT_LOG}) для сайтов:"
 DICT['ru.warnings.nginx_config_exists_for_domain']="nginx конфигурация уже существует"
 DICT['ru.warnings.certificate_exists_for_domain']="сертификат уже существует"
 DICT['ru.warnings.skip_nginx_config_generation']="пропускаем генерацию конфигурации nginx"
@@ -752,9 +756,11 @@ get_host_ip(){
 
 
 join_by(){
-  local IFS="$1"
+  local delimiter=$1
   shift
-  echo "$*"
+  echo -n "$1"
+  shift
+  printf "%s" "${@/#/${delimiter}}"
 }
 
 
@@ -1158,22 +1164,26 @@ generate_certificates(){
   for domain in $(get_domains); do
     certificate_generated=${FALSE}
     if certificate_exists_for_domain $domain; then
+      SUCCESSFUL_DOMAINS+=($domain)
       debug "Certificate already exists for domain ${domain}"
       print_with_color "${domain}: $(translate 'warnings.certificate_exists_for_domain')" "yellow"
       certificate_generated=${TRUE}
     else
       debug "Certificate for domain ${domain} does not exist"
       if request_certificate_for "${domain}"; then
+        SUCCESSFUL_DOMAINS+=($domain)
         debug "Certificate for domain ${domain} successfully issued"
         certificate_generated=${TRUE}
       else
+        FAILED_DOMAINS+=($domain)
         debug "There was an error while issuing certificate for domain ${domain}"
       fi
     fi
     if [[ ${certificate_generated} == ${TRUE} ]]; then
       if nginx_config_exists_for_domain $domain; then
-        debug "Saving old nginx config for ${domain}"
-        cp /etc/nginx/conf.d/${domain}.conf /etc/nginx/conf.d/${domain}.conf.$(date +%Y%m%d%H%M)
+        new_name="${domain}.conf.$(date +%Y%m%d%H%M)"
+        debug "Saving old nginx config for ${domain} to ${new_name}"
+        cp "/etc/nginx/conf.d/${domain}.conf" "/etc/nginx/conf.d/${new_name}"
       fi
       debug "Generating nginx config for ${domain}"
       generate_nginx_config_for "${domain}"
@@ -1232,10 +1242,17 @@ generate_nginx_config_for(){
 
 show_successful_message(){
   print_with_color "$(translate 'messages.successful')" 'green'
-  print_translated 'messages.ssl_enabled_for_sites'
-  for domain in "${DOMAINS[@]}"; do
-    print_with_color "https://${domain}/admin" 'green'
-  done
+  if isset $SUCCESSFUL_DOMAINS; then
+    message="$(translate 'messages.ssl_enabled_for_sites')"
+    sites=$(join_by ", " "${SUCCESSFUL_DOMAINS[@]}")
+    echo "$(print_with_color "OK. ${message} ${sites}" 'green')"
+  fi
+  if isset $FAILED_DOMAINS; then
+    KEEP_LOG=true
+    message="$(translate 'messages.ssl_not_enabled_for_sites')"
+    sites=$(join_by ", " "${FAILED_DOMAINS[@]}")
+    echo "$(print_with_color "NOK. ${message} ${sites}" 'yellow')"
+  fi
 }
 
 
