@@ -2,6 +2,8 @@
 
 
 join_by()
-  local IFS="$1"
+  local delimiter=$1
   shift
-  echo "$*"
+  echo -n "$1"
+  shift
+  printf "%s" "${@/#/${delimiter}}"

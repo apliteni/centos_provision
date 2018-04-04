@@ -6,20 +6,24 @@ generate_certificates()
   for domain in $(get_domains)
     certificate_generated=${FALSE}
     if certificate_exists_for_domain $domain
+      SUCCESSFUL_DOMAINS+=$domain
       debug "Certificate already exists for domain ${domain}"
       print_with_color "${domain}: $(translate 'warnings.certificate_exists_for_domain')" "yellow"
       certificate_generated=${TRUE}
     else
       debug "Certificate for domain ${domain} does not exist"
       if request_certificate_for "${domain}"
+        SUCCESSFUL_DOMAINS+=$domain
         debug "Certificate for domain ${domain} successfully issued"
         certificate_generated=${TRUE}
       else
+        FAILED_DOMAINS+=$domain
         debug "There was an error while issuing certificate for domain ${domain}"
     if ${certificate_generated} == ${TRUE}
       if nginx_config_exists_for_domain $domain
-        debug "Saving old nginx config for ${domain}"
-        cp /etc/nginx/conf.d/${domain}.conf /etc/nginx/conf.d/${domain}.conf.$(date +%Y%m%d%H%M)
+        new_name="${domain}.conf.$(date +%Y%m%d%H%M)"
+        debug "Saving old nginx config for ${domain} to ${new_name}"
+        cp "/etc/nginx/conf.d/${domain}.conf" "/etc/nginx/conf.d/${new_name}"
       debug "Generating nginx config for ${domain}"
       generate_nginx_config_for "${domain}"
     else

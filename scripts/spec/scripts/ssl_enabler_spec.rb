@@ -202,15 +202,6 @@ RSpec.describe 'enable-ssl.sh' do
     it_behaves_like 'should print to', :log, /certbot certonly .* --register-unsafely-without-email/
   end
 
-  # describe 'making symlinks' do
-  #   let(:options) { '-s -p' }
-  #
-  #   it_behaves_like 'should print to', :log, 'rm -f /etc/nginx/ssl/cert.pem'
-  #   it_behaves_like 'should print to', :log, 'ln -s /etc/letsencrypt/live/domain1.tld/fullchain.pem /etc/nginx/ssl/cert.pem'
-  #   it_behaves_like 'should print to', :log, 'rm -f /etc/nginx/ssl/privkey.pem'
-  #   it_behaves_like 'should print to', :log, 'ln -s /etc/letsencrypt/live/domain1.tld/privkey.pem /etc/nginx/ssl/privkey.pem'
-  # end
-
   describe 'adding cron task' do
     let(:docker_image) { 'centos' }
     let(:command_stubs) { all_command_stubs }
@@ -291,7 +282,7 @@ RSpec.describe 'enable-ssl.sh' do
         'ln -s /etc/letsencrypt/live/d1.com/privkey.pem /etc/nginx/ssl/privkey.pem',
         %q(echo "echo \\"    DNS:d1.com, DNS:d2.com\\"" > /bin/openssl),
         'chmod a+x /bin/openssl',
-      ] + make_proper_nginx_conf + extra_commands
+      ] + make_proper_nginx_conf + emulate_crontab + extra_commands
     end
 
     it_behaves_like 'should print to', :log, ['Requesting certificate for domain d1.com',
@@ -319,9 +310,15 @@ RSpec.describe 'enable-ssl.sh' do
       it_behaves_like 'should print to', :log, ['Requesting certificate for domain d3.com',
                                                 'Saving old nginx config for d3.com',
                                                 'Generating nginx config for d3.com']
+
+      it_behaves_like 'should print to', :stdout,
+                      'SSL certificates are issued for sites: d1.com, d2.com, d3.com, d4.com'
+
+      it_behaves_like 'should not print to', :stdout,
+                      'SSL certificates are not issued'
     end
 
-    describe 'tries to issue certificate for all domains, even on requesting error' do
+    describe 'tries to issue certificate for all sites, even on requesting error' do
       let(:command_stubs) { all_command_stubs.merge(certbot: '/bin/false') }
 
 
@@ -329,10 +326,16 @@ RSpec.describe 'enable-ssl.sh' do
                                                 'Requesting certificate for domain d2.com',
                                                 'Requesting certificate for domain d3.com',
                                                 'Requesting certificate for domain d4.com']
+
       it_behaves_like 'should not print to', :log, ['Generating nginx config for d1.com',
                                                     'Generating nginx config for d2.com',
                                                     'Generating nginx config for d3.com',
                                                     'Generating nginx config for d4.com']
+
+      it_behaves_like 'should not print to', :stdout, 'SSL certificates are issued'
+
+      it_behaves_like 'should print to', :stdout,
+                      /SSL certificates are not issued .* for sites: d1.com, d2.com, d3.com, d4.com/
     end
   end
 end

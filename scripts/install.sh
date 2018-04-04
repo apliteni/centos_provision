@@ -63,7 +63,9 @@ PROGRAM_NAME='install'
 SHELL_NAME=$(basename "$0")
 
 SUCCESS_RESULT=0
+TRUE=0
 FAILURE_RESULT=1
+FALSE=1
 ROOT_UID=0
 
 KEITARO_URL="https://keitarotds.com"
@@ -1367,7 +1369,7 @@ remove_inventory_file(){
 
 
 remove_log_files(){
-  if [[ ! "$PRESERVE_RUNNING" ]]; then
+  if !$PRESERVE_RUNNING && !$KEEP_LOG; then
     rm -f "${SCRIPT_LOG}" "${SCRIPT_LOG}.*"
   fi
 }
