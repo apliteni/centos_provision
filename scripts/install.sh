@@ -794,6 +794,8 @@ SSL_ENABLER_COMMAND_RU="curl -sSL ${KEITARO_URL}/enable-ssl.sh | bash -s -- -l r
 
 DICT['en.messages.check_ability_firewall_installing']="Checking the ability of installing a firewall"
 DICT['en.messages.check_keitaro_dump_validity']="Checking SQL dump"
+DICT['en.messages.enabling_ssl']="Enabling SSL"
+DICT["en.messages.successful.rerun_ssl_enabler"]="After troubleshooting, run ssl-enabler again"
 DICT['en.messages.successful.use_old_credentials']="The database was successfully restored from the archive. Use old login data"
 DICT['en.errors.see_logs']=$(cat <<- END
 	Installation log saved to ${SCRIPT_LOG}. Configuration settings saved to ${INVENTORY_FILE}.
@@ -850,7 +852,9 @@ DICT['en.prompt_errors.validate_keitaro_dump']='The SQL dump is broken, please s
 
 DICT['ru.messages.check_ability_firewall_installing']="Проверяем возможность установки фаервола"
 DICT['ru.messages.check_keitaro_dump_validity']="Проверяем SQL дамп"
+DICT['ru.messages.enabling_ssl']="Подключаем SSL"
 DICT["ru.messages.successful.use_old_credentials"]="База данных успешно восстановлена из архива. Используйте старые данные для входа в систему"
+DICT["ru.messages.successful.rerun_ssl_enabler"]="После устранения проблем запустите программу выдачи сертификатов заново"
 DICT['ru.errors.see_logs']=$(cat <<- END
 	Журнал установки сохранён в ${SCRIPT_LOG}. Настройки сохранены в ${INVENTORY_FILE}.
 	Вы можете повторно запустить \`${SCRIPT_COMMAND}\` с этими настройками после устранения возникших проблем.
@@ -1334,6 +1338,7 @@ stage5(){
   debug "Starting stage 5: run ansible playbook"
   download_provision
   run_ansible_playbook
+  run_ssl_enabler
   clean_up
   remove_inventory_file
   show_successful_message
@@ -1518,6 +1523,46 @@ get_printable_fields(){
 }
 
 
+SSL_RERUN_COMMAND=""
+SSL_SUCCESSFUL_DOMAINS=""
+SSL_FAILED_MESSAGE=""
+
+run_ssl_enabler(){
+  if [[ "${VARS['ssl_certificate']}" == 'letsencrypt' ]]; then
+    local options="-k"                                  # keep log
+    options="${options} -l ${UI_LANG}"                  # set language
+    if [[ "${VARS['ssl_email']}" ]]; then
+      options="${options} -e ${VARS['ssl_email']}"
+    else
+      options="${options} -w"
+    fi
+    options="${options} ${VARS['ssl_domains']//,/ }"
+    local command="curl https://keitarotds.com/enable-ssl.sh -sSL | bash -s -- ${options}"
+    print_with_color "$(translate 'messages.enabling_ssl')" 'green'
+    run_command "${command}" "${message}"
+    SSL_SUCCESSFUL_DOMAINS="$(extract_domains_from_enable_ssl_log OK)"
+    SSL_FAILED_MESSAGE="${(get_message_from_enable_ssl_log NOK)/NOK/}"
+    SSL_RERUN_COMMAND="${command/ -r / }"
+  fi
+}
+
+
+get_message_from_enable_ssl_log(){
+  local prefix="${1}"
+  cat enable-ssl.log | \
+    tail -n2 | \                    # get last 2 lines of log
+    sed -n "/^${prefix}/p"          # extract only OK/NOK messages
+  }
+
+
+extract_domains_from_enable_ssl_log(){
+  local prefix="${1}"
+  get_message_from_enable_ssl_log "$prefix" \
+    sed -e 's/.*: //g' -e 's/,//'   # extract domains list from message
+  }
+
+
+
 
 show_successful_message(){
   print_with_color "$(translate 'messages.successful')" 'green'
@@ -1526,12 +1571,16 @@ show_successful_message(){
   fi
   if [[ "${VARS['ssl_certificate']}" == 'letsencrypt' ]]; then
     protocol='https'
-    domain=$(expr match "${VARS['ssl_domains']}" '\([^,]*\)')
+    domain=$(expr match "${SSL_SUCCESSFUL_DOMAINS}" '\([^ ]*\)')
   else
     protocol='http'
     domain="${VARS['license_ip']}"
   fi
   print_with_color "${protocol}://${domain}/admin" 'light.green'
+  if isset "$SSL_FAILED_MESSAGE"; then
+    echo "$SSL_FAILED_MESSAGE"
+    print_with_color "$(messages.successful.rerun_ssl_enabler) ${SSL_RERUN_COMMAND}" 'yellow'
+  fi
   if is_yes "${VARS['db_restore']}"; then
     echo "$(translate 'messages.successful.use_old_credentials')"
   else

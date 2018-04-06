@@ -1,0 +1,33 @@
+#!/usr/bin/env powscript
+
+SSL_RERUN_COMMAND=""
+SSL_SUCCESSFUL_DOMAINS=""
+SSL_FAILED_MESSAGE=""
+
+run_ssl_enabler()
+  if "${VARS['ssl_certificate']}" == 'letsencrypt'
+    local options="-k"                                  # keep log
+    options="${options} -l ${UI_LANG}"                  # set language
+    if "${VARS['ssl_email']}"
+      options="${options} -e ${VARS['ssl_email']}"
+    else
+      options="${options} -w"
+    options="${options} ${VARS['ssl_domains']//,/ }"
+    local command="curl https://keitarotds.com/enable-ssl.sh -sSL | bash -s -- ${options}"
+    print_with_color "$(translate 'messages.enabling_ssl')" 'green'
+    run_command "${command}" "${message}"
+    SSL_SUCCESSFUL_DOMAINS="$(extract_domains_from_enable_ssl_log OK)"
+    SSL_FAILED_MESSAGE="${(get_message_from_enable_ssl_log NOK)/NOK/}"
+    SSL_RERUN_COMMAND="${command/ -r / }"
+
+
+get_message_from_enable_ssl_log(prefix)
+  cat enable-ssl.log | \
+    tail -n2 | \                    # get last 2 lines of log
+    sed -n "/^${prefix}/p"          # extract only OK/NOK messages
+
+
+extract_domains_from_enable_ssl_log(prefix)
+  get_message_from_enable_ssl_log $prefix \
+    sed -e 's/.*: //g' -e 's/,//'   # extract domains list from message
+

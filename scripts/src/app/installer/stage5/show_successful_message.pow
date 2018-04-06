@@ -7,11 +7,14 @@ show_successful_message()
     return
   if "${VARS['ssl_certificate']}" == 'letsencrypt'
     protocol='https'
-    domain=$(expr match "${VARS['ssl_domains']}" '\([^,]*\)')
+    domain=$(expr match "${SSL_SUCCESSFUL_DOMAINS}" '\([^ ]*\)')
   else
     protocol='http'
     domain="${VARS['license_ip']}"
   print_with_color "${protocol}://${domain}/admin" 'light.green'
+  if isset $SSL_FAILED_MESSAGE
+    echo $SSL_FAILED_MESSAGE
+    print_with_color "$(messages.successful.rerun_ssl_enabler) ${SSL_RERUN_COMMAND}" 'yellow'
   if is_yes "${VARS['db_restore']}"
     echo "$(translate 'messages.successful.use_old_credentials')"
   else
