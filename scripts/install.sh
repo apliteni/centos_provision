@@ -1532,6 +1532,7 @@ SSL_SUCCESSFUL_DOMAINS=""
 SSL_FAILED_MESSAGE=""
 SSL_RERUN_COMMAND=""
 SSL_OUTPUT_LOG="enable-ssl.output.log"
+SSL_SCRIPT_URL="https://keitarotds.com/enable-ssl.sh"
 
 run_ssl_enabler(){
   if [[ "${VARS['ssl_certificate']}" == 'letsencrypt' ]]; then
@@ -1542,14 +1543,15 @@ run_ssl_enabler(){
     else
       options="${options} -w"
     fi
-    options="${options} ${VARS['ssl_domains']//,/ }"
-    local command="curl https://keitarotds.com/enable-ssl.sh -sSL | bash -s -- ${options}"
+    local domains="${VARS['ssl_domains']//,/ }"
+    local command="curl -sSL ${SSL_SCRIPT_URL} | bash -s -- ${options} ${domains}"
     message="$(translate 'messages.enabling_ssl')"
     run_command "${command}" "${message}" "hide_output" "" "" "" "${SSL_OUTPUT_LOG}"
     SSL_SUCCESSFUL_DOMAINS="$(extract_domains_from_enable_ssl_log OK)"
+    local failed_domains="$(extract_domains_from_enable_ssl_log NOK)"
     SSL_FAILED_MESSAGE="$(get_message_from_enable_ssl_log NOK)"
     SSL_FAILED_MESSAGE="${SSL_FAILED_MESSAGE/NOK. /}"
-    SSL_RERUN_COMMAND="${command}"
+    SSL_RERUN_COMMAND="curl -sSL ${SSL_SCRIPT_URL} | bash -s -- ${options} ${failed_domains}"
     rm -f "${SSL_OUTPUT_LOG}"
   fi
 }
@@ -1603,7 +1605,8 @@ show_successful_message(){
   fi
   if isset "$SSL_FAILED_MESSAGE"; then
     print_with_color "${SSL_FAILED_MESSAGE}" 'yellow'
-    print_with_color "$(translate messages.successful.rerun_ssl_enabler) ${SSL_RERUN_COMMAND}" 'yellow'
+    print_with_color "$(translate messages.successful.rerun_ssl_enabler)" 'yellow'
+    print_with_color "${SSL_RERUN_COMMAND}" 'yellow'
   fi
 }
 
