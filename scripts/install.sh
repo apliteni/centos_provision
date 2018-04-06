@@ -1555,11 +1555,17 @@ run_ssl_enabler(){
 }
 
 
+remove_ansi_colors(){
+  sed -r "s/\x1B\[(([0-9]+)(;[0-9]+)*)?[m,K,H,f,J]//g"
+}
+
+
 get_message_from_enable_ssl_log(){
   local prefix="${1}"
   if is_exists_file "${SSL_OUTPUT_LOG}"; then
     cat "${SSL_OUTPUT_LOG}" \
       | tail -n2 \
+      | remove_ansi_colors \
       | sed -n "/^${prefix}/p"          # get last 2 lines of log and extract only OK/NOK messages
     fi
   }
@@ -1568,7 +1574,7 @@ get_message_from_enable_ssl_log(){
 extract_domains_from_enable_ssl_log(){
   local prefix="${1}"
   get_message_from_enable_ssl_log "$prefix" \
-    sed -e 's/.*: //g' -e 's/,//'   # extract domains list from message
+    | sed -e 's/.*: //g' -e 's/,//'     # extract domains list from message
   }
 
 
