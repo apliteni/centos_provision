@@ -6,7 +6,7 @@ SSL_FAILED_MESSAGE=""
 
 run_ssl_enabler()
   if "${VARS['ssl_certificate']}" == 'letsencrypt'
-    local options="-k"                                  # keep log
+    local options="-a"                                  # accept LE license agreement
     options="${options} -l ${UI_LANG}"                  # set language
     if "${VARS['ssl_email']}"
       options="${options} -e ${VARS['ssl_email']}"
@@ -17,14 +17,16 @@ run_ssl_enabler()
     message="$(translate 'messages.enabling_ssl')"
     run_command "${command}" "${message}" "hide_output"
     SSL_SUCCESSFUL_DOMAINS="$(extract_domains_from_enable_ssl_log OK)"
-    SSL_FAILED_MESSAGE="${(get_message_from_enable_ssl_log NOK)/NOK/}"
-    SSL_RERUN_COMMAND="${command/ -r / }"
+    SSL_FAILED_MESSAGE="$(get_message_from_enable_ssl_log NOK)"
+    SSL_FAILED_MESSAGE="${SSL_FAILED_MESSAGE/NOK/}"
+    SSL_RERUN_COMMAND="${command}"
 
 
 get_message_from_enable_ssl_log(prefix)
-  cat enable-ssl.log | \
-    tail -n2 | \                    # get last 2 lines of log
-    sed -n "/^${prefix}/p"          # extract only OK/NOK messages
+  if is_exists_file enable-ssl.log
+    cat enable-ssl.log \
+      | tail -n2 \
+      | sed -n "/^${prefix}/p"          # get last 2 lines of log and extract only OK/NOK messages
 
 
 extract_domains_from_enable_ssl_log(prefix)
