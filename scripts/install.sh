@@ -519,6 +519,7 @@ run_command(){
   local allow_errors="${4}"
   local run_as="${5}"
   local print_fail_message_method="${6}"
+  local output_log="${7}"
   debug "Evaluating command: ${command}"
   if empty "$message"; then
     run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
@@ -535,9 +536,10 @@ run_command(){
     print_command_status "$command" 'SKIPPED' 'yellow' "$hide_output"
     debug "Actual running disabled"
   else
-    really_run_command "${command}" "${hide_output}" "${allow_errors}" "${run_as}" "${print_fail_message_method}"
-  fi
-}
+    really_run_command "${command}" "${hide_output}" "${allow_errors}" "${run_as}" \
+        "${print_fail_message_method}" "${output_log}"
+      fi
+    }
 
 
 print_command_status(){
@@ -558,10 +560,11 @@ really_run_command(){
   local allow_errors="${3}"
   local run_as="${4}"
   local print_fail_message_method="${5}"
+  local output_log="${6}"
   local current_command_script=$(save_command_script "${command}" "${run_as}")
   local evaluated_command=$(command_run_as "${current_command_script}" "${run_as}")
   evaluated_command=$(unbuffer_streams "${evaluated_command}")
-  evaluated_command=$(save_command_logs "${evaluated_command}")
+  evaluated_command=$(save_command_logs "${evaluated_command}" "${output_log}")
   evaluated_command=$(hide_command_output "${evaluated_command}" "${hide_output}")
   debug "Real command: ${evaluated_command}"
   if ! eval "${evaluated_command}"; then
@@ -601,8 +604,10 @@ unbuffer_streams(){
 save_command_logs(){
   local evaluated_command="${1}"
   local output_log="${2}"
-  local error_log="${3}"
   save_output_log="tee -i ${CURRENT_COMMAND_OUTPUT_LOG} | tee -ia ${SCRIPT_LOG}"
+  if isset "${output_log}"; then
+    save_output_log="${save_output_log} | tee -i ${output_log}"
+  fi
   save_error_log="tee -i ${CURRENT_COMMAND_ERROR_LOG} | tee -ia ${SCRIPT_LOG}"
   echo "((${evaluated_command}) 2> >(${save_error_log}) > >(${save_output_log}))"
 }
@@ -1523,9 +1528,10 @@ get_printable_fields(){
 }
 
 
-SSL_RERUN_COMMAND=""
 SSL_SUCCESSFUL_DOMAINS=""
 SSL_FAILED_MESSAGE=""
+SSL_RERUN_COMMAND=""
+SSL_OUTPUT_LOG="enable-ssl.output.log"
 
 run_ssl_enabler(){
   if [[ "${VARS['ssl_certificate']}" == 'letsencrypt' ]]; then
@@ -1539,19 +1545,20 @@ run_ssl_enabler(){
     options="${options} ${VARS['ssl_domains']//,/ }"
     local command="curl https://keitarotds.com/enable-ssl.sh -sSL | bash -s -- ${options}"
     message="$(translate 'messages.enabling_ssl')"
-    run_command "${command}" "${message}" "hide_output"
+    run_command "${command}" "${message}" "hide_output" "" "" "" "${SSL_OUTPUT_LOG}"
     SSL_SUCCESSFUL_DOMAINS="$(extract_domains_from_enable_ssl_log OK)"
     SSL_FAILED_MESSAGE="$(get_message_from_enable_ssl_log NOK)"
     SSL_FAILED_MESSAGE="${SSL_FAILED_MESSAGE/NOK/}"
     SSL_RERUN_COMMAND="${command}"
+    rm -f "${SSL_OUTPUT_LOG}"
   fi
 }
 
 
 get_message_from_enable_ssl_log(){
   local prefix="${1}"
-  if is_exists_file enable-ssl.log; then
-    cat enable-ssl.log \
+  if is_exists_file "${SSL_OUTPUT_LOG}"; then
+    cat "${SSL_OUTPUT_LOG}" \
       | tail -n2 \
       | sed -n "/^${prefix}/p"          # get last 2 lines of log and extract only OK/NOK messages
     fi
