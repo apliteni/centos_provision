@@ -2,5 +2,5 @@
 
 
 remove_log_files()
-  if !$PRESERVE_RUNNING && !$KEEP_LOG
+  if ! $PRESERVE_RUNNING
     rm -f "${SCRIPT_LOG}" "${SCRIPT_LOG}.*"

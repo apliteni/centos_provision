@@ -1370,7 +1370,7 @@ remove_inventory_file(){
 
 
 remove_log_files(){
-  if !$PRESERVE_RUNNING && !$KEEP_LOG; then
+  if [[ ! "$PRESERVE_RUNNING" ]]; then
     rm -f "${SCRIPT_LOG}" "${SCRIPT_LOG}.*"
   fi
 }
@@ -1548,7 +1548,7 @@ run_ssl_enabler(){
     run_command "${command}" "${message}" "hide_output" "" "" "" "${SSL_OUTPUT_LOG}"
     SSL_SUCCESSFUL_DOMAINS="$(extract_domains_from_enable_ssl_log OK)"
     SSL_FAILED_MESSAGE="$(get_message_from_enable_ssl_log NOK)"
-    SSL_FAILED_MESSAGE="${SSL_FAILED_MESSAGE/NOK/}"
+    SSL_FAILED_MESSAGE="${SSL_FAILED_MESSAGE/NOK. /}"
     SSL_RERUN_COMMAND="${command}"
     rm -f "${SSL_OUTPUT_LOG}"
   fi
@@ -1562,7 +1562,7 @@ remove_ansi_colors(){
 
 get_message_from_enable_ssl_log(){
   local prefix="${1}"
-  if is_exists_file "${SSL_OUTPUT_LOG}"; then
+  if is_exists_file "${SSL_OUTPUT_LOG}" "no"; then
     cat "${SSL_OUTPUT_LOG}" \
       | tail -n2 \
       | remove_ansi_colors \
@@ -1585,7 +1585,7 @@ show_successful_message(){
   if [[ "$RECONFIGURE" ]]; then
     return
   fi
-  if [[ "${VARS['ssl_certificate']}" == 'letsencrypt' ]]; then
+  if [[ "${VARS['ssl_certificate']}" == 'letsencrypt' ]] && isset "${SSL_SUCCESSFUL_DOMAINS}" ]]; then
     protocol='https'
     domain=$(expr match "${SSL_SUCCESSFUL_DOMAINS}" '\([^ ]*\)')
   else
@@ -1593,10 +1593,6 @@ show_successful_message(){
     domain="${VARS['license_ip']}"
   fi
   print_with_color "${protocol}://${domain}/admin" 'light.green'
-  if isset "$SSL_FAILED_MESSAGE"; then
-    echo "$SSL_FAILED_MESSAGE"
-    print_with_color "$(messages.successful.rerun_ssl_enabler) ${SSL_RERUN_COMMAND}" 'yellow'
-  fi
   if is_yes "${VARS['db_restore']}"; then
     echo "$(translate 'messages.successful.use_old_credentials')"
   else
@@ -1604,6 +1600,10 @@ show_successful_message(){
     colored_password=$(print_with_color "${VARS['admin_password']}" 'light.green')
     echo -e "login: ${colored_login}"
     echo -e "password: ${colored_password}"
+  fi
+  if isset "$SSL_FAILED_MESSAGE"; then
+    print_with_color "${SSL_FAILED_MESSAGE}" 'yellow'
+    print_with_color "$(translate messages.successful.rerun_ssl_enabler) ${SSL_RERUN_COMMAND}" 'yellow'
   fi
 }
 

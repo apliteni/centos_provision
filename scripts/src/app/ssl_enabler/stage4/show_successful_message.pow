@@ -8,7 +8,6 @@ show_successful_message()
     sites=$(join_by ", " "${SUCCESSFUL_DOMAINS[@]}")
     echo "$(print_with_color "OK. ${message} ${sites}" 'green')"
   if isset $FAILED_DOMAINS
-    KEEP_LOG=true
     message="$(translate 'messages.ssl_not_enabled_for_sites')"
     sites=$(join_by ", " "${FAILED_DOMAINS[@]}")
     echo "$(print_with_color "NOK. ${message} ${sites}" 'yellow')"
