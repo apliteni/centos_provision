@@ -8,6 +8,8 @@ RSpec.describe 'install.sh' do
   let(:script_name) { 'install.sh' }
 
   let(:ssl) { 'no' }
+  let(:ssl_domains) { nil }
+  let(:ssl_email) { nil }
   let(:skip_firewall) { 'yes' }
   let(:license_ip) { '8.8.8.8' }
   let(:license_key) { 'WWWW-XXXX-YYYY-ZZZZ' }
@@ -26,6 +28,8 @@ RSpec.describe 'install.sh' do
       en: {
         skip_firewall: 'Do you want to skip installing firewall?',
         ssl: "Do you want to install Free SSL certificates from Let's Encrypt?",
+        ssl_domains: 'Please enter server domains, separated by comma without spaces (i.e. domain1.tld,domain2.tld)',
+        ssl_email: 'Please enter your email (you can left this field empty)',
         license_ip: 'Please enter server IP',
         license_key: 'Please enter license key',
         db_name: 'Please enter database name',
@@ -56,6 +60,8 @@ RSpec.describe 'install.sh' do
     {
       skip_firewall: skip_firewall,
       ssl: ssl,
+      ssl_domains: ssl_domains,
+      ssl_email: ssl_email,
       license_ip: license_ip,
       license_key: license_key,
       db_name: db_name,
@@ -365,5 +371,17 @@ RSpec.describe 'install.sh' do
       it_behaves_like 'should print to', :stdout, 'Checking SQL dump . NOK'
       it_behaves_like 'should exit with error', 'SQL dump is broken'
     end
+  end
+
+  describe 'ssl enabled' do
+    let(:options) { '-spl en' }
+
+    let(:ssl) { 'yes' }
+    let(:ssl_domains) { 'd1.com,d2.com' }
+    let(:ssl_email) { 'some@mail.com' }
+
+    it_behaves_like 'should print to', :stdout, 'Enabling SSL . SKIPPED'
+    it_behaves_like 'should print to', :log,
+                    %r{curl .*/enable-ssl.sh | bash -s -- -k -a -e some@mail.com d1.com d2.com}
   end
 end
