@@ -1,8 +1,9 @@
 #!/usr/bin/env powscript
 
-SSL_RERUN_COMMAND=""
 SSL_SUCCESSFUL_DOMAINS=""
 SSL_FAILED_MESSAGE=""
+SSL_RERUN_COMMAND=""
+SSL_OUTPUT_LOG="enable-ssl.output.log"
 
 run_ssl_enabler()
   if "${VARS['ssl_certificate']}" == 'letsencrypt'
@@ -15,16 +16,17 @@ run_ssl_enabler()
     options="${options} ${VARS['ssl_domains']//,/ }"
     local command="curl https://keitarotds.com/enable-ssl.sh -sSL | bash -s -- ${options}"
     message="$(translate 'messages.enabling_ssl')"
-    run_command "${command}" "${message}" "hide_output"
+    run_command "${command}" "${message}" "hide_output" "" "" "" "${SSL_OUTPUT_LOG}"
     SSL_SUCCESSFUL_DOMAINS="$(extract_domains_from_enable_ssl_log OK)"
     SSL_FAILED_MESSAGE="$(get_message_from_enable_ssl_log NOK)"
     SSL_FAILED_MESSAGE="${SSL_FAILED_MESSAGE/NOK/}"
     SSL_RERUN_COMMAND="${command}"
+    rm -f "${SSL_OUTPUT_LOG}"
 
 
 get_message_from_enable_ssl_log(prefix)
-  if is_exists_file enable-ssl.log
-    cat enable-ssl.log \
+  if is_exists_file "${SSL_OUTPUT_LOG}"
+    cat "${SSL_OUTPUT_LOG}" \
       | tail -n2 \
       | sed -n "/^${prefix}/p"          # get last 2 lines of log and extract only OK/NOK messages
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env powscript
 
 
-run_command(command, message, hide_output, allow_errors, run_as, print_fail_message_method)
+run_command(command, message, hide_output, allow_errors, run_as, print_fail_message_method, output_log)
   debug "Evaluating command: ${command}"
   if empty $message
     run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
@@ -16,7 +16,8 @@ run_command(command, message, hide_output, allow_errors, run_as, print_fail_mess
     print_command_status $command 'SKIPPED' 'yellow' $hide_output
     debug "Actual running disabled"
   else
-    really_run_command "${command}" "${hide_output}" "${allow_errors}" "${run_as}" "${print_fail_message_method}"
+    really_run_command "${command}" "${hide_output}" "${allow_errors}" "${run_as}" \
+        "${print_fail_message_method}" "${output_log}"
 
 
 print_command_status(command, status, color, hide_output)
@@ -25,11 +26,11 @@ print_command_status(command, status, color, hide_output)
     print_with_color $status $color
 
 
-really_run_command(command, hide_output, allow_errors, run_as, print_fail_message_method)
+really_run_command(command, hide_output, allow_errors, run_as, print_fail_message_method, output_log)
   local current_command_script=$(save_command_script "${command}" "${run_as}")
   local evaluated_command=$(command_run_as "${current_command_script}" "${run_as}")
   evaluated_command=$(unbuffer_streams "${evaluated_command}")
-  evaluated_command=$(save_command_logs "${evaluated_command}")
+  evaluated_command=$(save_command_logs "${evaluated_command}" "${output_log}")
   evaluated_command=$(hide_command_output "${evaluated_command}" "${hide_output}")
   debug "Real command: ${evaluated_command}"
   if ! eval "${evaluated_command}"
@@ -58,8 +59,10 @@ unbuffer_streams(command)
   echo "stdbuf -i0 -o0 -e0 ${command}"
 
 
-save_command_logs(evaluated_command, output_log, error_log)
+save_command_logs(evaluated_command, output_log)
   save_output_log="tee -i ${CURRENT_COMMAND_OUTPUT_LOG} | tee -ia ${SCRIPT_LOG}"
+  if isset "${output_log}"
+    save_output_log="${save_output_log} | tee -i ${output_log}"
   save_error_log="tee -i ${CURRENT_COMMAND_ERROR_LOG} | tee -ia ${SCRIPT_LOG}"
   echo "((${evaluated_command}) 2> >(${save_error_log}) > >(${save_output_log}))"
 
