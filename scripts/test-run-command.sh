@@ -48,7 +48,9 @@ PROGRAM_NAME='test-run-command'
 SHELL_NAME=$(basename "$0")
 
 SUCCESS_RESULT=0
+TRUE=0
 FAILURE_RESULT=1
+FALSE=1
 ROOT_UID=0
 
 KEITARO_URL="https://keitarotds.com"
@@ -334,7 +336,7 @@ run_command(){
   local allow_errors="${4}"
   local run_as="${5}"
   local print_fail_message_method="${6}"
-  local reverse_ok_nok="${7}"
+  local output_log="${7}"
   debug "Evaluating command: ${command}"
   if empty "$message"; then
     run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
@@ -352,9 +354,9 @@ run_command(){
     debug "Actual running disabled"
   else
     really_run_command "${command}" "${hide_output}" "${allow_errors}" "${run_as}" \
-      "${print_fail_message_method}" "${reverse_ok_nok}"
-    fi
-  }
+        "${print_fail_message_method}" "${output_log}"
+      fi
+    }
 
 
 print_command_status(){
@@ -375,19 +377,15 @@ really_run_command(){
   local allow_errors="${3}"
   local run_as="${4}"
   local print_fail_message_method="${5}"
-  local reverse_ok_nok="${6}"
+  local output_log="${6}"
   local current_command_script=$(save_command_script "${command}" "${run_as}")
   local evaluated_command=$(command_run_as "${current_command_script}" "${run_as}")
   evaluated_command=$(unbuffer_streams "${evaluated_command}")
-  evaluated_command=$(save_command_logs "${evaluated_command}")
+  evaluated_command=$(save_command_logs "${evaluated_command}" "${output_log}")
   evaluated_command=$(hide_command_output "${evaluated_command}" "${hide_output}")
   debug "Real command: ${evaluated_command}"
   if ! eval "${evaluated_command}"; then
-    if empty "$reverse_ok_nok"; then
-      print_command_status "${command}" 'NOK' 'red' "${hide_output}"
-    else
-      print_command_status "${command}" 'OK' 'green' "${hide_output}"
-    fi
+    print_command_status "${command}" 'NOK' 'red' "${hide_output}"
     if isset "$allow_errors"; then
       remove_current_command "$current_command_script"
       return ${FAILURE_RESULT}
@@ -397,11 +395,7 @@ really_run_command(){
       fail "${fail_message}" "see_logs"
     fi
   else
-    if empty "$reverse_ok_nok"; then
-      print_command_status "${command}" 'OK' 'green' "${hide_output}"
-    else
-      print_command_status "${command}" 'NOK' 'red' "${hide_output}"
-    fi
+    print_command_status "$command" 'OK' 'green' "$hide_output"
     remove_current_command "$current_command_script"
   fi
 }
@@ -427,8 +421,10 @@ unbuffer_streams(){
 save_command_logs(){
   local evaluated_command="${1}"
   local output_log="${2}"
-  local error_log="${3}"
   save_output_log="tee -i ${CURRENT_COMMAND_OUTPUT_LOG} | tee -ia ${SCRIPT_LOG}"
+  if isset "${output_log}"; then
+    save_output_log="${save_output_log} | tee -i ${output_log}"
+  fi
   save_error_log="tee -i ${CURRENT_COMMAND_ERROR_LOG} | tee -ia ${SCRIPT_LOG}"
   echo "((${evaluated_command}) 2> >(${save_error_log}) > >(${save_output_log}))"
 }
