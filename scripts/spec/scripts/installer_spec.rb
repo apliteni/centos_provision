@@ -169,16 +169,18 @@ RSpec.describe 'install.sh' do
     context 'should detect ip' do
       let(:options) { '-p' }
       let(:docker_image) { 'centos' }
+      let(:commands) { [
+        'echo "echo 127.0.0.1; echo 1.1.1.1" > /bin/hostname',
+        'chmod a+x /bin/hostname'
+      ] }
 
-      context 'field not stored in inventory' do
-        it_behaves_like 'should show default value', :license_ip, showed_value: /(\d+\.){3}\d+/
+      it_behaves_like 'should show default value', :license_ip, showed_value: '1.1.1.1'
 
-        it_behaves_like 'should store default value', :license_ip, readed_inventory_value: /(\d+\.){3}\d+/
+      it_behaves_like 'should store default value', :license_ip, readed_inventory_value: '1.1.1.1'
 
-        it_behaves_like 'should store user value', :license_ip, readed_inventory_value: '127.0.0.1'
-      end
+      it_behaves_like 'should store user value', :license_ip, readed_inventory_value: '1.1.1.1'
 
-      it_behaves_like 'should take value from previously saved inventory', :license_ip, value: '127.0.0.1'
+      it_behaves_like 'should take value from previously saved inventory', :license_ip, value: '1.1.1.1'
     end
 
     it_behaves_like 'field without default', :license_key, value: 'AAAA-BBBB-CCCC-DDDD'
