@@ -47,7 +47,9 @@ PROGRAM_NAME='enable-ssl'
 SHELL_NAME=$(basename "$0")
 
 SUCCESS_RESULT=0
+TRUE=0
 FAILURE_RESULT=1
+FALSE=1
 ROOT_UID=0
 
 KEITARO_URL="https://keitarotds.com"
@@ -120,9 +122,12 @@ DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет
 
 
 declare -a DOMAINS
+declare -a SUCCESSFUL_DOMAINS
+declare -a FAILED_DOMAINS
 NGINX_SSL_PATH="${NGINX_ROOT_PATH}/ssl"
 NGINX_SSL_CERT_PATH="${NGINX_SSL_PATH}/cert.pem"
 NGINX_SSL_PRIVKEY_PATH="${NGINX_SSL_PATH}/privkey.pem"
+CERT_DOMAINS_PATH=/root/.ssl_enabler_cert_domains
 
 
 RECONFIGURE_KEITARO_SSL_COMMAND_EN="curl -sSL ${KEITARO_URL}/install.sh | bash -s -- -l en -t nginx,ssl"
@@ -135,10 +140,16 @@ DICT['en.errors.see_logs']="Evaluating log saved to ${SCRIPT_LOG}. Please rerun 
 DICT['en.messages.check_renewal_job_scheduled']="Check that the renewal job is scheduled"
 DICT['en.messages.check_inactual_renewal_job_scheduled']="Check that inactual renewal job is scheduled"
 DICT['en.messages.make_ssl_cert_links']="Make SSL certificate links"
+DICT['en.messages.requesting_certificate_for']="Requesting certificate for"
+DICT['en.messages.generating_nginx_config_for']="Generating nginx config for"
 DICT['en.messages.actual_renewal_job_already_scheduled']="Actual renewal job already scheduled"
 DICT['en.messages.schedule_renewal_job']="Schedule renewal SSL certificate cron job"
 DICT['en.messages.unschedule_inactual_renewal_job']="Unschedule inactual renewal job"
-DICT['en.messages.ssl_enabled_for_sites']="SSL certificates enabled for sites:"
+DICT['en.messages.ssl_enabled_for_sites']="SSL certificates are issued for sites:"
+DICT['en.messages.ssl_not_enabled_for_sites']="SSL certificates are not issued (see details in ${SCRIPT_LOG}) for sites:"
+DICT['en.warnings.nginx_config_exists_for_domain']="nginx config already exists"
+DICT['en.warnings.certificate_exists_for_domain']="certificate already exists"
+DICT['en.warnings.skip_nginx_config_generation']="skip nginx config generation"
 DICT['en.prompts.ssl_agree_tos']="Do you agree with terms of Let's Encrypt Subscriber Agreement?"
 DICT['en.prompts.ssl_agree_tos.help']=$(cat <<- END
 	Make sure all the domains are already linked to this server in the DNS
@@ -154,10 +165,16 @@ DICT['ru.errors.see_logs']="Журнал выполнения сохранён �
 DICT['ru.messages.check_renewal_job_scheduled']="Проверяем наличие cron задачи обновления сертификатов"
 DICT['ru.messages.check_inactual_renewal_job_scheduled']="Проверяем наличие неактуальной cron задачи"
 DICT['ru.messages.make_ssl_cert_links']="Создаются ссылки на SSL сертификаты"
+DICT['ru.messages.requesting_certificate_for']="Запрос сертификата для"
+DICT['ru.messages.generating_nginx_config_for']="Генерация конфигурации для"
 DICT['ru.messages.actual_renewal_job_already_scheduled']="Актуальная cron задача обновления сертификатов уже существует"
 DICT['ru.messages.schedule_renewal_job']="Добавляется cron задача обновления сертификатов"
 DICT['ru.messages.unschedule_inactual_renewal_job']="Удаляется неактуальная cron задача обновления сертификатов"
-DICT['ru.messages.ssl_enabled_for_sites']="SSL сертификаты подключены для сайтов:"
+DICT['ru.messages.ssl_enabled_for_sites']="SSL сертификаты выпущены для сайтов:"
+DICT['ru.messages.ssl_not_enabled_for_sites']="SSL сертификаты не выпущены (смотрите детали в ${SCRIPT_LOG}) для сайтов:"
+DICT['ru.warnings.nginx_config_exists_for_domain']="nginx конфигурация уже существует"
+DICT['ru.warnings.certificate_exists_for_domain']="сертификат уже существует"
+DICT['ru.warnings.skip_nginx_config_generation']="пропускаем генерацию конфигурации nginx"
 DICT['ru.prompts.ssl_agree_tos']="Вы согласны с условиями Абонентского Соглашения Let's Encrypt?"
 DICT['ru.prompts.ssl_agree_tos.help']=$(cat <<- END
 	Убедитесь, что все указанные домены привязаны к этому серверу в DNS.
@@ -215,6 +232,30 @@ is_exists_file(){
     return ${SUCCESS_RESULT}
   else
     debug "NO: ${file} file does not exist"
+    return ${FAILURE_RESULT}
+  fi
+}
+
+
+
+is_exists_directory(){
+  local directory="${1}"
+  local result_on_skip="${2}"
+  debug "Checking ${directory} directory existence"
+  if isset "$SKIP_CHECKS"; then
+    debug "SKIP: аctual check of ${directory} directory existence disabled"
+    if [[ "$result_on_skip" == "no" ]]; then
+      debug "NO: simulate ${directory} directory does not exist"
+      return ${FAILURE_RESULT}
+    fi
+    debug "YES: simulate ${directory} directory exists"
+    return ${SUCCESS_RESULT}
+  fi
+  if [ -d "${directory}" ]; then
+    debug "YES: ${directory} directory exists"
+    return ${SUCCESS_RESULT}
+  else
+    debug "NO: ${directory} directory does not exist"
     return ${FAILURE_RESULT}
   fi
 }
@@ -536,7 +577,7 @@ run_command(){
   local allow_errors="${4}"
   local run_as="${5}"
   local print_fail_message_method="${6}"
-  local reverse_ok_nok="${7}"
+  local output_log="${7}"
   debug "Evaluating command: ${command}"
   if empty "$message"; then
     run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
@@ -554,9 +595,9 @@ run_command(){
     debug "Actual running disabled"
   else
     really_run_command "${command}" "${hide_output}" "${allow_errors}" "${run_as}" \
-      "${print_fail_message_method}" "${reverse_ok_nok}"
-    fi
-  }
+        "${print_fail_message_method}" "${output_log}"
+      fi
+    }
 
 
 print_command_status(){
@@ -577,19 +618,15 @@ really_run_command(){
   local allow_errors="${3}"
   local run_as="${4}"
   local print_fail_message_method="${5}"
-  local reverse_ok_nok="${6}"
+  local output_log="${6}"
   local current_command_script=$(save_command_script "${command}" "${run_as}")
   local evaluated_command=$(command_run_as "${current_command_script}" "${run_as}")
   evaluated_command=$(unbuffer_streams "${evaluated_command}")
-  evaluated_command=$(save_command_logs "${evaluated_command}")
+  evaluated_command=$(save_command_logs "${evaluated_command}" "${output_log}")
   evaluated_command=$(hide_command_output "${evaluated_command}" "${hide_output}")
   debug "Real command: ${evaluated_command}"
   if ! eval "${evaluated_command}"; then
-    if empty "$reverse_ok_nok"; then
-      print_command_status "${command}" 'NOK' 'red' "${hide_output}"
-    else
-      print_command_status "${command}" 'OK' 'green' "${hide_output}"
-    fi
+    print_command_status "${command}" 'NOK' 'red' "${hide_output}"
     if isset "$allow_errors"; then
       remove_current_command "$current_command_script"
       return ${FAILURE_RESULT}
@@ -599,11 +636,7 @@ really_run_command(){
       fail "${fail_message}" "see_logs"
     fi
   else
-    if empty "$reverse_ok_nok"; then
-      print_command_status "${command}" 'OK' 'green' "${hide_output}"
-    else
-      print_command_status "${command}" 'NOK' 'red' "${hide_output}"
-    fi
+    print_command_status "$command" 'OK' 'green' "$hide_output"
     remove_current_command "$current_command_script"
   fi
 }
@@ -629,8 +662,10 @@ unbuffer_streams(){
 save_command_logs(){
   local evaluated_command="${1}"
   local output_log="${2}"
-  local error_log="${3}"
   save_output_log="tee -i ${CURRENT_COMMAND_OUTPUT_LOG} | tee -ia ${SCRIPT_LOG}"
+  if isset "${output_log}"; then
+    save_output_log="${save_output_log} | tee -i ${output_log}"
+  fi
   save_error_log="tee -i ${CURRENT_COMMAND_ERROR_LOG} | tee -ia ${SCRIPT_LOG}"
   echo "((${evaluated_command}) 2> >(${save_error_log}) > >(${save_output_log}))"
 }
@@ -708,6 +743,22 @@ remove_current_command(){
 
 
 
+get_host_ip(){
+  (hostname -I 2>/dev/null || echo 127.0.0.1) | grep -oP '(\d+\.){3}\d+' | tr "\n" ' ' | awk '{print $1}'
+}
+
+
+
+join_by(){
+  local delimiter=$1
+  shift
+  echo -n "$1"
+  shift
+  printf "%s" "${@/#/${delimiter}}"
+}
+
+
+
 get_error(){
   local var_name="${1}"
   local validation_methods_string="${2}"
@@ -766,6 +817,12 @@ transform_to_yes_no(){
 validate_yes_no(){
   local value="${1}"
   (is_yes "$value" || is_no "$value")
+}
+
+
+
+get_domains(){
+  (cat "${CERT_DOMAINS_PATH}" 2>/dev/null; join_by " " "${DOMAINS[@]}")
 }
 
 
@@ -997,8 +1054,8 @@ get_user_email(){
 
 stage4(){
   debug "Starting stage 4: install LE certificates"
-  run_certbot
-  make_cert_links
+  regenerate_self_signed_cert
+  generate_certificates
   add_renewal_job
   reload_nginx
   show_successful_message
@@ -1049,61 +1106,147 @@ crontab_matches(){
 
 
 
-make_cert_links(){
+regenerate_self_signed_cert(){
   if [ -L ${NGINX_SSL_CERT_PATH} ]; then
-    debug "${NGINX_SSL_CERT_PATH} is already link"
+    debug "${NGINX_SSL_CERT_PATH} is link. Getting cert domains"
+    local domains=$(get_domains_from_cert)
+    local main_domain=$(awk '{print $1}' <<< "${domains}")
+    debug "Current domains in ${NGINX_SSL_CERT_PATH}: ${domains}. Main domain: ${main_domain}"
+    save_cert_domains "${domains}"
+    remove_letsencrypt_certificate "$main_domain"
+    generate_self_signed_certificate
   else
-    debug "Make certificate links"
-    local le_cert_path="/etc/letsencrypt/live/${DOMAINS[0]}/fullchain.pem"
-    local le_privkey_path="/etc/letsencrypt/live/${DOMAINS[0]}/privkey.pem"
-    local command="rm -f ${NGINX_SSL_CERT_PATH} && rm -f ${NGINX_SSL_PRIVKEY_PATH}"
-    command="${command} && ln -s ${le_cert_path} ${NGINX_SSL_CERT_PATH}"
-    command="${command} && ln -s ${le_privkey_path} ${NGINX_SSL_PRIVKEY_PATH}"
-    run_command "${command}" "$(translate 'messages.make_ssl_cert_links')" 'hide_output'
+    debug "${NGINX_SSL_CERT_PATH} is not link, do not regenerate self-signed cert"
   fi
 }
 
 
+get_domains_from_cert(){
+  debug "Getting domains from existent cert"
+  openssl x509 -text < "$NGINX_SSL_CERT_PATH" | grep DNS | sed -r -e 's/(DNS:|,)//g'
+}
 
-run_certbot(){
-  debug "Run certbot"
-  certbot_command="certbot certonly --webroot --webroot-path=${WEBROOT_PATH} --agree-tos --non-interactive --expand"
-  certbot_command="${certbot_command} $(with_existent_domains) $(with_new_domains)"
+
+save_cert_domains(){
+  local domains="${1}"
+  debug "Saving cert domains"
+  echo ${domains} > "$CERT_DOMAINS_PATH"
+}
+
+
+remove_letsencrypt_certificate(){
+  local domain="${1}"
+  debug "Removing old certificate for domain ${domain}"
+  rm -rf "/etc/letsencrypt/live/${domain}"
+  rm -rf "/etc/letsencrypt/archive/${domain}"
+  rm -f "/etc/letsencrypt/renewal/${domain}.conf"
+  rm -f "$NGINX_SSL_CERT_PATH" "$NGINX_SSL_PRIVKEY_PATH"
+}
+
+
+generate_self_signed_certificate(){
+  command="openssl req -x509 -newkey rsa:4096 -sha256 -nodes -days 3650"
+  command="${command} -out "$NGINX_SSL_CERT_PATH" -keyout "$NGINX_SSL_PRIVKEY_PATH""
+  command="${command} -subj '/CN=$(get_host_ip)'"
+  run_command "${command}" 'Generating self-signed certificate' 'hide_output'
+}
+
+
+
+generate_certificates(){
+  debug "Requesting certificates"
+  for domain in $(get_domains); do
+    certificate_generated=${FALSE}
+    if certificate_exists_for_domain $domain; then
+      SUCCESSFUL_DOMAINS+=($domain)
+      debug "Certificate already exists for domain ${domain}"
+      print_with_color "${domain}: $(translate 'warnings.certificate_exists_for_domain')" "yellow"
+      certificate_generated=${TRUE}
+    else
+      debug "Certificate for domain ${domain} does not exist"
+      if request_certificate_for "${domain}"; then
+        SUCCESSFUL_DOMAINS+=($domain)
+        debug "Certificate for domain ${domain} successfully issued"
+        certificate_generated=${TRUE}
+      else
+        FAILED_DOMAINS+=($domain)
+        debug "There was an error while issuing certificate for domain ${domain}"
+      fi
+    fi
+    if [[ ${certificate_generated} == ${TRUE} ]]; then
+      if nginx_config_exists_for_domain $domain; then
+        new_name="${domain}.conf.$(date +%Y%m%d%H%M)"
+        debug "Saving old nginx config for ${domain} to ${new_name}"
+        cp "/etc/nginx/conf.d/${domain}.conf" "/etc/nginx/conf.d/${new_name}"
+      fi
+      debug "Generating nginx config for ${domain}"
+      generate_nginx_config_for "${domain}"
+    else
+      debug "Skip generation nginx config ${domain} due errors while cert issuing"
+      print_with_color "${domain}: $(translate 'warnings.skip_nginx_config_generation')" "yellow"
+    fi
+  done
+  rm -f "${CERT_DOMAINS_PATH}"
+}
+
+
+certificate_exists_for_domain(){
+  local domain="${1}"
+  is_exists_directory "/etc/letsencrypt/live/${domain}" "no"
+}
+
+
+nginx_config_exists_for_domain(){
+  local domain="${1}"
+  is_exists_file "/etc/nginx/conf.d/${domain}.conf" "no"
+}
+
+
+request_certificate_for(){
+  local domain="${1}"
+  debug "Requesting certificate for domain ${domain}"
+  certbot_command="certbot certonly --webroot --webroot-path=${WEBROOT_PATH} --agree-tos --non-interactive"
+  certbot_command="${certbot_command} --domain ${domain}"
   if isset "${VARS['ssl_email']}"; then
     certbot_command="${certbot_command} --email ${VARS['ssl_email']}"
   else
     certbot_command="${certbot_command} --register-unsafely-without-email"
   fi
-  run_command "${certbot_command}"
+  requesting_message=$(translate "messages.requesting_certificate_for")
+  run_command "${certbot_command}" "${requesting_message} ${domain}" "hide_output" "allow_errors"
 }
 
-with_existent_domains(){
-  if [ -L "$NGINX_SSL_CERT_PATH" ]; then
-    debug "Getting domains from existent cert"
-    local dns_records=$(openssl x509 -text < "$NGINX_SSL_CERT_PATH" | grep DNS)
-    debug "Current dns records in ${NGINX_SSL_CERT_PATH}: ${dns_records}"
-    echo "$dns_records" | sed -r -e 's/(DNS:|,)//g' -e 's/\s+/ --domain /g'
-  else
-    debug "Lets Encrypt certificate is not issued yet"
-  fi
-}
 
-with_new_domains(){
-  local result=""
-  for domain in "${DOMAINS[@]}"; do
-    result="${result} --domain ${domain}"
-  done
-  echo "$result"
+generate_nginx_config_for(){
+  local domain="${1}"
+  changes="-e 's|listen 80.*|listen 80;|g'"
+  changes="${changes} -e 's|server_name .*|server_name ${domain};|g'"
+  changes="${changes} -e 's|ssl_certificate .*|ssl_certificate /etc/letsencrypt/live/${domain}/fullchain.pem;|g'"
+  changes="${changes} -e 's|ssl_certificate_key .*|ssl_certificate_key /etc/letsencrypt/live/${domain}/privkey.pem;|g'"
+  changes="${changes} -e 's|error_log .*|error_log /var/log/nginx/${domain}-error.log;|g'"
+  changes="${changes} -e '/error_log/a    access_log /var/log/nginx/${domain}-access.log combined buffer=16k;'"
+  changes="${changes} -e 's|admin.access.log|${domain}-admin.access.log|g'"
+  changes="${changes} -e '/admin.access.log/a    error_log /var/log/nginx/${domain}-admin.error.log;'"
+  command="cat /etc/nginx/conf.d/vhosts.conf | sed ${changes} > /etc/nginx/conf.d/${domain}.conf"
+  generating_message=$(translate "messages.generating_nginx_config_for")
+  run_command "${command}" "${generating_message} ${domain}" "hide_output"
 }
 
 
 
 show_successful_message(){
   print_with_color "$(translate 'messages.successful')" 'green'
-  print_translated 'messages.ssl_enabled_for_sites'
-  for domain in "${DOMAINS[@]}"; do
-    print_with_color "https://${domain}/admin" 'green'
-  done
+  if isset $SUCCESSFUL_DOMAINS; then
+    message="$(translate 'messages.ssl_enabled_for_sites')"
+    sites=$(join_by ", " "${SUCCESSFUL_DOMAINS[@]}")
+    echo "$(print_with_color "OK. ${message} ${sites}" 'green')"
+  fi
+  if isset $FAILED_DOMAINS; then
+    KEEP_LOG=true
+    message="$(translate 'messages.ssl_not_enabled_for_sites')"
+    sites=$(join_by ", " "${FAILED_DOMAINS[@]}")
+    echo "$(print_with_color "NOK. ${message} ${sites}" 'yellow')"
+  fi
 }
 
 
@@ -1114,15 +1257,15 @@ show_successful_message(){
 
 
 enable_ssl(){
-  init "$@"
-  stage1 "$@"
+  init $@
+  stage1 $@
   stage2
   stage3
   stage4
 }
 
 
-enable_ssl "$@"
+enable_ssl $@
 
 # wait for all async child processes (because "await ... then" is used in powscript)
 [[ $ASYNC == 1 ]] && wait

@@ -54,13 +54,11 @@ is_keitaro_dump_valid(file)
     cat_command='zcat'
   else
     cat_command='cat'
-  run_command "${cat_command} ${file} | grep -q 'DROP TABLE IF EXISTS \`schema_version\`;'" \
-              "$(translate 'messages.check_keitaro_dump_validity')" 'hide_output' 'allow_errors'
+  command="${cat_command} ${file} | grep -q 'DROP TABLE IF EXISTS \`schema_version\`;'"
+  message="$(translate 'messages.check_keitaro_dump_validity')"
+  run_command $command $message 'hide_output' 'allow_errors'
 
 can_install_firewall()
-  run_command 'iptables -t nat -L' \
-              "$(translate 'messages.check_ability_firewall_installing')" 'hide_output' 'allow_errors'
-
-
-get_host_ip()
-  (hostname -I 2>/dev/null || true) | grep -oP '(\d+\.){3}\d+' | tr "\n" ' ' | awk '{print $1}'
+  command='iptables -t nat -L'
+  message="$(translate 'messages.check_ability_firewall_installing')"
+  run_command $command $message 'hide_output' 'allow_errors'

@@ -1,0 +1,66 @@
+#!/usr/bin/env powscript
+
+
+generate_certificates()
+  debug "Requesting certificates"
+  for domain in $(get_domains)
+    certificate_generated=${FALSE}
+    if certificate_exists_for_domain $domain
+      SUCCESSFUL_DOMAINS+=$domain
+      debug "Certificate already exists for domain ${domain}"
+      print_with_color "${domain}: $(translate 'warnings.certificate_exists_for_domain')" "yellow"
+      certificate_generated=${TRUE}
+    else
+      debug "Certificate for domain ${domain} does not exist"
+      if request_certificate_for "${domain}"
+        SUCCESSFUL_DOMAINS+=$domain
+        debug "Certificate for domain ${domain} successfully issued"
+        certificate_generated=${TRUE}
+      else
+        FAILED_DOMAINS+=$domain
+        debug "There was an error while issuing certificate for domain ${domain}"
+    if ${certificate_generated} == ${TRUE}
+      if nginx_config_exists_for_domain $domain
+        new_name="${domain}.conf.$(date +%Y%m%d%H%M)"
+        debug "Saving old nginx config for ${domain} to ${new_name}"
+        cp "/etc/nginx/conf.d/${domain}.conf" "/etc/nginx/conf.d/${new_name}"
+      debug "Generating nginx config for ${domain}"
+      generate_nginx_config_for "${domain}"
+    else
+      debug "Skip generation nginx config ${domain} due errors while cert issuing"
+      print_with_color "${domain}: $(translate 'warnings.skip_nginx_config_generation')" "yellow"
+  rm -f "${CERT_DOMAINS_PATH}"
+
+
+certificate_exists_for_domain(domain)
+  is_exists_directory "/etc/letsencrypt/live/${domain}" "no"
+
+
+nginx_config_exists_for_domain(domain)
+  is_exists_file "/etc/nginx/conf.d/${domain}.conf" "no"
+
+
+request_certificate_for(domain)
+  debug "Requesting certificate for domain ${domain}"
+  certbot_command="certbot certonly --webroot --webroot-path=${WEBROOT_PATH} --agree-tos --non-interactive"
+  certbot_command="${certbot_command} --domain ${domain}"
+  if isset "${VARS['ssl_email']}"
+    certbot_command="${certbot_command} --email ${VARS['ssl_email']}"
+  else
+    certbot_command="${certbot_command} --register-unsafely-without-email"
+  requesting_message=$(translate "messages.requesting_certificate_for")
+  run_command "${certbot_command}" "${requesting_message} ${domain}" "hide_output" "allow_errors"
+
+
+generate_nginx_config_for(domain)
+  changes="-e 's|listen 80.*|listen 80;|g'"
+  changes="${changes} -e 's|server_name .*|server_name ${domain};|g'"
+  changes="${changes} -e 's|ssl_certificate .*|ssl_certificate /etc/letsencrypt/live/${domain}/fullchain.pem;|g'"
+  changes="${changes} -e 's|ssl_certificate_key .*|ssl_certificate_key /etc/letsencrypt/live/${domain}/privkey.pem;|g'"
+  changes="${changes} -e 's|error_log .*|error_log /var/log/nginx/${domain}-error.log;|g'"
+  changes="${changes} -e '/error_log/a    access_log /var/log/nginx/${domain}-access.log combined buffer=16k;'"
+  changes="${changes} -e 's|admin.access.log|${domain}-admin.access.log|g'"
+  changes="${changes} -e '/admin.access.log/a    error_log /var/log/nginx/${domain}-admin.error.log;'"
+  command="cat /etc/nginx/conf.d/vhosts.conf | sed ${changes} > /etc/nginx/conf.d/${domain}.conf"
+  generating_message=$(translate "messages.generating_nginx_config_for")
+  run_command "${command}" "${generating_message} ${domain}" "hide_output"
