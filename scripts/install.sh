@@ -1824,10 +1824,10 @@ install(){
   stage2                    # make some asserts
   if [[ ! "$RECONFIGURE" ]]; then
     stage3                  # generate inventory file
+    stage4                  # upgrade packages and install ansible
   else
     write_emtpy_hosts_txt
   fi
-  stage4                    # upgrade packages and install ansible
   stage5                    # run ansible playbook
 }
 
