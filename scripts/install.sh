@@ -1815,7 +1815,7 @@ json2dict() {
 
 
 write_emtpy_hosts_txt(){
-  echo -e "[server]\nlocalhost connection=local" > hosts.txt
+  echo -e "[server]\nlocalhost connection=local ansible_ssh_user=root" > hosts.txt
 }
 
 install(){
