@@ -607,9 +607,24 @@ print_command_status(){
   local hide_output="${4}"
   debug "Command result: ${status}"
   if isset "$hide_output"; then
-    print_with_color "$status" "$color"
+    if [[ "$hide_output" =~ (uncolored_yes_no) ]]; then
+      print_uncolored_yes_no "$status"
+    else
+      print_with_color "$status" "$color"
+    fi
   fi
 }
+
+
+print_uncolored_yes_no(){
+  local status="${1}"
+  if [[ "$status" == "NOK" ]]; then
+    echo "NO"
+  else
+    echo "YES"
+  fi
+}
+
 
 
 really_run_command(){
@@ -744,8 +759,12 @@ remove_current_command(){
 
 
 get_host_ip(){
-  (hostname -I 2>/dev/null || echo 127.0.0.1) | grep -oP '(\d+\.){3}\d+' | tr "\n" ' ' | awk '{print $1}'
-}
+  hostname -I 2>/dev/null | tr ' ' "\n" | grep -oP '(\d+\.){3}\d+' \
+    | grep -v '^10\.' | grep -vP '172\.(1[6-9]|2[0-9]|3[1-2])' | grep -v '192\.168\.' \
+    | grep -v '127\.' \
+    | head -n 1 \
+    || true
+  }
 
 
 
@@ -1066,13 +1085,13 @@ stage4(){
 add_renewal_job(){
   debug "Add renewal certificates cron job"
   local renew_cmd='certbot renew --allow-subset-of-names --quiet --renew-hook \"systemctl reload nginx\"'
-  if crontab_matches "certbot renew" "messages.check_renewal_job_scheduled"; then
+  if crontab -l | grep -q "certbot renew"; then
     debug "Renewal cron job already exists"
     print_translated 'messages.relevant_renewal_job_already_scheduled'
   else
     schedule_renewal_job "$renew_cmd"
   fi
-  if crontab_matches "certbot renew" "messages.check_inactual_renewal_job_scheduled" "-u nginx"; then
+  if crontab -u nginx -l | grep -q "certbot renew"; then
     unschedule_inactual_renewal_job
   fi
 }
@@ -1093,15 +1112,6 @@ schedule_renewal_job(){
   local renew_job="${minute} ${hour} * * * ${renew_cmd}"
   local schedule_renewal_job_cmd="(crontab -l; echo \"${renew_job}\") | crontab -"
   run_command "${schedule_renewal_job_cmd}" "$(translate 'messages.schedule_renewal_job')" "hide_output"
-}
-
-
-crontab_matches(){
-  local pattern="${1}"
-  local message_key="${2}"
-  local crontab_options="${3}"
-  local is_crontab_matches_pattern="crontab ${crontab_options} -l | grep -q '${pattern}'"
-  run_command "${is_crontab_matches_pattern}" "$(translate ${message_key})" "hide_output" "allow_errors"
 }
 
 
@@ -1242,7 +1252,6 @@ show_successful_message(){
     echo "$(print_with_color "OK. ${message} ${sites}" 'green')"
   fi
   if isset $FAILED_DOMAINS; then
-    KEEP_LOG=true
     message="$(translate 'messages.ssl_not_enabled_for_sites')"
     sites=$(join_by ", " "${FAILED_DOMAINS[@]}")
     echo "$(print_with_color "NOK. ${message} ${sites}" 'yellow')"
