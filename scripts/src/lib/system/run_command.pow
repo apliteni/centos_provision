@@ -23,7 +23,18 @@ run_command(command, message, hide_output, allow_errors, run_as, print_fail_mess
 print_command_status(command, status, color, hide_output)
   debug "Command result: ${status}"
   if isset $hide_output
-    print_with_color $status $color
+    if $hide_output match (uncolored_yes_no)
+      print_uncolored_yes_no $status
+    else
+      print_with_color $status $color
+
+
+print_uncolored_yes_no(status)
+  if $status == "NOK"
+    echo "NO"
+  else
+    echo "YES"
+
 
 
 really_run_command(command, hide_output, allow_errors, run_as, print_fail_message_method, output_log)
