@@ -1084,15 +1084,11 @@ stage4(){
 
 add_renewal_job(){
   debug "Add renewal certificates cron job"
-  local renew_cmd='certbot renew --allow-subset-of-names --quiet --renew-hook \"systemctl reload nginx\"'
-  if crontab -l | grep -q "certbot renew"; then
-    debug "Renewal cron job already exists"
+  if renewal_job_installed; then
+    debug "Renewal cron job already scheduled"
     print_translated 'messages.relevant_renewal_job_already_scheduled'
   else
-    schedule_renewal_job "$renew_cmd"
-  fi
-  if crontab -u nginx -l | grep -q "certbot renew"; then
-    unschedule_inactual_renewal_job
+    schedule_renewal_job
   fi
 }
 
@@ -1105,13 +1101,19 @@ unschedule_inactual_renewal_job(){
 
 
 schedule_renewal_job(){
-  local renew_cmd="${1}"
   debug "Schedule renewal job"
   local hour="$(date +'%H')"
   local minute="$(date +'%M')"
   local renew_job="${minute} ${hour} * * * ${renew_cmd}"
+  local renew_cmd='certbot renew --allow-subset-of-names --quiet --renew-hook \"systemctl reload nginx\"'
   local schedule_renewal_job_cmd="(crontab -l; echo \"${renew_job}\") | crontab -"
   run_command "${schedule_renewal_job_cmd}" "$(translate 'messages.schedule_renewal_job')" "hide_output"
+}
+
+
+renewal_job_installed(){
+  local command="crontab  -l | grep -q 'certbot renew'"
+  run_command "${command}" "$(translate ${messages.check_renewal_job_scheduled})" "hide_output uncolored_yes_no" "allow_errors"
 }
 
 
