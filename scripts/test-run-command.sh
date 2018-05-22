@@ -366,9 +366,24 @@ print_command_status(){
   local hide_output="${4}"
   debug "Command result: ${status}"
   if isset "$hide_output"; then
-    print_with_color "$status" "$color"
+    if [[ "$hide_output" =~ (uncolored_yes_no) ]]; then
+      print_uncolored_yes_no "$status"
+    else
+      print_with_color "$status" "$color"
+    fi
   fi
 }
+
+
+print_uncolored_yes_no(){
+  local status="${1}"
+  if [[ "$status" == "NOK" ]]; then
+    echo "NO"
+  else
+    echo "YES"
+  fi
+}
+
 
 
 really_run_command(){
