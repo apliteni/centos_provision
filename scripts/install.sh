@@ -1285,7 +1285,7 @@ write_inventory_file(){
   debug "Write inventory file"
   echo -n > "$INVENTORY_FILE"
   print_line_to_inventory_file "[server]"
-  print_line_to_inventory_file "localhost connection=local ansible_ssh_user=root"
+  print_line_to_inventory_file "localhost connection=local ansible_user=root"
   print_line_to_inventory_file
   print_line_to_inventory_file "[server:vars]"
   print_line_to_inventory_file "skip_firewall=${VARS['skip_firewall']}"
@@ -1815,7 +1815,7 @@ json2dict() {
 
 
 write_emtpy_hosts_txt(){
-  echo -e "[server]\nlocalhost connection=local ansible_ssh_user=root" > hosts.txt
+  echo -e "[server]\nlocalhost connection=local ansible_user=root" > hosts.txt
 }
 
 install(){

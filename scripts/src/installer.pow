@@ -74,7 +74,7 @@ require 'app/installer/stage5/show_successful_message.pow'
 _require 'app/installer/stage5/json2dict.sh'
 
 write_emtpy_hosts_txt()
-  echo -e "[server]\nlocalhost connection=local" > hosts.txt
+  echo -e "[server]\nlocalhost connection=local ansible_user=root" > hosts.txt
 
 # We wrap the entire script in a big function which we only call at the very end, in order to
 # protect against the possibility of the connection dying mid-script. This protects us against
