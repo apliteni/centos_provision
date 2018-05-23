@@ -1093,19 +1093,12 @@ add_renewal_job(){
 }
 
 
-unschedule_inactual_renewal_job(){
-  debug "Unschedule inactual renewal job"
-  local cmd="crontab -u nginx -l | sed '/certbot renew/d' | crontab -u nginx -"
-  run_command "${cmd}" "$(translate 'messages.unschedule_inactual_renewal_job')"
-}
-
-
 schedule_renewal_job(){
   debug "Schedule renewal job"
   local hour="$(date +'%H')"
   local minute="$(date +'%M')"
-  local renew_job="${minute} ${hour} * * * ${renew_cmd}"
   local renew_cmd='certbot renew --allow-subset-of-names --quiet --renew-hook \"systemctl reload nginx\"'
+  local renew_job="${minute} ${hour} * * * ${renew_cmd}"
   local schedule_renewal_job_cmd="(crontab -l; echo \"${renew_job}\") | crontab -"
   run_command "${schedule_renewal_job_cmd}" "$(translate 'messages.schedule_renewal_job')" "hide_output"
 }
@@ -1113,7 +1106,7 @@ schedule_renewal_job(){
 
 renewal_job_installed(){
   local command="crontab  -l | grep -q 'certbot renew'"
-  run_command "${command}" "$(translate ${messages.check_renewal_job_scheduled})" "hide_output uncolored_yes_no" "allow_errors"
+  run_command "${command}" "$(translate 'messages.check_renewal_job_scheduled')" "hide_output uncolored_yes_no" "allow_errors"
 }
 
 
