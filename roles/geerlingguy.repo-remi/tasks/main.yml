@@ -15,7 +15,7 @@
     patterns: "remi*.repo"
   register: remi_repo
 
-- name: Use keitarotds mirror
+- name: Use keitaro mirror
   replace:
     path: "{{ item.path }}"
     regexp: '^mirrorlist=http.*(/enterprise/.*)$'

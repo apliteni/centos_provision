@@ -16,14 +16,14 @@ Vagrant.configure("2") do |config|
   config.hostmanager.enabled = true
   config.hostmanager.manage_host = true
 
-  config.vm.define "keitarotds" do |app|
+  config.vm.define "keitaro" do |app|
     app.ssh.insert_key = true
   
     app.vm.box = "centos/7"
-    app.vm.hostname = "keitarotds.dev"
+    app.vm.hostname = "keitaro.dev"
     app.vm.network "private_network", ip: "192.168.100.10"
     app.vm.provider :virtualbox do |v|
-      v.name = "keitarotds"
+      v.name = "keitaro"
       v.memory = 1024
       v.cpus = 1
     end
