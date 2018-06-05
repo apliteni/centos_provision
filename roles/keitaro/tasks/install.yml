@@ -1,7 +1,7 @@
 ---
 - name: Download installer
   get_url:
-    url: "http://keitarotds.com/getfile/install"
+    url: "https://keitaro.io/getfile/install"
     dest: "{{ keitaro.path }}/install.php"
 
 - name: Install Keitaro
