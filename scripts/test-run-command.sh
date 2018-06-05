@@ -53,7 +53,7 @@ FAILURE_RESULT=1
 FALSE=1
 ROOT_UID=0
 
-KEITARO_URL="https://keitarotds.com"
+KEITARO_URL="https://keitaro.io"
 
 WEBROOT_PATH="/var/www/keitaro"
 

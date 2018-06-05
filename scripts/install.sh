@@ -68,7 +68,7 @@ FAILURE_RESULT=1
 FALSE=1
 ROOT_UID=0
 
-KEITARO_URL="https://keitarotds.com"
+KEITARO_URL="https://keitaro.io"
 
 WEBROOT_PATH="/var/www/keitaro"
 
@@ -1554,7 +1554,7 @@ SSL_SUCCESSFUL_DOMAINS=""
 SSL_FAILED_MESSAGE=""
 SSL_RERUN_COMMAND=""
 SSL_OUTPUT_LOG="enable-ssl.output.log"
-SSL_SCRIPT_URL="https://keitarotds.com/enable-ssl.sh"
+SSL_SCRIPT_URL="https://keitaro.io/enable-ssl.sh"
 
 run_ssl_enabler(){
   if [[ "${VARS['ssl_certificate']}" == 'letsencrypt' ]]; then

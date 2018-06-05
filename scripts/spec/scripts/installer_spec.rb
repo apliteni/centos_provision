@@ -233,7 +233,7 @@ RSpec.describe 'install.sh' do
 
     before(:all) { `docker rm keitaro_installer_test &>/dev/null` }
 
-    shared_examples_for 'should install keitarotds' do
+    shared_examples_for 'should install keitaro' do
       it_behaves_like 'should print to', :stdout,
                       'curl -sSL https://github.com/keitarocorp/centos_provision/archive/master.tar.gz | tar xz'
 
@@ -270,7 +270,7 @@ RSpec.describe 'install.sh' do
       it_behaves_like 'should print to', :log, "Try to found ansible\nFOUND"
       it_behaves_like 'should not print to', :stdout, 'yum install -y ansible'
 
-      it_behaves_like 'should install keitarotds'
+      it_behaves_like 'should install keitaro'
     end
 
     context 'yum presented, ansible not presented' do
@@ -281,7 +281,7 @@ RSpec.describe 'install.sh' do
       it_behaves_like 'should print to', :stdout, 'yum install -y epel-release'
       it_behaves_like 'should print to', :stdout, 'yum install -y ansible'
 
-      it_behaves_like 'should install keitarotds'
+      it_behaves_like 'should install keitaro'
     end
 
     context 'yum not presented' do
