@@ -39,7 +39,7 @@ ok: [localhost] => {
             "timeout": 10,
             "tmp_dest": "",
             "unsafe_writes": null,
-            "url": "http://keitarotds.com/getfile/install",
+            "url": "https://keitaro.io/getfile/install",
             "url_password": null,
             "url_username": null,
             "use_proxy": true,
@@ -54,7 +54,7 @@ ok: [localhost] => {
     "size": 287779,
     "state": "file",
     "uid": 0,
-    "url": "http://keitarotds.com/getfile/install"
+    "url": "https://keitaro.io/getfile/install"
 }
 
 TASK [Unknown] *******************************************
