@@ -1236,11 +1236,11 @@ is_keitaro_dump_valid(){
   local mime_type="$(detect_mime_type ${file})"
   debug "Detected mime type: ${mime_type}"
   if [[ "$mime_type" == 'application/x-gzip' ]]; then
-    cat_command='zcat'
+    grep_command='zgrep'
   else
-    cat_command='cat'
+    grep_command='grep'
   fi
-  command="${cat_command} ${file} | grep -qP '(DROP TABLE IF|CREATE TABLE IF NOT) EXISTS \`schema_version\`'"
+  command="${grep_command} -qP '(DROP TABLE IF|CREATE TABLE IF NOT) EXISTS \`schema_version\`' ${file}"
   message="$(translate 'messages.check_keitaro_dump_validity')"
   run_command "$command" "$message" 'hide_output' 'allow_errors'
 }
