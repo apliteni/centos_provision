@@ -355,7 +355,7 @@ RSpec.describe 'install.sh' do
       let(:db_restore_path) { 'valid.sql' }
 
       it_behaves_like 'should print to', :stdout, 'Checking SQL dump . OK'
-      it_behaves_like 'should print to', :log, ' cat valid.sql | grep'
+      it_behaves_like 'should print to', :log, / grep .* valid.sql/
     end
 
     context 'valid gzipped dump' do
@@ -363,7 +363,7 @@ RSpec.describe 'install.sh' do
       let(:db_restore_path) { 'valid.sql.gz' }
 
       it_behaves_like 'should print to', :stdout, 'Checking SQL dump . OK'
-      it_behaves_like 'should print to', :log, ' zcat valid.sql.gz | grep'
+      it_behaves_like 'should print to', :log, / zgrep .* valid.sql.gz/
     end
 
     context 'dump is invalid' do
