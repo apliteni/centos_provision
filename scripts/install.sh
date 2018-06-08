@@ -1240,7 +1240,7 @@ is_keitaro_dump_valid(){
   else
     cat_command='cat'
   fi
-  command="${cat_command} ${file} | grep -q 'DROP TABLE IF EXISTS \`schema_version\`;'"
+  command="${cat_command} ${file} | grep -qP '(DROP TABLE IF|CREATE TABLE IF NOT) EXISTS \`schema_version\`'"
   message="$(translate 'messages.check_keitaro_dump_validity')"
   run_command "$command" "$message" 'hide_output' 'allow_errors'
 }
