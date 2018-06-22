@@ -754,6 +754,13 @@ validate_license_key(){
 
 
 
+validate_not_root(){
+  local value="${1}"
+  [[ "$value" !=  'root' ]]
+}
+
+
+
 validate_presence(){
   local value="${1}"
   isset "$value"
@@ -873,6 +880,7 @@ DICT['en.prompt_errors.validate_alnumdashdot']='Only Latin letters, numbers, das
 DICT['en.prompt_errors.validate_starts_with_latin_letter']='The value must begin with a Latin letter'
 DICT['en.prompt_errors.validate_file_existence']='The file was not found by the specified path, please enter the correct path to the file'
 DICT['en.prompt_errors.validate_keitaro_dump']='The SQL dump is broken, please specify path to correct SQL dump of keitaro'
+DICT['en.prompt_errors.validate_not_root']='You must not use root as database user'
 
 DICT['ru.messages.check_ability_firewall_installing']="Проверяем возможность установки фаервола"
 DICT['ru.messages.check_keitaro_dump_validity']="Проверяем SQL дамп"
@@ -931,6 +939,7 @@ DICT['ru.prompt_errors.validate_alnumdashdot']='Можно использова�
 DICT['ru.prompt_errors.validate_starts_with_latin_letter']='Значение должно начинаться с латинской буквы'
 DICT['ru.prompt_errors.validate_file_existence']='Файл по заданному пути не обнаружен, введите правильный путь к файлу'
 DICT['ru.prompt_errors.validate_keitaro_dump']='Указанный файл не является дампом Keitaro или загружен не полностью. Укажите путь до корректного SQL дампа'
+DICT['ru.prompt_errors.validate_not_root']="Запрещено использовать root в качестве пользователя базы данных"
 
 COMMENT_ME_IF_POWSCRIPT_WANNT_COMPILE_PROJECT="'"
 
@@ -1191,7 +1200,7 @@ get_user_vars(){
     get_user_var 'db_restore_salt' 'validate_presence validate_alnumdashdot'
   fi
   get_user_var 'db_name' 'validate_presence validate_alnumdashdot validate_starts_with_latin_letter'
-  get_user_var 'db_user' 'validate_presence validate_alnumdashdot validate_starts_with_latin_letter'
+  get_user_var 'db_user' 'validate_presence validate_alnumdashdot validate_starts_with_latin_letter validate_not_root'
   get_user_var 'db_password' 'validate_presence validate_alnumdashdot'
   if is_no "${VARS['db_restore']}"; then
     get_user_var 'admin_login' 'validate_presence validate_alnumdashdot validate_starts_with_latin_letter'
