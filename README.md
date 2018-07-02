@@ -3,7 +3,7 @@
 This repository contains a bash installer and an Ansible playbook to provision new bare servers.
 
 ## Compatibility
- - CentOS 7, Ansible 2
+ - CentOS 7
 
 ## Install Keitaro with bash installer
 
