@@ -11,6 +11,7 @@
   with_items:
     - "{{php_version}}"
     - "{{php_version}}-php-fpm"
+    - "{{php_version}}-php-bcmath"
     - "{{php_version}}-php-devel"
     - "{{php_version}}-php-mysqlnd"
     - "{{php_version}}-php-opcache"
