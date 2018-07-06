@@ -16,7 +16,6 @@
 
       ssl_dhparam /etc/ssl/certs/dhparam.pem;
 
-      add_header Strict-Transport-Security max-age=15768000;
       add_header X-Content-Type-Options nosniff;
 
 - name: Reload nginx
