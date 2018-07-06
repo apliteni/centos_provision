@@ -1,0 +1,9 @@
+#!/usr/bin/env powscript
+
+
+join_by()
+  local delimiter=$1
+  shift
+  echo -n "$1"
+  shift
+  printf "%s" "${@/#/${delimiter}}"

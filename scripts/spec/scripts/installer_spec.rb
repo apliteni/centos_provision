@@ -8,6 +8,8 @@ RSpec.describe 'install.sh' do
   let(:script_name) { 'install.sh' }
 
   let(:ssl) { 'no' }
+  let(:ssl_domains) { nil }
+  let(:ssl_email) { nil }
   let(:skip_firewall) { 'yes' }
   let(:license_ip) { '8.8.8.8' }
   let(:license_key) { 'WWWW-XXXX-YYYY-ZZZZ' }
@@ -26,6 +28,8 @@ RSpec.describe 'install.sh' do
       en: {
         skip_firewall: 'Do you want to skip installing firewall?',
         ssl: "Do you want to install Free SSL certificates from Let's Encrypt?",
+        ssl_domains: 'Please enter server domains, separated by comma without spaces (i.e. domain1.tld,domain2.tld)',
+        ssl_email: 'Please enter your email (you can left this field empty)',
         license_ip: 'Please enter server IP',
         license_key: 'Please enter license key',
         db_name: 'Please enter database name',
@@ -56,6 +60,8 @@ RSpec.describe 'install.sh' do
     {
       skip_firewall: skip_firewall,
       ssl: ssl,
+      ssl_domains: ssl_domains,
+      ssl_email: ssl_email,
       license_ip: license_ip,
       license_key: license_key,
       db_name: db_name,
@@ -163,16 +169,18 @@ RSpec.describe 'install.sh' do
     context 'should detect ip' do
       let(:options) { '-p' }
       let(:docker_image) { 'centos' }
+      let(:commands) { [
+        'echo "echo 127.0.0.1; echo 1.1.1.1" > /bin/hostname',
+        'chmod a+x /bin/hostname'
+      ] }
 
-      context 'field not stored in inventory' do
-        it_behaves_like 'should show default value', :license_ip, showed_value: /(\d+\.){3}\d+/
+      it_behaves_like 'should show default value', :license_ip, showed_value: '1.1.1.1'
 
-        it_behaves_like 'should store default value', :license_ip, readed_inventory_value: /(\d+\.){3}\d+/
+      it_behaves_like 'should store default value', :license_ip, readed_inventory_value: '1.1.1.1'
 
-        it_behaves_like 'should store user value', :license_ip, readed_inventory_value: '127.0.0.1'
-      end
+      it_behaves_like 'should store user value', :license_ip, readed_inventory_value: '1.1.1.1'
 
-      it_behaves_like 'should take value from previously saved inventory', :license_ip, value: '127.0.0.1'
+      it_behaves_like 'should take value from previously saved inventory', :license_ip, value: '1.1.1.1'
     end
 
     it_behaves_like 'field without default', :license_key, value: 'AAAA-BBBB-CCCC-DDDD'
@@ -225,9 +233,9 @@ RSpec.describe 'install.sh' do
 
     before(:all) { `docker rm keitaro_installer_test &>/dev/null` }
 
-    shared_examples_for 'should install keitarotds' do
+    shared_examples_for 'should install keitaro' do
       it_behaves_like 'should print to', :stdout,
-                      'curl -sSL https://github.com/keitarocorp/centos_provision/archive/master.tar.gz | tar xz'
+                      'curl -sSL https://github.com/apliteni/centos_provision/archive/master.tar.gz | tar xz'
 
       it_behaves_like 'should print to', :stdout,
                       "ansible-playbook -vvv -i #{Inventory::INVENTORY_FILE} centos_provision-master/playbook.yml"
@@ -262,7 +270,7 @@ RSpec.describe 'install.sh' do
       it_behaves_like 'should print to', :log, "Try to found ansible\nFOUND"
       it_behaves_like 'should not print to', :stdout, 'yum install -y ansible'
 
-      it_behaves_like 'should install keitarotds'
+      it_behaves_like 'should install keitaro'
     end
 
     context 'yum presented, ansible not presented' do
@@ -273,7 +281,7 @@ RSpec.describe 'install.sh' do
       it_behaves_like 'should print to', :stdout, 'yum install -y epel-release'
       it_behaves_like 'should print to', :stdout, 'yum install -y ansible'
 
-      it_behaves_like 'should install keitarotds'
+      it_behaves_like 'should install keitaro'
     end
 
     context 'yum not presented' do
@@ -347,7 +355,7 @@ RSpec.describe 'install.sh' do
       let(:db_restore_path) { 'valid.sql' }
 
       it_behaves_like 'should print to', :stdout, 'Checking SQL dump . OK'
-      it_behaves_like 'should print to', :log, ' cat valid.sql | grep'
+      it_behaves_like 'should print to', :log, / grep .* valid.sql/
     end
 
     context 'valid gzipped dump' do
@@ -355,7 +363,7 @@ RSpec.describe 'install.sh' do
       let(:db_restore_path) { 'valid.sql.gz' }
 
       it_behaves_like 'should print to', :stdout, 'Checking SQL dump . OK'
-      it_behaves_like 'should print to', :log, ' zcat valid.sql.gz | grep'
+      it_behaves_like 'should print to', :log, / zgrep .* valid.sql.gz/
     end
 
     context 'dump is invalid' do
@@ -365,5 +373,17 @@ RSpec.describe 'install.sh' do
       it_behaves_like 'should print to', :stdout, 'Checking SQL dump . NOK'
       it_behaves_like 'should exit with error', 'SQL dump is broken'
     end
+  end
+
+  describe 'ssl enabled' do
+    let(:options) { '-spl en' }
+
+    let(:ssl) { 'yes' }
+    let(:ssl_domains) { 'd1.com,d2.com' }
+    let(:ssl_email) { 'some@mail.com' }
+
+    it_behaves_like 'should print to', :stdout, 'Enabling SSL . SKIPPED'
+    it_behaves_like 'should print to', :log,
+                    %r{curl .*/enable-ssl.sh | bash -s -- -k -a -e some@mail.com d1.com d2.com}
   end
 end

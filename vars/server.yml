@@ -6,7 +6,7 @@ php_memory_limit: 500M
 php_max_upload_size: "{{ max_upload_size }}"
 
 timezone: Europe/Moscow
-swap_size: 2048
+swap_size: 1024
 os_user: nginx
 
 keitaro:

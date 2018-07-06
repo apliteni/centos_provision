@@ -1,7 +1,7 @@
 #!/usr/bin/env powscript
 
 
-run_command(command, message, hide_output, allow_errors, run_as, print_fail_message_method, reverse_ok_nok)
+run_command(command, message, hide_output, allow_errors, run_as, print_fail_message_method, output_log)
   debug "Evaluating command: ${command}"
   if empty $message
     run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
@@ -17,27 +17,35 @@ run_command(command, message, hide_output, allow_errors, run_as, print_fail_mess
     debug "Actual running disabled"
   else
     really_run_command "${command}" "${hide_output}" "${allow_errors}" "${run_as}" \
-      "${print_fail_message_method}" "${reverse_ok_nok}"
+        "${print_fail_message_method}" "${output_log}"
 
 
 print_command_status(command, status, color, hide_output)
   debug "Command result: ${status}"
   if isset $hide_output
-    print_with_color $status $color
+    if $hide_output match (uncolored_yes_no)
+      print_uncolored_yes_no $status
+    else
+      print_with_color $status $color
 
 
-really_run_command(command, hide_output, allow_errors, run_as, print_fail_message_method, reverse_ok_nok)
+print_uncolored_yes_no(status)
+  if $status == "NOK"
+    echo "NO"
+  else
+    echo "YES"
+
+
+
+really_run_command(command, hide_output, allow_errors, run_as, print_fail_message_method, output_log)
   local current_command_script=$(save_command_script "${command}" "${run_as}")
   local evaluated_command=$(command_run_as "${current_command_script}" "${run_as}")
   evaluated_command=$(unbuffer_streams "${evaluated_command}")
-  evaluated_command=$(save_command_logs "${evaluated_command}")
+  evaluated_command=$(save_command_logs "${evaluated_command}" "${output_log}")
   evaluated_command=$(hide_command_output "${evaluated_command}" "${hide_output}")
   debug "Real command: ${evaluated_command}"
   if ! eval "${evaluated_command}"
-    if empty $reverse_ok_nok
-      print_command_status "${command}" 'NOK' 'red' "${hide_output}"
-    else
-      print_command_status "${command}" 'OK' 'green' "${hide_output}"
+    print_command_status "${command}" 'NOK' 'red' "${hide_output}"
     if isset $allow_errors
       remove_current_command $current_command_script
       return ${FAILURE_RESULT}
@@ -46,10 +54,7 @@ really_run_command(command, hide_output, allow_errors, run_as, print_fail_messag
       remove_current_command $current_command_script
       fail "${fail_message}" "see_logs"
   else
-    if empty $reverse_ok_nok
-      print_command_status "${command}" 'OK' 'green' "${hide_output}"
-    else
-      print_command_status "${command}" 'NOK' 'red' "${hide_output}"
+    print_command_status $command 'OK' 'green' $hide_output
     remove_current_command $current_command_script
 
 
@@ -65,8 +70,10 @@ unbuffer_streams(command)
   echo "stdbuf -i0 -o0 -e0 ${command}"
 
 
-save_command_logs(evaluated_command, output_log, error_log)
+save_command_logs(evaluated_command, output_log)
   save_output_log="tee -i ${CURRENT_COMMAND_OUTPUT_LOG} | tee -ia ${SCRIPT_LOG}"
+  if isset "${output_log}"
+    save_output_log="${save_output_log} | tee -i ${output_log}"
   save_error_log="tee -i ${CURRENT_COMMAND_ERROR_LOG} | tee -ia ${SCRIPT_LOG}"
   echo "((${evaluated_command}) 2> >(${save_error_log}) > >(${save_output_log}))"
 

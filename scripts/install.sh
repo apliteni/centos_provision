@@ -63,10 +63,12 @@ PROGRAM_NAME='install'
 SHELL_NAME=$(basename "$0")
 
 SUCCESS_RESULT=0
+TRUE=0
 FAILURE_RESULT=1
+FALSE=1
 ROOT_UID=0
 
-KEITARO_URL="https://keitarotds.com"
+KEITARO_URL="https://keitaro.io"
 
 WEBROOT_PATH="/var/www/keitaro"
 
@@ -517,7 +519,7 @@ run_command(){
   local allow_errors="${4}"
   local run_as="${5}"
   local print_fail_message_method="${6}"
-  local reverse_ok_nok="${7}"
+  local output_log="${7}"
   debug "Evaluating command: ${command}"
   if empty "$message"; then
     run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
@@ -535,9 +537,9 @@ run_command(){
     debug "Actual running disabled"
   else
     really_run_command "${command}" "${hide_output}" "${allow_errors}" "${run_as}" \
-      "${print_fail_message_method}" "${reverse_ok_nok}"
-    fi
-  }
+        "${print_fail_message_method}" "${output_log}"
+      fi
+    }
 
 
 print_command_status(){
@@ -547,9 +549,24 @@ print_command_status(){
   local hide_output="${4}"
   debug "Command result: ${status}"
   if isset "$hide_output"; then
-    print_with_color "$status" "$color"
+    if [[ "$hide_output" =~ (uncolored_yes_no) ]]; then
+      print_uncolored_yes_no "$status"
+    else
+      print_with_color "$status" "$color"
+    fi
   fi
 }
+
+
+print_uncolored_yes_no(){
+  local status="${1}"
+  if [[ "$status" == "NOK" ]]; then
+    echo "NO"
+  else
+    echo "YES"
+  fi
+}
+
 
 
 really_run_command(){
@@ -558,19 +575,15 @@ really_run_command(){
   local allow_errors="${3}"
   local run_as="${4}"
   local print_fail_message_method="${5}"
-  local reverse_ok_nok="${6}"
+  local output_log="${6}"
   local current_command_script=$(save_command_script "${command}" "${run_as}")
   local evaluated_command=$(command_run_as "${current_command_script}" "${run_as}")
   evaluated_command=$(unbuffer_streams "${evaluated_command}")
-  evaluated_command=$(save_command_logs "${evaluated_command}")
+  evaluated_command=$(save_command_logs "${evaluated_command}" "${output_log}")
   evaluated_command=$(hide_command_output "${evaluated_command}" "${hide_output}")
   debug "Real command: ${evaluated_command}"
   if ! eval "${evaluated_command}"; then
-    if empty "$reverse_ok_nok"; then
-      print_command_status "${command}" 'NOK' 'red' "${hide_output}"
-    else
-      print_command_status "${command}" 'OK' 'green' "${hide_output}"
-    fi
+    print_command_status "${command}" 'NOK' 'red' "${hide_output}"
     if isset "$allow_errors"; then
       remove_current_command "$current_command_script"
       return ${FAILURE_RESULT}
@@ -580,11 +593,7 @@ really_run_command(){
       fail "${fail_message}" "see_logs"
     fi
   else
-    if empty "$reverse_ok_nok"; then
-      print_command_status "${command}" 'OK' 'green' "${hide_output}"
-    else
-      print_command_status "${command}" 'NOK' 'red' "${hide_output}"
-    fi
+    print_command_status "$command" 'OK' 'green' "$hide_output"
     remove_current_command "$current_command_script"
   fi
 }
@@ -610,8 +619,10 @@ unbuffer_streams(){
 save_command_logs(){
   local evaluated_command="${1}"
   local output_log="${2}"
-  local error_log="${3}"
   save_output_log="tee -i ${CURRENT_COMMAND_OUTPUT_LOG} | tee -ia ${SCRIPT_LOG}"
+  if isset "${output_log}"; then
+    save_output_log="${save_output_log} | tee -i ${output_log}"
+  fi
   save_error_log="tee -i ${CURRENT_COMMAND_ERROR_LOG} | tee -ia ${SCRIPT_LOG}"
   echo "((${evaluated_command}) 2> >(${save_error_log}) > >(${save_output_log}))"
 }
@@ -689,6 +700,16 @@ remove_current_command(){
 
 
 
+get_host_ip(){
+  hostname -I 2>/dev/null | tr ' ' "\n" | grep -oP '(\d+\.){3}\d+' \
+    | grep -v '^10\.' | grep -vP '172\.(1[6-9]|2[0-9]|3[1-2])' | grep -v '192\.168\.' \
+    | grep -v '127\.' \
+    | head -n 1 \
+    || true
+  }
+
+
+
 get_error(){
   local var_name="${1}"
   local validation_methods_string="${2}"
@@ -729,6 +750,13 @@ validate_alnumdashdot(){
 validate_license_key(){
   local value="${1}"
   [[ "$value" =~  ^[0-9A-Z]{4}(-[0-9A-Z]{4}){3}$ ]]
+}
+
+
+
+validate_not_root(){
+  local value="${1}"
+  [[ "$value" !=  'root' ]]
 }
 
 
@@ -797,6 +825,8 @@ SSL_ENABLER_COMMAND_RU="curl -sSL ${KEITARO_URL}/enable-ssl.sh | bash -s -- -l r
 
 DICT['en.messages.check_ability_firewall_installing']="Checking the ability of installing a firewall"
 DICT['en.messages.check_keitaro_dump_validity']="Checking SQL dump"
+DICT['en.messages.enabling_ssl']="Enabling SSL"
+DICT["en.messages.successful.rerun_ssl_enabler"]="After troubleshooting, run ssl-enabler again"
 DICT['en.messages.successful.use_old_credentials']="The database was successfully restored from the archive. Use old login data"
 DICT['en.errors.see_logs']=$(cat <<- END
 	Installation log saved to ${SCRIPT_LOG}. Configuration settings saved to ${INVENTORY_FILE}.
@@ -850,10 +880,13 @@ DICT['en.prompt_errors.validate_alnumdashdot']='Only Latin letters, numbers, das
 DICT['en.prompt_errors.validate_starts_with_latin_letter']='The value must begin with a Latin letter'
 DICT['en.prompt_errors.validate_file_existence']='The file was not found by the specified path, please enter the correct path to the file'
 DICT['en.prompt_errors.validate_keitaro_dump']='The SQL dump is broken, please specify path to correct SQL dump of keitaro'
+DICT['en.prompt_errors.validate_not_root']='You must not use root as database user'
 
 DICT['ru.messages.check_ability_firewall_installing']="Проверяем возможность установки фаервола"
 DICT['ru.messages.check_keitaro_dump_validity']="Проверяем SQL дамп"
+DICT['ru.messages.enabling_ssl']="Подключаем SSL"
 DICT["ru.messages.successful.use_old_credentials"]="База данных успешно восстановлена из архива. Используйте старые данные для входа в систему"
+DICT["ru.messages.successful.rerun_ssl_enabler"]="После устранения проблем запустите программу выдачи сертификатов заново"
 DICT['ru.errors.see_logs']=$(cat <<- END
 	Журнал установки сохранён в ${SCRIPT_LOG}. Настройки сохранены в ${INVENTORY_FILE}.
 	Вы можете повторно запустить \`${SCRIPT_COMMAND}\` с этими настройками после устранения возникших проблем.
@@ -906,6 +939,7 @@ DICT['ru.prompt_errors.validate_alnumdashdot']='Можно использова�
 DICT['ru.prompt_errors.validate_starts_with_latin_letter']='Значение должно начинаться с латинской буквы'
 DICT['ru.prompt_errors.validate_file_existence']='Файл по заданному пути не обнаружен, введите правильный путь к файлу'
 DICT['ru.prompt_errors.validate_keitaro_dump']='Указанный файл не является дампом Keitaro или загружен не полностью. Укажите путь до корректного SQL дампа'
+DICT['ru.prompt_errors.validate_not_root']="Запрещено использовать root в качестве пользователя базы данных"
 
 COMMENT_ME_IF_POWSCRIPT_WANNT_COMPILE_PROJECT="'"
 
@@ -1083,6 +1117,9 @@ assert_centos_distro(){
   assert_installed 'yum' 'errors.wrong_distro'
   if ! is_exists_file /etc/centos-release; then
     fail "$(translate errors.wrong_distro)" "see_logs"
+    if ! cat /etc/centos-release | grep -q 'release 7\.'; then
+      fail "$(translate errors.wrong_distro)" "see_logs"
+    fi
   fi
 }
 
@@ -1163,7 +1200,7 @@ get_user_vars(){
     get_user_var 'db_restore_salt' 'validate_presence validate_alnumdashdot'
   fi
   get_user_var 'db_name' 'validate_presence validate_alnumdashdot validate_starts_with_latin_letter'
-  get_user_var 'db_user' 'validate_presence validate_alnumdashdot validate_starts_with_latin_letter'
+  get_user_var 'db_user' 'validate_presence validate_alnumdashdot validate_starts_with_latin_letter validate_not_root'
   get_user_var 'db_password' 'validate_presence validate_alnumdashdot'
   if is_no "${VARS['db_restore']}"; then
     get_user_var 'admin_login' 'validate_presence validate_alnumdashdot validate_starts_with_latin_letter'
@@ -1208,22 +1245,19 @@ is_keitaro_dump_valid(){
   local mime_type="$(detect_mime_type ${file})"
   debug "Detected mime type: ${mime_type}"
   if [[ "$mime_type" == 'application/x-gzip' ]]; then
-    cat_command='zcat'
+    grep_command='zgrep'
   else
-    cat_command='cat'
+    grep_command='grep'
   fi
-  run_command "${cat_command} ${file} | grep -q 'DROP TABLE IF EXISTS \`schema_version\`;'" \
-              "$(translate 'messages.check_keitaro_dump_validity')" 'hide_output' 'allow_errors'
-            }
+  command="${grep_command} -qP '(DROP TABLE IF|CREATE TABLE IF NOT) EXISTS \`schema_version\`' ${file}"
+  message="$(translate 'messages.check_keitaro_dump_validity')"
+  run_command "$command" "$message" 'hide_output' 'allow_errors'
+}
 
 can_install_firewall(){
-  run_command 'iptables -t nat -L' \
-              "$(translate 'messages.check_ability_firewall_installing')" 'hide_output' 'allow_errors'
-            }
-
-
-get_host_ip(){
-  (hostname -I 2>/dev/null || true) | grep -oP '(\d+\.){3}\d+' | tr "\n" ' ' | awk '{print $1}'
+  command='iptables -t nat -L'
+  message="$(translate 'messages.check_ability_firewall_installing')"
+  run_command "$command" "$message" 'hide_output' 'allow_errors'
 }
 
 
@@ -1275,7 +1309,7 @@ write_inventory_file(){
   debug "Write inventory file"
   echo -n > "$INVENTORY_FILE"
   print_line_to_inventory_file "[server]"
-  print_line_to_inventory_file "localhost connection=local"
+  print_line_to_inventory_file "localhost connection=local ansible_user=root"
   print_line_to_inventory_file
   print_line_to_inventory_file "[server:vars]"
   print_line_to_inventory_file "skip_firewall=${VARS['skip_firewall']}"
@@ -1340,6 +1374,7 @@ stage5(){
   debug "Starting stage 5: run ansible playbook"
   download_provision
   run_ansible_playbook
+  run_ssl_enabler
   clean_up
   remove_inventory_file
   show_successful_message
@@ -1350,7 +1385,7 @@ stage5(){
 
 download_provision(){
   debug "Download provision"
-  release_url="https://github.com/keitarocorp/centos_provision/archive/master.tar.gz"
+  release_url="https://github.com/apliteni/centos_provision/archive/master.tar.gz"
   run_command "curl -sSL "$release_url" | tar xz"
 }
 
@@ -1524,15 +1559,68 @@ get_printable_fields(){
 }
 
 
+SSL_SUCCESSFUL_DOMAINS=""
+SSL_FAILED_MESSAGE=""
+SSL_RERUN_COMMAND=""
+SSL_OUTPUT_LOG="enable-ssl.output.log"
+SSL_SCRIPT_URL="https://keitaro.io/enable-ssl.sh"
+
+run_ssl_enabler(){
+  if [[ "${VARS['ssl_certificate']}" == 'letsencrypt' ]]; then
+    local options="-a"                                  # accept LE license agreement
+    options="${options} -l ${UI_LANG}"                  # set language
+    if [[ "${VARS['ssl_email']}" ]]; then
+      options="${options} -e ${VARS['ssl_email']}"
+    else
+      options="${options} -w"
+    fi
+    local domains="${VARS['ssl_domains']//,/ }"
+    local command="curl -sSL ${SSL_SCRIPT_URL} | bash -s -- ${options} ${domains}"
+    message="$(translate 'messages.enabling_ssl')"
+    run_command "${command}" "${message}" "hide_output" "" "" "" "${SSL_OUTPUT_LOG}"
+    SSL_SUCCESSFUL_DOMAINS="$(extract_domains_from_enable_ssl_log OK)"
+    local failed_domains="$(extract_domains_from_enable_ssl_log NOK)"
+    SSL_FAILED_MESSAGE="$(get_message_from_enable_ssl_log NOK)"
+    SSL_FAILED_MESSAGE="${SSL_FAILED_MESSAGE/NOK. /}"
+    SSL_RERUN_COMMAND="curl -sSL ${SSL_SCRIPT_URL} | bash -s -- ${options} ${failed_domains}"
+    rm -f "${SSL_OUTPUT_LOG}"
+  fi
+}
+
+
+remove_ansi_colors(){
+  sed -r "s/\x1B\[(([0-9]+)(;[0-9]+)*)?[m,K,H,f,J]//g"
+}
+
+
+get_message_from_enable_ssl_log(){
+  local prefix="${1}"
+  if is_exists_file "${SSL_OUTPUT_LOG}" "no"; then
+    cat "${SSL_OUTPUT_LOG}" \
+      | tail -n2 \
+      | remove_ansi_colors \
+      | sed -n "/^${prefix}/p"          # get last 2 lines of log and extract only OK/NOK messages
+    fi
+  }
+
+
+extract_domains_from_enable_ssl_log(){
+  local prefix="${1}"
+  get_message_from_enable_ssl_log "$prefix" \
+    | sed -e 's/.*: //g' -e 's/,//'     # extract domains list from message
+  }
+
+
+
 
 show_successful_message(){
   print_with_color "$(translate 'messages.successful')" 'green'
   if [[ "$RECONFIGURE" ]]; then
     return
   fi
-  if [[ "${VARS['ssl_certificate']}" == 'letsencrypt' ]]; then
+  if [[ "${VARS['ssl_certificate']}" == 'letsencrypt' ]] && isset "${SSL_SUCCESSFUL_DOMAINS}" ]]; then
     protocol='https'
-    domain=$(expr match "${VARS['ssl_domains']}" '\([^,]*\)')
+    domain=$(expr match "${SSL_SUCCESSFUL_DOMAINS}" '\([^ ]*\)')
   else
     protocol='http'
     domain="${VARS['license_ip']}"
@@ -1545,6 +1633,11 @@ show_successful_message(){
     colored_password=$(print_with_color "${VARS['admin_password']}" 'light.green')
     echo -e "login: ${colored_login}"
     echo -e "password: ${colored_password}"
+  fi
+  if isset "$SSL_FAILED_MESSAGE"; then
+    print_with_color "${SSL_FAILED_MESSAGE}" 'yellow'
+    print_with_color "$(translate messages.successful.rerun_ssl_enabler)" 'yellow'
+    print_with_color "${SSL_RERUN_COMMAND}" 'yellow'
   fi
 }
 
@@ -1746,7 +1839,7 @@ json2dict() {
 
 
 write_emtpy_hosts_txt(){
-  echo -e "[server]\nlocalhost connection=local" > hosts.txt
+  echo -e "[server]\nlocalhost connection=local ansible_user=root" > hosts.txt
 }
 
 install(){
@@ -1755,10 +1848,10 @@ install(){
   stage2                    # make some asserts
   if [[ ! "$RECONFIGURE" ]]; then
     stage3                  # generate inventory file
+    stage4                  # upgrade packages and install ansible
   else
     write_emtpy_hosts_txt
   fi
-  stage4                    # upgrade packages and install ansible
   stage5                    # run ansible playbook
 }
 

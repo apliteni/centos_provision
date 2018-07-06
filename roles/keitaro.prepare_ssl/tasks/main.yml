@@ -1,0 +1,9 @@
+---
+
+- include: prepare.yml
+
+- include: generate_selfsigned_certs.yml
+
+- include: generate_dhparam.yml
+
+- include: configure_nginx.yml

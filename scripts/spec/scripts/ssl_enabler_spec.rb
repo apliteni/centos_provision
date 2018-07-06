@@ -6,9 +6,32 @@ RSpec.describe 'enable-ssl.sh' do
 
   let(:script_name) { 'enable-ssl.sh' }
   let(:args) { options + ' ' + domains.join(' ') }
+  let(:emulate_crontab) do
+    [
+      %q(echo "if [[ \\"\\$2\\" != nginx ]]; then echo certbot renew; fi; if [[ \\${@:\\$#} == '-' ]]; then read -t 1; fi"  > /bin/crontab),
+      'chmod a+x /bin/crontab'
+    ]
+  end
   let(:all_command_stubs) { {nginx: '/bin/true', certbot: '/bin/true', crontab: '/bin/true', chown: '/bin/true'} }
   let(:domains) { %w[domain1.tld] }
-  let(:nginx_conf) { "ssl_certificate /etc/nginx/ssl/cert.pem;\nssl_certificate_key /etc/nginx/ssl/privkey.pem;" }
+  let(:nginx_conf) {
+    <<-END
+    server {
+      listen 80 default_server;
+      server_name _;
+      listen 443 ssl;
+
+      ssl_certificate /etc/nginx/ssl/cert.pem;
+      ssl_certificate_key /etc/nginx/ssl/privkey.pem;
+
+      error_log /var/log/nginx/error.log error;
+
+      location /admin/ {
+        access_log /var/log/nginx/admin.access.log combined buffer=16k;
+      }
+    }
+    END
+  }
   let(:make_proper_nginx_conf) do
     [
       'mkdir -p /etc/nginx/conf.d /etc/nginx/ssl',
@@ -70,7 +93,7 @@ RSpec.describe 'enable-ssl.sh' do
     let(:options) { '-p' }
 
     shared_examples_for 'should enable ssl for Keitaro' do
-      it_behaves_like 'should print to', :stdout, 'certbot certonly --webroot'
+      it_behaves_like 'should print to', :log, 'certbot certonly --webroot'
     end
 
     context 'nginx is installed, certbot is installed, crontab is installed, nginx is configured properly' do
@@ -151,24 +174,7 @@ RSpec.describe 'enable-ssl.sh' do
     context 'successful running certbot' do
       let(:commands) { make_proper_nginx_conf + emulate_crontab }
 
-      let(:emulate_crontab) do
-        [
-          'echo "if [[ \"\${@:\$#}\" == \"-\" ]]; then while read line; do : ; done; fi" > /bin/crontab',
-          'chmod a+x /bin/crontab'
-        ]
-      end
-
       it_behaves_like 'should print to', :stdout, /Everything is done!/
-    end
-
-    context 'unsuccessful running certbot' do
-      let(:command_stubs) { all_command_stubs.merge(certbot: '/bin/false') }
-
-      it_behaves_like 'should exit with error', [
-        /There was an error evaluating current command\n(.*\n){3}  certbot certonly/,
-        'Evaluating log saved to enable-ssl.log',
-        'Please rerun `enable-ssl.sh domain1.tld`'
-      ]
     end
   end
 
@@ -185,7 +191,7 @@ RSpec.describe 'enable-ssl.sh' do
 
     it_behaves_like 'should not print to', :stdout, 'Please enter your email'
 
-    it_behaves_like 'should print to', :stdout, /certbot certonly .* --email some.mail@example.com/
+    it_behaves_like 'should print to', :log, /certbot certonly .* --email some.mail@example.com/
   end
 
   context 'without email option specified' do
@@ -193,18 +199,8 @@ RSpec.describe 'enable-ssl.sh' do
 
     it_behaves_like 'should not print to', :stdout, 'Please enter your email'
 
-    it_behaves_like 'should print to', :stdout, /certbot certonly .* --register-unsafely-without-email/
+    it_behaves_like 'should print to', :log, /certbot certonly .* --register-unsafely-without-email/
   end
-
-  describe 'making symlinks' do
-    let(:options) { '-s -p' }
-
-    it_behaves_like 'should print to', :log, 'rm -f /etc/nginx/ssl/cert.pem'
-    it_behaves_like 'should print to', :log, 'ln -s /etc/letsencrypt/live/domain1.tld/fullchain.pem /etc/nginx/ssl/cert.pem'
-    it_behaves_like 'should print to', :log, 'rm -f /etc/nginx/ssl/privkey.pem'
-    it_behaves_like 'should print to', :log, 'ln -s /etc/letsencrypt/live/domain1.tld/privkey.pem /etc/nginx/ssl/privkey.pem'
-  end
-
 
   describe 'adding cron task' do
     let(:docker_image) { 'centos' }
@@ -214,29 +210,10 @@ RSpec.describe 'enable-ssl.sh' do
     it_behaves_like 'should print to', :log, /Schedule renewal job/
 
     context 'relevant cron job already scheduled' do
-      let(:commands) do
-        make_proper_nginx_conf +
-          [
-            %q(echo "if [[ \\"\\$2\\" != nginx ]]; then echo certbot renew; fi; if [[ \\${@:\\$#} == '-' ]]; then read -t 1; fi"  > /bin/crontab),
-            'chmod a+x /bin/crontab'
-          ]
-      end
+      let(:commands) { make_proper_nginx_conf + emulate_crontab }
 
-      it_behaves_like 'should print to', :log, /Renewal cron job already exists/
+      it_behaves_like 'should print to', :log, /Renewal cron job already scheduled/
     end
-
-    context 'old cron job scheduled' do
-      let(:commands) do
-        make_proper_nginx_conf +
-          [
-            %q(echo "if [[ \\"\\$2\\" == nginx ]]; then echo certbot renew; fi; if [[ \\${@:\\$#} == '-' ]]; then read -t 1; fi"  > /bin/crontab),
-            'chmod a+x /bin/crontab'
-          ]
-      end
-
-      it_behaves_like 'should print to', :log, /Unschedule inactual renewal job/
-    end
-
   end
 
   describe 'reloading nginx' do
@@ -245,25 +222,108 @@ RSpec.describe 'enable-ssl.sh' do
     it_behaves_like 'should print to', :log, /nginx -s reload/
   end
 
+
+  describe 'run certbot for each specified doamin' do
+    let(:options) { '-s -p' }
+    let(:domains) { %w[d1.com d2.com] }
+
+    it_behaves_like 'should print to', :log,
+                    /certbot .* --non-interactive --domain d1.com --register-unsafely-without-email/
+
+    it_behaves_like 'should print to', :log,
+                    /certbot .* --non-interactive --domain d2.com --register-unsafely-without-email/
+  end
+
+
+  describe 'generates nginx config' do
+    let(:command_stubs) { all_command_stubs }
+    let(:docker_image) { 'centos' }
+    let(:commands) { make_proper_nginx_conf + emulate_crontab }
+    let(:save_files) { %w[/etc/nginx/conf.d/domain1.tld.conf] }
+
+    it 'domain1.tld.conf file should be properly configured' do
+      run_script
+      content = File.read("#{@current_dir}/domain1.tld.conf")
+      expect(content).to match('server_name domain1.tld;')
+      expect(content).to match('ssl_certificate /etc/letsencrypt/live/domain1.tld/fullchain.pem;')
+      expect(content).to match('ssl_certificate_key /etc/letsencrypt/live/domain1.tld/privkey.pem;')
+      expect(content).to match('error_log /var/log/nginx/domain1.tld-error.log;')
+      expect(content).to match('access_log /var/log/nginx/domain1.tld-access.log combined buffer=16k;')
+      expect(content).to match('error_log /var/log/nginx/domain1.tld-admin.error.log;')
+      expect(content).to match('access_log /var/log/nginx/domain1.tld-admin.access.log combined buffer=16k;')
+    end
+  end
+
   context 'certs already point to letsencrypt certs' do
     include_context 'run in docker'
 
     let(:command_stubs) { all_command_stubs }
 
     let(:domains) { %w[d3.com d4.com] }
+    let(:extra_commands) { [] }
     let(:commands) do
       [
-        'mkdir -p /etc/letsencrypt/live/domain1.tld /etc/nginx/conf.d /etc/nginx/ssl',
-        'touch /etc/letsencrypt/live/domain1.tld/{cert,privkey}.pem',
-        'ln -s /etc/letsencrypt/live/domain1.tld/cert.pem /etc/nginx/ssl/cert.pem',
-        'ln -s /etc/letsencrypt/live/domain1.tld/privkey.pem /etc/nginx/ssl/privkey.pem',
-        %q(echo "echo \\"    DNS:d2.com, DNS:d1.com\\"" > /bin/openssl),
+        'mkdir -p /etc/letsencrypt/live/d1.com /etc/nginx/conf.d /etc/nginx/ssl',
+        'touch /etc/letsencrypt/live/d1.com/{cert,privkey}.pem',
+        'ln -s /etc/letsencrypt/live/d1.com/cert.pem /etc/nginx/ssl/cert.pem',
+        'ln -s /etc/letsencrypt/live/d1.com/privkey.pem /etc/nginx/ssl/privkey.pem',
+        %q(echo "echo \\"    DNS:d1.com, DNS:d2.com\\"" > /bin/openssl),
         'chmod a+x /bin/openssl',
-        %Q{echo -e "#{nginx_conf}"> /etc/nginx/conf.d/vhosts.conf}
-      ]
+      ] + make_proper_nginx_conf + emulate_crontab + extra_commands
     end
 
-    it_behaves_like 'should print to', :stdout,
-                    /certbot .* --domain d2.com --domain d1.com  --domain d3.com --domain d4.com/
+    it_behaves_like 'should print to', :log, ['Requesting certificate for domain d1.com',
+                                              'Requesting certificate for domain d2.com',
+                                              'Requesting certificate for domain d3.com',
+                                              'Requesting certificate for domain d4.com']
+
+
+    it_behaves_like 'should print to', :log, ['Generating nginx config for d1.com',
+                                              'Generating nginx config for d2.com',
+                                              'Generating nginx config for d3.com',
+                                              'Generating nginx config for d4.com']
+
+    context 'certificate for domain d3.com already exists' do
+      let(:extra_commands) { ['mkdir -p /etc/letsencrypt/live/d3.com'] }
+
+      it_behaves_like 'should not print to', :log, 'Requesting certificate for domain d3.com'
+
+      it_behaves_like 'should print to', :log, 'Generating nginx config for d3.com'
+    end
+
+    context 'nginx config for domain d3.com already exists' do
+      let(:extra_commands) { ['touch /etc/nginx/conf.d/d3.com.conf'] }
+
+      it_behaves_like 'should print to', :log, ['Requesting certificate for domain d3.com',
+                                                'Saving old nginx config for d3.com',
+                                                'Generating nginx config for d3.com']
+
+      it_behaves_like 'should print to', :stdout,
+                      'SSL certificates are issued for sites: d1.com, d2.com, d3.com, d4.com'
+
+      it_behaves_like 'should not print to', :stdout,
+                      'SSL certificates are not issued'
+    end
+
+    describe 'tries to issue certificate for all sites, even on requesting error' do
+      let(:command_stubs) { all_command_stubs.merge(certbot: '/bin/false') }
+
+
+      it_behaves_like 'should print to', :log, ['Requesting certificate for domain d1.com',
+                                                'Requesting certificate for domain d2.com',
+                                                'Requesting certificate for domain d3.com',
+                                                'Requesting certificate for domain d4.com']
+
+      it_behaves_like 'should not print to', :log, ['Generating nginx config for d1.com',
+                                                    'Generating nginx config for d2.com',
+                                                    'Generating nginx config for d3.com',
+                                                    'Generating nginx config for d4.com']
+
+      it_behaves_like 'should not print to', :stdout, 'SSL certificates are issued'
+
+      it_behaves_like 'should print to', :stdout,
+                      /SSL certificates are not issued .* for sites: d1.com, d2.com, d3.com, d4.com/
+    end
   end
 end
+
