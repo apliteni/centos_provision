@@ -344,6 +344,7 @@ RSpec.describe 'install.sh' do
 
   describe 'dump checking' do
     let(:docker_image) { 'centos' }
+    # we must not skip checks with -sp options, but we don't want to run yum upgrade in docker
     let(:command_stubs) { {yum: '/bin/false'} }
 
     let(:db_restore) { 'yes' }
@@ -373,6 +374,13 @@ RSpec.describe 'install.sh' do
       it_behaves_like 'should print to', :stdout, 'Checking SQL dump . NOK'
       it_behaves_like 'should exit with error', 'SQL dump is broken'
     end
+  end
+
+  describe 'fails if keitaro is already installed' do
+    let(:docker_image) { 'centos' }
+    let(:commands) { ['mkdir -p /var/www/keitaro/var', 'touch /var/www/keitaro/var/install.lock'] }
+
+    it_behaves_like 'should exit with error', 'Keitaro is already installed'
   end
 
   describe 'ssl enabled' do
