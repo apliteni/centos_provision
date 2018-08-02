@@ -166,6 +166,18 @@ assert_installed(){
 
 
 
+assert_keitaro_not_installed(){
+  debug 'Ensure keitaro is not installed yet'
+  if is_exists_file /var/www/keitaro/var/install.lock no; then
+    debug 'NOK: keitaro is already installed'
+    fail "$(translate errors.keitaro_already_installed)"
+  else
+    debug 'OK: keitaro is not installed yet'
+  fi
+}
+
+
+
 is_exists_file(){
   local file="${1}"
   local result_on_skip="${2}"
@@ -835,6 +847,7 @@ END
 )
 DICT['en.errors.wrong_distro']='This installer works only on CentOS 7.x. Please run this program on clean CentOS server'
 DICT['en.errors.cant_install_firewall']='Please run this program in system with firewall support'
+DICT['en.errors.keitaro_already_installed']='Keitaro is already installed'
 DICT['en.errors.keitaro_dump_invalid']='SQL dump is broken'
 DICT['en.errors.isp_manager_installed']='You can not install Keitaro on the server with ISP Manager installed. Please run this program on a clean CentOS server.'
 DICT['en.errors.vesta_cp_installed']='You can not install Keitaro on the server with Vesta CP installed. Please run this program on a clean CentOS server.'
@@ -895,6 +908,7 @@ END
 DICT['ru.errors.wrong_distro']='Установщик Keitaro работает только в CentOS 7.x. Пожалуйста, запустите эту программу в CentOS дистрибутиве'
 DICT['ru.errors.cant_install_firewall']='Пожалуйста, запустите эту программу на системе с поддержкой фаервола'
 DICT['ru.errors.keitaro_dump_invalid']='Указанный файл не является дампом Keitaro или загружен не полностью.'
+DICT['ru.errors.keitaro_already_installed']='Keitaro трекер уже установлен'
 DICT['ru.errors.isp_manager_installed']="Программа установки не может быть запущена на серверах с установленным ISP Manager. Пожалуйста, запустите эту программу на чистом CentOS сервере."
 DICT['ru.errors.vesta_cp_installed']="Программа установки не может быть запущена на серверах с установленной Vesta CP. Пожалуйста, запустите эту программу на чистом CentOS сервере."
 DICT['ru.errors.apache_installed']="Программа установки не может быть запущена на серверах с установленным Apache HTTP server. Пожалуйста, запустите эту программу на чистом CentOS сервере."
@@ -1092,6 +1106,7 @@ en_usage(){
 
 stage2(){
   debug "Starting stage 2: make some asserts"
+  assert_keitaro_not_installed
   assert_caller_root
   assert_centos_distro
   assert_pannels_not_installed
