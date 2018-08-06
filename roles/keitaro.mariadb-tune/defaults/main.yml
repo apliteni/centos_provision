@@ -1,2 +1,0 @@
-max_innodb_buffer_pool_size: "{{ 5 * 1024 }}" # Max allowed buffer size in MB
-innodb_buffer_pool_size_factor: 0.5           # We want to use 50% of available memory for the innodb buffer pool
