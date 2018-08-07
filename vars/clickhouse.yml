@@ -1,0 +1,16 @@
+clickhouse_http_port: 8123
+clickhouse_tcp_port: 9000
+clickhouse_interserver_http: 9009
+
+clickhouse_users_custom:
+  - name: "{{ db_user }}"
+    password_sha256_hex: "{{ db_password | hash('sha256')}}"
+    networks: "{{ clickhouse_networks_default }}"
+    profile: "default"
+    quota: "default"
+    dbs: [ "{{ db_name }}" ]
+    comment: "Keitaro"
+
+clickhouse_dbs_custom:
+  - name: "{{ db_name }}"
+    state: present
