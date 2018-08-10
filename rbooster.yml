@@ -5,7 +5,6 @@
   become_method: sudo
   vars_files:
     - vars/server.yml
-    - vars/clickhouse.yml
 
   roles:
     - {role: 'upgrades.pretasks'}
@@ -15,4 +14,4 @@
     - {role: 'selinux', tags: 'selinux'}
     - {role: 'resmo.ntp', tags: 'ntp'}
     - {role: 'mrlesmithjr.timezone'}
-    - {role: 'alexeysetevoi.clickhouse', tags: 'clickhouse'}
+    - {role: 'keitaro.clickhouse', tags: ['rbooster','clickhouse']}

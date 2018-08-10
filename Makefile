@@ -1,4 +1,4 @@
 .PHONY: test
 
-test_clickhouse:
-	ansible-playbook -i hosts-vagrant clickhouse.yml --tags=clickhouse
+test_rbooster:
+	ansible-playbook -i hosts-vagrant rbooster.yml --tags=clickhouse
