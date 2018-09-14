@@ -23,8 +23,8 @@
     - {role: 'keitaro.mariadb-tune', tags: ['mariadb', 'tune-mariadb']}
     - {role: 'geerlingguy.nginx', tags: 'nginx'}
     - {role: 'keitaro.php', tags: 'php'}
-    - {role: 'keitaro.php-install_ioncube', tags: ['php', 'ioncube'], when: "php_version >= 'php70'"}
-    - {role: 'keitaro.monit', tags: 'monit'}
+    - {role: 'keitaro.php-install_ioncube', tags: ['php', 'ioncube']}
+    - {role: 'keitaro.tune_autorestarting', tags: ['php', 'mysql', 'mariadb', 'nginx', 'redis']}
     - {role: 'geerlingguy.firewall', tags: 'firewall', when: "skip_firewall is not defined or skip_firewall != 'yes'"}
     - {role: 'keitaro.prepare_home_dir', tags: ['keitaro', 'ssl']}
     - {role: 'keitaro.prepare_ssl', tags: 'ssl'}
