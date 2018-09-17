@@ -12,21 +12,6 @@
   ignore_errors: true
   with_dict: "{{ redis_sysctl_tweaks }}"
 
-- name: Add service file for disabling Transparent Huge Pages
-  copy:
-    src: files/disable-transparent-hugepages
-    dest: /etc/init.d/disable-transparent-hugepages
-    mode: 0755
-
-- name: Configure system to see this service
-  command: chkconfig --add disable-transparent-hugepages
-
-- name: Run service for disabling THP
-  service:
-    name: disable-transparent-hugepages
-    state: started
-    enabled: yes
-
 - name: Tune redis tcp-backlog
   lineinfile:
     dest: /etc/redis.conf

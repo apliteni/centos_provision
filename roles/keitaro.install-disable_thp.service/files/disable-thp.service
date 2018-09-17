@@ -1,0 +1,12 @@
+[Unit]
+Description=Disable Transparent Huge Pages
+Before=redis.service mariadb.service mysql.service
+
+[Service]
+Type=oneshot
+ExecStart=/sbin/manage-thp disable
+ExecStop=/sbin/manage-thp enable
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
