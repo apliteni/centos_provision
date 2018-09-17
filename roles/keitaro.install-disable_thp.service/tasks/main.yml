@@ -1,0 +1,20 @@
+- name: Install managing THP tool
+  copy:
+    src: manage-thp
+    dest: /sbin/manage-thp
+    mode: 0755
+
+- name: Copy diable-thp systemd unit file into place.
+  copy:
+    src: disable-thp.service
+    dest: /etc/systemd/system/disable-thp.service
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Enable and start disabling THP service
+  systemd:
+    daemon-reload: true
+    name: disable-thp
+    state: started
+    enabled: yes
