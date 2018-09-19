@@ -1,20 +1,9 @@
-- name: Install managing THP tool
-  copy:
-    src: manage-thp
-    dest: /sbin/manage-thp
-    mode: 0755
+- name: Detect /sys/kernel/mm/transparent_hugepage exists
+  stat:
+    path: /sys/kernel/mm/transparent_hugepage
+  register: thp_config_dir
 
-- name: Copy diable-thp systemd unit file into place.
-  copy:
-    src: disable-thp.service
-    dest: /etc/systemd/system/disable-thp.service
-    owner: root
-    group: root
-    mode: 0644
+- name: Install THP disabling tool and service
+  include: install.yml
+  when: thp_config_dir.stat.exists
 
-- name: Enable and start disabling THP service
-  systemd:
-    daemon-reload: true
-    name: disable-thp
-    state: started
-    enabled: yes
