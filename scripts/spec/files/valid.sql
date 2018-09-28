@@ -1,1 +1,2 @@
-DROP TABLE IF EXISTS `schema_version`;
+CREATE TABLE `keitaro_clicks`;
+CREATE TABLE IF NOT EXISTS `schema_version`;
