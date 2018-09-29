@@ -4,3 +4,5 @@ doc
 hosts.txt
 hosts-gitlab
 *.retry
+.DS_Store
+TODO

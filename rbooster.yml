@@ -1,0 +1,17 @@
+---
+- hosts: all
+  connection: "{{connection}}"
+  become: yes
+  become_method: sudo
+  vars_files:
+    - vars/server.yml
+
+  roles:
+    - {role: 'upgrades.pretasks'}
+    - {role: 'system.upgrade_packages', tags: ['system', 'upgrade', 'packages'], when: "evaluated_by_installer is not defined"}
+    - {role: 'kernel', tags: 'kernel'}
+    - {role: 'tools'}
+    - {role: 'selinux', tags: 'selinux'}
+    - {role: 'resmo.ntp', tags: 'ntp'}
+    - {role: 'mrlesmithjr.timezone'}
+    - {role: 'keitaro.clickhouse', tags: ['rbooster','clickhouse']}

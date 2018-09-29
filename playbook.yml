@@ -10,12 +10,12 @@
     - {role: 'upgrades.pretasks'}
     - {role: 'system.upgrade_packages', tags: ['system', 'upgrade', 'packages'], when: "evaluated_by_installer is not defined"}
     - {role: 'kernel', tags: 'kernel'}
-    - {role: 'tools'}
     - {role: 'selinux', tags: 'selinux'}
     - {role: 'resmo.ntp', tags: 'ntp'}
     - {role: 'mrlesmithjr.timezone'}
     - {role: 'geerlingguy.repo-epel', tags: 'repo-epel'}
     - {role: 'geerlingguy.repo-remi', tags: 'repo-remi'}
+    - {role: 'tools'}
     - {role: 'mikegleasonjr.swap', tags: 'swap', when: "ansible_memtotal_mb < 4000"}
     - {role: 'keitaro.install-disable_thp.service', tags: ['mariadb', 'tokudb', 'redis']}
     - {role: 'keitaro.redis', tags: 'redis'}
