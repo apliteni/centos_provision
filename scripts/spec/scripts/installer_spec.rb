@@ -368,8 +368,8 @@ RSpec.describe 'install.sh' do
     end
 
     context 'dump is invalid' do
-      let(:copy_files) { [__FILE__] }
-      let(:db_restore_path) { File.basename(__FILE__) }
+      let(:copy_files) { ["#{ROOT_PATH}/spec/files/invalid.sql"] }
+      let(:db_restore_path) { 'invalid.sql' }
 
       it_behaves_like 'should print to', :stdout, 'Checking SQL dump . NOK'
       it_behaves_like 'should exit with error', 'SQL dump is broken'
