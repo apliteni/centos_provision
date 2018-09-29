@@ -1264,9 +1264,18 @@ is_keitaro_dump_valid(){
   else
     grep_command='grep'
   fi
-  command="${grep_command} -qP '(DROP TABLE IF|CREATE TABLE IF NOT) EXISTS \`schema_version\`' ${file}"
+  check_table_1="$(ensure_table_dumped "${grep_command}" "keitaro_clicks" "${file}")"
+  check_table_2="$(ensure_table_dumped "${grep_command}" "schema_version" "${file}")"
+  ensure_tables_dumped="${check_table_1} && ${check_table_2}"
   message="$(translate 'messages.check_keitaro_dump_validity')"
-  run_command "$command" "$message" 'hide_output' 'allow_errors'
+  run_command "${ensure_tables_dumped}" "${message}" 'hide_output' 'allow_errors'
+}
+
+ensure_table_dumped(){
+  local grep_command="${1}"
+  local table="${2}"
+  local file="${3}"
+  echo "${grep_command} -qP '^CREATE TABLE( IF NOT EXISTS)? \`${table}\`' ${file}"
 }
 
 can_install_firewall(){
