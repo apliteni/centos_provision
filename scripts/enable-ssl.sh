@@ -128,6 +128,8 @@ NGINX_SSL_PATH="${NGINX_ROOT_PATH}/ssl"
 NGINX_SSL_CERT_PATH="${NGINX_SSL_PATH}/cert.pem"
 NGINX_SSL_PRIVKEY_PATH="${NGINX_SSL_PATH}/privkey.pem"
 CERT_DOMAINS_PATH=/root/.ssl_enabler_cert_domains
+ERRORS_LOG=/root/.ssl_enabler_errors.log
+CERTBOT_LOG=/root/.ssl_enabler_cerbot.log
 
 
 RECONFIGURE_KEITARO_SSL_COMMAND_EN="curl -sSL ${KEITARO_URL}/install.sh | bash -s -- -l en -t nginx,ssl"
@@ -640,7 +642,11 @@ really_run_command(){
   evaluated_command=$(save_command_logs "${evaluated_command}" "${output_log}")
   evaluated_command=$(hide_command_output "${evaluated_command}" "${hide_output}")
   debug "Real command: ${evaluated_command}"
+  debug "Before eval!"
+  eval "${evaluated_command}"
+  debug "Before if"
   if ! eval "${evaluated_command}"; then
+    debug "!evaluation failed!"
     print_command_status "${command}" 'NOK' 'red' "${hide_output}"
     if isset "$allow_errors"; then
       remove_current_command "$current_command_script"
@@ -651,6 +657,7 @@ really_run_command(){
       fail "${fail_message}" "see_logs"
     fi
   else
+    debug "!evaluated succesfully!"
     print_command_status "$command" 'OK' 'green' "$hide_output"
     remove_current_command "$current_command_script"
   fi
@@ -1173,9 +1180,11 @@ generate_certificates(){
         SUCCESSFUL_DOMAINS+=($domain)
         debug "Certificate for domain ${domain} successfully issued"
         certificate_generated=${TRUE}
+        rm -rf $CERTBOT_LOG
       else
-        FAILED_DOMAINS+=($domain)
+        #FAILED_DOMAINS["${domain}"]="Error XXX"
         debug "There was an error while issuing certificate for domain ${domain}"
+        echo "${domain}: $(recognize_error $CERTBOT_LOG)" >> $ERRORS_LOG
       fi
     fi
     if [[ ${certificate_generated} == ${TRUE} ]]; then
@@ -1210,15 +1219,16 @@ nginx_config_exists_for_domain(){
 request_certificate_for(){
   local domain="${1}"
   debug "Requesting certificate for domain ${domain}"
-  certbot_command="certbot certonly --webroot --webroot-path=${WEBROOT_PATH} --agree-tos --non-interactive"
+  certbot_command="certbot certonly --webroot --webroot-path=${WEBROOT_PATH}"
+  certbot_command="${certbot_command} --agree-tos --non-interactive"
   certbot_command="${certbot_command} --domain ${domain}"
   if isset "${VARS['ssl_email']}"; then
     certbot_command="${certbot_command} --email ${VARS['ssl_email']}"
   else
     certbot_command="${certbot_command} --register-unsafely-without-email"
   fi
-  requesting_message=$(translate "messages.requesting_certificate_for")
-  run_command "${certbot_command}" "${requesting_message} ${domain}" "hide_output" "allow_errors"
+  requesting_message="$(translate "messages.requesting_certificate_for") ${domain}"
+  run_command "${certbot_command}" "${requesting_message}" "hide_output" "allow_errors" "" "" $CERTBOT_LOG
 }
 
 
@@ -1257,6 +1267,22 @@ show_successful_message(){
 
 
 
+
+
+
+recognize_error() {
+  local certbot_log="${1}"
+  local key="unknown_error"
+  local error_detail=$(grep '^    Detail:' "${certbot_log}" 2>/dev/null)
+  debug "certbot error detail from ${certbot_log}: ${error_detail}"
+  if [[ $error_detail =~ "NXDOMAIN looking up A" ]]; then
+    key="looking_up_a"
+  elif [[ $error_detail =~ "Invalid response from" ]]; then
+    key="a_points_wrong_ip"
+  fi
+  debug "The error key is ${key}"
+  echo $key
+}
 
 
 

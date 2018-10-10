@@ -322,7 +322,29 @@ RSpec.describe 'enable-ssl.sh' do
       it_behaves_like 'should not print to', :stdout, 'SSL certificates are issued'
 
       it_behaves_like 'should print to', :stdout,
-                      /SSL certificates are not issued .* for sites: d1.com, d2.com, d3.com, d4.com/
+                      /SSL certificates are not issued.* for sites: d1.com, d2.com, d3.com, d4.com/
+
+      context 'no A entry' do
+        def error_message(domain)
+          <<-END.gsub('/^ +/', '')
+          Failed authorization procedure. #{domain} (http-01): urn:ietf:params:acme:error:dns :: DNS problem: NXDOMAIN looking up A for #{domain}
+          IMPORTANT NOTES:
+           - The following errors were reported by the server:
+
+             Domain: www.keitaro.io
+             Type:   None
+             Detail: DNS problem: NXDOMAIN looking up A for www.keitaro.io
+          END
+        end
+
+        let(:extra_commands) { ["echo '#{error_message('domain.tld')}'; exit 1"] }
+
+        it_behaves_like 'should print to', :stdout,
+                        'There were errors while issuing certificates for domains:'
+
+        it_behaves_like 'should print to', :stdout,
+                        "domain.tld: can't find A entry"
+      end
     end
   end
 end
