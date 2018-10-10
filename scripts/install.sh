@@ -1389,6 +1389,7 @@ install_packages(){
   if ! is_installed ansible; then
     install_package epel-release
     install_package ansible
+    install_package libselinux-python
   fi
 }
 
