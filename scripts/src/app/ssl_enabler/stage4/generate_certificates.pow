@@ -16,9 +16,11 @@ generate_certificates()
         SUCCESSFUL_DOMAINS+=$domain
         debug "Certificate for domain ${domain} successfully issued"
         certificate_generated=${TRUE}
+        rm -rf $CERTBOT_LOG
       else
-        FAILED_DOMAINS+=$domain
+        #FAILED_DOMAINS["${domain}"]="Error XXX"
         debug "There was an error while issuing certificate for domain ${domain}"
+        echo "${domain}: $(recognize_error $CERTBOT_LOG)" >> $ERRORS_LOG
     if ${certificate_generated} == ${TRUE}
       if nginx_config_exists_for_domain $domain
         new_name="${domain}.conf.$(date +%Y%m%d%H%M)"
@@ -42,14 +44,15 @@ nginx_config_exists_for_domain(domain)
 
 request_certificate_for(domain)
   debug "Requesting certificate for domain ${domain}"
-  certbot_command="certbot certonly --webroot --webroot-path=${WEBROOT_PATH} --agree-tos --non-interactive"
+  certbot_command="certbot certonly --webroot --webroot-path=${WEBROOT_PATH}"
+  certbot_command="${certbot_command} --agree-tos --non-interactive"
   certbot_command="${certbot_command} --domain ${domain}"
   if isset "${VARS['ssl_email']}"
     certbot_command="${certbot_command} --email ${VARS['ssl_email']}"
   else
     certbot_command="${certbot_command} --register-unsafely-without-email"
-  requesting_message=$(translate "messages.requesting_certificate_for")
-  run_command "${certbot_command}" "${requesting_message} ${domain}" "hide_output" "allow_errors"
+  requesting_message="$(translate "messages.requesting_certificate_for") ${domain}"
+  run_command "${certbot_command}" "${requesting_message}" "hide_output" "allow_errors" "" "" $CERTBOT_LOG
 
 
 generate_nginx_config_for(domain)
