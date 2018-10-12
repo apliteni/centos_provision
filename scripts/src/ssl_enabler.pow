@@ -57,7 +57,7 @@ require 'app/ssl_enabler/stage4.pow'
 require 'app/ssl_enabler/stage4/add_renewal_job.pow'
 require 'app/ssl_enabler/stage4/regenerate_self_signed_cert.pow'
 require 'app/ssl_enabler/stage4/generate_certificates.pow'
-require 'app/ssl_enabler/stage4/show_successful_message.pow'
+require 'app/ssl_enabler/stage4/show_finishing_message.pow'
 _require 'app/ssl_enabler/stage4/recognize_error.sh'
 
 

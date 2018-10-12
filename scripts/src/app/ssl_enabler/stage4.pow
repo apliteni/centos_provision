@@ -7,4 +7,4 @@ stage4()
   generate_certificates
   add_renewal_job
   reload_nginx
-  show_successful_message
+  show_finishing_message

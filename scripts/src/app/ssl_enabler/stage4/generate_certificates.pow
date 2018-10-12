@@ -3,8 +3,10 @@
 
 generate_certificates()
   debug "Requesting certificates"
+  echo > $ERRORS_LOG
   for domain in $(get_domains)
     certificate_generated=${FALSE}
+    certificate_error=""
     if certificate_exists_for_domain $domain
       SUCCESSFUL_DOMAINS+=$domain
       debug "Certificate already exists for domain ${domain}"
@@ -18,9 +20,10 @@ generate_certificates()
         certificate_generated=${TRUE}
         rm -rf $CERTBOT_LOG
       else
-        #FAILED_DOMAINS["${domain}"]="Error XXX"
+        FAILED_DOMAINS+=$domain
         debug "There was an error while issuing certificate for domain ${domain}"
-        echo "${domain}: $(recognize_error $CERTBOT_LOG)" >> $ERRORS_LOG
+        certificate_error="$(recognize_error $CERTBOT_LOG)"
+        echo "${domain}: ${certificate_error}" >> $ERRORS_LOG
     if ${certificate_generated} == ${TRUE}
       if nginx_config_exists_for_domain $domain
         new_name="${domain}.conf.$(date +%Y%m%d%H%M)"
@@ -30,6 +33,7 @@ generate_certificates()
       generate_nginx_config_for "${domain}"
     else
       debug "Skip generation nginx config ${domain} due errors while cert issuing"
+      print_with_color "${domain}: ${certificate_error}" "red"
       print_with_color "${domain}: $(translate 'warnings.skip_nginx_config_generation')" "yellow"
   rm -f "${CERT_DOMAINS_PATH}"
 
