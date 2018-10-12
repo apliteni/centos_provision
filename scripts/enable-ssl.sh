@@ -139,6 +139,9 @@ RECONFIGURE_KEITARO_SSL_COMMAND_RU="curl -sSL ${KEITARO_URL}/install.sh | bash -
 DICT['en.errors.reinstall_keitaro']="Your Keitaro installation does not properly configured. Please reconfigure Keitaro by evaluating command \`${RECONFIGURE_KEITARO_COMMAND_EN}\`"
 DICT['en.errors.reinstall_keitaro_ssl']="Nginx settings of your Keitaro installation does not properly configured. Please reconfigure Nginx by evaluating command \`${RECONFIGURE_KEITARO_SSL_COMMAND_EN}\`"
 DICT['en.errors.see_logs']="Evaluating log saved to ${SCRIPT_LOG}. Please rerun \`${SCRIPT_COMMAND}\` after resolving problems."
+DICT['en.certbot_errors.wrong_a_entry']="Please make sure that your domain name was entered correctly and the DNS A record for that domain contains the right IP address. You need to wait a little if the DNS A record was updated recently."
+DICT['en.certbot_errors.too_many_requests']="There were too many requests. See https://letsencrypt.org/docs/rate-limits/."
+DICT['en.certbot_errors.unknown_error']="There was unknown error while issuing certificate, please contact with support team"
 DICT['en.messages.check_renewal_job_scheduled']="Check that the renewal job is scheduled"
 DICT['en.messages.check_inactual_renewal_job_scheduled']="Check that inactual renewal job is scheduled"
 DICT['en.messages.make_ssl_cert_links']="Make SSL certificate links"
@@ -147,11 +150,11 @@ DICT['en.messages.generating_nginx_config_for']="Generating nginx config for"
 DICT['en.messages.actual_renewal_job_already_scheduled']="Actual renewal job already scheduled"
 DICT['en.messages.schedule_renewal_job']="Schedule renewal SSL certificate cron job"
 DICT['en.messages.unschedule_inactual_renewal_job']="Unschedule inactual renewal job"
-DICT['en.messages.ssl_enabled_for_sites']="SSL certificates are issued for sites:"
-DICT['en.messages.ssl_not_enabled_for_sites']="SSL certificates are not issued (see details in ${SCRIPT_LOG}) for sites:"
+DICT['en.messages.ssl_enabled_for_domains']="SSL certificates are issued for domains:"
+DICT['en.messages.ssl_not_enabled_for_domains']="There were errors while issuing certificates for domains:"
 DICT['en.warnings.nginx_config_exists_for_domain']="nginx config already exists"
 DICT['en.warnings.certificate_exists_for_domain']="certificate already exists"
-DICT['en.warnings.skip_nginx_config_generation']="skip nginx config generation"
+DICT['en.warnings.skip_nginx_config_generation']="skipping nginx config generation"
 DICT['en.prompts.ssl_agree_tos']="Do you agree with terms of Let's Encrypt Subscriber Agreement?"
 DICT['en.prompts.ssl_agree_tos.help']=$(cat <<- END
 	Make sure all the domains are already linked to this server in the DNS
@@ -164,6 +167,9 @@ DICT['en.prompts.ssl_email.help']='You can obtain SSL certificate with no email 
 DICT['ru.errors.reinstall_keitaro']="Keitaro отконфигурирована неправильно. Пожалуйста выполните перенастройку Keitaro выполнив команду \`${RECONFIGURE_KEITARO_COMMAND_RU}\`"
 DICT['ru.errors.reinstall_keitaro_ssl']="Настройки Nginx вашей Keitaro отконфигурированы неправильно. Пожалуйста выполните перенастройку Nginx выполнив команду \`${RECONFIGURE_KEITARO_SSL_COMMAND_RU}\`"
 DICT['ru.errors.see_logs']="Журнал выполнения сохранён в ${SCRIPT_LOG}. Пожалуйста запустите \`${SCRIPT_COMMAND}\` после устранения возникших проблем."
+DICT['ru.certbot_errors.wrong_a_entry']="Убедитесь что домен верный и что DNS A запись указывает на нужный IP адрес. Если A запись была обновлена недавно, то следует подождать некоторое время."
+DICT['ru.certbot_errors.too_many_requests']="Было слишком много запросов, см. https://letsencrypt.org/docs/rate-limits/"
+DICT['ru.certbot_errors.unknown_error']="Во время выпуска сертификата произошла неизвестная ошибка. Пожалуйста, обратитесь в службу поддержки"
 DICT['ru.messages.check_renewal_job_scheduled']="Проверяем наличие cron задачи обновления сертификатов"
 DICT['ru.messages.check_inactual_renewal_job_scheduled']="Проверяем наличие неактуальной cron задачи"
 DICT['ru.messages.make_ssl_cert_links']="Создаются ссылки на SSL сертификаты"
@@ -172,8 +178,8 @@ DICT['ru.messages.generating_nginx_config_for']="Генерация конфиг
 DICT['ru.messages.actual_renewal_job_already_scheduled']="Актуальная cron задача обновления сертификатов уже существует"
 DICT['ru.messages.schedule_renewal_job']="Добавляется cron задача обновления сертификатов"
 DICT['ru.messages.unschedule_inactual_renewal_job']="Удаляется неактуальная cron задача обновления сертификатов"
-DICT['ru.messages.ssl_enabled_for_sites']="SSL сертификаты выпущены для сайтов:"
-DICT['ru.messages.ssl_not_enabled_for_sites']="SSL сертификаты не выпущены (смотрите детали в ${SCRIPT_LOG}) для сайтов:"
+DICT['ru.messages.ssl_enabled_for_domains']="SSL сертификаты выпущены для сайтов:"
+DICT['ru.messages.ssl_not_enabled_for_domains']="SSL сертификаты не выпущены для сайтов:"
 DICT['ru.warnings.nginx_config_exists_for_domain']="nginx конфигурация уже существует"
 DICT['ru.warnings.certificate_exists_for_domain']="сертификат уже существует"
 DICT['ru.warnings.skip_nginx_config_generation']="пропускаем генерацию конфигурации nginx"
@@ -642,11 +648,7 @@ really_run_command(){
   evaluated_command=$(save_command_logs "${evaluated_command}" "${output_log}")
   evaluated_command=$(hide_command_output "${evaluated_command}" "${hide_output}")
   debug "Real command: ${evaluated_command}"
-  debug "Before eval!"
-  eval "${evaluated_command}"
-  debug "Before if"
   if ! eval "${evaluated_command}"; then
-    debug "!evaluation failed!"
     print_command_status "${command}" 'NOK' 'red' "${hide_output}"
     if isset "$allow_errors"; then
       remove_current_command "$current_command_script"
@@ -657,7 +659,6 @@ really_run_command(){
       fail "${fail_message}" "see_logs"
     fi
   else
-    debug "!evaluated succesfully!"
     print_command_status "$command" 'OK' 'green' "$hide_output"
     remove_current_command "$current_command_script"
   fi
@@ -1084,7 +1085,7 @@ stage4(){
   generate_certificates
   add_renewal_job
   reload_nginx
-  show_successful_message
+  show_finishing_message
 }
 
 
@@ -1167,8 +1168,10 @@ generate_self_signed_certificate(){
 
 generate_certificates(){
   debug "Requesting certificates"
+  echo > "$ERRORS_LOG"
   for domain in $(get_domains); do
     certificate_generated=${FALSE}
+    certificate_error=""
     if certificate_exists_for_domain $domain; then
       SUCCESSFUL_DOMAINS+=($domain)
       debug "Certificate already exists for domain ${domain}"
@@ -1182,9 +1185,10 @@ generate_certificates(){
         certificate_generated=${TRUE}
         rm -rf $CERTBOT_LOG
       else
-        #FAILED_DOMAINS["${domain}"]="Error XXX"
+        FAILED_DOMAINS+=($domain)
         debug "There was an error while issuing certificate for domain ${domain}"
-        echo "${domain}: $(recognize_error $CERTBOT_LOG)" >> $ERRORS_LOG
+        certificate_error="$(recognize_error $CERTBOT_LOG)"
+        echo "${domain}: ${certificate_error}" >> $ERRORS_LOG
       fi
     fi
     if [[ ${certificate_generated} == ${TRUE} ]]; then
@@ -1197,6 +1201,7 @@ generate_certificates(){
       generate_nginx_config_for "${domain}"
     else
       debug "Skip generation nginx config ${domain} due errors while cert issuing"
+      print_with_color "${domain}: ${certificate_error}" "red"
       print_with_color "${domain}: $(translate 'warnings.skip_nginx_config_generation')" "yellow"
     fi
   done
@@ -1249,18 +1254,35 @@ generate_nginx_config_for(){
 
 
 
-show_successful_message(){
-  print_with_color "$(translate 'messages.successful')" 'green'
-  if isset $SUCCESSFUL_DOMAINS; then
-    message="$(translate 'messages.ssl_enabled_for_sites')"
-    sites=$(join_by ", " "${SUCCESSFUL_DOMAINS[@]}")
-    echo "$(print_with_color "OK. ${message} ${sites}" 'green')"
+show_finishing_message(){
+  local color=""
+  if isset $SUCCESSFUL_DOMAINS && !isset $FAILED_DOMAINS; then
+    print_with_color "$(translate 'messages.successful')" 'green'
+    print_enabled_domains
   fi
-  if isset $FAILED_DOMAINS; then
-    message="$(translate 'messages.ssl_not_enabled_for_sites')"
-    sites=$(join_by ", " "${FAILED_DOMAINS[@]}")
-    echo "$(print_with_color "NOK. ${message} ${sites}" 'yellow')"
+  if isset $SUCCESSFUL_DOMAINS && isset $FAILED_DOMAINS; then
+    print_enabled_domains
+    print_not_enabled_domains 'yellow'
   fi
+  if !isset $SUCCESSFUL_DOMAINS && isset $FAILED_DOMAINS; then
+    print_not_enabled_domains 'red'
+  fi
+}
+
+
+print_enabled_domains(){
+  message="$(translate 'messages.ssl_enabled_for_domains')"
+  domains=$(join_by ", " "${SUCCESSFUL_DOMAINS[@]}")
+  echo "$(print_with_color "OK. ${message} ${domains}" 'green')"
+}
+
+
+print_not_enabled_domains(){
+  local color="${1}"
+  message="$(translate 'messages.ssl_not_enabled_for_domains')"
+  domains=$(join_by ", " "${FAILED_DOMAINS[@]}")
+  echo "$(print_with_color "NOK. ${message} ${domains}" "${color}")"
+  echo "$(print_with_color "$(cat $ERRORS_LOG)" "${color}")"
 }
 
 
@@ -1273,15 +1295,22 @@ show_successful_message(){
 recognize_error() {
   local certbot_log="${1}"
   local key="unknown_error"
-  local error_detail=$(grep '^    Detail:' "${certbot_log}" 2>/dev/null)
-  debug "certbot error detail from ${certbot_log}: ${error_detail}"
-  if [[ $error_detail =~ "NXDOMAIN looking up A" ]]; then
-    key="looking_up_a"
-  elif [[ $error_detail =~ "Invalid response from" ]]; then
-    key="a_points_wrong_ip"
+  debug "$(print_content_of ${certbot_log})"
+  if grep -q '^There were too many requests' "${certbot_log}"; then
+    key="too_many_requests"
+  else
+    local error_detail=$(grep '^    Detail:' "${certbot_log}" 2>/dev/null)
+    debug "certbot error detail from ${certbot_log}: ${error_detail}"
+    if [[ $error_detail =~ "NXDOMAIN looking up A" ]]; then
+      key="wrong_a_entry"
+    elif [[ $error_detail =~ "No valid IP addresses found" ]]; then
+      key="wrong_a_entry"
+    elif [[ $error_detail =~ "Invalid response from" ]]; then
+      key="wrong_a_entry"
+    fi
   fi
   debug "The error key is ${key}"
-  echo $key
+  print_translated "certbot_errors.${key}"
 }
 
 
