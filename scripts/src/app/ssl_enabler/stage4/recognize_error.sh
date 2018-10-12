@@ -7,7 +7,7 @@ recognize_error() {
   if grep -q '^There were too many requests' "${certbot_log}"; then
     key="too_many_requests"
   else
-    local error_detail=$(grep '^    Detail:' "${certbot_log}" 2>/dev/null)
+    local error_detail=$(grep '^   Detail:' "${certbot_log}" 2>/dev/null)
     debug "certbot error detail from ${certbot_log}: ${error_detail}"
     if [[ $error_detail =~ "NXDOMAIN looking up A" ]]; then
       key="wrong_a_entry"

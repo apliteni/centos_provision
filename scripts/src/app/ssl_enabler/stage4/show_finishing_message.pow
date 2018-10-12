@@ -3,13 +3,13 @@
 
 show_finishing_message()
   local color=""
-  if isset $SUCCESSFUL_DOMAINS && !isset $FAILED_DOMAINS
+  if isset $SUCCESSFUL_DOMAINS && empty $FAILED_DOMAINS
     print_with_color "$(translate 'messages.successful')" 'green'
     print_enabled_domains
   if isset $SUCCESSFUL_DOMAINS && isset $FAILED_DOMAINS
     print_enabled_domains
     print_not_enabled_domains 'yellow'
-  if !isset $SUCCESSFUL_DOMAINS && isset $FAILED_DOMAINS
+  if empty $SUCCESSFUL_DOMAINS && isset $FAILED_DOMAINS
     print_not_enabled_domains 'red'
 
 

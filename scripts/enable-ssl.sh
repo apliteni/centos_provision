@@ -1256,7 +1256,7 @@ generate_nginx_config_for(){
 
 show_finishing_message(){
   local color=""
-  if isset $SUCCESSFUL_DOMAINS && !isset $FAILED_DOMAINS; then
+  if isset $SUCCESSFUL_DOMAINS && empty $FAILED_DOMAINS; then
     print_with_color "$(translate 'messages.successful')" 'green'
     print_enabled_domains
   fi
@@ -1264,7 +1264,7 @@ show_finishing_message(){
     print_enabled_domains
     print_not_enabled_domains 'yellow'
   fi
-  if !isset $SUCCESSFUL_DOMAINS && isset $FAILED_DOMAINS; then
+  if empty $SUCCESSFUL_DOMAINS && isset $FAILED_DOMAINS; then
     print_not_enabled_domains 'red'
   fi
 }
@@ -1299,7 +1299,7 @@ recognize_error() {
   if grep -q '^There were too many requests' "${certbot_log}"; then
     key="too_many_requests"
   else
-    local error_detail=$(grep '^    Detail:' "${certbot_log}" 2>/dev/null)
+    local error_detail=$(grep '^   Detail:' "${certbot_log}" 2>/dev/null)
     debug "certbot error detail from ${certbot_log}: ${error_detail}"
     if [[ $error_detail =~ "NXDOMAIN looking up A" ]]; then
       key="wrong_a_entry"
