@@ -1084,7 +1084,9 @@ stage4(){
   regenerate_self_signed_cert
   generate_certificates
   add_renewal_job
-  reload_nginx
+  if isset "$SUCCESSFUL_DOMAINS"; then
+    reload_nginx
+  fi
   show_finishing_message
 }
 
