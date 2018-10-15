@@ -127,9 +127,9 @@ declare -a FAILED_DOMAINS
 NGINX_SSL_PATH="${NGINX_ROOT_PATH}/ssl"
 NGINX_SSL_CERT_PATH="${NGINX_SSL_PATH}/cert.pem"
 NGINX_SSL_PRIVKEY_PATH="${NGINX_SSL_PATH}/privkey.pem"
-CERT_DOMAINS_PATH=/root/.ssl_enabler_cert_domains
-ERRORS_LOG=/root/.ssl_enabler_errors.log
-CERTBOT_LOG=/root/.ssl_enabler_cerbot.log
+CERT_DOMAINS_PATH="/${HOME}/.ssl_enabler_cert_domains"
+ERRORS_LOG="/${HOME}/.ssl_enabler_errors.log"
+CERTBOT_LOG="/${HOME}/.ssl_enabler_cerbot.log"
 
 
 RECONFIGURE_KEITARO_SSL_COMMAND_EN="curl -sSL ${KEITARO_URL}/install.sh | bash -s -- -l en -t nginx,ssl"

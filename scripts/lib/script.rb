@@ -6,6 +6,7 @@ class Script
   attr_reader :stdout, :stderr, :log, :ret_value, :script_command
 
   DOCKER_DATA_DIR = '/data'
+  DOCKER_SCRIPTS_DIR = '/scripts'
 
   def initialize(
     script_command,
@@ -37,7 +38,7 @@ class Script
   private
 
   def invoke_script_cmd(current_dir)
-    # puts make_cmd(current_dir)
+    # puts make_cmd(current_dir).sub(/ -i --rm /, ' -i -t --rm ')
     # byebug
     Open3.popen3(*make_cmd(current_dir)) do |stdin, stdout, stderr, wait_thr|
       stdout.sync = true
@@ -56,7 +57,11 @@ class Script
 
   def make_cmd(current_dir)
     if docker_image
-      docker_run = "docker run #{docker_env} --name keitaro_scripts_test -i --rm -v #{current_dir}:#{DOCKER_DATA_DIR} -w #{DOCKER_DATA_DIR} #{docker_image}"
+      docker_run = "docker run #{docker_env} --name keitaro_scripts_test -i --rm"
+      docker_run += " -v #{scripts_dir}:#{DOCKER_SCRIPTS_DIR}"
+      docker_run += " -v #{current_dir}:#{DOCKER_DATA_DIR}"
+      docker_run += " -w #{DOCKER_DATA_DIR}"
+      docker_run += " #{docker_image}"
       evaluated_commands = make_command_stubs + commands + [command_with_args("./#{@script_command}", args)]
       %Q{#{docker_run} sh -c '#{evaluated_commands.join(' && ')}'}
     else
@@ -85,6 +90,10 @@ class Script
         cmd << " && cp #{filepath} #{DOCKER_DATA_DIR}"
       end
     end
+  end
+
+  def scripts_dir
+    File.expand_path("#{__dir__}/..")
   end
 
   def without_formatting(output)

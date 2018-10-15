@@ -299,13 +299,13 @@ RSpec.describe 'enable-ssl.sh' do
                                                 'Generating nginx config for d3.com']
 
       it_behaves_like 'should print to', :stdout,
-                      'SSL certificates are issued for sites: d1.com, d2.com, d3.com, d4.com'
+                      'SSL certificates are issued for domains: d1.com, d2.com, d3.com, d4.com'
 
       it_behaves_like 'should not print to', :stdout,
                       'SSL certificates are not issued'
     end
 
-    describe 'tries to issue certificate for all sites, even on requesting error' do
+    describe 'tries to issue certificate for all domains, even on requesting error' do
       let(:command_stubs) { all_command_stubs.merge(certbot: '/bin/false') }
 
 
@@ -322,28 +322,38 @@ RSpec.describe 'enable-ssl.sh' do
       it_behaves_like 'should not print to', :stdout, 'SSL certificates are issued'
 
       it_behaves_like 'should print to', :stdout,
-                      /SSL certificates are not issued.* for sites: d1.com, d2.com, d3.com, d4.com/
+                      /NOK. There were errors.*: d1.com, d2.com, d3.com, d4.com/
+    end
+
+    describe 'correctly recognizes errors' do
+      let(:extra_commands) do
+        [
+          "cp #{Script::DOCKER_SCRIPTS_DIR}/spec/files/certbot/#{error} /bin/certbot",
+          "chmod a+x /bin/certbot"
+        ]
+      end
+      let(:command_stubs) { all_command_stubs }
+      let(:domains) { %w[domain.tld] }
 
       context 'no A entry' do
-        def error_message(domain)
-          <<-END.gsub('/^ +/', '')
-          Failed authorization procedure. #{domain} (http-01): urn:ietf:params:acme:error:dns :: DNS problem: NXDOMAIN looking up A for #{domain}
-          IMPORTANT NOTES:
-           - The following errors were reported by the server:
-
-             Domain: www.keitaro.io
-             Type:   None
-             Detail: DNS problem: NXDOMAIN looking up A for www.keitaro.io
-          END
-        end
-
-        let(:extra_commands) { ["echo '#{error_message('domain.tld')}'; exit 1"] }
+        let(:error) { 'no_a_entry' }
 
         it_behaves_like 'should print to', :stdout,
-                        'There were errors while issuing certificates for domains:'
+                        "domain.tld: Please make sure that your domain name was entered correctly"
+      end
+
+      context 'too many requests' do
+        let(:error) { 'too_many_requests' }
 
         it_behaves_like 'should print to', :stdout,
-                        "domain.tld: can't find A entry"
+                        "domain.tld: There were too many requests"
+      end
+
+      context 'unknown error' do
+        let(:error) { 'unknown_error' }
+
+        it_behaves_like 'should print to', :stdout,
+                        "domain.tld: There was unknown error"
       end
     end
   end
