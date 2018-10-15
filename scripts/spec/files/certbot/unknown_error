@@ -1,0 +1,4 @@
+cat <<END
+Some unknown error
+END
+exit 1
