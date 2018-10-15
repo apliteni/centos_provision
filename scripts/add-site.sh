@@ -658,10 +658,11 @@ save_command_logs(){
   local evaluated_command="${1}"
   local output_log="${2}"
   save_output_log="tee -i ${CURRENT_COMMAND_OUTPUT_LOG} | tee -ia ${SCRIPT_LOG}"
-  if isset "${output_log}"; then
-    save_output_log="${save_output_log} | tee -i ${output_log}"
-  fi
   save_error_log="tee -i ${CURRENT_COMMAND_ERROR_LOG} | tee -ia ${SCRIPT_LOG}"
+  if isset "${output_log}"; then
+    save_output_log="${save_output_log} | tee -ia ${output_log}"
+    save_error_log="${save_error_log} | tee -ia ${output_log}"
+  fi
   echo "((${evaluated_command}) 2> >(${save_error_log}) > >(${save_output_log}))"
 }
 

@@ -72,9 +72,10 @@ unbuffer_streams(command)
 
 save_command_logs(evaluated_command, output_log)
   save_output_log="tee -i ${CURRENT_COMMAND_OUTPUT_LOG} | tee -ia ${SCRIPT_LOG}"
-  if isset "${output_log}"
-    save_output_log="${save_output_log} | tee -i ${output_log}"
   save_error_log="tee -i ${CURRENT_COMMAND_ERROR_LOG} | tee -ia ${SCRIPT_LOG}"
+  if isset "${output_log}"
+    save_output_log="${save_output_log} | tee -ia ${output_log}"
+    save_error_log="${save_error_log} | tee -ia ${output_log}"
   echo "((${evaluated_command}) 2> >(${save_error_log}) > >(${save_output_log}))"
 
 
