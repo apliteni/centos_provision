@@ -41,5 +41,6 @@ else
 VARS={}
 
 RECONFIGURE_KEITARO_COMMAND_EN="curl -sSL ${KEITARO_URL}/install.sh | bash"
-
 RECONFIGURE_KEITARO_COMMAND_RU="curl -sSL ${KEITARO_URL}/install.sh | bash -s -- -l ru"
+
+SSL_ENABLER_ERRORS_LOG="${HOME}/.ssl_enabler_errors.log"

@@ -16,11 +16,11 @@ show_finishing_message()
 print_enabled_domains()
   message="$(translate 'messages.ssl_enabled_for_domains')"
   domains=$(join_by ", " "${SUCCESSFUL_DOMAINS[@]}")
-  echo "$(print_with_color "OK. ${message} ${domains}" 'green')"
+  print_with_color "OK. ${message} ${domains}" 'green'
 
 
 print_not_enabled_domains(color)
   message="$(translate 'messages.ssl_not_enabled_for_domains')"
   domains=$(join_by ", " "${FAILED_DOMAINS[@]}")
-  echo "$(print_with_color "NOK. ${message} ${domains}" "${color}")"
-  echo "$(print_with_color "$(cat $ERRORS_LOG)" "${color}")"
+  print_with_color "NOK. ${message} ${domains}" "${color}"
+  print_with_color "$(cat $SSL_ENABLER_ERRORS_LOG)" "${color}"

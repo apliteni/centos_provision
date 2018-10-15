@@ -104,8 +104,9 @@ fi
 declare -A VARS
 
 RECONFIGURE_KEITARO_COMMAND_EN="curl -sSL ${KEITARO_URL}/install.sh | bash"
-
 RECONFIGURE_KEITARO_COMMAND_RU="curl -sSL ${KEITARO_URL}/install.sh | bash -s -- -l ru"
+
+SSL_ENABLER_ERRORS_LOG="${HOME}/.ssl_enabler_errors.log"
 
 
 declare -A DICT
@@ -1662,6 +1663,7 @@ show_successful_message(){
   fi
   if isset "$SSL_FAILED_MESSAGE"; then
     print_with_color "${SSL_FAILED_MESSAGE}" 'yellow'
+    print_with_color "$(cat "$SSL_ENABLER_ERRORS_LOG")" 'yellow'
     print_with_color "$(translate messages.successful.rerun_ssl_enabler)" 'yellow'
     print_with_color "${SSL_RERUN_COMMAND}" 'yellow'
   fi

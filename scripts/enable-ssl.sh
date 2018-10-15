@@ -88,8 +88,9 @@ fi
 declare -A VARS
 
 RECONFIGURE_KEITARO_COMMAND_EN="curl -sSL ${KEITARO_URL}/install.sh | bash"
-
 RECONFIGURE_KEITARO_COMMAND_RU="curl -sSL ${KEITARO_URL}/install.sh | bash -s -- -l ru"
+
+SSL_ENABLER_ERRORS_LOG="${HOME}/.ssl_enabler_errors.log"
 
 
 declare -A DICT
@@ -128,7 +129,6 @@ NGINX_SSL_PATH="${NGINX_ROOT_PATH}/ssl"
 NGINX_SSL_CERT_PATH="${NGINX_SSL_PATH}/cert.pem"
 NGINX_SSL_PRIVKEY_PATH="${NGINX_SSL_PATH}/privkey.pem"
 CERT_DOMAINS_PATH="/${HOME}/.ssl_enabler_cert_domains"
-ERRORS_LOG="/${HOME}/.ssl_enabler_errors.log"
 CERTBOT_LOG="/${HOME}/.ssl_enabler_cerbot.log"
 
 
@@ -1171,7 +1171,7 @@ generate_self_signed_certificate(){
 
 generate_certificates(){
   debug "Requesting certificates"
-  echo > "$ERRORS_LOG"
+  echo > "$SSL_ENABLER_ERRORS_LOG"
   for domain in $(get_domains); do
     certificate_generated=${FALSE}
     certificate_error=""
@@ -1191,7 +1191,7 @@ generate_certificates(){
         FAILED_DOMAINS+=($domain)
         debug "There was an error while issuing certificate for domain ${domain}"
         certificate_error="$(recognize_error $CERTBOT_LOG)"
-        echo "${domain}: ${certificate_error}" >> $ERRORS_LOG
+        echo "${domain}: ${certificate_error}" >> $SSL_ENABLER_ERRORS_LOG
       fi
     fi
     if [[ ${certificate_generated} == ${TRUE} ]]; then
@@ -1276,7 +1276,7 @@ show_finishing_message(){
 print_enabled_domains(){
   message="$(translate 'messages.ssl_enabled_for_domains')"
   domains=$(join_by ", " "${SUCCESSFUL_DOMAINS[@]}")
-  echo "$(print_with_color "OK. ${message} ${domains}" 'green')"
+  print_with_color "OK. ${message} ${domains}" 'green'
 }
 
 
@@ -1284,8 +1284,8 @@ print_not_enabled_domains(){
   local color="${1}"
   message="$(translate 'messages.ssl_not_enabled_for_domains')"
   domains=$(join_by ", " "${FAILED_DOMAINS[@]}")
-  echo "$(print_with_color "NOK. ${message} ${domains}" "${color}")"
-  echo "$(print_with_color "$(cat $ERRORS_LOG)" "${color}")"
+  print_with_color "NOK. ${message} ${domains}" "${color}"
+  print_with_color "$(cat $SSL_ENABLER_ERRORS_LOG)" "${color}"
 }
 
 

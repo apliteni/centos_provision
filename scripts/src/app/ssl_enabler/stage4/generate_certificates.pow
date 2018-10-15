@@ -3,7 +3,7 @@
 
 generate_certificates()
   debug "Requesting certificates"
-  echo > $ERRORS_LOG
+  echo > $SSL_ENABLER_ERRORS_LOG
   for domain in $(get_domains)
     certificate_generated=${FALSE}
     certificate_error=""
@@ -23,7 +23,7 @@ generate_certificates()
         FAILED_DOMAINS+=$domain
         debug "There was an error while issuing certificate for domain ${domain}"
         certificate_error="$(recognize_error $CERTBOT_LOG)"
-        echo "${domain}: ${certificate_error}" >> $ERRORS_LOG
+        echo "${domain}: ${certificate_error}" >> $SSL_ENABLER_ERRORS_LOG
     if ${certificate_generated} == ${TRUE}
       if nginx_config_exists_for_domain $domain
         new_name="${domain}.conf.$(date +%Y%m%d%H%M)"
