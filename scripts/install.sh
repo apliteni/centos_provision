@@ -1605,9 +1605,9 @@ run_ssl_enabler(){
     local command="curl -sSL ${SSL_SCRIPT_URL} | bash -s -- ${options} ${domains}"
     message="$(translate 'messages.enabling_ssl')"
     run_command "${command}" "${message}" "hide_output" "" "" "" "${SSL_OUTPUT_LOG}"
-    SSL_SUCCESSFUL_DOMAINS="$(extract_domains_from_enable_ssl_log OK)"
-    local failed_domains="$(extract_domains_from_enable_ssl_log NOK)"
-    SSL_FAILED_MESSAGE="$(get_message_from_enable_ssl_log NOK)"
+    SSL_SUCCESSFUL_DOMAINS="$(extract_domains_from_enable_ssl_log ^OK)"
+    local failed_domains="$(extract_domains_from_enable_ssl_log ^NOK)"
+    SSL_FAILED_MESSAGE="$(get_message_from_enable_ssl_log ^NOK)"
     SSL_FAILED_MESSAGE="${SSL_FAILED_MESSAGE/NOK. /}"
     SSL_RERUN_COMMAND="curl -sSL ${SSL_SCRIPT_URL} | bash -s -- ${options} ${failed_domains}"
     rm -f "${SSL_OUTPUT_LOG}"
@@ -1624,9 +1624,8 @@ get_message_from_enable_ssl_log(){
   local prefix="${1}"
   if is_exists_file "${SSL_OUTPUT_LOG}" "no"; then
     cat "${SSL_OUTPUT_LOG}" \
-      | tail -n2 \
       | remove_ansi_colors \
-      | sed -n "/^${prefix}/p"          # get last 2 lines of log and extract only OK/NOK messages
+      | grep -E "^${prefix}"
     fi
   }
 
