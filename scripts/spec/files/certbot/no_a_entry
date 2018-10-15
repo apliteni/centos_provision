@@ -1,0 +1,19 @@
+cat <<END
+Saving debug log to /var/log/letsencrypt/letsencrypt.log
+Plugins selected: Authenticator webroot, Installer None
+Starting new HTTPS connection (1): acme-v02.api.letsencrypt.org
+Obtaining a new certificate
+Performing the following challenges:
+http-01 challenge for www.keitaro24.com
+Using the webroot path /var/www/keitaro for all unmatched domains.
+Waiting for verification...
+Cleaning up challenges
+Failed authorization procedure. www.keitaro24.com (http-01): urn:ietf:params:acme:error:dns :: DNS problem: NXDOMAIN looking up A for www.keitaro24.com
+IMPORTANT NOTES:
+ - The following errors were reported by the server:
+
+   Domain: www.keitaro24.com
+   Type:   None
+   Detail: DNS problem: NXDOMAIN looking up A for www.keitaro24.com
+END
+exit 1
