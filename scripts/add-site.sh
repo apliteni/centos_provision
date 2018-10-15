@@ -1055,10 +1055,6 @@ ensure_can_add_vhost(){
 
 show_successful_message(){
   print_with_color "$(translate 'messages.successful')" 'green'
-  print_translated 'messages.ssl_enabled_for_sites'
-  for domain in "${DOMAINS[@]}"; do
-    print_with_color "https://${domain}/admin" 'green'
-  done
 }
 
 
