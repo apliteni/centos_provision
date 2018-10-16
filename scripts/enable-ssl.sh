@@ -1171,7 +1171,7 @@ generate_self_signed_certificate(){
 
 generate_certificates(){
   debug "Requesting certificates"
-  echo > "$SSL_ENABLER_ERRORS_LOG"
+  echo -n > "$SSL_ENABLER_ERRORS_LOG"
   for domain in $(get_domains); do
     certificate_generated=${FALSE}
     certificate_error=""
