@@ -915,6 +915,10 @@ parse_options(){
     exit ${FAILURE_RESULT}
   else
     while [[ ${#} -gt 0 ]]; do
+      if [[ "$1" =~ (,) ]]; then
+        usage
+        exit ${FAILURE_RESULT}
+      fi
       if [[ ! "${1}" =~ ^(-) ]]; then
         DOMAINS+=("${1}")
       fi
