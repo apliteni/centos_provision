@@ -16,6 +16,7 @@
                                        --admin-password="{{ admin_password }}" \
                                        --draft-storage=redis \
                                        --cache-storage=files \
+                                       --force-tokudb \
                                        {% if language is defined %}--language={{ language }}{% endif %} \
                                        {% if kversion is defined %}--kversion={{ kversion }}{% endif %}
   args:
