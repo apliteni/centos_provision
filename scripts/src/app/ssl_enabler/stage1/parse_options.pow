@@ -38,6 +38,9 @@ parse_options()
     exit ${FAILURE_RESULT}
   else
     while ${#} > 0
+      if $1 match (,)
+        usage
+        exit ${FAILURE_RESULT}
       if not "${1}" match ^(-)
         DOMAINS+="${1}"
       shift

@@ -66,6 +66,10 @@ RSpec.describe 'enable-ssl.sh' do
     it_behaves_like 'should print usage when invoked with', args: '-s -x domain1.tld'
   end
 
+  describe 'should print usage if invoked with domains seaprated by comma' do
+    it_behaves_like 'should print usage when invoked with', args: '-s -x domain1.tld,domain2.tld'
+  end
+
   describe 'should print usage if invoked without domains' do
     it_behaves_like 'should print usage when invoked with', args: '-s'
   end
