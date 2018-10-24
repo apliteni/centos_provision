@@ -25,7 +25,7 @@ mariadb_users:
 nginx_worker_processes: auto
 nginx_worker_connections: 4000
 nginx_remove_default_vhost: true
-nginx_access_log: "/var/log/nginx/access.log main buffer=16k "
+nginx_access_log: "/var/log/nginx/access.log main buffer=16k flush=15s"
 nginx_client_max_body_size: "{{ max_upload_size }}"
 nginx_extra_http_options: |
   # Security
@@ -62,7 +62,6 @@ nginx_vhosts:
     root: "{{ keitaro.path }}"
     index: index.php index.html
     charset: utf-8
-    error_log: /var/log/nginx/error.log
     extra_parameters: |
       location ~* \.(jpg|jpeg|gif|png|js|css|txt|zip|ico|gz|csv)$ {
         expires 10d;
@@ -96,10 +95,6 @@ nginx_vhosts:
         include fastcgi_params;
         allow 127.0.0.1;
         deny all;
-      }
-
-      location /admin/ {
-        access_log /var/log/nginx/admin.access.log combined buffer=16k;
       }
 
 # Firewall

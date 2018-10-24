@@ -23,12 +23,6 @@ RSpec.describe 'enable-ssl.sh' do
 
       ssl_certificate /etc/nginx/ssl/cert.pem;
       ssl_certificate_key /etc/nginx/ssl/privkey.pem;
-
-      error_log /var/log/nginx/error.log error;
-
-      location /admin/ {
-        access_log /var/log/nginx/admin.access.log combined buffer=16k;
-      }
     }
     END
   }
@@ -251,10 +245,6 @@ RSpec.describe 'enable-ssl.sh' do
       expect(content).to match('server_name domain1.tld;')
       expect(content).to match('ssl_certificate /etc/letsencrypt/live/domain1.tld/fullchain.pem;')
       expect(content).to match('ssl_certificate_key /etc/letsencrypt/live/domain1.tld/privkey.pem;')
-      expect(content).to match('error_log /var/log/nginx/domain1.tld-error.log;')
-      expect(content).to match('access_log /var/log/nginx/domain1.tld-access.log combined buffer=16k;')
-      expect(content).to match('error_log /var/log/nginx/domain1.tld-admin.error.log;')
-      expect(content).to match('access_log /var/log/nginx/domain1.tld-admin.access.log combined buffer=16k;')
     end
   end
 

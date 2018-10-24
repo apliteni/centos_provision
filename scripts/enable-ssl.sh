@@ -1413,14 +1413,11 @@ request_certificate_for(){
 
 generate_nginx_config_for(){
   local domain="${1}"
+  certs_root_path="/etc/letsencrypt/live/${domain}"
   changes="-e 's|listen 80.*|listen 80;|g'"
   changes="${changes} -e 's|server_name .*|server_name ${domain};|g'"
-  changes="${changes} -e 's|ssl_certificate .*|ssl_certificate /etc/letsencrypt/live/${domain}/fullchain.pem;|g'"
-  changes="${changes} -e 's|ssl_certificate_key .*|ssl_certificate_key /etc/letsencrypt/live/${domain}/privkey.pem;|g'"
-  changes="${changes} -e 's|error_log .*|error_log /var/log/nginx/${domain}-error.log;|g'"
-  changes="${changes} -e '/error_log/a    access_log /var/log/nginx/${domain}-access.log combined buffer=16k;'"
-  changes="${changes} -e 's|admin.access.log|${domain}-admin.access.log|g'"
-  changes="${changes} -e '/admin.access.log/a    error_log /var/log/nginx/${domain}-admin.error.log;'"
+  changes="${changes} -e 's|ssl_certificate .*|ssl_certificate ${certs_root_path}/fullchain.pem;|g'"
+  changes="${changes} -e 's|ssl_certificate_key .*|ssl_certificate_key ${certs_root_path}/privkey.pem;|g'"
   command="cat /etc/nginx/conf.d/vhosts.conf | sed ${changes} > /etc/nginx/conf.d/${domain}.conf"
   generating_message=$(translate "messages.generating_nginx_config_for")
   run_command "${command}" "${generating_message} ${domain}" "hide_output"
