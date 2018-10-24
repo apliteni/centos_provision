@@ -1,5 +1,5 @@
 ---
-- name: Remove default nginx vhost config file (if configured).
+- name: Remove default nginx keitaro config file (if configured).
   file:
     path: "{{ nginx_default_vhost_path }}"
     state: absent
@@ -7,18 +7,18 @@
   notify:
     - reload nginx
 
-- name: Add managed vhost config file (if any vhosts are configured).
+- name: Add managed vhost keitaro file (if any vhosts are configured).
   template:
     src: vhosts.j2
-    dest: "{{ nginx_vhost_path }}/vhosts.conf"
+    dest: "{{ nginx_vhost_path }}/keitaro.conf"
     mode: 0644
   when: nginx_vhosts|length > 0
   notify:
     - reload nginx
 
-- name: Remove managed vhost config file (if no vhosts are configured).
+- name: Remove managed keitaro config file (if no vhosts are configured).
   file:
-    path: "{{ nginx_vhost_path }}/vhosts.conf"
+    path: "{{ nginx_vhost_path }}/keitaro.conf"
     state: absent
   when: nginx_vhosts|length == 0
   notify:
