@@ -13,8 +13,7 @@ function vhost_content() {
         server_name ${VARS['site_domains']//,/ };
         root ${VARS['site_root']};
         index index.php index.html;
-        access_log /var/log/nginx/$(first_domain).access.log main;
-        error_log /var/log/nginx/$(first_domain).error.log warn;
+
         location ~* \.(jpg|jpeg|gif|png|js|css|txt|zip|ico|gz|csv)\$ {
           expires 10d;
         }
