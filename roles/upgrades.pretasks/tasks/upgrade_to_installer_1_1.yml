@@ -1,0 +1,7 @@
+- name: Stat vhosts.conf
+  stat: path=/etc/nginx/conf.d/vhosts.conf
+  register: vhosts_conf
+
+- name: Rename vhosts.conf to keitaro.conf
+  command: mv /etc/nginx/conf.d/vhosts.conf /etc/nginx/conf.d/vhosts.conf
+  when: vhosts_conf.stat.exists
