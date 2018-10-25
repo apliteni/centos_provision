@@ -3,5 +3,8 @@
     regexp: '\b(access|error)_log\b'
     state: absent
     backup: yes
+    path: "{{ item }}"
+    validate: nginx -s reload
   with_fileglob:
     - "/etc/nginx/conf.d/*.conf"
+
