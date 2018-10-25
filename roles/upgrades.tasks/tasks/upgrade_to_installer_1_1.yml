@@ -1,0 +1,7 @@
+- name: Remove access_log and error_log entries from host configs
+  lineinfile:
+    regexp: '\b(access|error)_log\b'
+    state: absent
+    backup: yes
+  with_fileglob:
+    - "/etc/nginx/conf.d/*.conf"
