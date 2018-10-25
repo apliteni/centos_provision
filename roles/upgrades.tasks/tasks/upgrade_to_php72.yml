@@ -1,0 +1,20 @@
+- name: Stop and disable old php-fpm
+  service:
+    name: "{{ item }}-php-fpm"
+    state: stopped
+    enabled: false
+  ignore_errors: true
+  with_items:
+    - php54
+    - php56
+    - php70
+    - php71
+
+- name: Set correct php-fpm socket file
+  lineinfile:
+    regexp: 'fastcgi_pass unix:'
+    line: '  fastcgi_pass unix:/var/run/php72-fpm.sock;'
+    backup: yes
+    path: "{{ item }}"
+  with_fileglob:
+    - "/etc/nginx/conf.d/*.conf"

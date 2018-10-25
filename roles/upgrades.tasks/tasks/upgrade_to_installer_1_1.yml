@@ -8,3 +8,8 @@
   with_fileglob:
     - "/etc/nginx/conf.d/*.conf"
 
+
+- name: Remove access_log and error_log entries from host configs
+  command:  "sed -i '/location \/admin\/ {/,+2d' {{ item }}"
+  with_fileglob:
+    - "/etc/nginx/conf.d/*.conf"
