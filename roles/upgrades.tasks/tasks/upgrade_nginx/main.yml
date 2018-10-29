@@ -1,14 +1,13 @@
 - name: Remove access_log and error_log entries from host configs
   lineinfile:
-    regexp: '\b(access|error)_log\b'
+    regexp: '\\b(access|error)_log\\b'
     state: absent
-    backup: yes
     path: "{{ item }}"
     validate: nginx -s reload
   with_fileglob:
     - "/etc/nginx/conf.d/*.conf"
 
-- name: Remove access_log and error_log entries from host configs
+- name: Remove empty 'location /admin' entry from host configs
   command:  "sed -i '/location \\/admin\\/ {/,+2d' {{ item }}"
   with_fileglob:
     - "/etc/nginx/conf.d/*.conf"

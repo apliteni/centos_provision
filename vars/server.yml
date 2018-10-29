@@ -1,101 +1,10 @@
----
 max_upload_size: 100M
-
-php_version: "{% if kversion is defined and kversion == 7 %}php70{% elif kversion is defined and kversion == 8 %}php71{% else %}php72{% endif %}"
-php_memory_limit: 500M
-php_max_upload_size: "{{ max_upload_size }}"
-
 timezone: Europe/Moscow
 swap_size: "{{ [[ansible_memtotal_mb, 1024] | max, 8192] | min }}"
 os_user: nginx
 
 keitaro:
   path: /var/www/keitaro
-
-# MariaDB
-mariadb_root_password: '{{ db_root_password }}'
-mariadb_databases:
-  - "{{ db_name }}"
-mariadb_users:
-  - name: "{{ db_user }}"
-    password: "{{ db_password }}"
-    priv: "{{ db_name }}.*:ALL,GRANT"
-
-# NGinx
-nginx_worker_processes: auto
-nginx_worker_connections: 4000
-nginx_remove_default_vhost: true
-nginx_access_log: "/var/log/nginx/access.log main buffer=16k flush=15s"
-nginx_client_max_body_size: "{{ max_upload_size }}"
-nginx_extra_http_options: |
-  # Security
-  server_tokens off;
-
-  # Compression
-  gzip                on;
-  gzip_comp_level     6;
-  gzip_min_length     4096;
-  gzip_buffers        8 64k;
-  gzip_types          text/plain text/css text/javascript text/js text/xml application/json application/javascript application/x-javascript application/xml application/xml+rss
-  gzip_proxied        any;
-  gzip_disable        "msie";
-
-  # cache informations about FDs, frequently accessed files
-  # can boost performance
-  open_file_cache          max=10000 inactive=30s;
-  open_file_cache_valid    60s;
-  open_file_cache_min_uses 2;
-  open_file_cache_errors   on;
-
-  # allow the server to close connection on non responding client, this will free up memory
-  reset_timedout_connection on;
-
-  # Proxy settings
-  proxy_buffering    off;
-  proxy_set_header   X-Real-IP $remote_addr;
-  proxy_set_header   X-Scheme $scheme;
-  proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
-  proxy_set_header   Host $http_host;
-nginx_vhosts:
-  - listen: 80 default_server
-    server_name: _
-    root: "{{ keitaro.path }}"
-    index: index.php index.html
-    charset: utf-8
-    extra_parameters: |
-      location ~* \.(jpg|jpeg|gif|png|js|css|txt|zip|ico|gz|csv)$ {
-        expires 10d;
-      }
-
-      location ~* /(var|lib|application)/.*$ {
-        return 403;
-      }
-
-      location ~* \.(htaccess|ini|dat)$ {
-        return 403;
-      }
-
-      location ~ \.php$ {
-        fastcgi_split_path_info ^(.+\.php)(/.+)$;
-        fastcgi_pass unix:/var/run/{{php_version}}-fpm.sock;
-        fastcgi_index index.php;
-        fastcgi_buffers 16 16k;
-        fastcgi_buffer_size 32k;
-        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-        include fastcgi_params;
-      }
-
-      location / {
-        try_files $uri $uri/ /index.php?$args;
-      }
-
-      location /status {
-        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-        fastcgi_pass unix:/var/run/php72-fpm.sock;
-        include fastcgi_params;
-        allow 127.0.0.1;
-        deny all;
-      }
 
 # Firewall
 firewall_allowed_tcp_ports:
@@ -105,7 +14,3 @@ firewall_allowed_tcp_ports:
   - 3333 # friendhosting ssh
   - 1500 # isp manager
 firewall_disable_firewalld: true #  disable firewalld (installed by default on CentOS) respectively.
-
-letsencrypt_webroot_path: "{{ keitaro.path }}"
-letsencrypt_cert_domains: "{{ ssl_domains.split(',') }}"
-letsencrypt_email: "{{ ssl_email | default('') }}"
