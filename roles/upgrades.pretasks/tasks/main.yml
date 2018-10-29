@@ -3,7 +3,7 @@
 
 - include: upgrade_php.yml
   when: no_tags_specified is not defined
-  tags: [upgrade_to_php71, upgrade_to_php72, upgrade]
+  tags: [upgrade_to_php71, upgrade_to_php72, upgrade_php]
 
 - include: upgrade_to_installer_1_1.yml
   when: no_tags_specified is not defined
