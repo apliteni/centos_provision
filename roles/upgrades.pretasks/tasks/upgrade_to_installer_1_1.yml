@@ -3,5 +3,5 @@
   register: vhosts_conf
 
 - name: Rename vhosts.conf to keitaro.conf
-  command: mv /etc/nginx/conf.d/vhosts.conf /etc/nginx/conf.d/vhosts.conf
+  command: mv /etc/nginx/conf.d/vhosts.conf /etc/nginx/conf.d/keitaro.conf
   when: vhosts_conf.stat.exists
