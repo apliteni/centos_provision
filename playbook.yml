@@ -5,6 +5,10 @@
   become_method: sudo
   vars_files:
     - vars/server.yml
+    - vars/letsencrypt.yml
+    - vars/mariadb.yml
+    - vars/nginx.yml
+    - vars/php.yml
 
   roles:
     - {role: 'upgrades.pretasks'}

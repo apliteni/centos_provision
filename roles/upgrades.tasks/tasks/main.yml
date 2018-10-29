@@ -1,7 +1,11 @@
 - include: upgrade_php/main.yml
   when: no_tags_specified is not defined
   tags: [upgrade, upgrade_php]
+  notify:
+    - reload nginx
 
-- include: upgrade_server/main.yml
+- include: upgrade_nginx/main.yml
   when: no_tags_specified is not defined
-  tags: [upgrade, upgrade_server]
+  tags: [upgrade, upgrade_nginx]
+  notify:
+    - reload nginx

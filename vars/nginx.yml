@@ -1,0 +1,75 @@
+nginx_worker_processes: auto
+nginx_worker_connections: 4000
+nginx_remove_default_vhost: true
+nginx_access_log: "/var/log/nginx/access.log main buffer=16k flush=15s"
+nginx_client_max_body_size: "{{ max_upload_size }}"
+nginx_extra_http_options: |+4
+  # Security
+  server_tokens off;
+
+  # Compression
+  gzip                on;
+  gzip_comp_level     6;
+  gzip_min_length     4096;
+  gzip_buffers        8 64k;
+  gzip_types          text/plain text/css text/javascript text/js text/xml application/json application/javascript application/x-javascript application/xml application/xml+rss
+  gzip_proxied        any;
+  gzip_disable        "msie";
+
+  # cache informations about FDs, frequently accessed files
+  # can boost performance
+  open_file_cache          max=10000 inactive=30s;
+  open_file_cache_valid    60s;
+  open_file_cache_min_uses 2;
+  open_file_cache_errors   on;
+
+  # allow the server to close connection on non responding client, this will free up memory
+  reset_timedout_connection on;
+
+  # Proxy settings
+  proxy_buffering    off;
+  proxy_set_header   X-Real-IP $remote_addr;
+  proxy_set_header   X-Scheme $scheme;
+  proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+  proxy_set_header   Host $http_host;
+nginx_vhosts:
+  - listen: 80 default_server
+    server_name: _
+    root: "{{ keitaro.path }}"
+    index: index.php index.html
+    charset: utf-8
+    extra_parameters: |+4
+      location ~* \.(jpg|jpeg|gif|png|js|css|txt|zip|ico|gz|csv)$ {
+        expires 10d;
+      }
+
+      location ~* /(var|lib|application)/.*$ {
+        return 403;
+      }
+
+      location ~* \.(htaccess|ini|dat)$ {
+        return 403;
+      }
+
+      location ~ \.php$ {
+        fastcgi_split_path_info ^(.+\.php)(/.+)$;
+        fastcgi_pass unix:/var/run/{{php_version}}-fpm.sock;
+        fastcgi_index index.php;
+        fastcgi_buffers 16 16k;
+        fastcgi_buffer_size 32k;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        include fastcgi_params;
+      }
+
+      location / {
+        try_files $uri $uri/ /index.php?$args;
+      }
+
+      location /status {
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_pass unix:/var/run/php72-fpm.sock;
+        include fastcgi_params;
+        allow 127.0.0.1;
+        deny all;
+      }
+

@@ -1,0 +1,3 @@
+letsencrypt_webroot_path: "{{ keitaro.path }}"
+letsencrypt_cert_domains: "{{ ssl_domains.split(',') }}"
+letsencrypt_email: "{{ ssl_email | default('') }}"

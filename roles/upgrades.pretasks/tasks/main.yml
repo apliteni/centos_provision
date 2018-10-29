@@ -5,6 +5,6 @@
   when: no_tags_specified is not defined
   tags: [upgrade, upgrade_php]
 
-- include: upgrade_server.yml
+- include: upgrade_nginx.yml
   when: no_tags_specified is not defined
-  tags: [upgrade, upgrade_server]
+  tags: [upgrade, upgrade_nginx]
