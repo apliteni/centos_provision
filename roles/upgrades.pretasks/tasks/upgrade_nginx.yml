@@ -1,10 +1,9 @@
+- name: Backup nginx configs
+  command: "cp /etc/nginx/conf.d /etc/nginx/conf.d.{{ ansible_date_time.iso8601 }}"
+
 - name: Stat vhosts.conf
   stat: path=/etc/nginx/conf.d/vhosts.conf
   register: vhosts_conf
-
-- name: Backup nginx configs
-  command: "cp /etc/nginx/conf.d /etc/nginx/conf.d.{{ ansible_date_time.iso8601 }}"
-  when: vhosts_conf.stat.exists
 
 - name: Rename vhosts.conf to keitaro.conf
   command: mv /etc/nginx/conf.d/vhosts.conf /etc/nginx/conf.d/keitaro.conf
