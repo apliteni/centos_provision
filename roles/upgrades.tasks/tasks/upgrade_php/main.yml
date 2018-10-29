@@ -3,4 +3,4 @@
   register: get_php_version
 
 - include: upgrade.yml
-  when: get_php_version < php72
+  when: get_php_version.stdout < 'php72'
