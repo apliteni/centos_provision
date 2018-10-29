@@ -12,9 +12,19 @@
 
 - name: Set correct php-fpm socket file
   lineinfile:
-    regexp: 'fastcgi_pass unix:'
+    regexp: 'fastcgi_pass unix:/var/run/php.*-fpm.sock'
     line: '  fastcgi_pass unix:/var/run/php72-fpm.sock;'
     backup: yes
     path: "{{ item }}"
   with_fileglob:
     - "/etc/nginx/conf.d/*.conf"
+
+- name: Get current Keitaro version
+  command: "grep -oP '\d+(\.\d+)+' /var/www/keitaro/version.php"
+  register: get_keitaro_version
+
+- name: Reinstall Keitaro
+  unarchive:
+    src: "https://keitaro.io/releases/{{ get_keitaro_version.stdout }}/package8.tar.gz"
+    dest: /var/www/keitaro
+    remote_src: yes
