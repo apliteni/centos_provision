@@ -17,7 +17,7 @@ RSpec.describe 'add-site.sh' do
   let(:make_proper_nginx_conf) do
     [
       'mkdir -p /etc/nginx/conf.d',
-      %Q{echo -e "#{nginx_conf}"> /etc/nginx/conf.d/vhosts.conf}
+      %Q{echo -e "#{nginx_conf}"> /etc/nginx/conf.d/keitaro.conf}
     ]
   end
 
@@ -66,10 +66,10 @@ RSpec.describe 'add-site.sh' do
 
       it_behaves_like 'should print to', :log, [
         "Try to found nginx\nFOUND",
-        "Checking /etc/nginx/conf.d/vhosts.conf file existence\nYES",
+        "Checking /etc/nginx/conf.d/keitaro.conf file existence\nYES",
         "Checking /var/www/keitaro directory existence\nYES",
         "Checking /var/www/example.com directory existence\nYES",
-        "Checking keitaro params in /etc/nginx/conf.d/vhosts.conf\nOK"
+        "Checking keitaro params in /etc/nginx/conf.d/keitaro.conf\nOK"
       ]
     end
 
@@ -106,17 +106,17 @@ RSpec.describe 'add-site.sh' do
 
       let(:commands) { make_proper_nginx_conf + make_keitaro_root_dir + make_site_root_dir }
 
-      it_behaves_like 'should print to', :log, "Checking keitaro params in /etc/nginx/conf.d/vhosts.conf\nERROR"
+      it_behaves_like 'should print to', :log, "Checking keitaro params in /etc/nginx/conf.d/keitaro.conf\nERROR"
 
       it_behaves_like 'should exit with error', 'Your Keitaro installation does not properly configured'
     end
 
-    context 'vhosts.conf is absent' do
+    context 'keitaro.conf is absent' do
       let(:command_stubs) { all_command_stubs }
 
       let(:commands) { make_keitaro_root_dir + make_site_root_dir }
 
-      it_behaves_like 'should print to', :log, "Checking /etc/nginx/conf.d/vhosts.conf file existence\nNO"
+      it_behaves_like 'should print to', :log, "Checking /etc/nginx/conf.d/keitaro.conf file existence\nNO"
 
       it_behaves_like 'should exit with error', 'Your Keitaro installation does not properly configured'
     end

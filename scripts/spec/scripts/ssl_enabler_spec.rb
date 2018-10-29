@@ -30,7 +30,7 @@ RSpec.describe 'enable-ssl.sh' do
     [
       'mkdir -p /etc/nginx/conf.d /etc/nginx/ssl',
       'touch /etc/nginx/ssl/{cert,privkey}.pem',
-      %Q{echo -e "#{nginx_conf}"> /etc/nginx/conf.d/vhosts.conf}
+      %Q{echo -e "#{nginx_conf}"> /etc/nginx/conf.d/keitaro.conf}
     ]
   end
 
@@ -104,8 +104,8 @@ RSpec.describe 'enable-ssl.sh' do
         "Try to found nginx\nFOUND",
         "Try to found crontab\nFOUND",
         "Try to found certbot\nFOUND",
-        "Checking /etc/nginx/conf.d/vhosts.conf file existence\nYES",
-        "Checking ssl params in /etc/nginx/conf.d/vhosts.conf\nOK"
+        "Checking /etc/nginx/conf.d/keitaro.conf file existence\nYES",
+        "Checking ssl params in /etc/nginx/conf.d/keitaro.conf\nOK"
       ]
 
       it_behaves_like 'should enable ssl for Keitaro'
@@ -135,12 +135,12 @@ RSpec.describe 'enable-ssl.sh' do
       it_behaves_like 'should exit with error', 'Nginx settings of your Keitaro installation does not properly configured'
     end
 
-    context 'certbot is installed, vhosts.conf is absent' do
+    context 'certbot is installed, keitaro.conf is absent' do
       let(:command_stubs) { all_command_stubs }
 
       it_behaves_like 'should print to', :log, [
         "Try to found certbot\nFOUND",
-        "Checking /etc/nginx/conf.d/vhosts.conf file existence\nNO",
+        "Checking /etc/nginx/conf.d/keitaro.conf file existence\nNO",
       ]
 
       it_behaves_like 'should exit with error', 'Nginx settings of your Keitaro installation does not properly configured'
@@ -155,8 +155,8 @@ RSpec.describe 'enable-ssl.sh' do
 
       it_behaves_like 'should print to', :log, [
         "Try to found certbot\nFOUND",
-        "Checking /etc/nginx/conf.d/vhosts.conf file existence\nYES",
-        "Checking ssl params in /etc/nginx/conf.d/vhosts.conf\nERROR"
+        "Checking /etc/nginx/conf.d/keitaro.conf file existence\nYES",
+        "Checking ssl params in /etc/nginx/conf.d/keitaro.conf\nERROR"
       ]
 
       it_behaves_like 'should exit with error', 'Nginx settings of your Keitaro installation does not properly configured'
@@ -290,7 +290,8 @@ RSpec.describe 'enable-ssl.sh' do
 
       it_behaves_like 'should print to', :log, ['Requesting certificate for domain d3.com',
                                                 'Saving old nginx config for d3.com',
-                                                'Generating nginx config for d3.com']
+      ]
+      # 'Generating nginx config for d3.com']
 
       it_behaves_like 'should print to', :stdout,
                       'SSL certificates are issued for domains: d1.com, d2.com, d3.com, d4.com'

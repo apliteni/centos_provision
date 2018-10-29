@@ -82,7 +82,7 @@ WEBROOT_PATH="/var/www/keitaro"
 
 NGINX_ROOT_PATH="/etc/nginx"
 NGINX_VHOSTS_DIR="${NGINX_ROOT_PATH}/conf.d"
-NGINX_KEITARO_CONF="${NGINX_VHOSTS_DIR}/vhosts.conf"
+NGINX_KEITARO_CONF="${NGINX_VHOSTS_DIR}/keitaro.conf"
 
 SCRIPT_NAME="${PROGRAM_NAME}.sh"
 SCRIPT_URL="${KEITARO_URL}/${PROGRAM_NAME}.sh"
@@ -1369,7 +1369,7 @@ generate_certificates(){
       if nginx_config_exists_for_domain $domain; then
         new_name="${domain}.conf.$(date +%Y%m%d%H%M)"
         debug "Saving old nginx config for ${domain} to ${new_name}"
-        cp "/etc/nginx/conf.d/${domain}.conf" "/etc/nginx/conf.d/${new_name}"
+        cp "${NGINX_VHOSTS_DIR}/${domain}.conf" "${NGINX_VHOSTS_DIR}/${new_name}"
       fi
       debug "Generating nginx config for ${domain}"
       generate_nginx_config_for "${domain}"
@@ -1391,7 +1391,7 @@ certificate_exists_for_domain(){
 
 nginx_config_exists_for_domain(){
   local domain="${1}"
-  is_exists_file "/etc/nginx/conf.d/${domain}.conf" "no"
+  is_exists_file "${NGINX_VHOSTS_DIR}/${domain}.conf" "no"
 }
 
 
@@ -1420,7 +1420,7 @@ generate_nginx_config_for(){
   changes="${changes} -e 's|server_name .*|server_name ${domain};|g'"
   changes="${changes} -e 's|ssl_certificate .*|ssl_certificate ${certs_root_path}/fullchain.pem;|g'"
   changes="${changes} -e 's|ssl_certificate_key .*|ssl_certificate_key ${certs_root_path}/privkey.pem;|g'"
-  command="cat /etc/nginx/conf.d/vhosts.conf | sed ${changes} > /etc/nginx/conf.d/${domain}.conf"
+  command="cat ${NGINX_KEITARO_CONF} | sed ${changes} > ${NGINX_VHOSTS_DIR}/${domain}.conf"
   generating_message=$(translate "messages.generating_nginx_config_for")
   run_command "${command}" "${generating_message} ${domain}" "hide_output"
 }
