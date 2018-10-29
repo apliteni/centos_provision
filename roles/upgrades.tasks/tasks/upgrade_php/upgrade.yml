@@ -20,7 +20,7 @@
     - "/etc/nginx/conf.d/*.conf"
 
 - name: Get current Keitaro version
-  command: "grep -oP '\d+(\.\d+)+' /var/www/keitaro/version.php"
+  command: "grep -oP '\\d+(\\.\\d+)+' /var/www/keitaro/version.php"
   register: get_keitaro_version
 
 - name: Reinstall Keitaro
