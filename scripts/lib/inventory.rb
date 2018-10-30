@@ -1,7 +1,8 @@
 class Inventory
   attr_reader :values
 
-  INVENTORY_FILE = 'hosts.txt'
+  INVENTORY_FILE = "#{ENV['HOME']}/.keitaro"
+  DOCKER_INVENTORY = "/root/.keitaro"
   LINES_DIVIDER = "\n"
   VALUES_DIVIDER = '='
   LOG_PRE_INVENTORY_LINE = 'Write inventory file'

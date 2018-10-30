@@ -220,20 +220,20 @@ RSpec.describe 'install.sh' do
                       'curl -sSL https://github.com/apliteni/centos_provision/archive/release-0.9.tar.gz | tar xz'
 
       it_behaves_like 'should print to', :stdout,
-                      "ansible-playbook -vvv -i #{Inventory::INVENTORY_FILE} centos_provision-release-0.9/playbook.yml"
+                      "ansible-playbook -vvv -i #{Inventory::DOCKER_INVENTORY} centos_provision-release-0.9/playbook.yml"
 
       context '-t specified' do
         let(:options) { '-p -t tag1,tag2' }
 
         it_behaves_like 'should print to', :stdout,
-                        "ansible-playbook -vvv -i #{Inventory::INVENTORY_FILE} centos_provision-release-0.9/playbook.yml --tags tag1,tag2"
+                        "ansible-playbook -vvv -i #{Inventory::DOCKER_INVENTORY} centos_provision-release-0.9/playbook.yml --tags tag1,tag2"
       end
 
       context '-i specified' do
         let(:options) { '-p -i tag1,tag2' }
 
         it_behaves_like 'should print to', :stdout,
-                        "ansible-playbook -vvv -i #{Inventory::INVENTORY_FILE} centos_provision-release-0.9/playbook.yml --skip-tags tag1,tag2"
+                        "ansible-playbook -vvv -i #{Inventory::DOCKER_INVENTORY} centos_provision-release-0.9/playbook.yml --skip-tags tag1,tag2"
       end
     end
 
@@ -289,7 +289,7 @@ RSpec.describe 'install.sh' do
       it_behaves_like 'should exit with error', [
         %r{There was an error evaluating current command\n(.*\n){3}.* ansible-playbook},
         'Installation log saved to install.log',
-        'Configuration settings saved to hosts.txt',
+        'Configuration settings saved to /root/.keitaro',
         'You can rerun `install.sh`'
       ]
     end
