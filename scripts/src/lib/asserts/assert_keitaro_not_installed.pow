@@ -4,9 +4,9 @@
 assert_keitaro_not_installed()
   debug 'Ensure keitaro is not installed yet'
   if isset $RECONFIGURE
-    debug 'Skip checking install.lock'
+    debug 'Skip checking install.lock because of reconfigure mode'
     return
-  if is_exists_file /var/www/keitaro/var/install.lock no
+  if is_exists_file ${WEBROOT_PATH}/var/install.lock no
     debug 'NOK: keitaro is already installed'
     fail "$(translate errors.keitaro_already_installed)"
   else

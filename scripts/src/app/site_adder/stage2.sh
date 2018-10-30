@@ -5,4 +5,5 @@ stage2(){
   assert_caller_root
   assert_installed 'nginx' 'errors.reinstall_keitaro'
   assert_nginx_configured
+  assert_server_configuration_relevant
 }

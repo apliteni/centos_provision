@@ -11,6 +11,7 @@ _require 'app/site_adder/vars/dict.sh'
 
 _require 'lib/asserts/assert_caller_root.sh'
 _require 'lib/asserts/assert_installed.sh'
+_require 'lib/asserts/assert_server_configuration_relevant.sh'
 _require 'lib/asserts/is_exists_directory.sh'
 _require 'lib/asserts/is_exists_path.sh'
 _require 'lib/asserts/is_exists_file.sh'

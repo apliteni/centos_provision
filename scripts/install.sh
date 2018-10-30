@@ -81,6 +81,7 @@ RELEASE_VERSION="0.9"
 WEBROOT_PATH="/var/www/keitaro"
 
 INVENTORY_FILE="${HOME}/.keitaro"
+SCRIPT_VERSION=1.0
 
 NGINX_ROOT_PATH="/etc/nginx"
 NGINX_VHOSTS_DIR="${NGINX_ROOT_PATH}/conf.d"
@@ -123,6 +124,11 @@ declare -A DICT
 
 DICT['en.errors.program_failed']='PROGRAM FAILED'
 DICT['en.errors.must_be_root']='You must run this program as root.'
+DICT['en.errors.reconfigure_keitaro']=$(cat <<- END
+	You are using obsolete Keitaro configuration. Please reconfigure Keitaro by running following command'
+	curl keitaro.io/install.sh > run; bash run -rt upgrade
+END
+)
 DICT['en.errors.run_command.fail']='There was an error evaluating current command'
 DICT['en.errors.run_command.fail_extra']=''
 DICT['en.errors.terminated']='Terminated by user'
@@ -136,6 +142,11 @@ DICT['en.prompt_errors.validate_yes_no']='Please answer "yes" or "no"'
 
 DICT['ru.errors.program_failed']='ОШИБКА ВЫПОЛНЕНИЯ ПРОГРАММЫ'
 DICT['ru.errors.must_be_root']='Эту программу может запускать только root.'
+DICT['ru.errors.reconfigure_keitaro']=$(cat <<- END
+	Перед запуском этой команды вам нужно обновить конфигурацию сервера, пожалуйста выполните команду'
+	curl keitaro.io/install.sh > run; bash run -rt upgrade
+END
+)
 DICT['ru.errors.run_command.fail']='Ошибка выполнения текущей команды'
 DICT['ru.errors.run_command.fail_extra']=''
 DICT['ru.errors.terminated']='Выполнение прервано'
@@ -189,10 +200,10 @@ assert_installed(){
 assert_keitaro_not_installed(){
   debug 'Ensure keitaro is not installed yet'
   if isset "$RECONFIGURE"; then
-    debug 'Skip checking install.lock'
+    debug 'Skip checking install.lock because of reconfigure mode'
     return
   fi
-  if is_exists_file /var/www/keitaro/var/install.lock no; then
+  if is_exists_file ${WEBROOT_PATH}/var/install.lock no; then
     debug 'NOK: keitaro is already installed'
     fail "$(translate errors.keitaro_already_installed)"
   else

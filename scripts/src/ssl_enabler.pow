@@ -11,6 +11,7 @@ _require 'app/ssl_enabler/vars/dict.sh'
 
 _require 'lib/asserts/assert_caller_root.sh'
 _require 'lib/asserts/assert_installed.sh'
+_require 'lib/asserts/assert_server_configuration_relevant.sh'
 _require 'lib/asserts/is_exists_file.sh'
 _require 'lib/asserts/is_exists_directory.sh'
 _require 'lib/i18n/set_ui_lang.sh'
