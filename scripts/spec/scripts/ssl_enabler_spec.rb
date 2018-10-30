@@ -95,6 +95,8 @@ RSpec.describe 'enable-ssl.sh' do
   context 'without actual running commands' do
     include_context 'run in docker'
 
+    let(:commands) { make_keitaro_inventory }
+
     let(:options) { '-p' }
 
     shared_examples_for 'should enable ssl for Keitaro' do
