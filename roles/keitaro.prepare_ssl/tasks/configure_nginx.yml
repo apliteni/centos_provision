@@ -1,7 +1,7 @@
 ---
 - name: Add ssl support to nginx config file
   blockinfile:
-    dest: /etc/nginx/conf.d/vhosts.conf
+    dest: /etc/nginx/conf.d/keitaro.conf
     insertafter: '^\s+server_name'
     block: |
       listen 443 ssl;
