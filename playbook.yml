@@ -16,7 +16,7 @@
     - {role: 'geerlingguy.repo-epel', tags: 'repo-epel'}
     - {role: 'geerlingguy.repo-remi', tags: 'repo-remi'}
     - {role: 'tools'}
-    - {role: 'mikegleasonjr.swap', tags: 'swap', when: "ansible_memtotal_mb < 4000"}
+    - {role: 'mikegleasonjr.swap', tags: 'swap'}
     - {role: 'keitaro.install-disable_thp.service', tags: ['mariadb', 'tokudb', 'redis']}
     - {role: 'keitaro.redis', tags: 'redis'}
     - {role: 'bertvv.mariadb', tags: 'mariadb'}
