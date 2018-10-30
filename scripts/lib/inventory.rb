@@ -1,6 +1,7 @@
 class Inventory
   attr_reader :values
 
+  SERVER_CONFIGURATION_VERSION=1.0
   INVENTORY_FILE = "#{ENV['HOME']}/.keitaro"
   DOCKER_INVENTORY = "/root/.keitaro"
   LINES_DIVIDER = "\n"
