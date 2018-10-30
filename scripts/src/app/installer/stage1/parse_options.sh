@@ -87,7 +87,7 @@ ru_usage(){
   print_err "    С опцией -p (preserve installation) "$SCRIPT_NAME" не запускает установочные команды. Вместо этого текс команд будет показан на экране."
   print_err
   print_err "  -r"
-  print_err "    Используется только для переконфигурирования сервисов. В этом режиме не будет создаваться hosts.txt"
+  print_err "    Используется только для переконфигурирования сервисов. ${INVENTORY_FILE} создаваться не будет."
   print_err
   print_err "  -s"
   print_err "    С опцией -s (skip checks) "$SCRIPT_NAME" не будет проверять присутствие yum/ansible в системе, не будет проверять факт запуска из под root."
@@ -118,7 +118,7 @@ en_usage(){
   print_err "    The -p (preserve installation) option causes "$SCRIPT_NAME" to preserve the invoking of installation commands. Installation commands will be printed to stdout instead."
   print_err
   print_err "  -r"
-  print_err "    Use only for reconfiguration of services. In this mode installer does not create hosts.txt."
+  print_err "    Use only for reconfiguration of services. In this mode installer does not create ${INVENTORY_FILE}."
   print_err
   print_err "  -s"
   print_err "    The -s (skip checks) option causes "$SCRIPT_NAME" to skip checks of yum/ansible presence, skip check root running"

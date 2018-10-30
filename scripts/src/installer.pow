@@ -56,6 +56,7 @@ _require 'app/installer/vars/common.sh'
 _require 'app/installer/vars/dict.sh'
 
 _require 'app/installer/lib/system/clean_up.sh'
+_require 'app/installer/lib/system/write_inventory_on_reconfiguration.sh'
 
 _require 'app/installer/stage1.sh'
 _require 'app/installer/stage1/parse_options.sh'
@@ -77,10 +78,6 @@ _require 'app/installer/stage5/run_ssl_enabler.sh'
 _require 'app/installer/stage5/show_successful_message.sh'
 _require 'app/installer/stage5/json2dict.sh'
 
-write_emtpy_hosts_txt()
-  if ! -f hosts.txt
-    echo -e "[server]\nlocalhost connection=local ansible_user=root" > hosts.txt
-
 # We wrap the entire script in a big function which we only call at the very end, in order to
 # protect against the possibility of the connection dying mid-script. This protects us against
 # the problem described in this blog post:
@@ -93,7 +90,7 @@ install()
     stage3                  # generate inventory file
     stage4                  # upgrade packages and install ansible
   else
-    write_emtpy_hosts_txt
+    write_inventory_on_reconfiguration
   stage5                    # run ansible playbook
 
 

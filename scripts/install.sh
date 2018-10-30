@@ -80,6 +80,8 @@ RELEASE_VERSION="0.9"
 
 WEBROOT_PATH="/var/www/keitaro"
 
+INVENTORY_FILE="${HOME}/.keitaro"
+
 NGINX_ROOT_PATH="/etc/nginx"
 NGINX_VHOSTS_DIR="${NGINX_ROOT_PATH}/conf.d"
 NGINX_KEITARO_CONF="${NGINX_VHOSTS_DIR}/keitaro.conf"
@@ -963,7 +965,6 @@ validate_yes_no(){
 
 
 
-INVENTORY_FILE=hosts.txt
 RELEASE_BRANCH=${RELEASE_BRANCH:-release-${RELEASE_VERSION}}
 PROVISION_DIRECTORY="centos_provision-${RELEASE_BRANCH}"
 
@@ -1095,6 +1096,30 @@ clean_up(){
 
 
 
+write_inventory_on_reconfiguration(){
+  if ! is_exists_file ${INVENTORY_FILE}; then
+    collect_inventory_variables
+    write_inventory_file
+  fi
+}
+
+
+collect_inventory_variables(){
+  VARS['license_key']="$(cat ${WEBROOT_PATH}/var/license/key.lic)"
+  VARS['license_ip']="$(get_host_ip)"
+  VARS['db_name']="$(get_var_from_keitaro_config name)"
+  VARS['db_user']="$(get_var_from_keitaro_config user)"
+  VARS['db_password']="$(get_var_from_keitaro_config password | sed -e 's/"//g' -e "s/'//g")"
+}
+
+
+get_var_from_keitaro_config(){
+  local var="${1}"
+  cat ${WEBROOT_PATH}/application/config/config.ini.php | grep "^${var}\\b" | head -n1 | awk '{print $3}'
+}
+
+
+
 
 stage1(){
   debug "Starting stage 1: initial script setup"
@@ -1191,7 +1216,7 @@ ru_usage(){
   print_err "    С опцией -p (preserve installation) "$SCRIPT_NAME" не запускает установочные команды. Вместо этого текс команд будет показан на экране."
   print_err
   print_err "  -r"
-  print_err "    Используется только для переконфигурирования сервисов. В этом режиме не будет создаваться hosts.txt"
+  print_err "    Используется только для переконфигурирования сервисов. ${INVENTORY_FILE} создаваться не будет."
   print_err
   print_err "  -s"
   print_err "    С опцией -s (skip checks) "$SCRIPT_NAME" не будет проверять присутствие yum/ansible в системе, не будет проверять факт запуска из под root."
@@ -1222,7 +1247,7 @@ en_usage(){
   print_err "    The -p (preserve installation) option causes "$SCRIPT_NAME" to preserve the invoking of installation commands. Installation commands will be printed to stdout instead."
   print_err
   print_err "  -r"
-  print_err "    Use only for reconfiguration of services. In this mode installer does not create hosts.txt."
+  print_err "    Use only for reconfiguration of services. In this mode installer does not create ${INVENTORY_FILE}."
   print_err
   print_err "  -s"
   print_err "    The -s (skip checks) option causes "$SCRIPT_NAME" to skip checks of yum/ansible presence, skip check root running"
@@ -2007,12 +2032,6 @@ json2dict() {
 }
 
 
-write_emtpy_hosts_txt(){
-  if [[ ! -f hosts.txt ]]; then
-    echo -e "[server]\nlocalhost connection=local ansible_user=root" > hosts.txt
-  fi
-}
-
 install(){
   init "$@"
   stage1 "$@"                 # initial script setup
@@ -2021,7 +2040,7 @@ install(){
     stage3                  # generate inventory file
     stage4                  # upgrade packages and install ansible
   else
-    write_emtpy_hosts_txt
+    write_inventory_on_reconfiguration
   fi
   stage5                    # run ansible playbook
 }
