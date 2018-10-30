@@ -1,5 +1,7 @@
 - name: Backup nginx configs
-  command: "cp /etc/nginx/conf.d /etc/nginx/conf.d.{{ ansible_date_time.iso8601 }}"
+  copy:
+    src: /etc/nginx/conf.d
+    dest: "/etc/nginx/conf.d.{{ ansible_date_time.iso8601 }}"
 
 - name: Stat vhosts.conf
   stat: path=/etc/nginx/conf.d/vhosts.conf
