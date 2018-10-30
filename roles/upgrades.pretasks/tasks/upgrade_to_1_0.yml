@@ -8,3 +8,8 @@
 - name: Rename vhosts.conf to keitaro.conf
   command: mv /etc/nginx/conf.d/vhosts.conf /etc/nginx/conf.d/keitaro.conf
   when: vhosts_conf.stat.exists
+
+- name: Remove install.lock
+  file:
+    path: "{{ keitaro.path }}/var/install.lock"
+    state: absent

@@ -1,4 +1,0 @@
-- name: Remove install.lock
-  file:
-    path: "{{ keitaro.path }}/var/install.lock"
-    state: absent
