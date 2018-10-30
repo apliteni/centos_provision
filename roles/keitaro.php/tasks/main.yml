@@ -1,10 +1,10 @@
 ---
-- name: install scl repo
+- name: Install scl repo
   yum:
     name: centos-release-scl
     state: latest
 
-- name: install php extensions
+- name: Install php extensions
   yum:
     name:
       - "{{php_version}}"
@@ -21,7 +21,7 @@
       - "{{php_version}}-php-ioncube-loader"
     state: installed
 
-- name: link php directories and binary
+- name: Link php directories and binary
   file:
     src: "{{item.from}}"
     dest: "{{item.to}}"
@@ -32,7 +32,7 @@
     - {from: "/etc/opt/remi/{{php_version}}", to: '/etc/php'}
     - {from: "/var/opt/remi/{{php_version}}/log/php-fpm/", to: '/var/log/php-fpm'}
 
-- name: increase limits
+- name: Increase limits
   lineinfile:
     path: /etc/php/php.ini
     regexp: '^{{ item.key }}'
@@ -45,7 +45,7 @@
   notify:
     - restart php-fpm
 
-- name: upload a pool config
+- name: Upload a pool config
   template:
     src: "www.conf.j2"
     dest: "/etc/php/php-fpm.d/www.conf"
@@ -55,7 +55,7 @@
   notify:
     - restart php-fpm
 
-- name: run php-fpm
+- name: Run php-fpm
   service:
     name="{{php_version}}-php-fpm"
     state=started

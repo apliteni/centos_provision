@@ -1,10 +1,2 @@
-- shell: 'true'
-  register: no_tags_specified
-
-- include: upgrade_php.yml
-  when: no_tags_specified is not defined
-  tags: [upgrade, upgrade_php]
-
-- include: upgrade_nginx.yml
-  when: no_tags_specified is not defined
-  tags: [upgrade, upgrade_nginx]
+- include: upgrade_to_1_0.yml
+  tags: 'never, upgrade_to_1_0'
