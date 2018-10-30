@@ -18,6 +18,7 @@
       - "{{php_version}}-php-pear"
       - "{{php_version}}-php-xml"
       - "{{php_version}}-php-pecl-zip"
+      - "{{php_version}}-php-ioncube-loader"
     state: installed
 
 - name: link php directories and binary
