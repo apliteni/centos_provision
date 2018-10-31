@@ -8,7 +8,7 @@ tmp_table_size = {{ db_memory_mb * 0.01 | int }}M
 max_heap_table_size = {{ db_memory_mb * 0.01 | int }}M
 max_connections = {{ db_connections }}
 # per connection settings
-join_buffer_size = {{ [db_memory_mb * 0.01 / db_connections | int, 1] | max }}M
+join_buffer_size = {{ [db_memory_mb * 0.05 / db_connections | int, 1] | max }}M
 
 # table_open_cache = max_connections * 100 (amount of tables in db)
 table_open_cache = {{ db_connections * 100 }}
