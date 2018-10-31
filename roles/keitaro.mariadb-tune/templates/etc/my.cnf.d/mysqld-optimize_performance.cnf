@@ -1,18 +1,22 @@
+[mysqld]
 # Calculated using http://mysqlcalculator.com/
-
 # global settings
 key_buffer_size = 1M
-query_cache_size = {{ db_memory_mb * 0.02 | int }}M
-# tmp_table_size = max_heap_table_size = 1% available_memory
-tmp_table_size = {{ db_memory_mb * 0.01 | int }}M
-max_heap_table_size = {{ db_memory_mb * 0.01 | int }}M
+# query_cache_size = 2% available db memory
+query_cache_size = {{ 2 * (db_memory_1pct_mb|float) }}M
+# tmp_table_size = max_heap_table_size = 1% available db memory
+tmp_table_size = {{ db_memory_1pct_mb }}M
+max_heap_table_size = {{ db_memory_1pct_mb }}M
 max_connections = {{ db_connections }}
+
 # per connection settings
-join_buffer_size = {{ [db_memory_mb * 0.05 / db_connections | int, 1] | max }}M
+# join_buffer_size * connections = 5% available db memory
+join_buffer_size = {{ (db_memory_1pct_mb|float) / (db_connections|int) * 5 }}M
 
 # table_open_cache = max_connections * 100 (amount of tables in db)
-table_open_cache = {{ db_connections * 100 }}
+table_open_cache = {{ (db_connections|int) * 100 }}
 # In general it is 2x of table_open_cache.
-open_files_limit = {{ db_connections * 100 * 2 }}
+open_files_limit = {{ (db_connections|int) * 100 * 2 }}
 
-tokudb_cache_size = {{ db_memory_mb * 0.8 | int }}M
+# 80% of available db memory
+tokudb_cache_size = {{ 80 * (db_memory_1pct_mb|float) }}M
