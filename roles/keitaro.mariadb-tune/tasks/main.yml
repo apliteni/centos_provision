@@ -19,3 +19,9 @@
     - etc/logrotate.d/mariadb
     - etc/my.cnf.d/mysqld-error_log.cnf
     - etc/my.cnf.d/mysqld-log_slow_queries.cnf
+
+- name: Generate optimization settings
+  template:
+    src: etc/my.cnf.d/mysqld-optimize_performance.cnf
+    dest: /etc/my.cnf.d/mysqld-optimize_performance.cnf
+  notify: restart mariadb
