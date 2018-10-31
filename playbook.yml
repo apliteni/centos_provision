@@ -9,6 +9,7 @@
     - vars/mariadb.yml
     - vars/nginx.yml
     - vars/php.yml
+    - vars/performance.yml
 
   roles:
     - {role: 'upgrades.pretasks'}
