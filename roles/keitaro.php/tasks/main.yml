@@ -45,7 +45,7 @@
   notify:
     - restart php-fpm
 
-- name: Upload a pool config
+- name: Generate a pool config
   template:
     src: "www.conf.j2"
     dest: "/etc/php/php-fpm.d/www.conf"
