@@ -22,6 +22,7 @@
     - {role: 'mikegleasonjr.swap', tags: 'swap, upgrade_to_1_0'}
     - {role: 'keitaro.install-disable_thp.service', tags: 'mariadb, tokudb, redis, upgrade_to_1_0'}
     - {role: 'keitaro.redis', tags: 'redis'}
+    - {role: 'keitaro.redis-tune', tags: 'redis, upgrade_to_1_0'}
     - {role: 'bertvv.mariadb', tags: 'mariadb'}
     - {role: 'keitaro.mariadb-install_tokudb', tags: 'mariadb, tokudb, upgrade_to_1_0'}
     - {role: 'keitaro.mariadb-tune', tags: 'mariadb, tune-mariadb, upgrade_to_1_0'}
