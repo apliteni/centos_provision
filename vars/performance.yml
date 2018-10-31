@@ -1,4 +1,5 @@
 db_memory_mb: "{{ ansible_memtotal_mb * 0.4 }}"
-db_connections: "{{ [ansible_memtotal_mb / 100 | int, 10] | max }}"
+db_connections: "{{ [ansible_memtotal_mb / 200 | int, 10] | max }}"
 php_memory_mb: "{{ ansible_memtotal_mb * 0.45 }}"
+php_thread_size_mb: 30
 redis_memory_mb: "{{ ansible_memtotal_mb * 0.05 }}"
