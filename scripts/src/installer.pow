@@ -87,6 +87,7 @@ install()
   stage1 $@                 # initial script setup
   stage2                    # make some asserts
   if ! $RECONFIGURE
+    assert_keitaro_not_installed
     stage3                  # generate inventory file
     stage4                  # upgrade packages and install ansible
   else

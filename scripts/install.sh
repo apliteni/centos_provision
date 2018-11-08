@@ -1282,7 +1282,6 @@ en_usage(){
 
 stage2(){
   debug "Starting stage 2: make some asserts"
-  assert_keitaro_not_installed
   assert_caller_root
   assert_centos_distro
   assert_pannels_not_installed
@@ -2048,6 +2047,7 @@ install(){
   stage1 "$@"                 # initial script setup
   stage2                    # make some asserts
   if [[ ! "$RECONFIGURE" ]]; then
+    assert_keitaro_not_installed
     stage3                  # generate inventory file
     stage4                  # upgrade packages and install ansible
   else
