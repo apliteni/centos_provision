@@ -1,9 +1,16 @@
-- name: Remove access_log and error_log entries from host configs
+- name: Remove access_log entries from host configs
   lineinfile:
-    regexp: '\\b(access|error)_log\\b'
+    regexp: 'access_log'
     state: absent
     path: "{{ item }}"
-    validate: nginx -s reload
+  with_fileglob:
+    - "/etc/nginx/conf.d/*.conf"
+
+- name: Remove error_log entries from host configs
+  lineinfile:
+    regexp: 'error_log'
+    state: absent
+    path: "{{ item }}"
   with_fileglob:
     - "/etc/nginx/conf.d/*.conf"
 
