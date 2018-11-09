@@ -8,6 +8,6 @@
     - "/etc/nginx/conf.d/*.conf"
 
 - name: Remove empty 'location /admin' entry from host configs
-  command:  "sed -i '/location \\/admin\\/ {/,+2d' {{ item }}"
+  command:  "sed -i '/location \\/admin\\/ {/,+3d' {{ item }}"
   with_fileglob:
     - "/etc/nginx/conf.d/*.conf"

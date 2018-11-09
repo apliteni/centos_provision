@@ -1,7 +1,7 @@
 - name: Backup nginx configs
   copy:
-    src: /etc/nginx/conf.d
-    dest: "/etc/nginx/conf.d.{{ ansible_date_time.iso8601 }}"
+    src: /etc/nginx/conf.d/
+    dest: "/etc/nginx/conf.d.{{ ansible_date_time.iso8601_basic_short }}"
 
 - name: Stat vhosts.conf
   stat: path=/etc/nginx/conf.d/vhosts.conf
@@ -10,8 +10,3 @@
 - name: Rename vhosts.conf to keitaro.conf
   command: mv /etc/nginx/conf.d/vhosts.conf /etc/nginx/conf.d/keitaro.conf
   when: vhosts_conf.stat.exists
-
-- name: Remove install.lock
-  file:
-    path: "{{ keitaro.path }}/var/install.lock"
-    state: absent
