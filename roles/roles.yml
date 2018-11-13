@@ -1,1 +1,4 @@
+- src: bertvv.mariadb
 - src: geerlingguy.firewall
+- src: geerlingguy.nginx
+- src: mikegleasonjr.swap
