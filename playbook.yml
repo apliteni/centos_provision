@@ -29,6 +29,7 @@
     - {role: 'keitaro.mariadb-tune', tags: 'mariadb, tune-mariadb, upgrade_to_1_0'}
     - {role: 'keitaro.php', tags: 'php, upgrade_to_1_0'}
     - {role: 'geerlingguy.nginx', tags: 'nginx, upgrade_to_1_0'}
+    - {role: 'keitaro.nginx-tune', tags: 'nginx, upgrade_to_1_0'}
     - {role: 'keitaro.tune_autorestarting', tags: 'php, mariadb, nginx, redis, upgrade_to_1_0'}
     - {role: 'geerlingguy.firewall', tags: 'firewall', when: "skip_firewall is not defined or skip_firewall != 'yes'"}
     - {role: 'keitaro.prepare_home_dir', tags: 'keitaro, ssl'}

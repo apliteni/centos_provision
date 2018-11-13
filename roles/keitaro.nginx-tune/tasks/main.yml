@@ -1,0 +1,24 @@
+- name: Make status logs dir
+  file:
+    path: /var/log/nginx/status
+    state: directory
+
+- name: Make logrotate hourly dir
+  file:
+    path: /etc/logrotate.hourly.d/
+    state: directory
+
+- name: Copy logrotate hourly config
+  copy:
+    src: "{{ item }}"
+    dest: "/{{ item }}"
+  with_items:
+    - etc/cron.hourly/10logrotate
+    - etc/logrotate.hourly.d/nginx
+    - etc/logrotate.hourly.conf
+
+- name: Make logrotate cron wrapper executable
+  file:
+    path: /etc/cron.hourly/10logrotate
+    mode: 0755
+
