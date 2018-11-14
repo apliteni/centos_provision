@@ -1614,6 +1614,7 @@ run_ssl_enabler(){
     local domains="${VARS['ssl_domains']//,/ }"
     local command="curl -sSL ${SSL_SCRIPT_URL} | bash -s -- ${options} ${domains}"
     message="$(translate 'messages.enabling_ssl')"
+    > ${SSL_OUTPUT_LOG}
     run_command "${command}" "${message}" "hide_output" "" "" "" "${SSL_OUTPUT_LOG}"
     SSL_SUCCESSFUL_DOMAINS="$(extract_domains_from_enable_ssl_log ^OK)"
     local failed_domains="$(extract_domains_from_enable_ssl_log ^NOK)"
@@ -1635,7 +1636,7 @@ get_message_from_enable_ssl_log(){
   if is_exists_file "${SSL_OUTPUT_LOG}" "no"; then
     cat "${SSL_OUTPUT_LOG}" \
       | remove_ansi_colors \
-      | grep -E "^${prefix}"
+      | grep -E "${prefix}" || :
     fi
   }
 
