@@ -37,6 +37,8 @@ http {
     log_format status '$status';
     access_log /var/log/nginx/status/access.log status buffer=16k flush=15s;
 
+    log_not_found off;
+
     sendfile        {{ nginx_sendfile }};
     tcp_nopush      {{ nginx_tcp_nopush }};
     tcp_nodelay     {{ nginx_tcp_nodelay }};
