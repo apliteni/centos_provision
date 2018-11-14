@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+RESPONSE_STATUSES_PATH=/var/log/nginx/status/access.log.1
+if [ -f ${RESPONSE_STATUSES_PATH} ]; then
+  responses=$(sort ${RESPONSE_STATUSES_PATH} \
+              | uniq -c \
+              | awk '{print "\"" $2 "\":", $1 ", "}' \
+              | sed '$ s/, $//g' \
+              | tr -d "\n")
+else
+  responses="null"
+fi
+
+uptime=$(awk '{print $1}' /proc/uptime | sed 's/\..*//g')
+
+echo "{responses: {${responses}}, uptime: ${uptime}}"
