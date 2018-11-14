@@ -8,17 +8,17 @@
     path: /etc/logrotate.hourly.d/
     state: directory
 
-- name: Copy logrotate hourly config
+- name: Install proper files
   copy:
-    src: "{{ item }}"
-    dest: "/{{ item }}"
+    src: "{{ item.path }}"
+    dest: "/{{ item.path }}"
+    mode: "{{ item.mode }}"
   with_items:
-    - etc/cron.hourly/10logrotate
-    - etc/logrotate.hourly.d/nginx
-    - etc/logrotate.hourly.conf
-
-- name: Make logrotate cron wrapper executable
-  file:
-    path: /etc/cron.hourly/10logrotate
-    mode: 0755
-
+    - path: etc/cron.hourly/10logrotate
+      mode: '0755'
+    - path: etc/logrotate.hourly.d/nginx
+      mode: '0644'
+    - path: etc/logrotate.hourly.conf
+      mode: '0644'
+    - path: usr/local/bin/get_keitaro_stat
+      mode: '0755'
