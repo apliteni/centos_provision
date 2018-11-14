@@ -33,8 +33,4 @@ info() {
   echo "{uptime: ${uptime}, load: ${load}, timestamp: ${timestamp}}"
 }
 
-ssd() {
-  echo 'null'
-}
-
-echo "{responses: $(responses), cpu: $(cpu), ssd: $(ssd), info: $(info)}"
+echo "{responses: $(responses), cpu: $(cpu), info: $(info)}"
