@@ -22,3 +22,11 @@
       mode: '0644'
     - path: usr/local/bin/get_keitaro_stat
       mode: '0755'
+
+
+- name: Add cron job
+  cron:
+    user: "{{os_user}}"
+    name: "save keitaro stats"
+    job: "/usr/local/bin/get_keitaro_stat > {{ keitaro.path }}/application/stats.json"
+    minute: 5
