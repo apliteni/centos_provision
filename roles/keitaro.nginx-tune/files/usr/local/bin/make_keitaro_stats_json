@@ -1,21 +1,31 @@
 #!/usr/bin/env bash
 
 RESPONSE_STATUSES_PATH=/var/log/nginx/status/access.log.1
-if [ -f ${RESPONSE_STATUSES_PATH} ]; then
-  responses=$(sort ${RESPONSE_STATUSES_PATH} \
-              | uniq -c \
-              | awk '{print "\"" $2 "\":", $1 ", "}' \
-              | sed '$ s/, $//g' \
-              | tr -d "\n")
-  responses="{${responses}}"
-else
-  responses='null'
-fi
 
-cpu='null'
+responses() {
+  local responses=""
+  if [ -f ${RESPONSE_STATUSES_PATH} ]; then
+    responses=$(sort ${RESPONSE_STATUSES_PATH} \
+                | uniq -c \
+                | awk '{print "\"" $2 "\":", $1 ", "}' \
+                | sed '$ s/, $//g' \
+                | tr -d "\n")
+    responses="{${responses}}"
+  else
+    responses='null'
+  fi
+  echo $responses
+}
+
+cpu() {
+  model_name="\"$(awk -F': ' '/^model name/ {print $2}' /proc/cpuinfo)\""
+  frequency_mhz=$(awk -F': ' '/^cpu MHz/ {print $2}' /proc/cpuinfo)
+  echo "{model_name: ${model_name}, frequency_mhz: ${frequency_mhz}}"
+}
+
 ssd='null'
 
 uptime=$(awk '{print $1}' /proc/uptime | sed 's/\..*//g')
 timestamp="\"$(date --utc --iso-8601=seconds)\""
 
-echo "{responses: ${responses}, cpu: ${cpu}, ssd: ${ssd}, uptime: ${uptime}, timestamp: ${timestamp}}"
+echo "{responses: $(responses), cpu: $(cpu), ssd: ${ssd}, uptime: ${uptime}, timestamp: ${timestamp}}"
