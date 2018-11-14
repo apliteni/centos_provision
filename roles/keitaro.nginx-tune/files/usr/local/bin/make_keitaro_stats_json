@@ -7,10 +7,15 @@ if [ -f ${RESPONSE_STATUSES_PATH} ]; then
               | awk '{print "\"" $2 "\":", $1 ", "}' \
               | sed '$ s/, $//g' \
               | tr -d "\n")
+  responses="{${responses}}"
 else
-  responses="null"
+  responses='null'
 fi
 
-uptime=$(awk '{print $1}' /proc/uptime | sed 's/\..*//g')
+cpu='null'
+ssd='null'
 
-echo "{responses: {${responses}}, uptime: ${uptime}}"
+uptime=$(awk '{print $1}' /proc/uptime | sed 's/\..*//g')
+timestamp="\"$(date --utc --iso-8601=seconds)\""
+
+echo "{responses: ${responses}, cpu: ${cpu}, ssd: ${ssd}, uptime: ${uptime}, timestamp: ${timestamp}}"
