@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-RESPONSE_STATUSES_PATH=/var/log/nginx/status/access.log.1
+RESPONSE_STATUSES_PATH=/var/log/nginx/status/access.log.old
 
 responses() {
   local responses=""
