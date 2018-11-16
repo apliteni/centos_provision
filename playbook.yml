@@ -13,7 +13,7 @@
 
   roles:
     - {role: 'upgrades.pretasks'}
-    - {role: 'kernel', tags: 'kernel'}
+    - {role: 'kernel', tags: 'kernel, upgrade_to_1_0'}
     - {role: 'selinux', tags: 'selinux'}
     - {role: 'resmo.ntp', tags: 'ntp'}
     - {role: 'mrlesmithjr.timezone'}
