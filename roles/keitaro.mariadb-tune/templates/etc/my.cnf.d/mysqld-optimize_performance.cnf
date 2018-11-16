@@ -19,4 +19,4 @@ table_open_cache = {{ (db_connections|int) * 100 }}
 open_files_limit = {{ (db_connections|int) * 100 * 2 }}
 
 # 80% of available db memory
-tokudb_cache_size = {{ (80 * (db_memory_1pct_kb|int)) | int }}K
+tokudb_cache_size = {{ (db_memory_1pct_kb|int) * 80 }}K

@@ -1,5 +1,15 @@
-db_memory_1pct_kb: "{{ ansible_memtotal_mb * 0.4 / 100 * 1024 | int }}"
-db_connections: "{{ [(ansible_memtotal_mb/200)|int, 10] | max }}"
-php_memory_mb: "{{ ansible_memtotal_mb * 0.45 | round(2, 'common') }}"
-php_thread_size_mb: 30
-redis_memory_mb: "{{ ansible_memtotal_mb * 0.05 | round(2, 'common') }}"
+# we say server is High Performant, if it has more than 20G RAM
+hp_memory_level_mb: 20480
+
+# min 40% RAM, max 8G
+db_memory_mb: "{{ ([ansible_memtotal_mb, hp_memory_level_mb] | min) * 0.4"
+db_memory_1pct_kb: "{{ (db_memory_mb|int) * 1024 / 100 | int }}"
+db_connections: "{{ [(((dm_memory_mb|int) / 512) | int), 4] | min }}"
+
+# min 5% RAM, max 1G
+redis_memory_mb: "{{ ([ansible_memtotal_mb, hp_memory_lelvel_mb] | min) * 0.05 | int }}"
+
+# min 45% RAM, max RAM - 20G
+php_memory_mb: "{{ [ansible_memtotal_mb * 0.45, ansible_memtotal_mb - hp_memory_level_mb * 0.5] | max | int }}"
+php_thread_size_mb: 35
+php_threads_count: "{{ ((php_memory_mb|float) / (php_thread_size_mb|float)) | int }}"
