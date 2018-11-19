@@ -17,8 +17,4 @@
   with_dict: "{{ kernel_sysctl_tweaks }}"
 
 - name: Set limits
-  pam_limits:
-    domain: nginx
-    limit_type: '-'
-    limit_item: nofile
-    value: "{{ ulimit_nofile }}"
+  include: set_ulimit.yml limit_item=nofile value="{{ ulimit_nofile }}"
