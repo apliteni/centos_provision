@@ -24,5 +24,5 @@
   cron:
     user: "{{os_user}}"
     name: "save keitaro stats"
-    job: "/usr/local/bin/get_keitaro_stat > {{ keitaro.path }}/application/stats.json"
+    job: "/usr/local/bin/get_keitaro_stat > {{ keitaro.path }}/var/stats.json"
     minute: 3,18,33,48
