@@ -15,6 +15,3 @@
     state: present
   ignore_errors: true
   with_dict: "{{ kernel_sysctl_tweaks }}"
-
-- name: Set limits
-  include: set_ulimit.yml limit_item=nofile value="{{ ulimit_nofile }}"

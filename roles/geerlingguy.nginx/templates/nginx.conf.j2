@@ -8,7 +8,7 @@ worker_processes  {{ nginx_worker_processes }};
 # number of file descriptors used for nginx
 # the limit for the maximum FDs on the server is usually set by the OS.
 # if you don't set FD's then OS settings will be used which is by default 2000
-worker_rlimit_nofile 20000;
+# worker_rlimit_nofile 20000;
 
 events {
     worker_connections  {{ nginx_worker_connections }};

@@ -207,6 +207,9 @@ RSpec.describe 'install.sh' do
         it_behaves_like 'should exit with error', 'Specified Keitaro Release "10" is not supported'
       end
     end
+
+    describe 'cpu_cores' do
+    end
   end
 
   context 'without actual installing software' do
