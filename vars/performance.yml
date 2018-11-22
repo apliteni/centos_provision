@@ -9,9 +9,16 @@ db_connections: "{{ [(((db_memory_mb|int) / 512) | int), 6] | max }}"
 # min 5% RAM, max 1G
 redis_memory_mb: "{{ ([ansible_memtotal_mb, hp_memory_level_mb] | min) * 0.05 | int }}"
 
-# min 45% RAM, max RAM - 20G
-php_memory_mb: "{{ [ansible_memtotal_mb * 0.45, ansible_memtotal_mb - hp_memory_level_mb * 0.5] | max | int }}"
+# min 45% RAM, max
+php_memory_mb: "{{ ansible_memtotal_mb * 0.95 - (db_memory_mb|int) - (redis_memory_mb|int)| int }}"
 php_thread_size_mb: 35
 php_threads_count: "{{ ((php_memory_mb|float) / php_thread_size_mb) | int }}"
+php_opened_files: "{{ 150 * (php_threads_count|int) | round(-3, 'ceil') }}"
 
-ulimit_nofile: "{{ [(php_threads_count|int)*20, 1024] | max }}"
+nginx_worker_processes: "{{ cpu_cores }}"
+# total nginx opened files count ~= 20 * php_threads_count
+nginx_worker_connections: "{{ 20 * (php_threads_count|int) / cpu_cores | round(-3, 'ceil') }}"
+nginx_opened_files: "{{ 30 * (php_threads_count|int) | round(-3, 'ceil') }}"
+
+
+max_opened_files: "{{ 2 * ((php_opened_files|int) + (nginx_opened_files|int)) }}"

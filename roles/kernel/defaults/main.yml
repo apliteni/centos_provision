@@ -2,3 +2,4 @@
 kernel_sysctl_tweaks:
   net.ipv6.conf.all.disable_ipv6: 1
   net.ipv6.conf.default.disable_ipv6: 1
+  fs.file-max: '{{ max_opened_files }}'

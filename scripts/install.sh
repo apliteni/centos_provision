@@ -1546,6 +1546,7 @@ write_inventory_file(){
   print_line_to_inventory_file "language=${UI_LANG}"
   print_line_to_inventory_file "installer_version=${SCRIPT_VERSION}"
   print_line_to_inventory_file "evaluated_by_installer=yes"
+  print_line_to_inventory_file "cpu_cores=$(get_cpu_cores)"
   if isset "$KEITARO_RELEASE"; then
     print_line_to_inventory_file "kversion=$KEITARO_RELEASE"
   fi
@@ -1554,6 +1555,14 @@ write_inventory_file(){
   fi
 }
 
+
+get_cpu_cores(){
+  cpu_cores=$(grep -c ^processor /proc/cpuinfo 2>/dev/null || echo 1)
+  if [[ "$cpu_cores" == "0" ]]; then
+    cpu_cores=1
+  fi
+  echo "$cpu_cores"
+}
 
 print_line_to_inventory_file(){
   local line="${1}"
