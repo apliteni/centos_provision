@@ -7,17 +7,17 @@ db_memory_1pct_kb: "{{ ((db_memory_mb|int) * 1024 / 100) | int }}"
 db_connections: "{{ [(((db_memory_mb|int) / 512) | int), 6] | max }}"
 
 # min 5% RAM, max 1G
-redis_memory_mb: "{{ (([ansible_memtotal_mb, hp_memory_level_mb] | min) * 0.05) | int }}"
+redis_memory_mb: "{{ (([ansible_memtotal_mb, hp_memory_level_mb] | min) * 0.05) | round(-1, 'ceil') | int }}"
 
 # min 45% RAM, max
 php_memory_mb: "{{ 0.9 * ansible_memtotal_mb - (db_memory_mb|int) - (redis_memory_mb|int) }}"
 php_child_size_mb: 35
-php_children_count: "{{ ((php_memory_mb|float) / php_child_size_mb) | round(-1, 'ceil') }}"
-php_opened_files: "{{ (150 * (php_children_count|int)) | round(-3, 'ceil') }}"
+php_children_count: "{{ ((php_memory_mb|float) / php_child_size_mb) | round(-1, 'ceil') | int }}"
+php_opened_files: "{{ (150 * (php_children_count|int)) | round(-3, 'ceil') | int }}"
 
 nginx_worker_processes: "{{ cpu_cores }}"
 # total nginx opened files count ~= 20 * php_children_count
-nginx_worker_connections: "{{ (20 * (php_children_count|int) / cpu_cores) | round(-3, 'ceil') }}"
-nginx_opened_files: "{{ (30 * (php_children_count|int)) | round(-3, 'ceil') }}"
+nginx_worker_connections: "{{ (20 * (php_children_count|int) / cpu_cores) | round(-3, 'ceil') | int }}"
+nginx_opened_files: "{{ (30 * (php_children_count|int)) | round(-3, 'ceil') | int }}"
 
 max_opened_files: "{{ 2 * ((php_opened_files|int) + (nginx_opened_files|int)) }}"
