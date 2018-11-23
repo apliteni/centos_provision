@@ -12,7 +12,7 @@
     - vars/performance.yml
 
   roles:
-    - {role: 'upgrades.pretasks'}
+    - {role: 'upgrades.pretasks', tags: 'never, upgrade_to_1_0'}
     - {role: 'kernel', tags: 'kernel, upgrade_to_1_0'}
     - {role: 'selinux', tags: 'selinux'}
     - {role: 'resmo.ntp', tags: 'ntp'}

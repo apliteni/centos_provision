@@ -1,0 +1,20 @@
+- debug:
+    var: "{{ item }}"
+  with_items:
+    - ansible_memtotal_mb
+    - db_memory_mb
+    - db_memory_1pct_kb
+    - db_connections
+    - redis_memory_mb
+    - php_memory_mb
+    - php_thread_size_mb
+    - php_threads_count
+    - php_opened_files
+    - nginx_worker_processes
+    - nginx_worker_connections
+    - nginx_opened_files
+    - max_opened_files
+
+
+
+
