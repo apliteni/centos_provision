@@ -1,0 +1,28 @@
+- name: Make status logs dir
+  file:
+    path: /var/log/nginx/status
+    state: directory
+    owner: "{{ nginx_user }}"
+    mode: "0755"
+
+- name: Install executable files
+  copy:
+    src: "{{ item }}"
+    dest: "/usr/local/bin/{{ item }}"
+    mode: "0755"
+  with_items:
+    - get_keitaro_stat
+    - rotate_nginx_status_logs
+
+- name: Add rotating nginx status log files cron job
+  cron:
+    name: "Rotate nginx http status logs"
+    job: /usr/local/bin/rotate_nginx_status_logs
+    minute: 2,17,32,47
+
+- name: Add saving keitaro stats cron job
+  cron:
+    user: "{{os_user}}"
+    name: "save keitaro stats"
+    job: "/usr/local/bin/get_keitaro_stat > {{ keitaro.path }}/var/stats.json"
+    minute: 3,18,33,48

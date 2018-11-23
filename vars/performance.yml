@@ -20,5 +20,4 @@ nginx_worker_processes: "{{ cpu_cores }}"
 nginx_worker_connections: "{{ 20 * (php_threads_count|int) / cpu_cores | round(-3, 'ceil') }}"
 nginx_opened_files: "{{ 30 * (php_threads_count|int) | round(-3, 'ceil') }}"
 
-
 max_opened_files: "{{ 2 * ((php_opened_files|int) + (nginx_opened_files|int)) }}"
