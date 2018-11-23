@@ -32,6 +32,18 @@
     - {from: "/etc/opt/remi/{{php_version}}", to: '/etc/php'}
     - {from: "/var/opt/remi/{{php_version}}/log/php-fpm/", to: '/var/log/php-fpm'}
 
+- name: Make php-fpm service extra configuration dir
+  file:
+    path: "/etc/systemd/system/{{ php_version }}-php-fpm.service.d"
+    state: directory
+
+- name: Set opened files limit
+  template:
+    src: set_limits.conf
+    dest: "/etc/systemd/system/{{ php_version }}-php-fpm.service.d/set_limits.conf"
+  notify:
+    - reconfigure nginx
+
 - name: Increase limits
   lineinfile:
     path: /etc/php/php.ini
