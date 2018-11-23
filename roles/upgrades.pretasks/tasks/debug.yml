@@ -7,8 +7,8 @@
     - db_connections
     - redis_memory_mb
     - php_memory_mb
-    - php_thread_size_mb
-    - php_threads_count
+    - php_child_size_mb
+    - php_children_count
     - php_opened_files
     - nginx_worker_processes
     - nginx_worker_connections
