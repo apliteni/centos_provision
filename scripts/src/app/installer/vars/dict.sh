@@ -20,6 +20,7 @@ END
 )
 DICT['en.errors.wrong_distro']='This installer works only on CentOS 7.x. Please run this program on clean CentOS server'
 DICT['en.errors.cant_install_firewall']='Please run this program in system with firewall support'
+DICT['en.errors.cant_create_keitaro_config_dir']="Can not create Keitaro config directory ${CONFIG_DIR}"
 DICT['en.errors.keitaro_already_installed']='Keitaro is already installed'
 DICT['en.errors.keitaro_dump_invalid']='SQL dump is broken'
 DICT['en.errors.isp_manager_installed']='You can not install Keitaro on the server with ISP Manager installed. Please run this program on a clean CentOS server.'
@@ -71,6 +72,7 @@ DICT['ru.errors.see_logs']=$(cat <<- END
 END
 )
 DICT['ru.errors.wrong_distro']='Установщик Keitaro работает только в CentOS 7.x. Пожалуйста, запустите эту программу в CentOS дистрибутиве'
+DICT['ru.errors.cant_create_keitaro_config_dir']="Невозможно создать директорию для конфигурационных файлов Keitaro ${CONFIG_DIR}"
 DICT['ru.errors.cant_install_firewall']='Пожалуйста, запустите эту программу на системе с поддержкой фаервола'
 DICT['ru.errors.keitaro_dump_invalid']='Указанный файл не является дампом Keitaro или загружен не полностью.'
 DICT['ru.errors.keitaro_already_installed']='Keitaro трекер уже установлен'

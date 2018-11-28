@@ -1,5 +1,0 @@
-#!/usr/bin/env powscript
-
-
-init_log()
-  > ${SCRIPT_LOG}

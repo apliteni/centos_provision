@@ -18,9 +18,11 @@ function vhost_content() {
         location ~* \.(jpg|jpeg|gif|png|js|css|txt|zip|ico|gz|csv)\$ {
           expires 10d;
         }
+
         location ~* \.(htaccess|ini|dat)\$ {
           return 403;
         }
+
         location ~ \.php\$ {
           fastcgi_split_path_info ^(.+\.php)(/.+)\$;
           ${FASTCGI_PASS_LINE}
@@ -30,6 +32,7 @@ function vhost_content() {
           fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
           include fastcgi_params;
         }
+
         location / {
           try_files \$uri \$uri/ /index.php?\$args;
         }

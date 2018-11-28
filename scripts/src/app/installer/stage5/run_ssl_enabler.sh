@@ -7,7 +7,7 @@
 SSL_SUCCESSFUL_DOMAINS=""
 SSL_FAILED_MESSAGE=""
 SSL_RERUN_COMMAND=""
-SSL_OUTPUT_LOG="enable-ssl.output.log"
+SSL_OUTPUT_LOG="${CONFIG_DIR}/enable-ssl.output.log"
 SSL_SCRIPT_URL="https://keitaro.io/enable-ssl.sh"
 
 run_ssl_enabler(){

@@ -80,7 +80,8 @@ RELEASE_VERSION="0.9"
 
 WEBROOT_PATH="/var/www/keitaro"
 
-INVENTORY_FILE="${HOME}/.keitaro"
+CONFIG_DIR=".keitaro"
+INVENTORY_FILE="${CONFIG_DIR}/installer_config"
 SCRIPT_VERSION=1.0
 
 NGINX_ROOT_PATH="/etc/nginx"
@@ -117,7 +118,7 @@ declare -A VARS
 RECONFIGURE_KEITARO_COMMAND_EN="curl -sSL ${KEITARO_URL}/install.sh | bash"
 RECONFIGURE_KEITARO_COMMAND_RU="curl -sSL ${KEITARO_URL}/install.sh | bash -s -- -l ru"
 
-SSL_ENABLER_ERRORS_LOG="${HOME}/.ssl_enabler_errors.log"
+SSL_ENABLER_ERRORS_LOG="${CONFIG_DIR}/ssl_enabler_errors.log"
 
 
 declare -A DICT
@@ -307,7 +308,12 @@ init(){
 
 
 init_log(){
-  > ${SCRIPT_LOG}
+  if mkdir -p ${CONFIG_DIR} &> /dev/null; then
+    > ${SCRIPT_LOG}
+  else
+    echo "Can't create keitaro config dir ${CONFIG_DIR}" >&2
+    exit 1
+  fi
 }
 
 
@@ -618,8 +624,8 @@ remove_current_command(){
 
 ANSIBLE_TASK_HEADER="^TASK \[(.*)\].*"
 ANSIBLE_TASK_FAILURE_HEADER="^fatal: "
-ANSIBLE_FAILURE_JSON_FILEPATH="ansible_failure.json"
-ANSIBLE_LAST_TASK_LOG="ansible_last_task.log"
+ANSIBLE_FAILURE_JSON_FILEPATH="${CONFIG_DIR}/ansible_failure.json"
+ANSIBLE_LAST_TASK_LOG="${CONFIG_DIR}/ansible_last_task.log"
 
 
 run_ansible_playbook(){

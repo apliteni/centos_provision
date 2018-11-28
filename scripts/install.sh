@@ -80,7 +80,8 @@ RELEASE_VERSION="0.9"
 
 WEBROOT_PATH="/var/www/keitaro"
 
-INVENTORY_FILE="${HOME}/.keitaro"
+CONFIG_DIR=".keitaro"
+INVENTORY_FILE="${CONFIG_DIR}/installer_config"
 SCRIPT_VERSION=1.0
 
 NGINX_ROOT_PATH="/etc/nginx"
@@ -117,7 +118,7 @@ declare -A VARS
 RECONFIGURE_KEITARO_COMMAND_EN="curl -sSL ${KEITARO_URL}/install.sh | bash"
 RECONFIGURE_KEITARO_COMMAND_RU="curl -sSL ${KEITARO_URL}/install.sh | bash -s -- -l ru"
 
-SSL_ENABLER_ERRORS_LOG="${HOME}/.ssl_enabler_errors.log"
+SSL_ENABLER_ERRORS_LOG="${CONFIG_DIR}/ssl_enabler_errors.log"
 
 
 declare -A DICT
@@ -515,7 +516,12 @@ init(){
 
 
 init_log(){
-  > ${SCRIPT_LOG}
+  if mkdir -p ${CONFIG_DIR} &> /dev/null; then
+    > ${SCRIPT_LOG}
+  else
+    echo "Can't create keitaro config dir ${CONFIG_DIR}" >&2
+    exit 1
+  fi
 }
 
 
@@ -1001,6 +1007,7 @@ END
 )
 DICT['en.errors.wrong_distro']='This installer works only on CentOS 7.x. Please run this program on clean CentOS server'
 DICT['en.errors.cant_install_firewall']='Please run this program in system with firewall support'
+DICT['en.errors.cant_create_keitaro_config_dir']="Can not create Keitaro config directory ${CONFIG_DIR}"
 DICT['en.errors.keitaro_already_installed']='Keitaro is already installed'
 DICT['en.errors.keitaro_dump_invalid']='SQL dump is broken'
 DICT['en.errors.isp_manager_installed']='You can not install Keitaro on the server with ISP Manager installed. Please run this program on a clean CentOS server.'
@@ -1052,6 +1059,7 @@ DICT['ru.errors.see_logs']=$(cat <<- END
 END
 )
 DICT['ru.errors.wrong_distro']='Установщик Keitaro работает только в CentOS 7.x. Пожалуйста, запустите эту программу в CentOS дистрибутиве'
+DICT['ru.errors.cant_create_keitaro_config_dir']="Невозможно создать директорию для конфигурационных файлов Keitaro ${CONFIG_DIR}"
 DICT['ru.errors.cant_install_firewall']='Пожалуйста, запустите эту программу на системе с поддержкой фаервола'
 DICT['ru.errors.keitaro_dump_invalid']='Указанный файл не является дампом Keitaro или загружен не полностью.'
 DICT['ru.errors.keitaro_already_installed']='Keitaro трекер уже установлен'
@@ -1637,8 +1645,8 @@ remove_log_files(){
 
 ANSIBLE_TASK_HEADER="^TASK \[(.*)\].*"
 ANSIBLE_TASK_FAILURE_HEADER="^fatal: "
-ANSIBLE_FAILURE_JSON_FILEPATH="ansible_failure.json"
-ANSIBLE_LAST_TASK_LOG="ansible_last_task.log"
+ANSIBLE_FAILURE_JSON_FILEPATH="${CONFIG_DIR}/ansible_failure.json"
+ANSIBLE_LAST_TASK_LOG="${CONFIG_DIR}/ansible_last_task.log"
 
 
 run_ansible_playbook(){
@@ -1794,7 +1802,7 @@ get_printable_fields(){
 SSL_SUCCESSFUL_DOMAINS=""
 SSL_FAILED_MESSAGE=""
 SSL_RERUN_COMMAND=""
-SSL_OUTPUT_LOG="enable-ssl.output.log"
+SSL_OUTPUT_LOG="${CONFIG_DIR}/enable-ssl.output.log"
 SSL_SCRIPT_URL="https://keitaro.io/enable-ssl.sh"
 
 run_ssl_enabler(){
