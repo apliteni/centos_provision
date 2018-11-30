@@ -1608,8 +1608,8 @@ install_packages(){
 
 
 
-stage5(){
-  debug "Starting stage 5: run ansible playbook"
+stage6(){
+  debug "Starting stage 6: run ansible playbook"
   download_provision
   run_ansible_playbook
   run_ssl_enabler
@@ -2070,7 +2070,7 @@ install(){
   else
     write_inventory_on_reconfiguration
   fi
-  stage5                    # run ansible playbook
+  stage6                    # run ansible playbook
 }
 
 
