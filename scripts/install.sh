@@ -1580,8 +1580,8 @@ print_line_to_inventory_file(){
 
 
 
-stage4(){
-  debug "Starting stage 4: upgrade current and install necessary packages"
+stage5(){
+  debug "Starting stage 5: upgrade current and install necessary packages"
   upgrade_packages
   install_packages
 }
@@ -2066,7 +2066,7 @@ install(){
   if [[ ! "$RECONFIGURE" ]]; then
     assert_keitaro_not_installed
     stage3                  # generate inventory file
-    stage4                  # upgrade packages and install ansible
+    stage5                  # upgrade packages and install ansible
   else
     write_inventory_on_reconfiguration
   fi
