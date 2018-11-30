@@ -1,27 +1,23 @@
-#!/usr/bin/env bash
+#!/usr/bin/env powscript
 
-stage4(){
-  debug "Starting stage 4: upgrade current and install necessary packages"
+
+stage5()
+  debug "Starting stage 5: upgrade current and install necessary packages"
   upgrade_packages
   install_packages
-}
 
 
-upgrade_packages(){
+upgrade_packages()
   debug "Installing deltarpm"
   install_package deltarpm
   debug "Upgrading packages"
   run_command "yum update -y"
-}
 
 
-install_packages(){
-  if ! is_installed tar; then
+install_packages()
+  if ! is_installed tar
     install_package tar
-  fi
-  if ! is_installed ansible; then
+  if ! is_installed ansible
     install_package epel-release
     install_package ansible
     install_package libselinux-python
-  fi
-}

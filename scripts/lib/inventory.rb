@@ -6,7 +6,7 @@ class Inventory
   LINES_DIVIDER = "\n"
   VALUES_DIVIDER = '='
   LOG_PRE_INVENTORY_LINE = 'Write inventory file'
-  LOG_POST_INVENTORY_LINE = 'Starting stage 4:'
+  LOG_POST_INVENTORY_LINE = 'Starting stage 5:'
 
   def initialize(values: {})
     self.values = values

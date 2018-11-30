@@ -69,7 +69,7 @@ _require 'app/installer/stage3/get_user_vars.sh'
 _require 'app/installer/stage3/read_inventory_file.sh'
 _require 'app/installer/stage3/setup_vars.sh'
 _require 'app/installer/stage3/write_inventory_file.sh'
-_require 'app/installer/stage4.sh'
+_require 'app/installer/stage5.sh'
 _require 'app/installer/stage6.sh'
 _require 'app/installer/stage6/download_provision.sh'
 _require 'app/installer/stage6/remove_log_files.sh'
@@ -89,7 +89,7 @@ install()
   if ! $RECONFIGURE
     assert_keitaro_not_installed
     stage3                  # generate inventory file
-    stage4                  # upgrade packages and install ansible
+    stage5                  # upgrade packages and install ansible
   else
     write_inventory_on_reconfiguration
   stage6                    # run ansible playbook
