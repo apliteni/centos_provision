@@ -38,7 +38,7 @@ class Script
   private
 
   def invoke_script_cmd(current_dir)
-    # puts make_cmd(current_dir).sub(/ -i --rm /, ' -i -t --rm ')
+    # puts make_cmd(current_dir)
     # byebug
     Open3.popen3(*make_cmd(current_dir)) do |stdin, stdout, stderr, wait_thr|
       stdout.sync = true

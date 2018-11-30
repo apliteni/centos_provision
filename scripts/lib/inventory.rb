@@ -2,8 +2,7 @@ class Inventory
   attr_reader :values
 
   SERVER_CONFIGURATION_VERSION=1.0
-  INVENTORY_FILE = "#{ENV['HOME']}/.keitaro"
-  DOCKER_INVENTORY = "/root/.keitaro"
+  INVENTORY_FILE = ".keitaro/installer_config"
   LINES_DIVIDER = "\n"
   VALUES_DIVIDER = '='
   LOG_PRE_INVENTORY_LINE = 'Write inventory file'
@@ -29,7 +28,6 @@ class Inventory
 
   def self.write(values)
     strings = values
-                .map { |key, value| [key, value] }
                 .map { |array| array.join(VALUES_DIVIDER) }
                 .push('')
     IO.write(INVENTORY_FILE, strings.join(LINES_DIVIDER))

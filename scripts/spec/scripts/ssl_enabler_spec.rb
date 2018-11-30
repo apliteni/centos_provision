@@ -35,12 +35,6 @@ RSpec.describe 'enable-ssl.sh' do
     ]
   end
 
-  let(:make_keitaro_inventory) do
-    [
-      %Q{echo -e "installer_version=#{Inventory::SERVER_CONFIGURATION_VERSION}"> /root/.keitaro}
-    ]
-  end
-
   let(:prompts) do
     {
       en: {
@@ -95,7 +89,7 @@ RSpec.describe 'enable-ssl.sh' do
   context 'without actual running commands' do
     include_context 'run in docker'
 
-    let(:commands) { make_keitaro_inventory }
+    let(:commands) { [] }
 
     let(:options) { '-p' }
 
@@ -107,7 +101,7 @@ RSpec.describe 'enable-ssl.sh' do
 
       let(:command_stubs) { all_command_stubs }
 
-      let(:commands) { make_proper_nginx_conf + make_keitaro_inventory }
+      let(:commands) { make_proper_nginx_conf }
 
       it_behaves_like 'should print to', :log, [
         "Try to found nginx\nFOUND",
@@ -160,7 +154,7 @@ RSpec.describe 'enable-ssl.sh' do
 
       let(:nginx_conf) { "listen 80;" }
 
-      let(:commands) { make_proper_nginx_conf + make_keitaro_inventory }
+      let(:commands) { make_proper_nginx_conf }
 
       it_behaves_like 'should print to', :log, [
         "Try to found certbot\nFOUND",
@@ -176,10 +170,10 @@ RSpec.describe 'enable-ssl.sh' do
     include_context 'run in docker'
 
     let(:command_stubs) { all_command_stubs }
-    let(:commands) { make_proper_nginx_conf + make_keitaro_inventory }
+    let(:commands) { make_proper_nginx_conf }
 
     context 'successful running certbot' do
-      let(:commands) { make_proper_nginx_conf + emulate_crontab + make_keitaro_inventory }
+      let(:commands) { make_proper_nginx_conf + emulate_crontab }
 
       it_behaves_like 'should print to', :stdout, /Everything is done!/
     end
@@ -212,12 +206,12 @@ RSpec.describe 'enable-ssl.sh' do
   describe 'adding cron task' do
     let(:docker_image) { 'centos' }
     let(:command_stubs) { all_command_stubs }
-    let(:commands) { make_proper_nginx_conf + make_keitaro_inventory }
+    let(:commands) { make_proper_nginx_conf }
 
     it_behaves_like 'should print to', :log, /Schedule renewal job/
 
     context 'relevant cron job already scheduled' do
-      let(:commands) { make_proper_nginx_conf + emulate_crontab + make_keitaro_inventory }
+      let(:commands) { make_proper_nginx_conf + emulate_crontab }
 
       it_behaves_like 'should print to', :log, /Renewal cron job already scheduled/
     end
@@ -245,7 +239,7 @@ RSpec.describe 'enable-ssl.sh' do
   describe 'generates nginx config' do
     let(:command_stubs) { all_command_stubs }
     let(:docker_image) { 'centos' }
-    let(:commands) { make_proper_nginx_conf + emulate_crontab + make_keitaro_inventory }
+    let(:commands) { make_proper_nginx_conf + emulate_crontab }
     let(:save_files) { %w[/etc/nginx/conf.d/domain1.tld.conf] }
 
     it 'domain1.tld.conf file should be properly configured' do
@@ -272,7 +266,7 @@ RSpec.describe 'enable-ssl.sh' do
         'ln -s /etc/letsencrypt/live/d1.com/privkey.pem /etc/nginx/ssl/privkey.pem',
         %q(echo "echo \\"    DNS:d1.com, DNS:d2.com\\"" > /bin/openssl),
         'chmod a+x /bin/openssl',
-      ] + make_proper_nginx_conf + emulate_crontab + extra_commands + make_keitaro_inventory
+      ] + make_proper_nginx_conf + emulate_crontab + extra_commands
     end
 
     it_behaves_like 'should print to', :log, ['Requesting certificate for domain d1.com',

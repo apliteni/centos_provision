@@ -64,8 +64,6 @@ RSpec.describe 'install.sh' do
     }
   end
 
-  before { Inventory.write(stored_values) }
-
   it_behaves_like 'should try to detect bash pipe mode'
 
   it_behaves_like 'should print usage when invoked with', args: '-s -x'
@@ -78,14 +76,14 @@ RSpec.describe 'install.sh' do
 
   shared_examples_for 'inventory contains value' do |field, value|
     it "inventory file contains field #{field.inspect} with value #{value.inspect}" do
-      run_script
+      run_script(inventory_values: stored_values)
       expect(@inventory.values[field]).to match(value)
     end
   end
 
   shared_examples_for 'inventory does not contain field' do |field|
     it "inventory file does not contain field #{field.inspect}" do
-      run_script
+      run_script(inventory_values: stored_values)
       expect(@inventory.values).not_to have_key(field)
     end
   end
@@ -192,13 +190,13 @@ RSpec.describe 'install.sh' do
     describe 'kversion field' do
       context '-k option missed' do
         let(:options) { '-s -p' }
-        before { run_script }
+        before { run_script(inventory_values: stored_values) }
         it { expect(@inventory.values).not_to have_key(:kversion) }
       end
 
       context '-k specified' do
         let(:options) { '-s -p -k 9' }
-        before { run_script }
+        before { run_script(inventory_values: stored_values) }
         it { expect(@inventory.values[:kversion]).to eq('9') }
       end
 
@@ -223,20 +221,20 @@ RSpec.describe 'install.sh' do
                       'curl -sSL https://github.com/apliteni/centos_provision/archive/release-0.9.tar.gz | tar xz'
 
       it_behaves_like 'should print to', :stdout,
-                      "ansible-playbook -vvv -i #{Inventory::DOCKER_INVENTORY} centos_provision-release-0.9/playbook.yml"
+                      "ansible-playbook -vvv -i #{Inventory::INVENTORY_FILE} centos_provision-release-0.9/playbook.yml"
 
       context '-t specified' do
         let(:options) { '-p -t tag1,tag2' }
 
         it_behaves_like 'should print to', :stdout,
-                        "ansible-playbook -vvv -i #{Inventory::DOCKER_INVENTORY} centos_provision-release-0.9/playbook.yml --tags tag1,tag2"
+                        "ansible-playbook -vvv -i #{Inventory::INVENTORY_FILE} centos_provision-release-0.9/playbook.yml --tags tag1,tag2"
       end
 
       context '-i specified' do
         let(:options) { '-p -i tag1,tag2' }
 
         it_behaves_like 'should print to', :stdout,
-                        "ansible-playbook -vvv -i #{Inventory::DOCKER_INVENTORY} centos_provision-release-0.9/playbook.yml --skip-tags tag1,tag2"
+                        "ansible-playbook -vvv -i #{Inventory::INVENTORY_FILE} centos_provision-release-0.9/playbook.yml --skip-tags tag1,tag2"
       end
     end
 
@@ -292,7 +290,7 @@ RSpec.describe 'install.sh' do
       it_behaves_like 'should exit with error', [
         %r{There was an error evaluating current command\n(.*\n){3}.* ansible-playbook},
         'Installation log saved to install.log',
-        'Configuration settings saved to /root/.keitaro',
+        'Configuration settings saved to .keitaro/installer_config',
         'You can rerun `install.sh`'
       ]
     end
