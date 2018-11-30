@@ -21,7 +21,7 @@ cpu() {
   model_name="\"$(awk -F': ' '/^model name/ {print $2}' /proc/cpuinfo)\""
   frequency_mhz="$(awk -F': ' '/^cpu MHz/ {print $2}' /proc/cpuinfo)"
   cpu_cores="$(grep -w ^processor /proc/cpuinfo  | wc -l)"
-  echo "{model_name: ${model_name}, cpu_cores: ${cpu_cores}, frequency_mhz: ${frequency_mhz}}"
+  echo "{\"model_name\": ${model_name}, \"cpu_cores\": ${cpu_cores}, \"frequency_mhz\": ${frequency_mhz}}"
 }
 
 info() {
@@ -29,9 +29,9 @@ info() {
   load_1m="$(awk '{print $1}' /proc/loadavg)"
   load_5m="$(awk '{print $2}' /proc/loadavg)"
   load_15m="$(awk '{print $3}' /proc/loadavg)"
-  load="{load: {\"1m\": ${load_1m}, \"5m\": ${load_5m}, \"15m\": ${load_15m}}}"
+  load="{\"1m\": ${load_1m}, \"5m\": ${load_5m}, \"15m\": ${load_15m}}"
   timestamp="\"$(date --utc --iso-8601=seconds | sed 's/\+.*/Z/')\""
-  echo "{uptime: ${uptime}, load: ${load}, timestamp: ${timestamp}}"
+  echo "{\"uptime\": ${uptime}, \"load\": ${load}, \"timestamp\": ${timestamp}}"
 }
 
-echo "{responses: $(responses), cpu: $(cpu), info: $(info)}"
+echo "{\"responses\": $(responses), \"cpu\": $(cpu), \"info\": $(info)}"
