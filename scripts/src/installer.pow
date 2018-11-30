@@ -70,13 +70,13 @@ _require 'app/installer/stage3/read_inventory_file.sh'
 _require 'app/installer/stage3/setup_vars.sh'
 _require 'app/installer/stage3/write_inventory_file.sh'
 _require 'app/installer/stage4.sh'
-_require 'app/installer/stage5.sh'
-_require 'app/installer/stage5/download_provision.sh'
-_require 'app/installer/stage5/remove_log_files.sh'
-_require 'app/installer/stage5/run_ansible_playbook.sh'
-_require 'app/installer/stage5/run_ssl_enabler.sh'
-_require 'app/installer/stage5/show_successful_message.sh'
-_require 'app/installer/stage5/json2dict.sh'
+_require 'app/installer/stage6.sh'
+_require 'app/installer/stage6/download_provision.sh'
+_require 'app/installer/stage6/remove_log_files.sh'
+_require 'app/installer/stage6/run_ansible_playbook.sh'
+_require 'app/installer/stage6/run_ssl_enabler.sh'
+_require 'app/installer/stage6/show_successful_message.sh'
+_require 'app/installer/stage6/json2dict.sh'
 
 # We wrap the entire script in a big function which we only call at the very end, in order to
 # protect against the possibility of the connection dying mid-script. This protects us against
@@ -92,7 +92,7 @@ install()
     stage4                  # upgrade packages and install ansible
   else
     write_inventory_on_reconfiguration
-  stage5                    # run ansible playbook
+  stage6                    # run ansible playbook
 
 
 install $@
