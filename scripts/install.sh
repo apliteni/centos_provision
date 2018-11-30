@@ -1378,11 +1378,66 @@ databases_exist(){
 }
 
 
+#
+
+
+
+
 
 stage3(){
-  debug "Starting stage 3: generate inventory file"
+  debug "Starting stage 3: read values from inventory file"
   setup_vars
   read_inventory_file
+}
+
+
+
+read_inventory_file(){
+  if [ -f "$INVENTORY_FILE" ]; then
+    debug "Inventory file found, read defaults from it"
+    while IFS="" read -r line; do
+      parse_line_from_inventory_file "$line"
+    done <   $INVENTORY_FILE
+  else
+    debug "Inventory file not found"
+  fi
+}
+
+
+parse_line_from_inventory_file(){
+  local line="${1}"
+  if [[ "$line" =~ = ]]; then
+    IFS="=" read var_name value <<< "$line"
+    VARS[$var_name]=$value
+    debug "  "$var_name"=${VARS[$var_name]}" 'light.blue'
+  fi
+}
+
+
+
+setup_vars(){
+  VARS['skip_firewall']='no'
+  VARS['ssl']='no'
+  VARS['db_root_password']=$(generate_password)
+  VARS['db_name']='keitaro'
+  VARS['db_user']='keitaro'
+  VARS['db_password']=$(generate_password)
+  VARS['db_restore']='no'
+  VARS['db_restore_path_want_exit']='no'
+  VARS['admin_login']='admin'
+  VARS['admin_password']=$(generate_password)
+}
+
+
+generate_password(){
+  local PASSWORD_LENGTH=16
+  LC_ALL=C tr -cd '[:alnum:]' < /dev/urandom | head -c${PASSWORD_LENGTH}
+}
+
+
+
+stage4(){
+  debug "Starting stage 4: generate inventory file"
   get_user_vars
   write_inventory_file
 }
@@ -1411,6 +1466,9 @@ get_user_vars(){
     get_user_var 'db_restore_salt' 'validate_presence validate_alnumdashdot'
   fi
   common_validators="validate_presence validate_alnumdashdot validate_not_reserved_word"
+  get_user_var 'db_name' "${common_validators} validate_starts_with_latin_letter"
+  get_user_var 'db_user' "${common_validators} validate_starts_with_latin_letter validate_not_root"
+  get_user_var 'db_password' "${common_validators}"
   if is_no "${VARS['db_restore']}"; then
     get_user_var 'admin_login' "${common_validators} validate_starts_with_latin_letter"
     get_user_var 'admin_password' "${common_validators}"
@@ -1479,50 +1537,6 @@ can_install_firewall(){
 }
 
 
-
-read_inventory_file(){
-  if [ -f "$INVENTORY_FILE" ]; then
-    debug "Inventory file found, read defaults from it"
-    while IFS="" read -r line; do
-      parse_line_from_inventory_file "$line"
-    done <   $INVENTORY_FILE
-  else
-    debug "Inventory file not found"
-  fi
-}
-
-
-parse_line_from_inventory_file(){
-  local line="${1}"
-  if [[ "$line" =~ = ]]; then
-    IFS="=" read var_name value <<< "$line"
-    VARS[$var_name]=$value
-    debug "  "$var_name"=${VARS[$var_name]}" 'light.blue'
-  fi
-}
-
-
-
-setup_vars(){
-  VARS['skip_firewall']='no'
-  VARS['ssl']='no'
-  VARS['db_root_password']=$(generate_password)
-  VARS['db_name']='keitaro'
-  VARS['db_user']='keitaro'
-  VARS['db_password']=$(generate_password)
-  VARS['db_restore']='no'
-  VARS['db_restore_path_want_exit']='no'
-  VARS['admin_login']='admin'
-  VARS['admin_password']=$(generate_password)
-}
-
-
-generate_password(){
-  local PASSWORD_LENGTH=16
-  LC_ALL=C tr -cd '[:alnum:]' < /dev/urandom | head -c${PASSWORD_LENGTH}
-}
-
-
 #
 
 
@@ -1542,7 +1556,6 @@ write_inventory_file(){
   print_line_to_inventory_file "ssl_email="${VARS['ssl_email']}""
   print_line_to_inventory_file "license_ip="${VARS['license_ip']}""
   print_line_to_inventory_file "license_key="${VARS['license_key']}""
-  print_line_to_inventory_file "db_root_password="${VARS['db_root_password']}""
   print_line_to_inventory_file "db_name="${VARS['db_name']}""
   print_line_to_inventory_file "db_user="${VARS['db_user']}""
   print_line_to_inventory_file "db_password="${VARS['db_password']}""
@@ -1577,7 +1590,6 @@ print_line_to_inventory_file(){
   debug "  "$line"" 'light.blue'
   echo "$line" >> "$INVENTORY_FILE"
 }
-
 
 
 stage5(){
@@ -2063,9 +2075,10 @@ install(){
   init "$@"
   stage1 "$@"                 # initial script setup
   stage2                    # make some asserts
+  stage3                    # read previously saved vars from the inventory file
   if [[ ! "$RECONFIGURE" ]]; then
     assert_keitaro_not_installed
-    stage3                  # generate inventory file
+    stage4                  # get and save vars to the inventory file
     stage5                  # upgrade packages and install ansible
   else
     write_inventory_on_reconfiguration

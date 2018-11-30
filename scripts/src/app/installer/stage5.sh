@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-
 stage5(){
   debug "Starting stage 5: upgrade current and install necessary packages"
   upgrade_packages

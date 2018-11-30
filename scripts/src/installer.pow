@@ -65,10 +65,11 @@ _require 'app/installer/stage2/assert_apache_not_installed.sh'
 _require 'app/installer/stage2/assert_centos_distro.sh'
 _require 'app/installer/stage2/assert_pannels_not_installed.sh'
 _require 'app/installer/stage3.sh'
-_require 'app/installer/stage3/get_user_vars.sh'
 _require 'app/installer/stage3/read_inventory_file.sh'
 _require 'app/installer/stage3/setup_vars.sh'
-_require 'app/installer/stage3/write_inventory_file.sh'
+_require 'app/installer/stage4.sh'
+_require 'app/installer/stage4/get_user_vars.sh'
+_require 'app/installer/stage4/write_inventory_file.sh'
 _require 'app/installer/stage5.sh'
 _require 'app/installer/stage6.sh'
 _require 'app/installer/stage6/download_provision.sh'
@@ -86,9 +87,10 @@ install()
   init $@
   stage1 $@                 # initial script setup
   stage2                    # make some asserts
+  stage3                    # read previously saved vars from the inventory file
   if ! $RECONFIGURE
     assert_keitaro_not_installed
-    stage3                  # generate inventory file
+    stage4                  # get and save vars to the inventory file
     stage5                  # upgrade packages and install ansible
   else
     write_inventory_on_reconfiguration
