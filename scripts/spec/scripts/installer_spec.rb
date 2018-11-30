@@ -132,7 +132,7 @@ RSpec.describe 'install.sh' do
       context 'field stored in inventory' do
         let(:stored_values) { {field => value} }
 
-        it_behaves_like 'should show default value', field, showed_value: value
+        it_behaves_like 'should show default value', field, showed_value: value, inventory_values: {field => value}
 
         it_behaves_like 'should store default value', field, readed_inventory_value: value
 
