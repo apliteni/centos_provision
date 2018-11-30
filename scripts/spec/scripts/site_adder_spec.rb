@@ -23,12 +23,6 @@ RSpec.describe 'add-site.sh' do
 
   let(:make_keitaro_root_dir) { ['mkdir -p /var/www/keitaro'] }
 
-  let(:make_keitaro_inventory) do
-    [
-      %Q{echo -e "installer_version=#{Inventory::SERVER_CONFIGURATION_VERSION}"> /root/.keitaro}
-    ]
-  end
-
   let(:make_site_root_dir) { ['mkdir -p /var/www/example.com'] }
 
   let(:prompts) do
@@ -68,7 +62,7 @@ RSpec.describe 'add-site.sh' do
     context 'nginx is installed, keitaro is installed, nginx is configured properly' do
       let(:command_stubs) { all_command_stubs }
 
-      let(:commands) { make_proper_nginx_conf + make_keitaro_root_dir + make_site_root_dir + make_keitaro_inventory }
+      let(:commands) { make_proper_nginx_conf + make_keitaro_root_dir + make_site_root_dir }
 
       it_behaves_like 'should print to', :log, [
         "Try to found nginx\nFOUND",
@@ -88,7 +82,7 @@ RSpec.describe 'add-site.sh' do
     context 'keitaro is not installed' do
       let(:command_stubs) { all_command_stubs }
 
-      let(:commands) { make_proper_nginx_conf + make_site_root_dir + make_keitaro_inventory }
+      let(:commands) { make_proper_nginx_conf + make_site_root_dir }
 
       it_behaves_like 'should print to', :log, "Checking /var/www/keitaro directory existence\nNO"
 
@@ -98,7 +92,7 @@ RSpec.describe 'add-site.sh' do
     context 'site is not installed' do
       let(:command_stubs) { all_command_stubs }
 
-      let(:commands) { make_proper_nginx_conf + make_keitaro_root_dir + make_keitaro_inventory }
+      let(:commands) { make_proper_nginx_conf + make_keitaro_root_dir }
 
       it_behaves_like 'should print to', :log, "Checking /var/www/example.com directory existence\nNO"
 
@@ -110,7 +104,7 @@ RSpec.describe 'add-site.sh' do
 
       let(:nginx_conf) { "listen 80;" }
 
-      let(:commands) { make_proper_nginx_conf + make_keitaro_root_dir + make_site_root_dir + make_keitaro_inventory }
+      let(:commands) { make_proper_nginx_conf + make_keitaro_root_dir + make_site_root_dir }
 
       it_behaves_like 'should print to', :log, "Checking keitaro params in /etc/nginx/conf.d/keitaro.conf\nERROR"
 
@@ -120,7 +114,7 @@ RSpec.describe 'add-site.sh' do
     context 'keitaro.conf is absent' do
       let(:command_stubs) { all_command_stubs }
 
-      let(:commands) { make_keitaro_root_dir + make_site_root_dir + make_keitaro_inventory }
+      let(:commands) { make_keitaro_root_dir + make_site_root_dir }
 
       it_behaves_like 'should print to', :log, "Checking /etc/nginx/conf.d/keitaro.conf file existence\nNO"
 
@@ -132,7 +126,7 @@ RSpec.describe 'add-site.sh' do
     include_context 'run in docker'
 
     let(:command_stubs) { all_command_stubs }
-    let(:commands) { make_proper_nginx_conf + make_keitaro_root_dir + make_site_root_dir + make_keitaro_inventory }
+    let(:commands) { make_proper_nginx_conf + make_keitaro_root_dir + make_site_root_dir }
     let(:save_files) { '/etc/nginx/conf.d/example.com.conf' }
 
     it 'should create example.com.conf' do
@@ -164,8 +158,7 @@ RSpec.describe 'add-site.sh' do
     context '/etc/nginx/conf.d/example.com.conf already exists' do
       let(:make_example_com_vhost) { ['touch /etc/nginx/conf.d/example.com.conf'] }
       let(:commands) do
-        make_proper_nginx_conf + make_keitaro_root_dir + make_site_root_dir + make_example_com_vhost +
-          make_keitaro_inventory
+        make_proper_nginx_conf + make_keitaro_root_dir + make_site_root_dir + make_example_com_vhost
       end
 
       it_behaves_like 'should exit with error',
@@ -177,7 +170,8 @@ RSpec.describe 'add-site.sh' do
     include_context 'run in docker'
 
     let(:command_stubs) { all_command_stubs }
-    let(:commands) { make_proper_nginx_conf + make_keitaro_root_dir + make_site_root_dir }
+    let(:remove_inventory) { ['rm -rf .keitaro'] }
+    let(:commands) { make_proper_nginx_conf + make_keitaro_root_dir + make_site_root_dir + remove_inventory }
 
     it_behaves_like 'should exit with error',
                     'You are using obsolete Keitaro configuration'
@@ -187,7 +181,7 @@ RSpec.describe 'add-site.sh' do
     include_context 'run in docker'
 
     let(:command_stubs) { all_command_stubs }
-    let(:commands) { make_proper_nginx_conf + make_keitaro_root_dir + make_site_root_dir + make_keitaro_inventory }
+    let(:commands) { make_proper_nginx_conf + make_keitaro_root_dir + make_site_root_dir }
 
     it_behaves_like 'should print to', :stdout, /Everything is done!/
   end

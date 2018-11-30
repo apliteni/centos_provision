@@ -117,7 +117,7 @@ RSpec.describe 'test-run-command.sh' do
 
       it_behaves_like 'should print to', :stderr, [
         "Task info:\n  TASK [Unknown]",
-        %Q(Content of 'ansible_failure.json':\n  {\n      "changed": true,\n)
+        %Q(Content of '.keitaro/ansible_failure.json':\n  {\n      "changed": true,\n)
       ]
     end
   end
