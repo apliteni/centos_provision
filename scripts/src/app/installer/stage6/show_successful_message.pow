@@ -3,25 +3,3 @@
 
 show_successful_message()
   print_with_color "$(translate 'messages.successful')" 'green'
-  if isset $ANSIBLE_TAGS
-    debug 'ansible tags is set to ${ANSIBLE_TAGS} - skip printing credentials'
-    return
-  if [[ "${VARS['ssl_certificate']}" == 'letsencrypt' ]] && isset "${SSL_SUCCESSFUL_DOMAINS}"
-    protocol='https'
-    domain=$(expr match "${SSL_SUCCESSFUL_DOMAINS}" '\([^ ]*\)')
-  else
-    protocol='http'
-    domain="${VARS['license_ip']}"
-  print_with_color "${protocol}://${domain}/admin" 'light.green'
-  if is_yes "${VARS['db_restore']}"
-    echo "$(translate 'messages.successful.use_old_credentials')"
-  else
-    colored_login=$(print_with_color "${VARS['admin_login']}" 'light.green')
-    colored_password=$(print_with_color "${VARS['admin_password']}" 'light.green')
-    echo -e "login: ${colored_login}"
-    echo -e "password: ${colored_password}"
-  if isset $SSL_FAILED_MESSAGE
-    print_with_color "${SSL_FAILED_MESSAGE}" 'yellow'
-    print_with_color "$(cat $SSL_ENABLER_ERRORS_LOG)" 'yellow'
-    print_with_color "$(translate messages.successful.rerun_ssl_enabler)" 'yellow'
-    print_with_color "${SSL_RERUN_COMMAND}" 'yellow'

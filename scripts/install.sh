@@ -206,7 +206,10 @@ assert_keitaro_not_installed(){
   fi
   if is_exists_file ${WEBROOT_PATH}/var/install.lock no; then
     debug 'NOK: keitaro is already installed'
-    fail "$(translate errors.keitaro_already_installed)"
+    print_err "$(translate messages.keitaro_already_installed)" 'yellow'
+    show_credentials
+    clean_up
+    exit ${KEITARO_ALREADY_INSTALLED_RESULT}
   else
     debug 'OK: keitaro is not installed yet'
   fi
@@ -984,6 +987,7 @@ validate_yes_no(){
 
 RELEASE_BRANCH=${RELEASE_BRANCH:-release-${RELEASE_VERSION}}
 PROVISION_DIRECTORY="centos_provision-${RELEASE_BRANCH}"
+KEITARO_ALREADY_INSTALLED_RESULT=2
 
 
 #
@@ -995,6 +999,7 @@ PROVISION_DIRECTORY="centos_provision-${RELEASE_BRANCH}"
 SSL_ENABLER_COMMAND_EN="curl -sSL ${KEITARO_URL}/enable-ssl.sh | bash -s -- domain1.tld [domain2.tld...]"
 SSL_ENABLER_COMMAND_RU="curl -sSL ${KEITARO_URL}/enable-ssl.sh | bash -s -- -l ru domain1.tld [domain2.tld...]"
 
+DICT['en.messages.keitaro_already_installed']='Keitaro is already installed'
 DICT['en.messages.check_ability_firewall_installing']="Checking the ability of installing a firewall"
 DICT['en.messages.check_keitaro_dump_validity']="Checking SQL dump"
 DICT['en.messages.enabling_ssl']="Enabling SSL"
@@ -1008,7 +1013,6 @@ END
 DICT['en.errors.wrong_distro']='This installer works only on CentOS 7.x. Please run this program on clean CentOS server'
 DICT['en.errors.cant_install_firewall']='Please run this program in system with firewall support'
 DICT['en.errors.cant_create_keitaro_config_dir']="Can not create Keitaro config directory ${CONFIG_DIR}"
-DICT['en.errors.keitaro_already_installed']='Keitaro is already installed'
 DICT['en.errors.keitaro_dump_invalid']='SQL dump is broken'
 DICT['en.errors.isp_manager_installed']='You can not install Keitaro on the server with ISP Manager installed. Please run this program on a clean CentOS server.'
 DICT['en.errors.vesta_cp_installed']='You can not install Keitaro on the server with Vesta CP installed. Please run this program on a clean CentOS server.'
@@ -1048,6 +1052,7 @@ DICT['en.prompt_errors.validate_keitaro_dump']='The SQL dump is broken, please s
 DICT['en.prompt_errors.validate_not_root']='You are not allowed to use root as database user'
 DICT['en.prompt_errors.validate_not_reserved_word']='You are not allowed to use yes/no/true/false for this field'
 
+DICT['ru.messages.keitaro_already_installed']='Keitaro трекер уже установлен.'
 DICT['ru.messages.check_ability_firewall_installing']="Проверяем возможность установки фаервола"
 DICT['ru.messages.check_keitaro_dump_validity']="Проверяем SQL дамп"
 DICT['ru.messages.enabling_ssl']="Подключаем SSL"
@@ -1062,7 +1067,6 @@ DICT['ru.errors.wrong_distro']='Установщик Keitaro работает т
 DICT['ru.errors.cant_create_keitaro_config_dir']="Невозможно создать директорию для конфигурационных файлов Keitaro ${CONFIG_DIR}"
 DICT['ru.errors.cant_install_firewall']='Пожалуйста, запустите эту программу на системе с поддержкой фаервола'
 DICT['ru.errors.keitaro_dump_invalid']='Указанный файл не является дампом Keitaro или загружен не полностью.'
-DICT['ru.errors.keitaro_already_installed']='Keitaro трекер уже установлен'
 DICT['ru.errors.isp_manager_installed']="Программа установки не может быть запущена на серверах с установленным ISP Manager. Пожалуйста, запустите эту программу на чистом CentOS сервере."
 DICT['ru.errors.vesta_cp_installed']="Программа установки не может быть запущена на серверах с установленной Vesta CP. Пожалуйста, запустите эту программу на чистом CentOS сервере."
 DICT['ru.errors.apache_installed']="Программа установки не может быть запущена на серверах с установленным Apache HTTP server. Пожалуйста, запустите эту программу на чистом CentOS сервере."
@@ -1619,6 +1623,11 @@ install_packages(){
 }
 
 
+#
+
+
+
+
 
 stage6(){
   debug "Starting stage 6: run ansible playbook"
@@ -1627,6 +1636,11 @@ stage6(){
   run_ssl_enabler
   clean_up
   show_successful_message
+  if isset "$ANSIBLE_TAGS"; then
+    debug 'ansible tags is set to ${ANSIBLE_TAGS} - skip printing credentials'
+  else
+    show_credentials
+  fi
   remove_log_files
 }
 
@@ -1867,40 +1881,33 @@ extract_domains_from_enable_ssl_log(){
   }
 
 
-#
 
 
-
-
-
-show_successful_message(){
-  print_with_color "$(translate 'messages.successful')" 'green'
-  if isset "$ANSIBLE_TAGS"; then
-    debug 'ansible tags is set to ${ANSIBLE_TAGS} - skip printing credentials'
-    return
-  fi
-  if [[ "${VARS['ssl_certificate']}" == 'letsencrypt' ]] && isset "${SSL_SUCCESSFUL_DOMAINS}" ]]; then
+show_credentials()
+  if [[ "${VARS['ssl_certificate']}" == 'letsencrypt' ]] && isset "${SSL_SUCCESSFUL_DOMAINS}"
     protocol='https'
     domain=$(expr match "${SSL_SUCCESSFUL_DOMAINS}" '\([^ ]*\)')
   else
     protocol='http'
     domain="${VARS['license_ip']}"
-  fi
   print_with_color "${protocol}://${domain}/admin" 'light.green'
-  if is_yes "${VARS['db_restore']}"; then
+  if is_yes "${VARS['db_restore']}"
     echo "$(translate 'messages.successful.use_old_credentials')"
   else
     colored_login=$(print_with_color "${VARS['admin_login']}" 'light.green')
     colored_password=$(print_with_color "${VARS['admin_password']}" 'light.green')
     echo -e "login: ${colored_login}"
     echo -e "password: ${colored_password}"
-  fi
-  if isset "$SSL_FAILED_MESSAGE"; then
+  if isset $SSL_FAILED_MESSAGE
     print_with_color "${SSL_FAILED_MESSAGE}" 'yellow'
-    print_with_color "$(cat "$SSL_ENABLER_ERRORS_LOG")" 'yellow'
+    print_with_color "$(cat $SSL_ENABLER_ERRORS_LOG)" 'yellow'
     print_with_color "$(translate messages.successful.rerun_ssl_enabler)" 'yellow'
     print_with_color "${SSL_RERUN_COMMAND}" 'yellow'
-  fi
+
+
+
+show_successful_message(){
+  print_with_color "$(translate 'messages.successful')" 'green'
 }
 
 json2dict() {
