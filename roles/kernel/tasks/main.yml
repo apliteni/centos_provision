@@ -6,7 +6,7 @@
 
 - name: Add public ipv4 nameserver to resolv.conf
   include: add_ipv4_nameserver.yml
-  when: not (get_ipv4_nameservers.stdout | match("nameserver"))
+  when: not (get_ipv4_nameservers.stdout is match("nameserver"))
 
 - name: Update kernel params
   sysctl:
