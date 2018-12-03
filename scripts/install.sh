@@ -1452,7 +1452,7 @@ ANSIBLE_LAST_TASK_LOG="ansible_last_task.log"
 
 
 run_ansible_playbook(){
-  local command="ANSIBLE_FORCE_COLOR=true ansible-playbook -vvv -i ${INVENTORY_FILE} ${PROVISION_DIRECTORY}/playbook.yml"
+  local command="ANSIBLE_FORCE_COLOR=true ANSIBLE_CONFIG=${PROVISION_DIRECTORY}/ansible.cfg ansible-playbook -vvv -i ${INVENTORY_FILE} ${PROVISION_DIRECTORY}/playbook.yml"
   if isset "$ANSIBLE_TAGS"; then
     command="${command} --tags ${ANSIBLE_TAGS}"
   fi
