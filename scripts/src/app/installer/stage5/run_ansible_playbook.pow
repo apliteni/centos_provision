@@ -34,7 +34,7 @@ ansible_task_found()
 
 print_ansible_last_task_info()
   echo "Task info:"
-  head -n3 $ANSIBLE_LAST_TASK_LOG | add_indentation
+  head -n2 $ANSIBLE_LAST_TASK_LOG | sed -r 's/\*+$//g' | add_indentation
 
 
 print_ansible_last_task_external_info()
