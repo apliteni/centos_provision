@@ -1536,7 +1536,7 @@ remove_text_before_last_pattern_occurence(){
 
 print_ansible_task_module_info(){
   declare -A   json
-  eval "json=$(cat "$ANSIBLE_FAILURE_JSON_FILEPATH" | json2dict)"
+  eval "json=$(cat "$ANSIBLE_FAILURE_JSON_FILEPATH" | json2dict)" 2>/dev/null
   ansible_module="${json['invocation.module_name']}"
   echo "Ansible module: ${json['invocation.module_name']}"
   if isset "${json['msg']}"; then
