@@ -305,7 +305,7 @@ RSpec.describe 'install.sh' do
       let(:command_stubs) { {yum: '/bin/true', ansible: '/bin/true', curl: '/bin/true', tar: '/bin/true', 'ansible-playbook': '/bin/false'} }
 
       it_behaves_like 'should exit with error', [
-        /There was an error evaluating current command\n(.*\n){3}  ANSIBLE_FORCE_COLOR=true ansible-playbook/,
+        %r{There was an error evaluating current command\n(.*\n){3}.* ansible-playbook},
         'Installation log saved to install.log',
         'Configuration settings saved to hosts.txt',
         'You can rerun `install.sh`'
