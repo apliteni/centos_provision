@@ -1,16 +1,14 @@
 ---
 - name: install tools
   yum:
-    name={{item}}
-    state=present
-
-  with_items:
-    - nano
-    - htop
-    - httpd-tools
-    - sudo
-    - cronie
-    - libselinux-python
+    name:
+      - nano
+      - htop
+      - httpd-tools
+      - sudo
+      - cronie
+      - libselinux-python
+    state: present
 
 - name: Remove require tty
   tags: tty

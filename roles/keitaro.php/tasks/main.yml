@@ -6,20 +6,20 @@
 
 - name: install php extensions
   yum:
-    name: "{{ item }}"
+    name:
+      - "{{php_version}}"
+      - "{{php_version}}-php-fpm"
+      - "{{php_version}}-php-bcmath"
+      - "{{php_version}}-php-devel"
+      - "{{php_version}}-php-mysqlnd"
+      - "{{php_version}}-php-opcache"
+      - "{{php_version}}-php-pecl-redis"
+      - "{{php_version}}-php-mbstring"
+      - "{{php_version}}-php-pear"
+      - "{{php_version}}-php-xml"
+      - "{{php_version}}-php-pecl-zip"
+      - "{{php_version}}-php-ioncube-loader"
     state: installed
-  with_items:
-    - "{{php_version}}"
-    - "{{php_version}}-php-fpm"
-    - "{{php_version}}-php-bcmath"
-    - "{{php_version}}-php-devel"
-    - "{{php_version}}-php-mysqlnd"
-    - "{{php_version}}-php-opcache"
-    - "{{php_version}}-php-pecl-redis"
-    - "{{php_version}}-php-mbstring"
-    - "{{php_version}}-php-pear"
-    - "{{php_version}}-php-xml"
-    - "{{php_version}}-php-pecl-zip"
 
 - name: link php directories and binary
   file:

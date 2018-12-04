@@ -1452,7 +1452,7 @@ ANSIBLE_LAST_TASK_LOG="ansible_last_task.log"
 
 
 run_ansible_playbook(){
-  local command="ANSIBLE_FORCE_COLOR=true ansible-playbook -vvv -i ${INVENTORY_FILE} ${PROVISION_DIRECTORY}/playbook.yml"
+  local command="ANSIBLE_FORCE_COLOR=true ANSIBLE_CONFIG=${PROVISION_DIRECTORY}/ansible.cfg ansible-playbook -vvv -i ${INVENTORY_FILE} ${PROVISION_DIRECTORY}/playbook.yml"
   if isset "$ANSIBLE_TAGS"; then
     command="${command} --tags ${ANSIBLE_TAGS}"
   fi
@@ -1485,7 +1485,7 @@ ansible_task_found(){
 
 print_ansible_last_task_info(){
   echo "Task info:"
-  head -n3 "$ANSIBLE_LAST_TASK_LOG" | add_indentation
+  head -n2 "$ANSIBLE_LAST_TASK_LOG" | sed -r 's/\*+$//g' | add_indentation
 }
 
 
@@ -1536,7 +1536,7 @@ remove_text_before_last_pattern_occurence(){
 
 print_ansible_task_module_info(){
   declare -A   json
-  eval "json=$(cat "$ANSIBLE_FAILURE_JSON_FILEPATH" | json2dict)"
+  eval "json=$(cat "$ANSIBLE_FAILURE_JSON_FILEPATH" | json2dict)" 2>/dev/null
   ansible_module="${json['invocation.module_name']}"
   echo "Ansible module: ${json['invocation.module_name']}"
   if isset "${json['msg']}"; then
