@@ -1,0 +1,5 @@
+- hosts: localhost
+
+  tasks:
+    - local_action:
+        command ansible-galaxy install -r roles/roles.yml --roles-path roles
