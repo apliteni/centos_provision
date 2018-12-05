@@ -1,5 +1,2 @@
-- name: Save statistics
-  include: save_statistics.yml
-
 - name: Tune nginx service limits
   include: tune_systemd.yml

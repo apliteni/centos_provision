@@ -35,7 +35,7 @@ http {
     access_log  {{ nginx_access_log }};
 
     log_format status '$status';
-    access_log /var/log/nginx/status/access.log status buffer=16k flush=15s;
+    access_log /var/log/nginx/access.status-log status buffer=16k flush=15s;
 
     log_not_found off;
 

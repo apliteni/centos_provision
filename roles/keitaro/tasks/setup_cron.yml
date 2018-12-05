@@ -12,3 +12,6 @@
     hour: "{{ 23 | random }}"
     minute: "{{ 59 | random }}"
     job: "php {{ keitaro.path }}/bin/cli.php geodbs:update_all"
+
+- name: Configure collecting statistics
+  include: configure_collecting_statistics.yml
