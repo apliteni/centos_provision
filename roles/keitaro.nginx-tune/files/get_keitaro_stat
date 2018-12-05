@@ -6,6 +6,8 @@ escape() {
   local value="$1"
   if [[ $value == "" ]]; then
     echo 'null'
+  elif [[ "${value}" =~ ^\".*\"$ ]]; then
+    echo "${value}"
   elif [[ "${value}" =~ ^\{.*\}$ ]]; then
     echo "${value}"
   elif [[ "${value}" =~ ^\[.*\]$ ]]; then
@@ -36,16 +38,27 @@ print_json() {
   echo "{${pairs}}"
 }
 
-version_json() {
-  print_json release "$(version_release)" id "$(version_id)"
+versions_json() {
+  print_json installer "\"$(installer_version)\"" \
+             php "\"$(php_version)\"" \
+             mariadb "\"$(mariadb_version)\"" \
+             redis "\"$(redis_version)\""
 }
 
-version_release() {
-  echo 'unknown'
+installer_version() {
+  grep 'installer_version' /root/.keitaro/installer_config | awk -F= '{print $2}'
 }
 
-version_id() {
-  echo 'unknown'
+php_version() {
+  php --version | head -n1 | awk '{print $2}'
+}
+
+mariadb_version() {
+  mysql --version | awk '{print $5}' | sed s/-MariaDB,$//g
+}
+
+redis_version() {
+  redis-server --version | head -n1 | awk '{print $3}' | sed s/v=//g
 }
 
 responses_json() {
@@ -92,7 +105,7 @@ info_json() {
   print_json uptime "${uptime}" load "$(load)" timestamp "${timestamp}" vmstat "$(vmstat_json)"
 }
 
-print_json version "$(version_json)" \
+print_json versions "$(versions_json)" \
            responses "$(responses_json)" \
            cpu "$(cpu_json)" \
            info "$(info_json)"
