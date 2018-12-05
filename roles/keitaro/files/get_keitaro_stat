@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-RESPONSE_STATUSES_PATH=/var/log/nginx/status/access.log.old
+RESPONSE_STATUSES_PATH=/var/log/nginx/access.status-log.old
 
 escape() {
   local value="$1"

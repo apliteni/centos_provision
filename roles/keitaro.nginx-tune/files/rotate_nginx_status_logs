@@ -1,9 +1,0 @@
-#!/bin/sh
-
-if [ -f /var/log/nginx/status/access.log ]; then
-  mv /var/log/nginx/status/access.log /var/log/nginx/status/access.log.old
-fi
-
-if [ -f /var/run/nginx.pid ]; then
-  kill -USR1 $(cat /var/run/nginx.pid)
-fi
