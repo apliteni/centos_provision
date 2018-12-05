@@ -14,6 +14,7 @@
   roles:
     - {role: 'upgrades.pretasks', tags: 'never, upgrade_to_1_0'}
     - {role: 'kernel', tags: 'kernel, upgrade_to_1_0'}
+    - {role: 'geerlingguy.firewall', tags: 'firewall', when: "skip_firewall is not defined or skip_firewall != 'yes'"}
     - {role: 'selinux', tags: 'selinux'}
     - {role: 'resmo.ntp', tags: 'ntp'}
     - {role: 'mrlesmithjr.timezone'}
@@ -28,12 +29,10 @@
     - {role: 'keitaro.mariadb-install_tokudb', tags: 'mariadb, tokudb, upgrade_to_1_0'}
     - {role: 'keitaro.mariadb-tune', tags: 'mariadb, tune-mariadb, upgrade_to_1_0'}
     - {role: 'geerlingguy.nginx', tags: 'nginx, upgrade_to_1_0'}
-    - {role: 'keitaro.php', tags: 'php, upgrade_to_1_0'}
     - {role: 'keitaro.nginx-tune', tags: 'nginx, upgrade_to_1_0'}
+    - {role: 'keitaro.php', tags: 'php, upgrade_to_1_0'}
     - {role: 'keitaro.tune_autorestarting', tags: 'php, mariadb, nginx, redis, upgrade_to_1_0'}
-    - {role: 'geerlingguy.firewall', tags: 'firewall', when: "skip_firewall is not defined or skip_firewall != 'yes'"}
-    - {role: 'keitaro.prepare_home_dir', tags: 'keitaro, ssl'}
-    - {role: 'keitaro.prepare_ssl', tags: 'ssl'}
+    - {role: 'keitaro.prepare', tags: 'keitaro, ssl'}
     - {role: 'keitaro', tags: 'keitaro'}
     - {role: 'keitaro.db_restore', tags: 'db_restore, keitaro', when: "db_restore is defined and db_restore == 'yes'"}
     - {role: 'upgrades.tasks', tags: 'never, upgrade' }
