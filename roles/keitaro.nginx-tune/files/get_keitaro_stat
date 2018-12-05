@@ -2,7 +2,53 @@
 
 RESPONSE_STATUSES_PATH=/var/log/nginx/status/access.log.old
 
-responses() {
+escape() {
+  local value="$1"
+  if [[ $value == "" ]]; then
+    echo 'null'
+  elif [[ "${value}" =~ ^\{.*\}$ ]]; then
+    echo "${value}"
+  elif [[ "${value}" =~ ^\[.*\]$ ]]; then
+    echo "${value}"
+  elif [[ "${value}" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+    echo "${value}"
+  else
+    echo "\"${value}\""
+  fi
+}
+
+print_json() {
+  local key=""
+  local value=""
+  local pairs=""
+  local pair=""
+  while test ${#} -gt 0; do
+    key="${1}"
+    value="${2}"
+    pair="$(escape "${key}"): $(escape "${value}")"
+    if [[ "${pairs}" == "" ]]; then
+      pairs="${pair}"
+    else
+      pairs="${pairs}, ${pair}"
+    fi
+    shift 2
+  done
+  echo "{${pairs}}"
+}
+
+version_json() {
+  print_json release "$(version_release)" id "$(version_id)"
+}
+
+version_release() {
+  echo 'unknown'
+}
+
+version_id() {
+  echo 'unknown'
+}
+
+responses_json() {
   local responses=""
   if [ -f ${RESPONSE_STATUSES_PATH} ]; then
     responses=$(sort ${RESPONSE_STATUSES_PATH} \
@@ -11,27 +57,42 @@ responses() {
                 | sed '$ s/, $//g' \
                 | tr -d "\n")
     responses="{${responses}}"
-  else
-    responses='null'
   fi
-  echo $responses
+  echo "${responses}"
 }
 
-cpu() {
-  model_name="\"$(awk -F': ' '/^model name/ {print $2}' /proc/cpuinfo)\""
-  frequency_mhz="$(awk -F': ' '/^cpu MHz/ {print $2}' /proc/cpuinfo)"
+cpu_json() {
+  model_name="$(awk -F': ' '/^model name/ {print $2}' /proc/cpuinfo | head -n1)"
+  frequency_mhz="$(awk -F': ' '/^cpu MHz/ {print $2}' /proc/cpuinfo | head -n1)"
   cpu_cores="$(grep -w ^processor /proc/cpuinfo  | wc -l)"
-  echo "{\"model_name\": ${model_name}, \"cpu_cores\": ${cpu_cores}, \"frequency_mhz\": ${frequency_mhz}}"
+  print_json model_name "${model_name}" cpu_cores "${cpu_cores}" frequency_mhz "${frequency_mhz}"
 }
 
-info() {
-  uptime=$(awk '{print $1}' /proc/uptime | sed 's/\..*//g')
+vmstat_json() {
+  local keys=($(vmstat | tail -n2 | head -n1))
+  local values=($(vmstat | tail -n1))
+  local print_json_args=""
+  for i in "${!keys[@]}"; do
+    print_json_args="${print_json_args} ${keys[$i]} ${values[$i]}"
+  done
+  print_json ${print_json_args}
+}
+
+
+load() {
   load_1m="$(awk '{print $1}' /proc/loadavg)"
   load_5m="$(awk '{print $2}' /proc/loadavg)"
   load_15m="$(awk '{print $3}' /proc/loadavg)"
-  load="{\"1m\": ${load_1m}, \"5m\": ${load_5m}, \"15m\": ${load_15m}}"
-  timestamp="\"$(date --utc --iso-8601=seconds | sed 's/\+.*/Z/')\""
-  echo "{\"uptime\": ${uptime}, \"load\": ${load}, \"timestamp\": ${timestamp}}"
+  print_json 1m "${load_1m}" 5m "${load_5m}" 15m "${load_15m}"
 }
 
-echo "{\"responses\": $(responses), \"cpu\": $(cpu), \"info\": $(info)}"
+info_json() {
+  uptime=$(awk '{print $1}' /proc/uptime | sed 's/\..*//g')
+  timestamp="$(date --utc --iso-8601=seconds | sed 's/\+.*/Z/')"
+  print_json uptime "${uptime}" load "$(load)" timestamp "${timestamp}" vmstat "$(vmstat_json)"
+}
+
+print_json version "$(version_json)" \
+           responses "$(responses_json)" \
+           cpu "$(cpu_json)" \
+           info "$(info_json)"
