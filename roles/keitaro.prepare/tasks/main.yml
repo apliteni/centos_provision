@@ -1,6 +1,6 @@
----
+- include: prepare_home.yml
 
-- include: prepare.yml
+- include: prepare_ssl.yml
 
 - include: generate_selfsigned_certs.yml
 
