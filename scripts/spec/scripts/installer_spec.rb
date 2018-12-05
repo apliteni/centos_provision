@@ -13,9 +13,6 @@ RSpec.describe 'install.sh' do
   let(:skip_firewall) { 'yes' }
   let(:license_ip) { '8.8.8.8' }
   let(:license_key) { 'WWWW-XXXX-YYYY-ZZZZ' }
-  let(:db_name) { 'keitarodb' }
-  let(:db_user) { 'keitarodb_user' }
-  let(:db_password) { 'keitarodb_password' }
   let(:db_restore) { 'no' }
   let(:db_restore_path) { nil }
   let(:db_restore_path_want_exit) { nil }
@@ -32,9 +29,6 @@ RSpec.describe 'install.sh' do
         ssl_email: 'Please enter your email (you can left this field empty)',
         license_ip: 'Please enter server IP',
         license_key: 'Please enter license key',
-        db_name: 'Please enter database name',
-        db_user: 'Please enter database user name',
-        db_password: 'Please enter database user password',
         db_restore: 'Do you want to restore the database from SQL dump?',
         db_restore_path: 'Please enter the path to the SQL dump file',
         db_restore_salt: 'Please enter the value of "salt" parameter from the old config (application/config/config.ini.php)',
@@ -46,9 +40,6 @@ RSpec.describe 'install.sh' do
         ssl: 'Установить бесплатные SSL сертификаты (можно сделать это позже)?',
         license_ip: 'Укажите IP адрес сервера',
         license_key: 'Укажите лицензионный ключ',
-        db_name: 'Укажите имя базы данных',
-        db_user: 'Укажите пользователя базы данных',
-        db_password: 'Укажите пароль пользователя базы данных',
         db_restore: 'Хотите восстановить базу данных из SQL дампа?',
         admin_login: 'Укажите имя администратора keitaro',
         admin_password: 'Укажите пароль администратора keitaro',
@@ -64,9 +55,6 @@ RSpec.describe 'install.sh' do
       ssl_email: ssl_email,
       license_ip: license_ip,
       license_key: license_key,
-      db_name: db_name,
-      db_user: db_user,
-      db_password: db_password,
       db_restore: db_restore,
       db_restore_path: db_restore_path,
       db_restore_path_want_exit: db_restore_path_want_exit,
@@ -184,12 +172,6 @@ RSpec.describe 'install.sh' do
     end
 
     it_behaves_like 'field without default', :license_key, value: 'AAAA-BBBB-CCCC-DDDD'
-
-    it_behaves_like 'field with default', :db_name, default: 'keitaro'
-
-    it_behaves_like 'field with default', :db_user, default: 'keitaro'
-
-    it_behaves_like 'password field', :db_password
 
     it_behaves_like 'should show default value', :db_restore, showed_value: 'no'
 
