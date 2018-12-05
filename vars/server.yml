@@ -13,6 +13,7 @@ keitaro:
   path: /var/www/keitaro
 
 # MariaDB
+mariadb_root_password: '{{ db_root_password }}'
 mariadb_databases:
   - "{{ db_name }}"
 mariadb_users:

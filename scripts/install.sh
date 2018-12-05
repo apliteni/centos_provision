@@ -1435,6 +1435,7 @@ parse_line_from_inventory_file(){
 setup_vars(){
   VARS['skip_firewall']='no'
   VARS['ssl']='no'
+  VARS['db_root_password']=$(generate_password)
   VARS['db_name']='keitaro'
   VARS['db_user']='keitaro'
   VARS['db_password']=$(generate_password)
@@ -1471,6 +1472,7 @@ write_inventory_file(){
   print_line_to_inventory_file "ssl_email="${VARS['ssl_email']}""
   print_line_to_inventory_file "license_ip="${VARS['license_ip']}""
   print_line_to_inventory_file "license_key="${VARS['license_key']}""
+  print_line_to_inventory_file "db_root_password="${VARS['db_root_password']}""
   print_line_to_inventory_file "db_name="${VARS['db_name']}""
   print_line_to_inventory_file "db_user="${VARS['db_user']}""
   print_line_to_inventory_file "db_password="${VARS['db_password']}""
