@@ -9,6 +9,8 @@
     - php_memory_mb
     - php_child_size_mb
     - php_children_count
+    - php_min_idle_children_count
+    - php_max_idle_children_count
     - php_opened_files
     - nginx_worker_processes
     - nginx_worker_connections
