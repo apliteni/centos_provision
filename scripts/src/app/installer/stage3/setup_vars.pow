@@ -4,6 +4,7 @@
 setup_vars()
   VARS['skip_firewall']='no'
   VARS['ssl']='no'
+  VARS['db_root_password']=$(generate_password)
   VARS['db_name']='keitaro'
   VARS['db_user']='keitaro'
   VARS['db_password']=$(generate_password)
