@@ -37,22 +37,38 @@ nginx_vhosts:
     root: "{{ keitaro.path }}"
     index: index.php index.html
     charset: utf-8
-    extra_parameters: |+4
-          location ~* \.(jpg|jpeg|gif|png|js|css|txt|zip|ico|gz|csv)$ {
-            expires 10d;
+    extra_parameters:
+          upstream php {
+            server unix:/var/run/{{php_version}}-fpm.sock;
           }
 
-          location ~* /(var|lib|application)/.*$ {
-            return 403;
+          location ~* \.(jpg|jpeg|gif|png|js|css|txt|zip|ico|gz|csv)$ {
+            expires 10d;
           }
 
           location ~* \.(htaccess|ini|dat)$ {
             return 403;
           }
 
+          # begin forbid keitaro
+          location ~* /(var|lib|application)/.*$ {
+            return 403;
+          }
+          # end forbid keitaro
+
+          # begin status page
+          location /status {
+            fastcgi_pass php;
+            fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+            include fastcgi_params;
+            allow 127.0.0.1;
+            deny all;
+          }
+          # end status page
+
           location ~ \.php$ {
             fastcgi_split_path_info ^(.+\.php)(/.+)$;
-            fastcgi_pass unix:/var/run/{{php_version}}-fpm.sock;
+            fastcgi_pass php
             fastcgi_index index.php;
             fastcgi_buffers 16 16k;
             fastcgi_buffer_size 32k;
@@ -62,13 +78,5 @@ nginx_vhosts:
 
           location / {
             try_files $uri $uri/ /index.php?$args;
-          }
-
-          location /status {
-            fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-            fastcgi_pass unix:/var/run/php72-fpm.sock;
-            include fastcgi_params;
-            allow 127.0.0.1;
-            deny all;
           }
 
