@@ -33,6 +33,6 @@
     - {role: 'keitaro.php', tags: 'php, upgrade_to_1_0'}
     - {role: 'keitaro.tune_autorestarting', tags: 'php, mariadb, nginx, redis, upgrade_to_1_0'}
     - {role: 'keitaro.prepare', tags: 'keitaro, ssl'}
-    - {role: 'keitaro', tags: 'keitaro'}
+    - {role: 'keitaro', tags: 'keitaro, upgrade_to_1_0'}
     - {role: 'keitaro.db_restore', tags: 'db_restore, keitaro', when: "db_restore is defined and db_restore == 'yes'"}
     - {role: 'upgrades.tasks', tags: 'never, upgrade' }
