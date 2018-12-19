@@ -25,8 +25,17 @@
   register: command_result
   failed_when: "'Installation Finished' not in command_result.stdout and 'Установка завершена' not in command_result.stdout"
 
-- name: Add cron task
+- name: Configure cron to run keitaro task every minute
   cron:
     user: "{{os_user}}"
     name: "keitaro"
     job: "php {{ keitaro.path }}/cron.php"
+
+- name: Configure cron to update geo databases every week
+  cron:
+    user: "{{os_user}}"
+    name: "update geodbs"
+    weekday: "{{ 7 | random }}"
+    hour: "{{ 24 | random }}"
+    minute: "{{ 60 | random }}"
+    job: "php {{ keitaro.path }}/bin/cli.php geodbs:update_all"
