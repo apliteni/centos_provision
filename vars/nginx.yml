@@ -2,7 +2,7 @@ nginx_user: nginx
 nginx_remove_default_vhost: true
 nginx_access_log: "/var/log/nginx/access.log main buffer=16k flush=15s"
 nginx_client_max_body_size: "{{ max_upload_size }}"
-nginx_extra_http_options: |
+nginx_extra_http_options: |+4
       # Security
       server_tokens off;
 
@@ -37,7 +37,7 @@ nginx_vhosts:
     root: "{{ keitaro.path }}"
     index: index.php index.html
     charset: utf-8
-    extra_parameters:
+    extra_parameters: |+4
           upstream php {
             server unix:/var/run/{{php_version}}-fpm.sock;
           }
