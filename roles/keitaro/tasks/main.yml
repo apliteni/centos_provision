@@ -8,3 +8,5 @@
   include: install.yml
   when: not lockfile.stat.exists
 
+- name: Setup cron jobs
+  include: setup_cron.yml

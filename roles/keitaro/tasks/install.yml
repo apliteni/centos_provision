@@ -1,4 +1,3 @@
----
 - name: Download installer
   get_url:
     url: "https://keitaro.io/getfile/install"
@@ -24,9 +23,3 @@
   become_user: "{{ os_user }}"
   register: command_result
   failed_when: "'Installation Finished' not in command_result.stdout and 'Установка завершена' not in command_result.stdout"
-
-- name: Add cron task
-  cron:
-    user: "{{os_user}}"
-    name: "keitaro"
-    job: "php {{ keitaro.path }}/cron.php"
