@@ -21,6 +21,7 @@
                                        {% if kversion is defined %}--kversion={{ kversion }}{% endif %}
   args:
     chdir: "{{ keitaro.path }}"
+    creates: "{{ keitaro.path }}/var/install.lock"
   become_user: "{{ os_user }}"
   register: command_result
   failed_when: "'Installation Finished' not in command_result.stdout and 'Установка завершена' not in command_result.stdout"
