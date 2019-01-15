@@ -1372,7 +1372,7 @@ write_inventory_file(){
     print_line_to_inventory_file "kversion=$KEITARO_RELEASE"
   fi
   if isset "$CUSTOM_PACKAGE"; then
-    print_line_to_inventory_file "custom-package=$CUSTOM_PACKAGE"
+    print_line_to_inventory_file "custom_package=$CUSTOM_PACKAGE"
   fi
 }
 
