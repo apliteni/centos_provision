@@ -43,4 +43,19 @@ In order to use Russian locale run as root
     curl -sSL https://keitaro.io/add-site.sh | bash -s -- -l ru
 
 
-support@keitaro.io
+## FAQ
+
+### How to specify installation package
+
+    run -a http://keitaro.io/test.zip
+
+
+### How to specify ansible tags
+
+    run -t tag1,tag2
+
+or ignore
+
+    run -i tag3,tag4
+
+
