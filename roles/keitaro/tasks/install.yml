@@ -2,6 +2,7 @@
   get_url:
     url: "https://keitaro.io/getfile/install"
     dest: "{{ keitaro.path }}/install.php"
+    force: yes
 
 - name: Install Keitaro
   tags: keitaro
