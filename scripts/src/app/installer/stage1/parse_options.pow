@@ -2,7 +2,7 @@
 
 
 parse_options()
-  while getopts ":hpsrl:t:k:i:" opt
+  while getopts ":hpsrl:t:k:i:a:" opt
     switch $opt
       case p
         PRESERVE_RUNNING=true
@@ -26,6 +26,8 @@ parse_options()
           print_err "Specified Keitaro Release \"$OPTARG\" is not supported"
           exit ${FAILURE_RESULT}
         KEITARO_RELEASE=$OPTARG
+      case a
+        CUSTOM_PACKAGE=$OPTARG
       case r
         RECONFIGURE=true
       case :

@@ -27,6 +27,8 @@ write_inventory_file()
   print_line_to_inventory_file "evaluated_by_installer=yes"
   if isset $KEITARO_RELEASE
     print_line_to_inventory_file "kversion=$KEITARO_RELEASE"
+  if isset $CUSTOM_PACKAGE
+    print_line_to_inventory_file "custom-package=$CUSTOM_PACKAGE"
 
 
 print_line_to_inventory_file(line)
