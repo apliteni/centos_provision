@@ -43,6 +43,14 @@ In order to use Russian locale run as root
     curl -sSL https://keitaro.io/add-site.sh | bash -s -- -l ru
 
 
+## Development
+
+    brew bash install coreutils gnu-sed grep gawk --default-names
+    wget "https://raw.githubusercontent.com/coderofsalvation/powscript/master/powscript" -O /usr/local/bin/powscript && chmod 755 /usr/local/bin/powscript
+    echo 'export PATH=/usr/local/opt/coreutils/libexec/gnubin:$PATH' >> ~/.bashrc
+    
+
+
 ## FAQ
 
 ### How to specify installation package

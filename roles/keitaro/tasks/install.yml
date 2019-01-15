@@ -18,8 +18,9 @@
                                        --cache-storage=files \
                                        --force-tokudb \
                                        {% if language is defined %}--language={{ language }}{% endif %} \
-                                       {% if kversion is defined %}--kversion={{ kversion }}{% endif %}
-                                       {% if custom_package is defined %}--custom-package={{ custom_package }}{% endif %}
+                                       {% if kversion is defined %}--kversion={{ kversion }}{% endif %} \
+                                       {% if custom_package is defined %}--custom-package={{ custom_package }}{% endif %} \
+
   args:
     chdir: "{{ keitaro.path }}"
   become_user: "{{ os_user }}"
