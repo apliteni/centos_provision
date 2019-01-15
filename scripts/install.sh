@@ -988,7 +988,7 @@ stage1(){
 
 
 parse_options(){
-  while getopts ":hpsrl:t:k:i:" opt; do
+  while getopts ":hpsrl:t:k:i:a:" opt; do
     case $opt in
       p)
         PRESERVE_RUNNING=true
@@ -1022,6 +1022,9 @@ parse_options(){
           exit ${FAILURE_RESULT}
         fi
         KEITARO_RELEASE=$OPTARG
+        ;;
+      a)
+        CUSTOM_PACKAGE=$OPTARG
         ;;
       r)
         RECONFIGURE=true
@@ -1367,6 +1370,9 @@ write_inventory_file(){
   print_line_to_inventory_file "evaluated_by_installer=yes"
   if isset "$KEITARO_RELEASE"; then
     print_line_to_inventory_file "kversion=$KEITARO_RELEASE"
+  fi
+  if isset "$CUSTOM_PACKAGE"; then
+    print_line_to_inventory_file "custom-package=$CUSTOM_PACKAGE"
   fi
 }
 
