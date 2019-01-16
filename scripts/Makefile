@@ -29,7 +29,7 @@ clean:
 compile: compile_site_adder compile_installer compile_ssl_enabler compile_run_command_tester
 
 define compile_powscript
-	powscript --compile src/$(1)  > $(2) || true
+	bin/powscript --compile src/$(1)  > $(2) || true
 	sed -i 's|#!/bin/bash|#!/usr/bin/env bash|g' $(2)         # portable shebang line
 	sed -i '/# cleanup tmp files/,+4d' $(2)                   # remove unportable cleaning
 	sed -i 's/#$$//g' $(2)                                    # remove trailing #
