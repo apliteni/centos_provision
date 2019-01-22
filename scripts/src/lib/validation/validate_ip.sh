@@ -1,4 +1,4 @@
-#!/usr/bin/env powscript
+#!/usr/bin/env bash
 
 
 validate_ip(){

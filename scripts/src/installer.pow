@@ -2,6 +2,7 @@
 
 
 _require 'lib/stdlib.sh'
+
 _require 'shared/vars/installer_program_name.sh'
 _require 'shared/vars/common.sh'
 _require 'shared/vars/dict.sh'
@@ -76,7 +77,7 @@ _require 'app/installer/stage6/download_provision.sh'
 _require 'app/installer/stage6/remove_log_files.sh'
 _require 'app/installer/stage6/run_ansible_playbook.sh'
 _require 'app/installer/stage6/run_ssl_enabler.sh'
-_require 'app/installer/stage6/show_credentials.pow'
+_require 'app/installer/stage6/show_credentials.sh'
 _require 'app/installer/stage6/show_successful_message.sh'
 _require 'app/installer/stage6/json2dict.sh'
 
