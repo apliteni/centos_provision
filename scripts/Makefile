@@ -33,11 +33,22 @@ define compile_powscript
 	sed -i 's|#!/bin/bash|#!/usr/bin/env bash|g' $(2)         # portable shebang line
 	sed -i '/# cleanup tmp files/,+4d' $(2)                   # remove unportable cleaning
 	sed -i 's/#$$//g' $(2)                                    # remove trailing #
-    bin/postprocess_requires.rb $(2)
+	bin/postprocess_requires.rb $(2)
 	chmod a+x $(2)
 endef
 
-compile_installer:
+compile_chunks:
+	@for pow_script_path in $$(find src/{app,lib,shared} -name '*.pow'); do \
+	  bash_script_path=$${pow_script_path/pow/sh}; \
+	  if [[ ! -f $$bash_script_path || "$$(stat -c %y $$pow_script_path)" != "$$(stat -c %y $$bash_script_path)" ]]; \
+	  then \
+	    echo Compiling $$pow_script_path; \
+	    bin/powscript --compile --sourceable $$pow_script_path | sed 2,23d > $$bash_script_path; \
+	    touch -m -r $$pow_script_path $$bash_script_path; \
+	  fi \
+	done
+
+compile_installer: compile_chunks
 	$(call compile_powscript,installer.pow,install.sh)
 
 compile_ssl_enabler:
