@@ -1,8 +1,8 @@
 #!/usr/bin/env powscript
 
 _require 'lib/stdlib.sh'
-_require 'shared/vars/test_run_command_program_name.sh'
 
+_require 'shared/vars/test_run_command_program_name.sh'
 _require 'shared/vars/common.sh'
 _require 'shared/vars/dict.sh'
 
@@ -16,15 +16,15 @@ _require 'lib/system/debug.sh'
 _require 'lib/system/fail.sh'
 _require 'lib/system/init.sh'
 _require 'lib/system/init_log.sh'
-require 'lib/system/log_and_print_err.pow'
-require 'lib/system/on_exit.pow'
-require 'lib/system/print_content_of.pow'
-require 'lib/system/print_err.pow'
-require 'lib/system/print_translated.pow'
-require 'lib/system/print_with_color.pow'
-require 'lib/system/run_command.pow'
+_require 'lib/system/log_and_print_err.sh'
+_require 'lib/system/on_exit.sh'
+_require 'lib/system/print_content_of.sh'
+_require 'lib/system/print_err.sh'
+_require 'lib/system/print_translated.sh'
+_require 'lib/system/print_with_color.sh'
+_require 'lib/system/run_command.sh'
 
-require 'app/installer/stage6/run_ansible_playbook.pow'
+_require 'app/installer/stage6/run_ansible_playbook.sh'
 _require 'app/installer/stage6/json2dict.sh'
 
 
