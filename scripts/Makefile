@@ -29,7 +29,7 @@ clean:
 compile: compile_site_adder compile_installer compile_ssl_enabler compile_run_command_tester
 
 define compile_powscript
-	bin/powscript --compile src/$(1)  > $(2) || true
+	bin/powscript --compile src/$(1) > $(2) || true
 	sed -i 's|#!/bin/bash|#!/usr/bin/env bash|g' $(2)         # portable shebang line
 	sed -i '/# cleanup tmp files/,+4d' $(2)                   # remove unportable cleaning
 	sed -i 's/#$$//g' $(2)                                    # remove trailing #
@@ -38,15 +38,21 @@ define compile_powscript
 endef
 
 compile_chunks:
+	@echo Compiling sources
 	@for pow_script_path in $$(find src/{app,lib,shared} -name '*.pow'); do \
 	  bash_script_path=$${pow_script_path/pow/sh}; \
-	  if [[ ! -f $$bash_script_path || "$$(stat -c %y $$pow_script_path)" != "$$(stat -c %y $$bash_script_path)" ]]; \
+	  if [[ -f $$bash_script_path && "$$(stat -c %y $$pow_script_path)" == "$$(stat -c %y $$bash_script_path)" ]]; \
 	  then \
+	    printf "."; \
+	  else \
 	    echo Compiling $$pow_script_path; \
-	    bin/powscript --compile --sourceable $$pow_script_path | sed 2,23d > $$bash_script_path; \
+	    bin/powscript --compile --sourceable $$pow_script_path \
+	        | sed -r -e '2,23d' -e '/^(empty|isset|on|values|last) /,/^}/d' \
+	        > $$bash_script_path; \
 	    touch -m -r $$pow_script_path $$bash_script_path; \
 	  fi \
 	done
+	@echo
 
 compile_installer: compile_chunks
 	$(call compile_powscript,installer.pow,install.sh)
