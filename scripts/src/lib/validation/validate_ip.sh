@@ -1,3 +1,4 @@
+#!/usr/bin/env powscript
 
 
 validate_ip(){
