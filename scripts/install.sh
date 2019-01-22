@@ -58,6 +58,7 @@ last ()
 
 
 
+
 PROGRAM_NAME='install'
 
 
@@ -1881,28 +1882,36 @@ extract_domains_from_enable_ssl_log(){
   }
 
 
+#
 
 
-show_credentials()
-  if [[ "${VARS['ssl_certificate']}" == 'letsencrypt' ]] && isset "${SSL_SUCCESSFUL_DOMAINS}"
+
+
+
+show_credentials(){
+  if [[ "${VARS['ssl_certificate']}" == 'letsencrypt' ]] && isset "${SSL_SUCCESSFUL_DOMAINS}" ]]; then
     protocol='https'
     domain=$(expr match "${SSL_SUCCESSFUL_DOMAINS}" '\([^ ]*\)')
   else
     protocol='http'
     domain="${VARS['license_ip']}"
+  fi
   print_with_color "${protocol}://${domain}/admin" 'light.green'
-  if is_yes "${VARS['db_restore']}"
+  if is_yes "${VARS['db_restore']}"; then
     echo "$(translate 'messages.successful.use_old_credentials')"
   else
     colored_login=$(print_with_color "${VARS['admin_login']}" 'light.green')
     colored_password=$(print_with_color "${VARS['admin_password']}" 'light.green')
     echo -e "login: ${colored_login}"
     echo -e "password: ${colored_password}"
-  if isset $SSL_FAILED_MESSAGE
+  fi
+  if isset "$SSL_FAILED_MESSAGE"; then
     print_with_color "${SSL_FAILED_MESSAGE}" 'yellow'
-    print_with_color "$(cat $SSL_ENABLER_ERRORS_LOG)" 'yellow'
+    print_with_color "$(cat "$SSL_ENABLER_ERRORS_LOG")" 'yellow'
     print_with_color "$(translate messages.successful.rerun_ssl_enabler)" 'yellow'
     print_with_color "${SSL_RERUN_COMMAND}" 'yellow'
+  fi
+}
 
 
 
