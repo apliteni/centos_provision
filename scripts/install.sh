@@ -1471,9 +1471,6 @@ get_user_vars(){
     get_user_var 'db_restore_salt' 'validate_presence validate_alnumdashdot'
   fi
   common_validators="validate_presence validate_alnumdashdot validate_not_reserved_word"
-  get_user_var 'db_name' "${common_validators} validate_starts_with_latin_letter"
-  get_user_var 'db_user' "${common_validators} validate_starts_with_latin_letter validate_not_root"
-  get_user_var 'db_password' "${common_validators}"
   if is_no "${VARS['db_restore']}"; then
     get_user_var 'admin_login' "${common_validators} validate_starts_with_latin_letter"
     get_user_var 'admin_password' "${common_validators}"
@@ -1561,6 +1558,7 @@ write_inventory_file(){
   print_line_to_inventory_file "ssl_email="${VARS['ssl_email']}""
   print_line_to_inventory_file "license_ip="${VARS['license_ip']}""
   print_line_to_inventory_file "license_key="${VARS['license_key']}""
+  print_line_to_inventory_file "db_root_password="${VARS['db_root_password']}""
   print_line_to_inventory_file "db_name="${VARS['db_name']}""
   print_line_to_inventory_file "db_user="${VARS['db_user']}""
   print_line_to_inventory_file "db_password="${VARS['db_password']}""
