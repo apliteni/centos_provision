@@ -39,17 +39,17 @@ endef
 
 compile_chunks:
 	@echo Compiling sources
-	@for pow_script_path in $$(find src/{app,lib,shared} -name '*.pow'); do \
-	  bash_script_path=$${pow_script_path/pow/sh}; \
-	  if [[ -f $$bash_script_path && "$$(stat -c %y $$pow_script_path)" == "$$(stat -c %y $$bash_script_path)" ]]; \
+	@for pow_script in $$(find src/{app,lib,shared} -name '*.pow'); do \
+	  bash_script=$${pow_script/pow/sh}; \
+	  if [[ -f $$bash_script && "$$(stat -c %y $$pow_script)" == "$$(stat -c %y $$bash_script)" ]]; \
 	  then \
 	    printf "."; \
 	  else \
-	    echo Compiling $$pow_script_path; \
-	    bin/powscript --compile --sourceable $$pow_script_path \
-	        | sed -r -e '2,23d' -e '/^(empty|isset|on|values|last) /,/^}/d' \
-	        > $$bash_script_path; \
-	    touch -m -r $$pow_script_path $$bash_script_path; \
+	    printf "o"; \
+	    bin/powscript --compile --sourceable $$pow_script \
+	        | sed -r -e '2,23d' -e '/^(empty|isset|on|values|last) /,/^}/d' -e '1c#!/usr/bin/env bash' \
+	        > $$bash_script; \
+	    touch -amr $$pow_script $$bash_script; \
 	  fi \
 	done
 	@echo
@@ -57,11 +57,11 @@ compile_chunks:
 compile_installer: compile_chunks
 	$(call compile_powscript,installer.pow,install.sh)
 
-compile_ssl_enabler:
+compile_ssl_enabler: compile_chunks
 	$(call compile_powscript,ssl_enabler.pow,enable-ssl.sh)
 
-compile_site_adder:
+compile_site_adder: compile_chunks
 	$(call compile_powscript,site_adder.pow,add-site.sh)
 
-compile_run_command_tester:
+compile_run_command_tester: compile_chunks
 	$(call compile_powscript,run_command_tester.pow,test-run-command.sh)
