@@ -12,5 +12,5 @@ translate(key)
 
 interpolate(string, substitution)
   IFS="=" read name value <<< "${substitution}"
-  string="${string//:${name}:/${value}}"
+  string="${string//\{\{ ${name} \}\}/${value}}"
   echo "${string}"
