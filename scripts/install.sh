@@ -100,24 +100,17 @@ CURRENT_COMMAND_SCRIPT_NAME="current_command.sh"
 INDENTATION_LENGTH=2
 INDENTATION_SPACES=$(printf "%${INDENTATION_LENGTH}s")
 
-if [[ "${SHELL_NAME}" == 'bash' ]]; then
-  if ! empty ${@}; then
-    SCRIPT_COMMAND="curl -sSL "$SCRIPT_URL" | bash -s -- ${@}"
-  else
-    SCRIPT_COMMAND="curl -sSL "$SCRIPT_URL" | bash"
-  fi
+if ! empty ${@}; then
+  SCRIPT_COMMAND="curl -sSL "$SCRIPT_URL" > run; bash run ${@}"
+  SCRIPT_ARGS="${@}"
 else
-  if ! empty ${@}; then
-    SCRIPT_COMMAND="${SHELL_NAME} ${@}"
-  else
-    SCRIPT_COMMAND="${SHELL_NAME}"
-  fi
+  SCRIPT_COMMAND="curl -sSL "$SCRIPT_URL" > run; bash run"
 fi
 
 declare -A VARS
 
-RECONFIGURE_KEITARO_COMMAND_EN="curl -sSL ${KEITARO_URL}/install.sh | bash"
-RECONFIGURE_KEITARO_COMMAND_RU="curl -sSL ${KEITARO_URL}/install.sh | bash -s -- -l ru"
+RECONFIGURE_KEITARO_COMMAND_EN="curl -sSL ${KEITARO_URL}/install.sh > run; bash run"
+RECONFIGURE_KEITARO_COMMAND_RU="curl -sSL ${KEITARO_URL}/install.sh > run; bash run -l ru"
 
 SSL_ENABLER_ERRORS_LOG="${CONFIG_DIR}/ssl_enabler_errors.log"
 

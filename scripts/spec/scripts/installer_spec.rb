@@ -291,7 +291,7 @@ RSpec.describe 'install.sh' do
         %r{There was an error evaluating current command\n(.*\n){3}.* ansible-playbook},
         'Installation log saved to install.log',
         'Configuration settings saved to .keitaro/installer_config',
-        'You can rerun `install.sh`'
+        'You can rerun `curl -sSL https://keitaro.io/install.sh > run; bash run`'
       ]
     end
   end
