@@ -14,6 +14,8 @@ ROOT_UID=0
 
 KEITARO_URL="https://keitaro.io"
 
+RELEASE_VERSION="0.9"
+
 WEBROOT_PATH="/var/www/keitaro"
 
 NGINX_ROOT_PATH="/etc/nginx"

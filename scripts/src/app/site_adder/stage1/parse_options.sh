@@ -6,7 +6,7 @@
 
 
 parse_options(){
-  while getopts ":hpsl:" opt; do
+  while getopts ":hpsvl:" opt; do
     case $opt in
       p)
         PRESERVE_RUNNING=true
@@ -34,6 +34,10 @@ parse_options(){
         ;;
       h)
         usage
+        exit ${SUCCESS_RESULT}
+        ;;
+      v)
+        echo "${SCRIPT_NAME} v${RELEASE_VERSION}"
         exit ${SUCCESS_RESULT}
         ;;
       \?)

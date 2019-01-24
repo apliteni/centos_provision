@@ -76,6 +76,8 @@ ROOT_UID=0
 
 KEITARO_URL="https://keitaro.io"
 
+RELEASE_VERSION="0.9"
+
 WEBROOT_PATH="/var/www/keitaro"
 
 NGINX_ROOT_PATH="/etc/nginx"
@@ -470,6 +472,7 @@ init(){
   force_utf8_input
   debug "Starting init stage: log basic info"
   debug "Command: ${SCRIPT_COMMAND}"
+  debug "Script version: ${RELEASE_VERSION}"
   debug "User ID: "$EUID""
   debug "Current date time: $(date +'%Y-%m-%d %H:%M:%S %:z')"
   trap on_exit SIGHUP SIGINT SIGTERM
@@ -1096,7 +1099,7 @@ stage1(){
 
 
 parse_options(){
-  while getopts ":hpsrl:t:k:i:a:" opt; do
+  while getopts ":hpsrvl:t:k:i:a:" opt; do
     case $opt in
       p)
         PRESERVE_RUNNING=true
@@ -1143,6 +1146,10 @@ parse_options(){
         ;;
       h)
         usage
+        exit ${SUCCESS_RESULT}
+        ;;
+      v)
+        echo "${SCRIPT_NAME} v${RELEASE_VERSION}"
         exit ${SUCCESS_RESULT}
         ;;
       \?)
