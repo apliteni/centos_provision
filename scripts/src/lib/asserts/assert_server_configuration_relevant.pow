@@ -32,4 +32,5 @@ build_upgrade_command()
 
 
 build_obsolete_tool_command(installed_version)
-  echo "curl keitaro.io/${PROGRAMM_NAME}_${installed_version//\./_}"
+  local obsolete_tool_name="${TOOL_NAME}_${installed_version//\./_}"
+  echo "${SCRIPT_COMMAND/${TOOL_NAME}/${obsolete_tool_name}}"

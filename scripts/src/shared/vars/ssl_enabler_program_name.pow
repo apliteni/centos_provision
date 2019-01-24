@@ -1,4 +1,4 @@
 #!/usr/bin/env powscript
 
 
-PROGRAM_NAME='enable-ssl'
+TOOL_NAME='enable-ssl'

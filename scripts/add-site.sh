@@ -58,7 +58,7 @@ last ()
 
 
 
-PROGRAM_NAME='add-site'
+TOOL_NAME='add-site'
 
 
 #
@@ -88,9 +88,9 @@ NGINX_ROOT_PATH="/etc/nginx"
 NGINX_VHOSTS_DIR="${NGINX_ROOT_PATH}/conf.d"
 NGINX_KEITARO_CONF="${NGINX_VHOSTS_DIR}/keitaro.conf"
 
-SCRIPT_NAME="${PROGRAM_NAME}.sh"
-SCRIPT_URL="${KEITARO_URL}/${PROGRAM_NAME}.sh"
-SCRIPT_LOG="${PROGRAM_NAME}.log"
+SCRIPT_NAME="${TOOL_NAME}.sh"
+SCRIPT_URL="${KEITARO_URL}/${TOOL_NAME}.sh"
+SCRIPT_LOG="${TOOL_NAME}.log"
 
 CURRENT_COMMAND_OUTPUT_LOG="current_command.output.log"
 CURRENT_COMMAND_ERROR_LOG="current_command.error.log"
@@ -101,7 +101,7 @@ INDENTATION_SPACES=$(printf "%${INDENTATION_LENGTH}s")
 
 if ! empty ${@}; then
   SCRIPT_COMMAND="curl -sSL "$SCRIPT_URL" > run; bash run ${@}"
-  SCRIPT_ARGS="${@}"
+  TOOL_ARGS="${@}"
 else
   SCRIPT_COMMAND="curl -sSL "$SCRIPT_URL" > run; bash run"
 fi
@@ -268,7 +268,8 @@ build_upgrade_command(){
 
 build_obsolete_tool_command(){
   local installed_version="${1}"
-  echo "curl keitaro.io/${PROGRAMM_NAME}_${installed_version//\./_}"
+  local obsolete_tool_name="${TOOL_NAME}_${installed_version//\./_}"
+  echo "${SCRIPT_COMMAND/${TOOL_NAME}/${obsolete_tool_name}}"
 }
 
 

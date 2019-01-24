@@ -59,7 +59,7 @@ last ()
 
 
 
-PROGRAM_NAME='install'
+TOOL_NAME='install'
 
 
 #
@@ -89,9 +89,9 @@ NGINX_ROOT_PATH="/etc/nginx"
 NGINX_VHOSTS_DIR="${NGINX_ROOT_PATH}/conf.d"
 NGINX_KEITARO_CONF="${NGINX_VHOSTS_DIR}/keitaro.conf"
 
-SCRIPT_NAME="${PROGRAM_NAME}.sh"
-SCRIPT_URL="${KEITARO_URL}/${PROGRAM_NAME}.sh"
-SCRIPT_LOG="${PROGRAM_NAME}.log"
+SCRIPT_NAME="${TOOL_NAME}.sh"
+SCRIPT_URL="${KEITARO_URL}/${TOOL_NAME}.sh"
+SCRIPT_LOG="${TOOL_NAME}.log"
 
 CURRENT_COMMAND_OUTPUT_LOG="current_command.output.log"
 CURRENT_COMMAND_ERROR_LOG="current_command.error.log"
@@ -102,7 +102,7 @@ INDENTATION_SPACES=$(printf "%${INDENTATION_LENGTH}s")
 
 if ! empty ${@}; then
   SCRIPT_COMMAND="curl -sSL "$SCRIPT_URL" > run; bash run ${@}"
-  SCRIPT_ARGS="${@}"
+  TOOL_ARGS="${@}"
 else
   SCRIPT_COMMAND="curl -sSL "$SCRIPT_URL" > run; bash run"
 fi

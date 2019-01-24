@@ -1,4 +1,4 @@
 #!/usr/bin/env powscript
 
 
-PROGRAM_NAME='test-run-command'
+TOOL_NAME='test-run-command'

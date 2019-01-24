@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-PROGRAM_NAME='test-run-command'
+TOOL_NAME='test-run-command'
