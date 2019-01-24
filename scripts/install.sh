@@ -83,7 +83,7 @@ WEBROOT_PATH="/var/www/keitaro"
 
 CONFIG_DIR=".keitaro"
 INVENTORY_FILE="${CONFIG_DIR}/installer_config"
-SCRIPT_VERSION=1.0
+RELEASE_VERSION=1.0
 
 NGINX_ROOT_PATH="/etc/nginx"
 NGINX_VHOSTS_DIR="${NGINX_ROOT_PATH}/conf.d"
@@ -1576,7 +1576,7 @@ write_inventory_file(){
   print_line_to_inventory_file "admin_login="${VARS['admin_login']}""
   print_line_to_inventory_file "admin_password="${VARS['admin_password']}""
   print_line_to_inventory_file "language=${UI_LANG}"
-  print_line_to_inventory_file "installer_version=${SCRIPT_VERSION}"
+  print_line_to_inventory_file "installer_version=${RELEASE_VERSION}"
   print_line_to_inventory_file "evaluated_by_installer=yes"
   print_line_to_inventory_file "cpu_cores=$(get_cpu_cores)"
   if isset "$KEITARO_RELEASE"; then
