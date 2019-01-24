@@ -76,13 +76,12 @@ ROOT_UID=0
 
 KEITARO_URL="https://keitaro.io"
 
-RELEASE_VERSION="0.9"
+RELEASE_VERSION="1.0"
 
 WEBROOT_PATH="/var/www/keitaro"
 
 CONFIG_DIR=".keitaro"
 INVENTORY_FILE="${CONFIG_DIR}/installer_config"
-RELEASE_VERSION=1.0
 
 NGINX_ROOT_PATH="/etc/nginx"
 NGINX_VHOSTS_DIR="${NGINX_ROOT_PATH}/conf.d"
@@ -262,13 +261,14 @@ build_upgrade_message(){
 
 
 build_upgrade_command(){
-  echo "curl keitaro.io/install.sh > run; bash run -rt upgrade,upgrade_to_${RELEASE_VERSION//\./_}"
+  installer_url="https://keitaro.io/release-${RELEASE_VERSION}/install.sh"
+  echo "curl ${installer_url} > run; bash run -rt upgrade,upgrade_to_${RELEASE_VERSION//\./_}"
 }
 
 
 build_obsolete_tool_command(){
   local installed_version="${1}"
-  local obsolete_tool_name="${TOOL_NAME}_${installed_version//\./_}"
+  local obsolete_tool_name="release-${installed_version}/${TOOL_NAME}"
   echo "${SCRIPT_COMMAND/${TOOL_NAME}/${obsolete_tool_name}}"
 }
 
