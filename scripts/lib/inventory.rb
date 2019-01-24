@@ -30,6 +30,7 @@ class Inventory
     strings = values
                 .map { |array| array.join(VALUES_DIVIDER) }
                 .push('')
+    Dir.mkdir("#{File.dirname(Inventory::INVENTORY_FILE)}")
     IO.write(INVENTORY_FILE, strings.join(LINES_DIVIDER))
   end
 

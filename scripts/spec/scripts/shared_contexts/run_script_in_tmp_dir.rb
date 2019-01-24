@@ -14,13 +14,8 @@ RSpec.shared_context 'run script in tmp dir', run_script_in_tmp_dir: :yes do
         FileUtils.copy(path_to_file, @current_dir)
       end
     end
-    save_inventory(inventory_values)
+    Inventory.write(inventory_values)
     subject.call(current_dir: @current_dir)
     @inventory = Inventory.read_from_log(subject.log)
-  end
-
-  def save_inventory(inventory_values)
-    Dir.mkdir("#{File.dirname(Inventory::INVENTORY_FILE)}")
-    Inventory.write(inventory_values)
   end
 end
