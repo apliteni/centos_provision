@@ -5,6 +5,7 @@
 
 
 
+
 assert_server_configuration_relevant(){
   debug 'Ensure configs has been genereated by relevant installer'
   if isset "$SKIP_CHECKS"; then
@@ -21,9 +22,12 @@ assert_server_configuration_relevant(){
 
 
 detect_installed_version(){
-  local version=0.9
+  local version=""
   if is_exists_file ${INVENTORY_FILE}; then
-    version=$(grep -q "^installer_version=" ${INVENTORY_FILE} | sed s/^installer_version=//g)
+    version=$(grep "^installer_version=" ${INVENTORY_FILE} | sed s/^installer_version=//g)
+  fi
+  if empty "$version"; then
+    version="0.9"
   fi
   echo "$version"
 }
