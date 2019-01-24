@@ -16,7 +16,7 @@ WEBROOT_PATH="/var/www/keitaro"
 
 CONFIG_DIR=".keitaro"
 INVENTORY_FILE="${CONFIG_DIR}/installer_config"
-SCRIPT_VERSION=1.0
+RELEASE_VERSION=1.0
 
 NGINX_ROOT_PATH="/etc/nginx"
 NGINX_VHOSTS_DIR="${NGINX_ROOT_PATH}/conf.d"

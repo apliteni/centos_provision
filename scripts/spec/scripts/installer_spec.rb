@@ -218,23 +218,23 @@ RSpec.describe 'install.sh' do
 
     shared_examples_for 'should install keitaro' do
       it_behaves_like 'should print to', :stdout,
-                      'curl -sSL https://github.com/apliteni/centos_provision/archive/release-0.9.tar.gz | tar xz'
+                      'curl -sSL https://github.com/apliteni/centos_provision/archive/release_1_0.tar.gz | tar xz'
 
       it_behaves_like 'should print to', :stdout,
-                      "ansible-playbook -vvv -i #{Inventory::INVENTORY_FILE} centos_provision-release-0.9/playbook.yml"
+                      "ansible-playbook -vvv -i #{Inventory::INVENTORY_FILE} centos_provision-release_1_0/playbook.yml"
 
       context '-t specified' do
         let(:options) { '-p -t tag1,tag2' }
 
         it_behaves_like 'should print to', :stdout,
-                        "ansible-playbook -vvv -i #{Inventory::INVENTORY_FILE} centos_provision-release-0.9/playbook.yml --tags tag1,tag2"
+                        "ansible-playbook -vvv -i #{Inventory::INVENTORY_FILE} centos_provision-release_1_0/playbook.yml --tags tag1,tag2"
       end
 
       context '-i specified' do
         let(:options) { '-p -i tag1,tag2' }
 
         it_behaves_like 'should print to', :stdout,
-                        "ansible-playbook -vvv -i #{Inventory::INVENTORY_FILE} centos_provision-release-0.9/playbook.yml --skip-tags tag1,tag2"
+                        "ansible-playbook -vvv -i #{Inventory::INVENTORY_FILE} centos_provision-release_1_0/playbook.yml --skip-tags tag1,tag2"
       end
     end
 
