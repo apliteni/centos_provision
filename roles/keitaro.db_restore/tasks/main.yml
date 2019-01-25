@@ -1,5 +1,5 @@
 - name: Drop newly created keitaro DB
-  shell: mysql -e "DROP DATABASE {{ db_name }}; CREATE DATABASE {{ db_name }}"
+  shell: 'mysql -e "DROP DATABASE {{ db_name }}; CREATE DATABASE {{ db_name }}"'
 
 - name: Install file utility
   package:
@@ -19,6 +19,11 @@
 - name: Restore DB from unpacked SQL dump
   include: restore_from_unpacked_dump.yml
   when: "db_restore_dump_file_mime.stdout != 'application/x-gzip'"
+
+- name: Reset Keitaro cache
+  shell: "php bin/cli.php system:reload_cache"
+  args:
+    chdir: "{{ keitaro.path }}"
 
 - name: Reset Keitaro salt
   lineinfile:
