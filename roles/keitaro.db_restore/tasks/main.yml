@@ -21,9 +21,10 @@
   when: "db_restore_dump_file_mime.stdout != 'application/x-gzip'"
 
 - name: Reset Keitaro cache
-  shell: "php bin/cli.php system:reload_cache"
+  command: "php bin/cli.php system:reload_cache"
   args:
     chdir: "{{ keitaro.path }}"
+  become_user: "{{ os_user }}"
 
 - name: Reset Keitaro salt
   lineinfile:
