@@ -1453,7 +1453,7 @@ generate_certificates(){
         cp "${NGINX_VHOSTS_DIR}/${domain}.conf" "${NGINX_VHOSTS_DIR}/${new_name}"
       fi
       debug "Generating nginx config for ${domain}"
-      generate_nginx_config_for "${domain}"
+      generate_nginx_config "${domain}"
     else
       debug "Skip generation nginx config ${domain} due errors while cert issuing"
       print_with_color "${domain}: ${certificate_error}" "red"
@@ -1492,7 +1492,8 @@ request_certificate_for(){
 }
 
 
-generate_nginx_config_for(){
+
+generate_nginx_config(){
   local domain="${1}"
   certs_root_path="/etc/letsencrypt/live/${domain}"
   changes="-e 's|listen 80.*|listen 80;|g'"
