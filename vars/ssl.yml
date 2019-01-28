@@ -1,7 +1,8 @@
 letsencrypt_webroot_path: "{{ keitaro.path }}"
 letsencrypt_cert_domains: "{{ ssl_domains.split(',') }}"
 letsencrypt_email: "{{ ssl_email | default('') }}"
-ssl_dhparam_path: /etc/ssl/certs/dhparam.pem
-ssl_selfsigned_cert_path: /etc/ssl/certs/cert.pem
-ssl_selfsigned_privkey_path: /etc/ssl/certs/privkey.pem
+ssl_dir: /etc/ssl/certs
+ssl_dhparam_path: "{{ ssl_dir }}/dhparam.pem"
+ssl_cert_path: "{{ ssl_dir }}/cert.pem"
+ssl_privkey_path: "{{ ssl_dir }}/privkey.pem"
 
