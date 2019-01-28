@@ -37,7 +37,7 @@ generate_certificates(){
         cp "${NGINX_VHOSTS_DIR}/${domain}.conf" "${NGINX_VHOSTS_DIR}/${new_name}"
       fi
       debug "Generating nginx config for ${domain}"
-      generate_nginx_config "${domain}"
+      generate_nginx_host_config "${domain}"
     else
       debug "Skip generation nginx config ${domain} due errors while cert issuing"
       print_with_color "${domain}: ${certificate_error}" "red"
