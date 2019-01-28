@@ -1,6 +1,4 @@
----
-
 - name: Generate strong Diffie-Hellman group
-  command: "openssl dhparam  -out /etc/ssl/certs/dhparam.pem 2048"
+  command: "openssl dhparam  -out {{ ssl_dhparam_path }} 2048"
   args:
-    creates: "/etc/ssl/certs/dhparam.pem"
+    creates: "{{ ssl_dhparam_path }}"

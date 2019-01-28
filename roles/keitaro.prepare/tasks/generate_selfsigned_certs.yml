@@ -1,19 +1,16 @@
----
-
 - name: Remove old certs
   file:
-    path: '/etc/nginx/ssl/{{item}}'
+    path: "{{ item }}"
     state: absent
   with_items:
-    cert.pem
-    privkey.pem
+    - "{{ ssl_cert_path }}"
+    - "{{ ssl_privkey_path }}"
+
 
 - name: Generate self-signed SSL certificate
   command: |
     openssl req -x509 -newkey rsa:4096 -sha256 -nodes \
       -days 3650 \
-      -out cert.pem \
-      -keyout privkey.pem \
-      -subj "/CN={{license_ip}}"
-  args:
-     chdir: /etc/nginx/ssl
+      -out {{ ssl_cert_path }} \
+      -keyout {{ ssl_privkey_path }} \
+      -subj "/CN={{ license_ip }}"
