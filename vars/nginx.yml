@@ -37,20 +37,33 @@ nginx_vhosts:
     root: "{{ keitaro.path }}"
     index: index.php index.html
     charset: utf-8
-    upstream: |+4
-          upstream php {
-            server unix:/var/run/{{php_version}}-fpm.sock;
-          }
-    extra_parameters: |+4
+    upstream: |
+        upstream php {
+          server unix:/var/run/{{php_version}}-fpm.sock;
+        }
+    extra_parameters: |
+          # begin ssl
+          listen 443 ssl;
+          ssl_certificate /etc/nginx/ssl/cert.pem;
+          ssl_certificate_key /etc/nginx/ssl/privkey.pem;
+          ssl_session_cache   shared:SSL:10m;
+          ssl_session_timeout 10m;
+          ssl_prefer_server_ciphers on;
+          ssl_dhparam {{ ssl_dhparam_path }};
+          add_header X-Content-Type-Options nosniff;
+          # end ssl
+
+          # begin caching
           location ~* \.(jpg|jpeg|gif|png|js|css|txt|zip|ico|gz|csv)$ {
             expires 10d;
           }
+          # end caching
 
+          # begin forbid keitaro
           location ~* \.(htaccess|ini|dat)$ {
             return 403;
           }
 
-          # begin forbid keitaro
           location ~* /(var|lib|application)/.*$ {
             return 403;
           }
@@ -66,6 +79,7 @@ nginx_vhosts:
           }
           # end status page
 
+          # begin php
           location ~ \.php$ {
             fastcgi_split_path_info ^(.+\.php)(/.+)$;
             fastcgi_pass php;
@@ -75,8 +89,11 @@ nginx_vhosts:
             fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
             include fastcgi_params;
           }
+          # begin php
 
+          # begin /
           location / {
             try_files $uri $uri/ /index.php?$args;
           }
+          # end /
 
