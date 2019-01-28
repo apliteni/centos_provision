@@ -61,6 +61,7 @@ _require 'app/ssl_enabler/stage4.sh'
 _require 'app/ssl_enabler/stage4/add_renewal_job.sh'
 _require 'app/ssl_enabler/stage4/regenerate_self_signed_cert.sh'
 _require 'app/ssl_enabler/stage4/generate_certificates.sh'
+_require 'app/ssl_enabler/stage4/generate_nginx_config.sh'
 _require 'app/ssl_enabler/stage4/show_finishing_message.sh'
 _require 'app/ssl_enabler/stage4/recognize_error.sh'
 
