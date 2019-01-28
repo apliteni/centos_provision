@@ -1,7 +1,7 @@
 #!/usr/bin/env powscript
 
 
-add_vhost()
+generate_nginx_host_config()
   debug "Add vhost"
   run_command "echo '$(vhost_content)' > '$(vhost_filepath)'" "$(translate 'messages.add_vhost')" "hide_output"
   debug $(print_content_of "$(vhost_filepath)")
