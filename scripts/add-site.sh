@@ -308,7 +308,7 @@ is_directory_exist(){
 
 
 
-is_exists_path(){
+is_path_exist(){
   local path="${1}"
   local result_on_skip="${2}"
   debug "Checking ${path} path existence"
@@ -1262,7 +1262,7 @@ function vhost_content() {
 
 ensure_can_add_vhost(){
   debug "Ensure can add vhost"
-  if is_exists_path "$(vhost_filepath)" "no"; then
+  if is_path_exist "$(vhost_filepath)" "no"; then
     local message="$(translate 'errors.vhost_already_exists')"
     fail "${message/:vhost_filepath:/$(vhost_filepath)}"
   fi

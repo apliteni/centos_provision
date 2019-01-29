@@ -1,28 +1,18 @@
-#!/usr/bin/env bash
-#
+#!/usr/bin/env powscript
 
 
-
-
-
-is_exists_path(){
-  local path="${1}"
-  local result_on_skip="${2}"
+is_path_exist(path, result_on_skip)
   debug "Checking ${path} path existence"
-  if isset "$SKIP_CHECKS"; then
+  if isset $SKIP_CHECKS
     debug "SKIP: аctual check of ${path} path existence disabled"
-    if [[ "$result_on_skip" == "no" ]]; then
+    if $result_on_skip == "no"
       debug "NO: simulate ${path} path does not exist"
       return ${FAILURE_RESULT}
-    fi
     debug "YES: simulate ${path} path exists"
     return ${SUCCESS_RESULT}
-  fi
-  if [ -e "${path}" ]; then
+  if [ -e "${path}" ]
     debug "YES: ${path} path exists"
     return ${SUCCESS_RESULT}
   else
     debug "NO: ${path} path does not exist"
     return ${FAILURE_RESULT}
-  fi
-}
