@@ -367,7 +367,7 @@ is_file_exist(){
 
 
 
-is_exists_directory(){
+is_directory_exist(){
   local directory="${1}"
   local result_on_skip="${2}"
   debug "Checking ${directory} directory existence"
@@ -1466,7 +1466,7 @@ generate_certificates(){
 
 certificate_exists_for_domain(){
   local domain="${1}"
-  is_exists_directory "/etc/letsencrypt/live/${domain}" "no"
+  is_directory_exist "/etc/letsencrypt/live/${domain}" "no"
 }
 
 

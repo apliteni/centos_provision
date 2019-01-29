@@ -279,7 +279,7 @@ build_obsolete_tool_command(){
 
 
 
-is_exists_directory(){
+is_directory_exist(){
   local directory="${1}"
   local result_on_skip="${2}"
   debug "Checking ${directory} directory existence"
@@ -1157,7 +1157,7 @@ is_nginx_properly_configured(){
     log_and_print_err "ERROR: File ${NGINX_KEITARO_CONF} doesn't exists"
     return ${FAILURE_RESULT}
   fi
-  if ! is_exists_directory "${WEBROOT_PATH}"; then
+  if ! is_directory_exist "${WEBROOT_PATH}"; then
     log_and_print_err "ERROR: Directory ${WEBROOT_PATH} doesn't exists"
     return ${FAILURE_RESULT}
   fi
@@ -1266,7 +1266,7 @@ ensure_can_add_vhost(){
     local message="$(translate 'errors.vhost_already_exists')"
     fail "${message/:vhost_filepath:/$(vhost_filepath)}"
   fi
-  if ! is_exists_directory "${VARS['site_root']}"; then
+  if ! is_directory_exist "${VARS['site_root']}"; then
     local message="$(translate 'errors.site_root_not_exists')"
     fail "${message/:site_root:/${VARS['site_root']}}"
   fi
