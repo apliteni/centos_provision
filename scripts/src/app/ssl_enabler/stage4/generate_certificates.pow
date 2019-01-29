@@ -39,7 +39,7 @@ generate_certificates()
 
 
 certificate_exists_for_domain(domain)
-  is_exists_directory "/etc/letsencrypt/live/${domain}" "no"
+  is_directory_exist "/etc/letsencrypt/live/${domain}" "no"
 
 
 nginx_config_exists_for_domain(domain)

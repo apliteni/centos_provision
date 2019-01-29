@@ -18,7 +18,7 @@ is_nginx_properly_configured(){
     log_and_print_err "ERROR: File ${NGINX_KEITARO_CONF} doesn't exists"
     return ${FAILURE_RESULT}
   fi
-  if ! is_exists_directory "${WEBROOT_PATH}"; then
+  if ! is_directory_exist "${WEBROOT_PATH}"; then
     log_and_print_err "ERROR: Directory ${WEBROOT_PATH} doesn't exists"
     return ${FAILURE_RESULT}
   fi

@@ -50,7 +50,7 @@ generate_certificates(){
 
 certificate_exists_for_domain(){
   local domain="${1}"
-  is_exists_directory "/etc/letsencrypt/live/${domain}" "no"
+  is_directory_exist "/etc/letsencrypt/live/${domain}" "no"
 }
 
 

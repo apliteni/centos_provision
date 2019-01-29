@@ -6,7 +6,7 @@ ensure_can_add_vhost(){
     local message="$(translate 'errors.vhost_already_exists')"
     fail "${message/:vhost_filepath:/$(vhost_filepath)}"
   fi
-  if ! is_exists_directory "${VARS['site_root']}"; then
+  if ! is_directory_exist "${VARS['site_root']}"; then
     local message="$(translate 'errors.site_root_not_exists')"
     fail "${message/:site_root:/${VARS['site_root']}}"
   fi

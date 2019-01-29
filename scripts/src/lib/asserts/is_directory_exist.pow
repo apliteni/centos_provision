@@ -1,28 +1,18 @@
-#!/usr/bin/env bash
-#
+#!/usr/bin/env powscript
 
 
-
-
-
-is_exists_directory(){
-  local directory="${1}"
-  local result_on_skip="${2}"
+is_directory_exist(directory, result_on_skip)
   debug "Checking ${directory} directory existence"
-  if isset "$SKIP_CHECKS"; then
+  if isset $SKIP_CHECKS
     debug "SKIP: аctual check of ${directory} directory existence disabled"
-    if [[ "$result_on_skip" == "no" ]]; then
+    if $result_on_skip == "no"
       debug "NO: simulate ${directory} directory does not exist"
       return ${FAILURE_RESULT}
-    fi
     debug "YES: simulate ${directory} directory exists"
     return ${SUCCESS_RESULT}
-  fi
-  if [ -d "${directory}" ]; then
+  if [ -d "${directory}" ]
     debug "YES: ${directory} directory exists"
     return ${SUCCESS_RESULT}
   else
     debug "NO: ${directory} directory does not exist"
     return ${FAILURE_RESULT}
-  fi
-}
