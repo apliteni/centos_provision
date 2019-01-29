@@ -23,7 +23,7 @@ assert_server_configuration_relevant(){
 
 detect_installed_version(){
   local version=""
-  if is_exists_file ${INVENTORY_FILE}; then
+  if is_file_exist ${INVENTORY_FILE}; then
     version=$(grep "^installer_version=" ${INVENTORY_FILE} | sed s/^installer_version=//g)
   fi
   if empty "$version"; then

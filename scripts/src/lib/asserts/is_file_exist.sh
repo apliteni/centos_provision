@@ -5,7 +5,7 @@
 
 
 
-is_exists_file(){
+is_file_exist(){
   local file="${1}"
   local result_on_skip="${2}"
   debug "Checking ${file} file existence"

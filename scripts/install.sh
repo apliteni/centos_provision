@@ -212,7 +212,7 @@ assert_keitaro_not_installed(){
     debug 'Skip checking install.lock because of reconfigure mode'
     return
   fi
-  if is_exists_file ${WEBROOT_PATH}/var/install.lock no; then
+  if is_file_exist ${WEBROOT_PATH}/var/install.lock no; then
     debug 'NOK: keitaro is already installed'
     print_err "$(translate messages.keitaro_already_installed)" 'yellow'
     show_credentials
@@ -230,7 +230,7 @@ assert_keitaro_not_installed(){
 
 
 
-is_exists_file(){
+is_file_exist(){
   local file="${1}"
   local result_on_skip="${2}"
   debug "Checking ${file} file existence"
@@ -1128,7 +1128,7 @@ clean_up(){
 
 
 write_inventory_on_reconfiguration(){
-  if ! is_exists_file ${INVENTORY_FILE}; then
+  if ! is_file_exist ${INVENTORY_FILE}; then
     collect_inventory_variables
     write_inventory_file
   fi
@@ -1329,7 +1329,7 @@ assert_apache_not_installed(){
 
 assert_centos_distro(){
   assert_installed 'yum' 'errors.wrong_distro'
-  if ! is_exists_file /etc/centos-release; then
+  if ! is_file_exist /etc/centos-release; then
     fail "$(translate errors.wrong_distro)" "see_logs"
     if ! cat /etc/centos-release | grep -q 'release 7\.'; then
       fail "$(translate errors.wrong_distro)" "see_logs"
@@ -1872,7 +1872,7 @@ remove_ansi_colors(){
 
 get_message_from_enable_ssl_log(){
   local prefix="${1}"
-  if is_exists_file "${SSL_OUTPUT_LOG}" "no"; then
+  if is_file_exist "${SSL_OUTPUT_LOG}" "no"; then
     cat "${SSL_OUTPUT_LOG}" \
       | remove_ansi_colors \
       | grep -E "${prefix}" || :

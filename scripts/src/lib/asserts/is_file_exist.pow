@@ -1,7 +1,7 @@
 #!/usr/bin/env powscript
 
 
-is_exists_file(file, result_on_skip)
+is_file_exist(file, result_on_skip)
   debug "Checking ${file} file existence"
   if isset $SKIP_CHECKS
     debug "SKIP: аctual check of ${file} file existence disabled"

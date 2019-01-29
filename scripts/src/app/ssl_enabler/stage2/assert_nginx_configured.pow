@@ -7,13 +7,13 @@ assert_nginx_configured()
 
 
 is_nginx_properly_configured()
-  if not is_exists_file "${NGINX_KEITARO_CONF}"
+  if not is_file_exist "${NGINX_KEITARO_CONF}"
     log_and_print_err "ERROR: File ${NGINX_KEITARO_CONF} doesn't exists"
     return ${FAILURE_RESULT}
-  if not is_exists_file "${NGINX_SSL_CERT_PATH}"
+  if not is_file_exist "${NGINX_SSL_CERT_PATH}"
     log_and_print_err "ERROR: File ${NGINX_SSL_CERT_PATH} doesn't exists"
     return ${FAILURE_RESULT}
-  if not is_exists_file "${NGINX_SSL_PRIVKEY_PATH}"
+  if not is_file_exist "${NGINX_SSL_PRIVKEY_PATH}"
     log_and_print_err "ERROR: File ${NGINX_SSL_PRIVKEY_PATH} doesn't exists"
     return ${FAILURE_RESULT}
   is_ssl_configured

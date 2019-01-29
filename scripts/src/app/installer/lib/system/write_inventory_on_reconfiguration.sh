@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 write_inventory_on_reconfiguration(){
-  if ! is_exists_file ${INVENTORY_FILE}; then
+  if ! is_file_exist ${INVENTORY_FILE}; then
     collect_inventory_variables
     write_inventory_file
   fi

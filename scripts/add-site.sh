@@ -243,7 +243,7 @@ assert_server_configuration_relevant(){
 
 detect_installed_version(){
   local version=""
-  if is_exists_file ${INVENTORY_FILE}; then
+  if is_file_exist ${INVENTORY_FILE}; then
     version=$(grep "^installer_version=" ${INVENTORY_FILE} | sed s/^installer_version=//g)
   fi
   if empty "$version"; then
@@ -337,7 +337,7 @@ is_exists_path(){
 
 
 
-is_exists_file(){
+is_file_exist(){
   local file="${1}"
   local result_on_skip="${2}"
   debug "Checking ${file} file existence"
@@ -1153,7 +1153,7 @@ assert_nginx_configured(){
 
 
 is_nginx_properly_configured(){
-  if ! is_exists_file "${NGINX_KEITARO_CONF}"; then
+  if ! is_file_exist "${NGINX_KEITARO_CONF}"; then
     log_and_print_err "ERROR: File ${NGINX_KEITARO_CONF} doesn't exists"
     return ${FAILURE_RESULT}
   fi

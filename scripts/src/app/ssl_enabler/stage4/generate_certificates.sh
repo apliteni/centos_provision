@@ -56,7 +56,7 @@ certificate_exists_for_domain(){
 
 nginx_config_exists_for_domain(){
   local domain="${1}"
-  is_exists_file "${NGINX_VHOSTS_DIR}/${domain}.conf" "no"
+  is_file_exist "${NGINX_VHOSTS_DIR}/${domain}.conf" "no"
 }
 
 

@@ -45,7 +45,7 @@ remove_ansi_colors(){
 
 get_message_from_enable_ssl_log(){
   local prefix="${1}"
-  if is_exists_file "${SSL_OUTPUT_LOG}" "no"; then
+  if is_file_exist "${SSL_OUTPUT_LOG}" "no"; then
     cat "${SSL_OUTPUT_LOG}" \
       | remove_ansi_colors \
       | grep -E "${prefix}" || :

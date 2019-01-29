@@ -43,7 +43,7 @@ certificate_exists_for_domain(domain)
 
 
 nginx_config_exists_for_domain(domain)
-  is_exists_file "${NGINX_VHOSTS_DIR}/${domain}.conf" "no"
+  is_file_exist "${NGINX_VHOSTS_DIR}/${domain}.conf" "no"
 
 
 request_certificate_for(domain)
