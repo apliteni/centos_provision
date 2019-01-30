@@ -3,9 +3,9 @@
     name: certbot
     state: installed
 
-- name: Create /etc/nginx/ssl directory
+- name: Create directory for ssl certs
   file:
-    path: /etc/nginx/ssl
+    path: "{{ ssl_root }}"
     state: directory
 
 - name: Remove old renewal certs job

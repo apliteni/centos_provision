@@ -17,12 +17,12 @@ is_nginx_properly_configured(){
     log_and_print_err "ERROR: File ${NGINX_KEITARO_CONF} doesn't exists"
     return ${FAILURE_RESULT}
   fi
-  if ! is_file_exist "${NGINX_SSL_CERT_PATH}"; then
-    log_and_print_err "ERROR: File ${NGINX_SSL_CERT_PATH} doesn't exists"
+  if ! is_file_exist "${SSL_CERT_PATH}"; then
+    log_and_print_err "ERROR: File ${SSL_CERT_PATH} doesn't exists"
     return ${FAILURE_RESULT}
   fi
-  if ! is_file_exist "${NGINX_SSL_PRIVKEY_PATH}"; then
-    log_and_print_err "ERROR: File ${NGINX_SSL_PRIVKEY_PATH} doesn't exists"
+  if ! is_file_exist "${SSL_PRIVKEY_PATH}"; then
+    log_and_print_err "ERROR: File ${SSL_PRIVKEY_PATH} doesn't exists"
     return ${FAILURE_RESULT}
   fi
   is_ssl_configured
@@ -35,7 +35,7 @@ is_ssl_configured(){
     debug "SKIP: аctual check of ssl params in ${NGINX_KEITARO_CONF} disabled"
     return ${SUCCESS_RESULT}
   fi
-  if grep -q -e "ssl_certificate #{NGINX_SSL_CERT_PATH};" -e "ssl_certificate_key ${NGINX_SSL_PRIVKEY_PATH};" "${NGINX_KEITARO_CONF}"; then
+  if grep -q -e "ssl_certificate ${SSL_CERT_PATH};" -e "ssl_certificate_key ${SSL_PRIVKEY_PATH};" "${NGINX_KEITARO_CONF}"; then
     debug "OK: it seems like ${NGINX_KEITARO_CONF} is properly configured"
     return ${SUCCESS_RESULT}
   else
