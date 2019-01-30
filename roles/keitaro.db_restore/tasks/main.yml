@@ -26,12 +26,12 @@
 - name: Reset Keitaro cache
   command: "php bin/cli.php system:reload_cache"
   args:
-    chdir: "{{ keitaro.path }}"
+    chdir: "{{ keitaro_root }}"
   become_user: "{{ os_user }}"
 
 - name: Reset Keitaro salt
   lineinfile:
-    path: "{{ keitaro.path }}/application/config/config.ini.php"
+    path: "{{ keitaro_root }}/application/config/config.ini.php"
     regexp: '^salt'
     line: 'salt = {{ db_restore_salt }}'
   notify: restart php-fpm
