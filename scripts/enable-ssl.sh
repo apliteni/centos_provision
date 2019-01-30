@@ -171,9 +171,9 @@ DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет
 declare -a DOMAINS
 declare -a SUCCESSFUL_DOMAINS
 declare -a FAILED_DOMAINS
-NGINX_SSL_PATH="${NGINX_ROOT_PATH}/ssl"
-NGINX_SSL_CERT_PATH="${NGINX_SSL_PATH}/cert.pem"
-NGINX_SSL_PRIVKEY_PATH="${NGINX_SSL_PATH}/privkey.pem"
+SSL_ROOT="/etc/keitaro/ssl"
+SSL_CERT_PATH="${SSL_ROOT}/cert.pem"
+SSL_PRIVKEY_PATH="${SSL_ROOT}/privkey.pem"
 CERT_DOMAINS_PATH="${CONFIG_DIR}/ssl_enabler_cert_domains"
 CERTBOT_LOG="${CONFIG_DIR}/ssl_enabler_cerbot.log"
 
@@ -1318,12 +1318,12 @@ is_nginx_properly_configured(){
     log_and_print_err "ERROR: File ${NGINX_KEITARO_CONF} doesn't exists"
     return ${FAILURE_RESULT}
   fi
-  if ! is_file_exist "${NGINX_SSL_CERT_PATH}"; then
-    log_and_print_err "ERROR: File ${NGINX_SSL_CERT_PATH} doesn't exists"
+  if ! is_file_exist "${SSL_CERT_PATH}"; then
+    log_and_print_err "ERROR: File ${SSL_CERT_PATH} doesn't exists"
     return ${FAILURE_RESULT}
   fi
-  if ! is_file_exist "${NGINX_SSL_PRIVKEY_PATH}"; then
-    log_and_print_err "ERROR: File ${NGINX_SSL_PRIVKEY_PATH} doesn't exists"
+  if ! is_file_exist "${SSL_PRIVKEY_PATH}"; then
+    log_and_print_err "ERROR: File ${SSL_PRIVKEY_PATH} doesn't exists"
     return ${FAILURE_RESULT}
   fi
   is_ssl_configured
@@ -1336,7 +1336,7 @@ is_ssl_configured(){
     debug "SKIP: аctual check of ssl params in ${NGINX_KEITARO_CONF} disabled"
     return ${SUCCESS_RESULT}
   fi
-  if grep -q -e "ssl_certificate #{NGINX_SSL_CERT_PATH};" -e "ssl_certificate_key ${NGINX_SSL_PRIVKEY_PATH};" "${NGINX_KEITARO_CONF}"; then
+  if grep -q -e "ssl_certificate ${SSL_CERT_PATH};" -e "ssl_certificate_key ${SSL_PRIVKEY_PATH};" "${NGINX_KEITARO_CONF}"; then
     debug "OK: it seems like ${NGINX_KEITARO_CONF} is properly configured"
     return ${SUCCESS_RESULT}
   else
@@ -1445,23 +1445,23 @@ renewal_job_installed(){
 
 
 regenerate_self_signed_cert(){
-  if [ -L ${NGINX_SSL_CERT_PATH} ]; then
-    debug "${NGINX_SSL_CERT_PATH} is link. Getting cert domains"
+  if [ -L ${SSL_CERT_PATH} ]; then
+    debug "${SSL_CERT_PATH} is link. Getting cert domains"
     local domains=$(get_domains_from_cert)
     local main_domain=$(awk '{print $1}' <<< "${domains}")
-    debug "Current domains in ${NGINX_SSL_CERT_PATH}: ${domains}. Main domain: ${main_domain}"
+    debug "Current domains in ${SSL_CERT_PATH}: ${domains}. Main domain: ${main_domain}"
     save_cert_domains "${domains}"
     remove_letsencrypt_certificate "$main_domain"
     generate_self_signed_certificate
   else
-    debug "${NGINX_SSL_CERT_PATH} is not link, do not regenerate self-signed cert"
+    debug "${SSL_CERT_PATH} is not link, do not regenerate self-signed cert"
   fi
 }
 
 
 get_domains_from_cert(){
   debug "Getting domains from existent cert"
-  openssl x509 -text < "$NGINX_SSL_CERT_PATH" | grep DNS | sed -r -e 's/(DNS:|,)//g'
+  openssl x509 -text < "$SSL_CERT_PATH" | grep DNS | sed -r -e 's/(DNS:|,)//g'
 }
 
 
@@ -1478,13 +1478,13 @@ remove_letsencrypt_certificate(){
   rm -rf "/etc/letsencrypt/live/${domain}"
   rm -rf "/etc/letsencrypt/archive/${domain}"
   rm -f "/etc/letsencrypt/renewal/${domain}.conf"
-  rm -f "$NGINX_SSL_CERT_PATH" "$NGINX_SSL_PRIVKEY_PATH"
+  rm -f "$SSL_CERT_PATH" "$SSL_PRIVKEY_PATH"
 }
 
 
 generate_self_signed_certificate(){
   command="openssl req -x509 -newkey rsa:4096 -sha256 -nodes -days 3650"
-  command="${command} -out "$NGINX_SSL_CERT_PATH" -keyout "$NGINX_SSL_PRIVKEY_PATH""
+  command="${command} -out "$SSL_CERT_PATH" -keyout "$SSL_PRIVKEY_PATH""
   command="${command} -subj '/CN=$(get_host_ip)'"
   run_command "${command}" 'Generating self-signed certificate' 'hide_output'
 }

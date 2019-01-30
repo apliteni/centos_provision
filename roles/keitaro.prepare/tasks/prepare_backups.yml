@@ -1,0 +1,5 @@
+- name: Create directory for backups
+  file:
+    path: "{{ backups_root }}"
+    state: directory
+

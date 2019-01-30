@@ -3,6 +3,8 @@ timezone: Europe/Moscow
 swap_size: "{{ [[ansible_memtotal_mb, 1024] | max, 8192] | min }}"
 os_user: nginx
 
+backups_root: /etc/keitaro/backups
+
 keitaro:
   path: /var/www/keitaro
 

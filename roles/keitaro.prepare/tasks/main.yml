@@ -2,6 +2,8 @@
 
 - include: prepare_ssl.yml
 
+- include: prepare_backups.yml
+
 - include: generate_selfsigned_certs.yml
 
 - include: generate_dhparam.yml
