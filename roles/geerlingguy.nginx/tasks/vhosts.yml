@@ -9,18 +9,9 @@
 
 - name: Add managed vhost keitaro file (if any vhosts are configured).
   template:
-    src: vhosts.j2
+    src: keitaro.conf.j2
     dest: "{{ nginx_vhost_path }}/keitaro.conf"
     mode: 0644
-  when: nginx_vhosts|length > 0
-  notify:
-    - reload nginx
-
-- name: Remove managed keitaro config file (if no vhosts are configured).
-  file:
-    path: "{{ nginx_vhost_path }}/keitaro.conf"
-    state: absent
-  when: nginx_vhosts|length == 0
   notify:
     - reload nginx
 
