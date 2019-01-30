@@ -2,7 +2,7 @@
   cron:
     user: "{{ os_user }}"
     name: "keitaro"
-    job: "php {{ keitaro.path }}/cron.php"
+    job: "php {{ keitaro_root }}/cron.php"
 
 - name: Configure cron to update geo databases every week
   cron:
@@ -11,7 +11,7 @@
     weekday: "{{ 6 | random }}"
     hour: "{{ 23 | random }}"
     minute: "{{ 59 | random }}"
-    job: "php {{ keitaro.path }}/bin/cli.php geodbs:update_all"
+    job: "php {{ keitaro_root }}/bin/cli.php geodbs:update_all"
 
 - name: Configure collecting statistics
   include: configure_collecting_statistics.yml

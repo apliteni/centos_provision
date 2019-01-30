@@ -1,7 +1,7 @@
 - name: Download installer
   get_url:
     url: "https://keitaro.io/getfile/install"
-    dest: "{{ keitaro.path }}/install.php"
+    dest: "{{ keitaro_root }}/install.php"
     force: yes
 
 - name: Install Keitaro
@@ -22,7 +22,7 @@
                                        {% if custom_package is defined %}--custom-package={{ custom_package }}{% endif %} \
 
   args:
-    chdir: "{{ keitaro.path }}"
+    chdir: "{{ keitaro_root }}"
   become_user: "{{ os_user }}"
   register: command_result
   failed_when: "'Installation Finished' not in command_result.stdout and 'Установка завершена' not in command_result.stdout"

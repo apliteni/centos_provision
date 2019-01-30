@@ -1,8 +1,8 @@
-letsencrypt_webroot_path: "{{ keitaro.path }}"
+letsencrypt_webroot_path: "{{ keitaro_root }}"
 letsencrypt_cert_domains: "{{ ssl_domains.split(',') }}"
 letsencrypt_email: "{{ ssl_email | default('') }}"
 ssl_root: /etc/keitaro/ssl
-ssl_dhparam_path: "{{ ssl_root }}/keitaro/dhparam.pem"
-ssl_cert_path: "{{ ssl_root }}/keitaro/cert.pem"
-ssl_privkey_path: "{{ ssl_root }}/keitaro/privkey.pem"
+ssl_dhparam_path: "{{ ssl_root }}/dhparam.pem"
+ssl_cert_path: "{{ ssl_root }}/cert.pem"
+ssl_privkey_path: "{{ ssl_root }}/privkey.pem"
 

@@ -5,8 +5,7 @@ os_user: nginx
 
 backups_root: /etc/keitaro/backups
 
-keitaro:
-  path: /var/www/keitaro
+keitaro_root: /var/www/keitaro
 
 # Firewall
 firewall_allowed_tcp_ports:
