@@ -31,13 +31,8 @@ generate_certificates(){
       fi
     fi
     if [[ ${certificate_generated} == ${TRUE} ]]; then
-      if nginx_config_exists_for_domain $domain; then
-        new_name="${domain}.conf.$(date +%Y%m%d%H%M)"
-        debug "Saving old nginx config for ${domain} to ${new_name}"
-        cp "${NGINX_VHOSTS_DIR}/${domain}.conf" "${NGINX_VHOSTS_DIR}/${new_name}"
-      fi
       debug "Generating nginx config for ${domain}"
-      generate_nginx_host_config "${domain}"
+      setup_le_certs_in_vhost_config "${domain}"
     else
       debug "Skip generation nginx config ${domain} due errors while cert issuing"
       print_with_color "${domain}: ${certificate_error}" "red"
@@ -51,12 +46,6 @@ generate_certificates(){
 certificate_exists_for_domain(){
   local domain="${1}"
   is_directory_exist "/etc/letsencrypt/live/${domain}" "no"
-}
-
-
-nginx_config_exists_for_domain(){
-  local domain="${1}"
-  is_file_exist "${NGINX_VHOSTS_DIR}/${domain}.conf" "no"
 }
 
 
