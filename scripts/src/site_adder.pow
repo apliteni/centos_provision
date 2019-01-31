@@ -58,7 +58,6 @@ _require 'app/site_adder/stage2/asserts.sh'
 _require 'app/site_adder/stage3.sh'
 _require 'app/site_adder/stage3/get_user_vars.sh'
 _require 'app/site_adder/stage4.sh'
-_require 'app/site_adder/stage4/add_vhost.sh'
 _require 'app/site_adder/stage4/ensure_can_add_vhost.sh'
 _require 'app/site_adder/stage4/show_successful_message.sh'
 
