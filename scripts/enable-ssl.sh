@@ -193,7 +193,7 @@ DICT['en.errors.see_logs']="Evaluating log saved to ${SCRIPT_LOG}. Please rerun 
 DICT['en.errors.domain_invalid']=":domain: doesn't look as valid domain"
 DICT['en.certbot_errors.wrong_a_entry']="Please make sure that your domain name was entered correctly and the DNS A record for that domain contains the right IP address. You need to wait a little if the DNS A record was updated recently."
 DICT['en.certbot_errors.too_many_requests']="There were too many requests. See https://letsencrypt.org/docs/rate-limits/."
-DICT['en.certbot_errors.unknown_error']="There was unknown error while issuing certificate, please contact with support team"
+DICT['en.certbot_errors.unknown_error']="There was unknown error while issuing certificate, please contact support team"
 DICT['en.messages.check_renewal_job_scheduled']="Check that the renewal job is scheduled"
 DICT['en.messages.check_inactual_renewal_job_scheduled']="Check that inactual renewal job is scheduled"
 DICT['en.messages.make_ssl_cert_links']="Make SSL certificate links"
@@ -604,7 +604,8 @@ regenerate_vhost_config(){
   local vhost_path="$(get_vhost_path "$domain")"
   local vhost_backup_path="$(get_vhost_backup_path "$domain")"
   if is_file_exist "$vhost_path" no; then
-    command="${command}cp "$vhost_path" "$vhost_backup_path" && "
+    debug "Backing up nginx config for ${domain} to ${vhost_backup_path}"
+    cp "${vhost_path}" "${vhost_backup_path}"
   fi
   if need_to_regenerate_host_config "$vhost_path"; then
     command="${command}cp ${NGINX_KEITARO_CONF} "$vhost_path" && "
@@ -639,7 +640,7 @@ get_vhost_path(){
 
 get_vhost_backup_path(){
   local domain="${1}"
-  echo "${NGINX_VHOSTS_DIR}/${domain}.conf.$(date +%Y%m%d%H%M%s)"
+  echo "${NGINX_VHOSTS_DIR}/${domain}.conf.$(date +%Y%m%d%H%M%S)"
 }
 
 
@@ -1133,12 +1134,6 @@ validate_yes_no(){
 
 
 
-get_domains(){
-  (cat "${CERT_DOMAINS_PATH}" 2>/dev/null; join_by " " "${DOMAINS[@]}")
-}
-
-
-
 stage1(){
   debug "Starting stage 1: initial script setup"
   parse_options "$@"
@@ -1288,58 +1283,7 @@ en_usage(){
 stage2(){
   debug "Starting stage 2: make some asserts"
   assert_caller_root
-  assert_installed 'nginx' 'errors.reinstall_keitaro'
-  assert_installed 'crontab' 'errors.reinstall_keitaro'
-  assert_installed 'certbot' 'errors.reinstall_keitaro_ssl'
   assert_server_configuration_relevant
-  assert_nginx_configured
-}
-
-
-#
-
-
-
-
-
-assert_nginx_configured(){
-  if ! is_nginx_properly_configured; then
-    fail "$(translate 'errors.reinstall_keitaro_ssl')" "see_logs"
-  fi
-}
-
-
-is_nginx_properly_configured(){
-  if ! is_file_exist "${NGINX_KEITARO_CONF}"; then
-    log_and_print_err "ERROR: File ${NGINX_KEITARO_CONF} doesn't exists"
-    return ${FAILURE_RESULT}
-  fi
-  if ! is_file_exist "${SSL_CERT_PATH}"; then
-    log_and_print_err "ERROR: File ${SSL_CERT_PATH} doesn't exists"
-    return ${FAILURE_RESULT}
-  fi
-  if ! is_file_exist "${SSL_PRIVKEY_PATH}"; then
-    log_and_print_err "ERROR: File ${SSL_PRIVKEY_PATH} doesn't exists"
-    return ${FAILURE_RESULT}
-  fi
-  is_ssl_configured
-}
-
-
-is_ssl_configured(){
-  debug "Checking ssl params in ${NGINX_KEITARO_CONF}"
-  if isset "$SKIP_CHECKS"; then
-    debug "SKIP: аctual check of ssl params in ${NGINX_KEITARO_CONF} disabled"
-    return ${SUCCESS_RESULT}
-  fi
-  if grep -q -e "ssl_certificate ${SSL_CERT_PATH};" -e "ssl_certificate_key ${SSL_PRIVKEY_PATH};" "${NGINX_KEITARO_CONF}"; then
-    debug "OK: it seems like ${NGINX_KEITARO_CONF} is properly configured"
-    return ${SUCCESS_RESULT}
-  else
-    log_and_print_err "ERROR: ${NGINX_KEITARO_CONF} is not properly configured"
-    log_and_print_err $(print_content_of "$NGINX_KEITARO_CONF")
-    return ${FAILURE_RESULT}
-  fi
 }
 
 
@@ -1400,7 +1344,6 @@ get_user_email(){
 
 stage4(){
   debug "Starting stage 4: install LE certificates"
-  regenerate_self_signed_cert
   generate_certificates
   add_renewal_job
   if isset "$SUCCESSFUL_DOMAINS"; then
@@ -1439,53 +1382,6 @@ renewal_job_installed(){
 }
 
 
-
-regenerate_self_signed_cert(){
-  if [ -L ${SSL_CERT_PATH} ]; then
-    debug "${SSL_CERT_PATH} is link. Getting cert domains"
-    local domains=$(get_domains_from_cert)
-    local main_domain=$(awk '{print $1}' <<< "${domains}")
-    debug "Current domains in ${SSL_CERT_PATH}: ${domains}. Main domain: ${main_domain}"
-    save_cert_domains "${domains}"
-    remove_letsencrypt_certificate "$main_domain"
-    generate_self_signed_certificate
-  else
-    debug "${SSL_CERT_PATH} is not link, do not regenerate self-signed cert"
-  fi
-}
-
-
-get_domains_from_cert(){
-  debug "Getting domains from existent cert"
-  openssl x509 -text < "$SSL_CERT_PATH" | grep DNS | sed -r -e 's/(DNS:|,)//g'
-}
-
-
-save_cert_domains(){
-  local domains="${1}"
-  debug "Saving cert domains"
-  echo ${domains} > "$CERT_DOMAINS_PATH"
-}
-
-
-remove_letsencrypt_certificate(){
-  local domain="${1}"
-  debug "Removing old certificate for domain ${domain}"
-  rm -rf "/etc/letsencrypt/live/${domain}"
-  rm -rf "/etc/letsencrypt/archive/${domain}"
-  rm -f "/etc/letsencrypt/renewal/${domain}.conf"
-  rm -f "$SSL_CERT_PATH" "$SSL_PRIVKEY_PATH"
-}
-
-
-generate_self_signed_certificate(){
-  command="openssl req -x509 -newkey rsa:4096 -sha256 -nodes -days 3650"
-  command="${command} -out "$SSL_CERT_PATH" -keyout "$SSL_PRIVKEY_PATH""
-  command="${command} -subj '/CN=$(get_host_ip)'"
-  run_command "${command}" 'Generating self-signed certificate' 'hide_output'
-}
-
-
 #
 
 
@@ -1495,10 +1391,10 @@ generate_self_signed_certificate(){
 generate_certificates(){
   debug "Requesting certificates"
   echo -n > "$SSL_ENABLER_ERRORS_LOG"
-  for domain in $(get_domains); do
+  for domain in "${DOMAINS[@]}"; do
     certificate_generated=${FALSE}
     certificate_error=""
-    if certificate_exists_for_domain $domain; then
+    if certificate_exists_for_domain "$domain"; then
       SUCCESSFUL_DOMAINS+=($domain)
       debug "Certificate already exists for domain ${domain}"
       print_with_color "${domain}: $(translate 'warnings.certificate_exists_for_domain')" "yellow"
@@ -1509,12 +1405,12 @@ generate_certificates(){
         SUCCESSFUL_DOMAINS+=($domain)
         debug "Certificate for domain ${domain} successfully issued"
         certificate_generated=${TRUE}
-        rm -rf $CERTBOT_LOG
+        rm -rf "$CERTBOT_LOG"
       else
         FAILED_DOMAINS+=($domain)
         debug "There was an error while issuing certificate for domain ${domain}"
-        certificate_error="$(recognize_error $CERTBOT_LOG)"
-        echo "${domain}: ${certificate_error}" >> $SSL_ENABLER_ERRORS_LOG
+        certificate_error="$(recognize_error "$CERTBOT_LOG")"
+        echo "${domain}: ${certificate_error}" >> "$SSL_ENABLER_ERRORS_LOG"
       fi
     fi
     if [[ ${certificate_generated} == ${TRUE} ]]; then
@@ -1548,7 +1444,7 @@ request_certificate_for(){
     certbot_command="${certbot_command} --register-unsafely-without-email"
   fi
   requesting_message="$(translate "messages.requesting_certificate_for") ${domain}"
-  run_command "${certbot_command}" "${requesting_message}" "hide_output" "allow_errors" "" "" $CERTBOT_LOG
+  run_command "${certbot_command}" "${requesting_message}" "hide_output" "allow_errors" "" "" "$CERTBOT_LOG"
 }
 
 

@@ -8,7 +8,8 @@ regenerate_vhost_config(domain, message_key)
   local vhost_path="$(get_vhost_path $domain)"
   local vhost_backup_path="$(get_vhost_backup_path $domain)"
   if is_file_exist $vhost_path no
-    command="${command}cp $vhost_path $vhost_backup_path && "
+    debug "Backing up nginx config for ${domain} to ${vhost_backup_path}"
+    cp "${vhost_path}" "${vhost_backup_path}"
   if need_to_regenerate_host_config $vhost_path
     command="${command}cp ${NGINX_KEITARO_CONF} $vhost_path && "
     changes="${changes}$(build_sed_expression_from_nginx_setting_block "listen: listen 80")"
@@ -32,7 +33,7 @@ get_vhost_path(domain)
   echo "${NGINX_VHOSTS_DIR}/${domain}.conf"
 
 get_vhost_backup_path(domain)
-  echo "${NGINX_VHOSTS_DIR}/${domain}.conf.$(date +%Y%m%d%H%M%s)"
+  echo "${NGINX_VHOSTS_DIR}/${domain}.conf.$(date +%Y%m%d%H%M%S)"
 
 
 build_sed_expression_from_nginx_setting_block(setting_block)

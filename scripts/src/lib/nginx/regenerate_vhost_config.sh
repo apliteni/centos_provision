@@ -15,7 +15,8 @@ regenerate_vhost_config(){
   local vhost_path="$(get_vhost_path "$domain")"
   local vhost_backup_path="$(get_vhost_backup_path "$domain")"
   if is_file_exist "$vhost_path" no; then
-    command="${command}cp "$vhost_path" "$vhost_backup_path" && "
+    debug "Backing up nginx config for ${domain} to ${vhost_backup_path}"
+    cp "${vhost_path}" "${vhost_backup_path}"
   fi
   if need_to_regenerate_host_config "$vhost_path"; then
     command="${command}cp ${NGINX_KEITARO_CONF} "$vhost_path" && "
@@ -50,7 +51,7 @@ get_vhost_path(){
 
 get_vhost_backup_path(){
   local domain="${1}"
-  echo "${NGINX_VHOSTS_DIR}/${domain}.conf.$(date +%Y%m%d%H%M%s)"
+  echo "${NGINX_VHOSTS_DIR}/${domain}.conf.$(date +%Y%m%d%H%M%S)"
 }
 
 

@@ -4,7 +4,7 @@
 generate_certificates()
   debug "Requesting certificates"
   echo -n > $SSL_ENABLER_ERRORS_LOG
-  for domain in $(get_domains)
+  for domain in "${DOMAINS[@]}"
     certificate_generated=${FALSE}
     certificate_error=""
     if certificate_exists_for_domain $domain
