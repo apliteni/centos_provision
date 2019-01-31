@@ -595,38 +595,34 @@ read_stdin(){
 
 
 
-regenerate_nginx_host_config(){
+regenerate_vhost_config(){
   local domain="${1}"
   local message_key="${2}"
   local generating_message="$(translate "${message_key}")"
   local command=""
   local changes=""
-  if is_nginx_config_exist "$domain"; then
-    command="${command}cp $(vhost_path "$domain") $(vhost_backup_path "$domain") && "
+  local vhost_path="$(get_vhost_path "$domain")"
+  local vhost_backup_path="$(get_vhost_backup_path "$domain")"
+  if is_file_exist "$vhost_path" no; then
+    command="${command}cp "$vhost_path" "$vhost_backup_path" && "
   fi
-  if need_to_regenerate_host_config $(vhost_path "$domain"); then
-    command="${command}cp ${NGINX_KEITARO_CONF} $(vhost_path "$domain") && "
-    changes="${changes}$(build_sed_expression_from_nginx_setting_block 'listen: listen 80')"
-    changes="${changes}$(build_sed_expression_from_nginx_setting_block 'server_name ${domain}')"
+  if need_to_regenerate_host_config "$vhost_path"; then
+    command="${command}cp ${NGINX_KEITARO_CONF} "$vhost_path" && "
+    changes="${changes}$(build_sed_expression_from_nginx_setting_block "listen: listen 80")"
+    changes="${changes}$(build_sed_expression_from_nginx_setting_block "server_name ${domain}")"
   fi
   while isset "${3}"; do
     changes="${changes}$(build_sed_expression_from_nginx_setting_block "${3}")"
     shift
   done
-  command="${command}sed -i ${changes} ${vhost_path}"
+  command="${command}sed -i${changes} ${vhost_path}"
   run_command "${command}" "${generating_message} ${domain}" "hide_output"
 }
 
 
 need_to_regenerate_host_config(){
   local vhost_path="${1}"
-  ! is_nginx_config_exist "$vhost_path" || ! vhost_config_relevant "$vhost_path"
-}
-
-
-is_nginx_config_exist(){
-  local domain="${1}"
-  is_file_exist "$(vhost_path "$domain")" no
+  ! is_file_exist "$vhost_path" no || ! vhost_config_relevant "$vhost_path"
 }
 
 
@@ -636,12 +632,12 @@ vhost_config_relevant(){
 }
 
 
-vhost_path(){
+get_vhost_path(){
   local domain="${1}"
   echo "${NGINX_VHOSTS_DIR}/${domain}.conf"
 }
 
-vhost_backup_path(){
+get_vhost_backup_path(){
   local domain="${1}"
   echo "${NGINX_VHOSTS_DIR}/${domain}.conf.$(date +%Y%m%d%H%M%s)"
 }
@@ -657,9 +653,9 @@ build_sed_expression_from_nginx_setting_block(){
   read name value <<< "$setting"
   bounds=""
   if isset "$block"; then
-    bounds='/# begin ${block}/,/# end ${block}/'
+    bounds="/# begin ${block}/,/# end ${block}/"
   fi
-  echo "-e '${bounds}s|${name} .*|${name} ${value};|g'"
+  echo " -e '${bounds}s|${name} .*|${name} ${value};|g'"
 }
 
 
