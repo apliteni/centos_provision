@@ -21,6 +21,6 @@ interpolate(){
   local string="${1}"
   local substitution="${2}"
   IFS="=" read name value <<< "${substitution}"
-  string="${string//\{\{ ${name} \}\}/${value}}"
+  string="${string//:${name}:/${value}}"
   echo "${string}"
 }

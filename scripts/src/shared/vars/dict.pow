@@ -8,12 +8,12 @@ DICT['en.errors.reconfigure_keitaro']=$(cat <<-END
 	You are using obsolete Keitaro configuration.
 	Please reconfigure Keitaro by running following command (backup first)
 
-	{{ upgrade_command }}
+	:upgrade_command:
 
 
 	Alternatively, you can continue using obsolete version of this tool by evaluating following command
 
-	{{ obsolete_tool_command }}
+	:obsolete_tool_command:
 END
 )
 
@@ -34,12 +34,12 @@ DICT['ru.errors.reconfigure_keitaro']=$(cat <<- END
 	На вашем сервере установлена устаревшая конфигурация.
 	Вам необходимо переконфигурировать сервер, выполнив следующую команду (предварительно сделайте бэкап)
 
-	{{ upgrade_command }}
+	:upgrade_command:
 
 
 	Однако вы можете воспользоваться устаревшей версией этой утилиты без переконфигурации сервера
 
-	{{ obsolete_tool_command }}
+	:obsolete_tool_command:
 END
 )
 DICT['ru.errors.run_command.fail']='Ошибка выполнения текущей команды'
