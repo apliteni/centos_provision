@@ -6,5 +6,5 @@ ensure_can_add_vhost()
   if is_path_exist "$(vhost_filepath)" "no"
     fail "$(translate 'errors.vhost_already_exists' "vhost_filepath=$(vhost_filepath)")"
   if ! is_directory_exist "${VARS['site_root']}"
-    fail "$(translate 'errors.site_root_not_exists' "site_root=${VARS['site_root']})"
+    fail "$(translate 'errors.site_root_not_exists' "site_root=${VARS['site_root']}")"
 
