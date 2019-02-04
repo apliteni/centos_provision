@@ -8,9 +8,10 @@ RSpec.describe 'add-site.sh' do
   let(:all_command_stubs) { {nginx: '/bin/true'} }
   let(:nginx_conf) {
     <<-END
+      server_name _;
       root /var/www/keitaro;
 
-      fastcgi_pass unix:/var/run/php70-fpm.sock;
+      fastcgi_pass unix:/var/run/php72-fpm.sock;
     END
   }
 
@@ -141,9 +142,11 @@ RSpec.describe 'add-site.sh' do
     end
 
     context 'alias specified' do
+      let(:save_files) { ['/etc/nginx/conf.d/example.com.conf', '/etc/nginx/conf.d/www.example.com.conf'] }
+
       let(:user_values) do
         {
-          site_domains: 'example.com,www.example.com,www1.example.com',
+          site_domains: 'example.com,www.example.com',
           site_root: '/var/www/example.com',
         }
       end
@@ -151,7 +154,14 @@ RSpec.describe 'add-site.sh' do
       it 'vhost file should be properly configured' do
         run_script
         content = File.read("#{@current_dir}/example.com.conf")
-        expect(content).to match('server_name example.com www.example.com www1.example.com;')
+        expect(content).to match('server_name example.com;')
+      end
+
+      it 'vhost file should be properly configured' do
+        run_script
+        content = File.read("#{@current_dir}/www.example.com.conf")
+        expect(content).to match('server_name www.example.com;')
+        expect(content).to match('root /var/www/example.com;')
       end
     end
 
