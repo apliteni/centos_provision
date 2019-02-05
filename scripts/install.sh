@@ -1136,11 +1136,15 @@ write_inventory_on_reconfiguration(){
 
 
 collect_inventory_variables(){
-  VARS['license_key']="$(cat ${WEBROOT_PATH}/var/license/key.lic)"
-  VARS['license_ip']="$(get_host_ip)"
-  VARS['db_name']="$(get_var_from_keitaro_config name)"
-  VARS['db_user']="$(get_var_from_keitaro_config user)"
-  VARS['db_password']="$(get_var_from_keitaro_config password | sed -e 's/"//g' -e "s/'//g")"
+  if is_file_exist "${HOME}/hosts.txt"; then
+    read_inventory_file "${HOME}/hosts.txt"
+  else
+    VARS['license_key']="$(cat ${WEBROOT_PATH}/var/license/key.lic)"
+    VARS['license_ip']="$(get_host_ip)"
+    VARS['db_name']="$(get_var_from_keitaro_config name)"
+    VARS['db_user']="$(get_var_from_keitaro_config user)"
+    VARS['db_password']="$(get_var_from_keitaro_config password | sed -e 's/"//g' -e "s/'//g")"
+  fi
 }
 
 
@@ -1399,17 +1403,18 @@ databases_exist(){
 stage3(){
   debug "Starting stage 3: read values from inventory file"
   setup_vars
-  read_inventory_file
+  read_inventory_file "$INVENTORY_FILE"
 }
 
 
 
 read_inventory_file(){
-  if [ -f "$INVENTORY_FILE" ]; then
+  local file="${1}"
+  if [ -f "${file}" ]; then
     debug "Inventory file found, read defaults from it"
     while IFS="" read -r line; do
       parse_line_from_inventory_file "$line"
-    done <   $INVENTORY_FILE
+    done < "${file}"
   else
     debug "Inventory file not found"
   fi

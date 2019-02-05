@@ -8,11 +8,14 @@ write_inventory_on_reconfiguration()
 
 
 collect_inventory_variables()
-  VARS['license_key']="$(cat ${WEBROOT_PATH}/var/license/key.lic)"
-  VARS['license_ip']="$(get_host_ip)"
-  VARS['db_name']="$(get_var_from_keitaro_config name)"
-  VARS['db_user']="$(get_var_from_keitaro_config user)"
-  VARS['db_password']="$(get_var_from_keitaro_config password | sed -e 's/"//g' -e "s/'//g")"
+  if is_file_exist "${HOME}/hosts.txt"
+    read_inventory_file "${HOME}/hosts.txt"
+  else
+    VARS['license_key']="$(cat ${WEBROOT_PATH}/var/license/key.lic)"
+    VARS['license_ip']="$(get_host_ip)"
+    VARS['db_name']="$(get_var_from_keitaro_config name)"
+    VARS['db_user']="$(get_var_from_keitaro_config user)"
+    VARS['db_password']="$(get_var_from_keitaro_config password | sed -e 's/"//g' -e "s/'//g")"
 
 
 get_var_from_keitaro_config(var)
