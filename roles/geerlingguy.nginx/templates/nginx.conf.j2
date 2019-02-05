@@ -54,16 +54,9 @@ http {
 
 {{ nginx_extra_http_options }}
 
-{% for upstream in nginx_upstreams %}
-    upstream {{ upstream.name }} {
-{% if upstream.strategy is defined %}
-        {{ upstream.strategy }};
-{% endif %}
-{% for server in upstream.servers %}
-        server {{ server }};
-{% endfor %}
+    upstream php {
+      server unix:/var/run/{{ php_version }}-fpm.sock;
     }
-{% endfor %}
 
     include {{ nginx_conf_path }}/*.conf;
 {% if nginx_conf_path != nginx_vhost_path %}

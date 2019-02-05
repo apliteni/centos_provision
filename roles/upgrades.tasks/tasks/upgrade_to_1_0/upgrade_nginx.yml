@@ -5,4 +5,4 @@
   register: ssl_domains
 
 - name: Regenerate SSL certs
-  shell: "curl -sSL https://keitaro.io/release-1.0/enable-ssl.sh | bash -s -- -w {{ ssl_domains.stdout }}"
+  shell: "curl -sSL https://keitaro.io/release-1.0/enable-ssl.sh | bash -s -- -aw {{ ssl_domains.stdout }}"

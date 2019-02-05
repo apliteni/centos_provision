@@ -11,13 +11,7 @@
     - php71
 
 - name: Set correct php-fpm socket file
-  lineinfile:
-    regexp: 'fastcgi_pass unix:/var/run/php.*-fpm.sock'
-    line: '  fastcgi_pass unix:/var/run/php72-fpm.sock;'
-    backup: yes
-    path: "{{ item }}"
-  with_fileglob:
-    - "/etc/nginx/conf.d/*.conf"
+  shell: "sed -i 's|fastcgi_pass .*|fastcgi_pass unix:/var/run/php72-fpm.sock;|g' /etc/nginx/conf.d/*.conf"
 
 - name: Get current Keitaro version
   command: "grep -oP '\\d+(\\.\\d+)+' /var/www/keitaro/version.php"
