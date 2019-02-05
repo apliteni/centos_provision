@@ -1,20 +1,8 @@
-- name: Remove access_log entries from host configs
-  lineinfile:
-    regexp: 'access_log'
-    state: absent
-    path: "{{ item }}"
-  with_fileglob:
-    - "/etc/nginx/conf.d/*.conf"
+- name: Detect configs genereated by enable-ssl
+  shell: "grep -l 'root /var/www/keitaro' *.conf | grep -v 'keitaro.conf' | sed 's/.conf$//g' | tr '\n' ' '"
+  args:
+    chdir: /etc/nginx/conf.d/
+  register: ssl_domains
 
-- name: Remove error_log entries from host configs
-  lineinfile:
-    regexp: 'error_log'
-    state: absent
-    path: "{{ item }}"
-  with_fileglob:
-    - "/etc/nginx/conf.d/*.conf"
-
-- name: Remove empty 'location /admin' entry from host configs
-  command:  "sed -i '/location \\/admin\\/ {/,+3d' {{ item }}"
-  with_fileglob:
-    - "/etc/nginx/conf.d/*.conf"
+- name: Regenerate SSL certs
+  shell: "curl -sSL https://keitaro.io/release-1.0/enable-ssl.sh | bash -s -- -w {{ ssl_domains.stdout }}"
