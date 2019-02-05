@@ -6,3 +6,5 @@
 
 - name: Regenerate SSL certs
   shell: "curl -sSL https://keitaro.io/release-1.0/enable-ssl.sh | bash -s -- -aw {{ ssl_domains.stdout }}"
+  args:
+    chdir: /root
