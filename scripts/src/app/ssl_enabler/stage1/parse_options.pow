@@ -45,7 +45,10 @@ parse_options()
         usage
         exit ${FAILURE_RESULT}
       if not "${1}" match ^(-)
-        DOMAINS+="${1}"
+        if validate_domain "${1}"
+          DOMAINS+="${1}"
+        else
+          fail "$(translate 'errors.domain_invalid' "domain=${1}")"
       shift
 
 

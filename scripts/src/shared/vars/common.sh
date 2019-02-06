@@ -11,6 +11,7 @@ TRUE=0
 FAILURE_RESULT=1
 FALSE=1
 ROOT_UID=0
+UI_LANG='en'
 
 KEITARO_URL="https://keitaro.io"
 
