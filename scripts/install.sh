@@ -2008,7 +2008,9 @@ json2dict() {
 
 
 write_emtpy_hosts_txt(){
-  echo -e "[server]\nlocalhost connection=local ansible_user=root" > hosts.txt
+  if [[ ! -f hosts.txt ]]; then
+    echo -e "[server]\nlocalhost connection=local ansible_user=root" > hosts.txt
+  fi
 }
 
 install(){
