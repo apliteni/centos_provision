@@ -27,7 +27,7 @@ RSpec.describe 'install.sh' do
     {
       en: {
         skip_firewall: 'Do you want to skip installing firewall?',
-        ssl: "Do you want to install Free SSL certificates from Let's Encrypt?",
+        ssl: 'Do you want to install Free SSL certificates (you can do it later)?',
         ssl_domains: 'Please enter server domains, separated by comma without spaces (i.e. domain1.tld,domain2.tld)',
         ssl_email: 'Please enter your email (you can left this field empty)',
         license_ip: 'Please enter server IP',
@@ -43,7 +43,7 @@ RSpec.describe 'install.sh' do
         admin_password: 'Please enter keitaro admin password'
       },
       ru: {
-        ssl: "Вы хотите установить бесплатные SSL сертификаты, предоставляемые Let's Encrypt?",
+        ssl: 'Установить бесплатные SSL сертификаты (можно сделать это позже)?',
         license_ip: 'Укажите IP адрес сервера',
         license_key: 'Укажите лицензионный ключ',
         db_name: 'Укажите имя базы данных',

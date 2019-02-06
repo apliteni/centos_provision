@@ -982,16 +982,7 @@ DICT['en.prompts.db_restore_path_want_exit']='Do you want to exit?'
 DICT['en.prompts.db_restore_salt']='Please enter the value of "salt" parameter from the old config (application/config/config.ini.php)'
 DICT['en.prompts.license_ip']='Please enter server IP'
 DICT['en.prompts.license_key']='Please enter license key'
-DICT['en.prompts.ssl']="Do you want to install Free SSL certificates from Let's Encrypt?"
-DICT['en.prompts.ssl.help']=$(cat <<- END
-	Installer can install Free SSL certificates from Let's Encrypt. In order to install this certificates you must:
-	1. Agree with terms of Let's Encrypt Subscriber Agreement (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf).
-	2. Have at least one domain associated with this server.
-	3. Make sure all the domains are already linked to this server in the DNS.
-	Continuing the installation, you confirm that you agree to the terms of the Let's Encrypt User Agreement (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf).
-	If you don't ready install SSL certificates right now you can install they later by running \`${SSL_ENABLER_COMMAND_EN}\`.
-END
-)
+DICT['en.prompts.ssl']="Do you want to install Free SSL certificates (you can do it later)?"
 DICT['en.prompts.ssl_domains']='Please enter server domains, separated by comma without spaces (i.e. domain1.tld,domain2.tld)'
 DICT['en.prompts.ssl_email']='Please enter your email (you can left this field empty)'
 DICT['en.prompts.ssl_email.help']='You can obtain SSL certificate with no email address. This is strongly discouraged, because in the event of key loss or LetsEncrypt account compromise you will irrevocably lose access to your LetsEncrypt account. You will also be unable to receive notice about impending expiration or revocation of your certificates.'
@@ -1043,16 +1034,7 @@ DICT['ru.prompts.db_restore_path_want_exit']='Хотите выйти из пр�
 DICT['ru.prompts.db_restore_salt']='Укажите значение параметра salt из старой конфигурации (application/config/config.ini.php)'
 DICT['ru.prompts.license_ip']='Укажите IP адрес сервера'
 DICT['ru.prompts.license_key']='Укажите лицензионный ключ'
-DICT['ru.prompts.ssl']="Вы хотите установить бесплатные SSL сертификаты, предоставляемые Let's Encrypt?"
-DICT['ru.prompts.ssl.help']=$(cat <<- END
-	Программа установки может установить бесплатные SSL сертификаты, предоставляемые Let's Encrypt. Для этого вы должны:
-	1. Согласиться с условиями Абонентского Соглашения Let's Encrypt (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf).
-	2. Иметь хотя бы один домен для этого сервера.
-	3. Убедиться, что все домены привязаны к этому серверу в DNS.
-	Устанавливая SSL сертификаты вы подтверждаете, что соглашаетесь с условиями Абонентского Соглашения Let's Encrypt (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf).
-	Если сейчас вы не готовы к установке SSL сертификатов, то вы можете установить их позже, запустив \`${SSL_ENABLER_COMMAND_RU}\`.
-END
-)
+DICT['ru.prompts.ssl']="Установить бесплатные SSL сертификаты (можно сделать это позже)?"
 DICT['ru.prompts.ssl_domains']='Укажите список доменов через запятую без пробелов (например domain1.tld,domain2.tld)'
 DICT['ru.prompts.ssl_email']='Укажите email (можно не указывать)'
 DICT['ru.prompts.ssl_email.help']='Вы можете получить SSL сертификат без указания email адреса. Однако LetsEncrypt настоятельно рекомендует указать его, так как в случае потери ключа или компрометации LetsEncrypt аккаунта вы полностью потеряете доступ к своему LetsEncrypt аккаунту. Без email вы также не сможете получить уведомление о предстоящем истечении срока действия или отзыве сертификата'
