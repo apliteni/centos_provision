@@ -3,5 +3,14 @@
 
 translate(key)
   local i18n_key=$UI_LANG.$key
-  if isset ${DICT[$i18n_key]}
-    echo $DICT[$i18n_key]
+  message="${DICT[$i18n_key]}"
+  while isset "${2}"
+    message=$(interpolate "${message}" "${2}")
+    shift
+  echo $message
+
+
+interpolate(string, substitution)
+  IFS="=" read name value <<< "${substitution}"
+  string="${string//:${name}:/${value}}"
+  echo "${string}"
