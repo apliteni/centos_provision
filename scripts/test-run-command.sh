@@ -193,9 +193,21 @@ detect_language_from_var(){
 translate(){
   local key="${1}"
   local i18n_key=$UI_LANG.$key
-  if isset ${DICT[$i18n_key]}; then
-    echo "${DICT[$i18n_key]}"
-  fi
+  message="${DICT[$i18n_key]}"
+  while isset "${2}"; do
+    message=$(interpolate "${message}" "${2}")
+    shift
+  done
+  echo "$message"
+}
+
+
+interpolate(){
+  local string="${1}"
+  local substitution="${2}"
+  IFS="=" read name value <<< "${substitution}"
+  string="${string//:${name}:/${value}}"
+  echo "${string}"
 }
 
 

@@ -73,6 +73,7 @@ TRUE=0
 FAILURE_RESULT=1
 FALSE=1
 ROOT_UID=0
+UI_LANG='en'
 
 KEITARO_URL="https://keitaro.io"
 
@@ -169,6 +170,7 @@ RECONFIGURE_KEITARO_SSL_COMMAND_RU="curl -sSL ${KEITARO_URL}/install.sh | bash -
 DICT['en.errors.reinstall_keitaro']="Your Keitaro installation does not properly configured. Please reconfigure Keitaro by evaluating command \`${RECONFIGURE_KEITARO_COMMAND_EN}\`"
 DICT['en.errors.reinstall_keitaro_ssl']="Nginx settings of your Keitaro installation does not properly configured. Please reconfigure Nginx by evaluating command \`${RECONFIGURE_KEITARO_SSL_COMMAND_EN}\`"
 DICT['en.errors.see_logs']="Evaluating log saved to ${SCRIPT_LOG}. Please rerun \`${SCRIPT_COMMAND}\` after resolving problems."
+DICT['en.errors.domain_invalid']=":domain: doesn't look as valid domain"
 DICT['en.certbot_errors.wrong_a_entry']="Please make sure that your domain name was entered correctly and the DNS A record for that domain contains the right IP address. You need to wait a little if the DNS A record was updated recently."
 DICT['en.certbot_errors.too_many_requests']="There were too many requests. See https://letsencrypt.org/docs/rate-limits/."
 DICT['en.certbot_errors.unknown_error']="There was unknown error while issuing certificate, please contact with support team"
@@ -197,6 +199,7 @@ DICT['en.prompts.ssl_email.help']='You can obtain SSL certificate with no email 
 DICT['ru.errors.reinstall_keitaro']="Keitaro отконфигурирована неправильно. Пожалуйста выполните перенастройку Keitaro выполнив команду \`${RECONFIGURE_KEITARO_COMMAND_RU}\`"
 DICT['ru.errors.reinstall_keitaro_ssl']="Настройки Nginx вашей Keitaro отконфигурированы неправильно. Пожалуйста выполните перенастройку Nginx выполнив команду \`${RECONFIGURE_KEITARO_SSL_COMMAND_RU}\`"
 DICT['ru.errors.see_logs']="Журнал выполнения сохранён в ${SCRIPT_LOG}. Пожалуйста запустите \`${SCRIPT_COMMAND}\` после устранения возникших проблем."
+DICT['ru.errors.domain_invalid']=":domain: не похож на домен"
 DICT['ru.certbot_errors.wrong_a_entry']="Убедитесь что домен верный и что DNS A запись указывает на нужный IP адрес. Если A запись была обновлена недавно, то следует подождать некоторое время."
 DICT['ru.certbot_errors.too_many_requests']="Было слишком много запросов, см. https://letsencrypt.org/docs/rate-limits/"
 DICT['ru.certbot_errors.unknown_error']="Во время выпуска сертификата произошла неизвестная ошибка. Пожалуйста, обратитесь в службу поддержки"
@@ -359,9 +362,21 @@ detect_language_from_var(){
 translate(){
   local key="${1}"
   local i18n_key=$UI_LANG.$key
-  if isset ${DICT[$i18n_key]}; then
-    echo "${DICT[$i18n_key]}"
-  fi
+  message="${DICT[$i18n_key]}"
+  while isset "${2}"; do
+    message=$(interpolate "${message}" "${2}")
+    shift
+  done
+  echo "$message"
+}
+
+
+interpolate(){
+  local string="${1}"
+  local substitution="${2}"
+  IFS="=" read name value <<< "${substitution}"
+  string="${string//:${name}:/${value}}"
+  echo "${string}"
 }
 
 
@@ -903,6 +918,15 @@ get_error(){
 }
 
 
+SUBDOMAIN_REGEXP="[[:alnum:]-]+"
+DOMAIN_REGEXP="(${SUBDOMAIN_REGEXP}\.)+[[:alpha:]]${SUBDOMAIN_REGEXP}"
+
+validate_domain(){
+  local value="${1}"
+  [[ "$value" =~ ^${DOMAIN_REGEXP}$ ]]
+}
+
+
 #
 
 
@@ -1032,7 +1056,11 @@ parse_options(){
         exit ${FAILURE_RESULT}
       fi
       if [[ ! "${1}" =~ ^(-) ]]; then
-        DOMAINS+=("${1}")
+        if validate_domain "${1}"; then
+          DOMAINS+=("${1}")
+        else
+          fail "$(translate 'errors.domain_invalid' "domain=${1}")"
+        fi
       fi
       shift
     done
