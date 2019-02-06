@@ -218,7 +218,7 @@ RSpec.describe 'install.sh' do
 
     shared_examples_for 'should install keitaro' do
       it_behaves_like 'should print to', :stdout,
-                      'curl -sSL https://github.com/apliteni/centos_provision/archive/release/1.0.tar.gz | tar xz'
+                      'curl -sSL https://github.com/apliteni/centos_provision/archive/release-1.0.tar.gz | tar xz'
 
       it_behaves_like 'should print to', :stdout,
                       "ansible-playbook -vvv -i #{Inventory::INVENTORY_FILE} centos_provision-release-1.0/playbook.yml"
