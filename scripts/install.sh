@@ -964,7 +964,7 @@ validate_yes_no(){
 
 
 INVENTORY_FILE=hosts.txt
-RELEASE_BRANCH=release-0.9
+RELEASE_BRANCH=${RELEASE_BRANCH:-release-${RELEASE_VERSION}}
 PROVISION_DIRECTORY="centos_provision-${RELEASE_BRANCH}"
 
 
