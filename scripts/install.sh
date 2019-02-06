@@ -1562,7 +1562,6 @@ stage5(){
   run_ansible_playbook
   run_ssl_enabler
   clean_up
-  remove_inventory_file
   show_successful_message
   remove_log_files
 }
@@ -1573,15 +1572,6 @@ download_provision(){
   debug "Download provision"
   release_url="https://github.com/apliteni/centos_provision/archive/${RELEASE_BRANCH}.tar.gz"
   run_command "curl -sSL ${release_url} | tar xz"
-}
-
-
-
-remove_inventory_file(){
-  if [ -f "${INVENTORY_FILE}" ]; then
-    debug "Remove ${INVENTORY_FILE}"
-    rm -f "${INVENTORY_FILE}"
-  fi
 }
 
 
