@@ -73,7 +73,6 @@ TRUE=0
 FAILURE_RESULT=1
 FALSE=1
 ROOT_UID=0
-UI_LANG='en'
 
 KEITARO_URL="https://keitaro.io"
 
@@ -899,6 +898,13 @@ join_by(){
 
 
 
+to_lower(){
+  local string="${1}"
+  echo "${string,,}"
+}
+
+
+
 get_error(){
   local var_name="${1}"
   local validation_methods_string="${2}"
@@ -1057,8 +1063,9 @@ parse_options(){
       fi
       if [[ ! "${1}" =~ ^(-) ]]; then
         if validate_domain "${1}"; then
-          DOMAINS+=("${1}")
+          DOMAINS+=("$(to_lower "${1}")")
         else
+          set_ui_lang
           fail "$(translate 'errors.domain_invalid' "domain=${1}")"
         fi
       fi
