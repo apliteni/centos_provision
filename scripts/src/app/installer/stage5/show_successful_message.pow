@@ -3,7 +3,8 @@
 
 show_successful_message()
   print_with_color "$(translate 'messages.successful')" 'green'
-  if $RECONFIGURE
+  if isset $ANSIBLE_TAGS
+    debug 'ansible tags is set to ${ANSIBLE_TAGS} - skip printing credentials'
     return
   if [[ "${VARS['ssl_certificate']}" == 'letsencrypt' ]] && isset "${SSL_SUCCESSFUL_DOMAINS}"
     protocol='https'

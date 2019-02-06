@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+#
+
+
+
+
 SSL_SUCCESSFUL_DOMAINS=""
 SSL_FAILED_MESSAGE=""
 SSL_RERUN_COMMAND=""
@@ -6,6 +11,10 @@ SSL_OUTPUT_LOG="enable-ssl.output.log"
 SSL_SCRIPT_URL="https://keitaro.io/enable-ssl.sh"
 
 run_ssl_enabler(){
+  if isset "$ANSIBLE_TAGS"; then
+    debug 'ansible tags is set to ${ANSIBLE_TAGS} - skip issuing LE certs'
+    return
+  fi
   if [[ "${VARS['ssl_certificate']}" == 'letsencrypt' ]]; then
     local options="-a"                                  # accept LE license agreement
     options="${options} -l ${UI_LANG}"                  # set language

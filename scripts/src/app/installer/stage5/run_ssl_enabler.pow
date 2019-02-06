@@ -7,6 +7,9 @@ SSL_OUTPUT_LOG="enable-ssl.output.log"
 SSL_SCRIPT_URL="https://keitaro.io/enable-ssl.sh"
 
 run_ssl_enabler()
+  if isset $ANSIBLE_TAGS
+    debug 'ansible tags is set to ${ANSIBLE_TAGS} - skip issuing LE certs'
+    return
   if "${VARS['ssl_certificate']}" == 'letsencrypt'
     local options="-a"                                  # accept LE license agreement
     options="${options} -l ${UI_LANG}"                  # set language
