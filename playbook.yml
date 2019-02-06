@@ -26,13 +26,13 @@
     - {role: 'keitaro.redis', tags: 'redis'}
     - {role: 'keitaro.redis-tune', tags: 'redis, upgrade_to_1_0'}
     - {role: 'bertvv.mariadb', tags: 'mariadb'}
-    - {role: 'keitaro.mariadb-install_tokudb', tags: 'mariadb, tokudb, upgrade_to_1_0'}
+    - {role: 'keitaro.mariadb-install_tokudb', tags: 'mariadb'}
     - {role: 'keitaro.mariadb-tune', tags: 'mariadb, tune-mariadb, upgrade_to_1_0'}
     - {role: 'keitaro.prepare', tags: 'keitaro, ssl, upgrade_to_1_0'}
     - {role: 'geerlingguy.nginx', tags: 'nginx, upgrade_to_1_0'}
     - {role: 'keitaro.nginx-tune', tags: 'nginx, upgrade_to_1_0'}
     - {role: 'keitaro.php', tags: 'php, upgrade_to_1_0'}
     - {role: 'keitaro.tune_autorestarting', tags: 'php, mariadb, nginx, redis, upgrade_to_1_0'}
-    - {role: 'keitaro', tags: 'keitaro, upgrade_to_1_0'}
+    - {role: 'keitaro', tags: 'keitaro'}
     - {role: 'keitaro.db_restore', tags: 'db_restore, keitaro', when: "db_restore is defined and db_restore == 'yes'"}
-    - {role: 'upgrades.tasks', tags: 'never, upgrade' }
+    - {role: 'upgrades.tasks', tags: 'never, upgrade_to_1_0' }
