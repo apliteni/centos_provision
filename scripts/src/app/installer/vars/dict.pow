@@ -26,8 +26,8 @@ DICT['en.prompts.skip_firewall.help']=$(cat <<- END
 	WARNING: Firewall can help prevent hackers or malicious software from gaining access to your server through Internet. You can continue installing the system without firewall, however we strongly recommend you to run this program on system with firewall support.
 END
 )
-DICT['en.prompts.admin_login']='Please enter keitaro admin login'
-DICT['en.prompts.admin_password']='Please enter keitaro admin password'
+DICT['en.prompts.admin_login']='Please enter Keitaro admin login'
+DICT['en.prompts.admin_password']='Please enter Keitaro admin password'
 DICT['en.prompts.db_name']='Please enter database name'
 DICT['en.prompts.db_password']='Please enter database user password'
 DICT['en.prompts.db_user']='Please enter database user name'
@@ -51,7 +51,7 @@ DICT['en.prompt_errors.validate_license_key']='Please enter valid license key (e
 DICT['en.prompt_errors.validate_alnumdashdot']='Only Latin letters, numbers, dashes, underscores and dots allowed'
 DICT['en.prompt_errors.validate_starts_with_latin_letter']='The value must begin with a Latin letter'
 DICT['en.prompt_errors.validate_file_existence']='The file was not found by the specified path, please enter the correct path to the file'
-DICT['en.prompt_errors.validate_keitaro_dump']='The SQL dump is broken, please specify path to correct SQL dump of keitaro'
+DICT['en.prompt_errors.validate_keitaro_dump']='The SQL dump is broken, please specify path to correct SQL dump of Keitaro'
 DICT['en.prompt_errors.validate_not_root']='You are not allowed to use root as database user'
 DICT['en.prompt_errors.validate_not_reserved_word']='You are not allowed to use yes/no/true/false for this field'
 
@@ -78,8 +78,8 @@ DICT['ru.prompts.skip_firewall.help']=$(cat <<- END
 	ПРЕДУПРЕЖДЕНИЕ. Фаервол может помочь предотвратить доступ хакеров или вредоносного программного обеспечения к вашему серверу через Интернет. Вы можете продолжить установку системы без фаерфола, однако мы настоятельно рекомендуем поменять тарифный план либо провайдера и возобновить установку на системе с поддержкой фаервола.
 END
 )
-DICT['ru.prompts.admin_login']='Укажите имя администратора keitaro'
-DICT['ru.prompts.admin_password']='Укажите пароль администратора keitaro'
+DICT['ru.prompts.admin_login']='Укажите имя администратора Keitaro'
+DICT['ru.prompts.admin_password']='Укажите пароль администратора Keitaro'
 DICT['ru.prompts.db_name']='Укажите имя базы данных'
 DICT['ru.prompts.db_password']='Укажите пароль пользователя базы данных'
 DICT['ru.prompts.db_user']='Укажите пользователя базы данных'
