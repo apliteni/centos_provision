@@ -1,7 +1,0 @@
-#!/usr/bin/env powscript
-
-
-remove_inventory_file()
-  if [ -f "${INVENTORY_FILE}" ]
-    debug "Remove ${INVENTORY_FILE}"
-    rm -f "${INVENTORY_FILE}"
