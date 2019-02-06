@@ -16,6 +16,7 @@ collect_inventory_variables()
     VARS['db_name']="$(get_var_from_keitaro_config name)"
     VARS['db_user']="$(get_var_from_keitaro_config user)"
     VARS['db_password']="$(get_var_from_keitaro_config password | sed -e 's/"//g' -e "s/'//g")"
+    VARS['db_root_password']=''
     VARS['admin_login']=''
     VARS['admin_password']=''
 
