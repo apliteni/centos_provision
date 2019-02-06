@@ -936,7 +936,8 @@ validate_yes_no(){
 
 
 INVENTORY_FILE=hosts.txt
-PROVISION_DIRECTORY=centos_provision-master
+RELEASE_BRANCH=release-0.9
+PROVISION_DIRECTORY="centos_provision-${RELEASE_BRANCH}"
 
 
 #
@@ -1543,7 +1544,7 @@ stage5(){
 
 download_provision(){
   debug "Download provision"
-  release_url="https://github.com/apliteni/centos_provision/archive/master.tar.gz"
+  release_url="https://github.com/apliteni/centos_provision/archive/${RELEASE_BRANCH}.tar.gz"
   run_command "curl -sSL "$release_url" | tar xz"
 }
 
