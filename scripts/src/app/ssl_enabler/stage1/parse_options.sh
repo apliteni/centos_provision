@@ -67,8 +67,9 @@ parse_options(){
       fi
       if [[ ! "${1}" =~ ^(-) ]]; then
         if validate_domain "${1}"; then
-          DOMAINS+=("${1}")
+          DOMAINS+=("$(to_lower "${1}")")
         else
+          set_ui_lang
           fail "$(translate 'errors.domain_invalid' "domain=${1}")"
         fi
       fi

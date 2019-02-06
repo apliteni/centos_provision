@@ -1,0 +1,6 @@
+#!/usr/bin/env powscript
+
+
+to_lower(string)
+  echo "${string,,}"
+
