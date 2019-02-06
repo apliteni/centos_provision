@@ -33,16 +33,16 @@ RSpec.describe 'install.sh' do
         db_restore_path: 'Please enter the path to the SQL dump file',
         db_restore_salt: 'Please enter the value of "salt" parameter from the old config (application/config/config.ini.php)',
         db_restore_path_want_exit: 'Do you want to exit?',
-        admin_login: 'Please enter keitaro admin login',
-        admin_password: 'Please enter keitaro admin password'
+        admin_login: 'Please enter Keitaro admin login',
+        admin_password: 'Please enter Keitaro admin password'
       },
       ru: {
         ssl: 'Установить бесплатные SSL сертификаты (можно сделать это позже)?',
         license_ip: 'Укажите IP адрес сервера',
         license_key: 'Укажите лицензионный ключ',
         db_restore: 'Хотите восстановить базу данных из SQL дампа?',
-        admin_login: 'Укажите имя администратора keitaro',
-        admin_password: 'Укажите пароль администратора keitaro',
+        admin_login: 'Укажите имя администратора Keitaro',
+        admin_password: 'Укажите пароль администратора Keitaro',
       }
     }
   end
