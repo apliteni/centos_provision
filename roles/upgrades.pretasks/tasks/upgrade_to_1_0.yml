@@ -16,11 +16,12 @@
     path: "{{ ssl_root }}"
     state: directory
 
-- name: Copy ssl cert to the new location
-  shell: "cp /etc/nginx/ssl/cert.pem {{ ssl_cert_path }}"
-
-- name: Copy ssl private key to the new location
-  command: "cp /etc/nginx/ssl/privkey.pem {{ ssl_privkey_path }}"
-
-- name: Copy dhparam cert to the new location
-  command: "cp /etc/ssl/certs/dhparam.pem {{ ssl_dhparam_path }}"
+- name: Copy ssl certs to the new location
+  shell: "test -f {{ item.src }} && cp {{ item.src }} {{ item.dest }} || true"
+  with_items:
+    - src: /etc/nginx/ssl/cert.pem
+      dest: "{{ ssl_cert_path }}"
+    - src: /etc/nginx/ssl/privkey.pem
+      dest: "{{ ssl_privkey_path }}"
+    - src: /etc/ssl/certs/dhparam.pem
+      dest: "{{ ssl_dhparam_path }}"
