@@ -18,7 +18,7 @@
   register: get_keitaro_version
 
 - name: Reinstall Keitaro
-  unarchive:
-    src: "https://keitaro.io/releases/{{ get_keitaro_version.stdout }}/package8.tar.gz"
-    dest: /var/www/keitaro
-    remote_src: yes
+  shell: "curl https://keitaro.io/releases/{{ get_keitaro_version.stdout }}/package8.tar.gz | tar -xz --strip=1"
+  args:
+    chdir: "{{ keitaro_root }}"
+  become_user: "{{ os_user }}"
