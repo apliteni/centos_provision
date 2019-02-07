@@ -19,4 +19,3 @@
     - etc/logrotate.d/mariadb
     - etc/my.cnf.d/mysqld-error_log.cnf
     - etc/my.cnf.d/mysqld-log_slow_queries.cnf
-    - etc/my.cnf.d/mysqld-set_pidfile_path.cnf
