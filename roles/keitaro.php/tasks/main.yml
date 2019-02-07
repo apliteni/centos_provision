@@ -55,20 +55,6 @@
   notify:
     - restart php-fpm
 
-- name: create php-fpm pidfile
-  file:
-    path: "/var/run/{{php_version}}-php-fpm.pid"
-    mode: 0600
-    state: touch
-
-- name: set php-fpm pidfile path
-  lineinfile:
-    path: /etc/php/php-fpm.conf
-    regexp: ^pid =
-    line: "pid = /var/run/{{php_version}}-php-fpm.pid"
-  notify:
-    - restart php-fpm
-
 - name: run php-fpm
   service:
     name="{{php_version}}-php-fpm"
