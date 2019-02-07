@@ -1,2 +1,0 @@
-[mysqld]
-pid-file = /var/lib/mysql/mariadb.pid
