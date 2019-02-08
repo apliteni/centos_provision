@@ -57,6 +57,7 @@ _require 'app/installer/vars/common.sh'
 _require 'app/installer/vars/dict.sh'
 
 _require 'app/installer/lib/system/clean_up.sh'
+_require 'app/installer/lib/system/get_var_from_config.sh'
 _require 'app/installer/lib/system/write_inventory_on_reconfiguration.sh'
 
 _require 'app/installer/stage1.sh'
