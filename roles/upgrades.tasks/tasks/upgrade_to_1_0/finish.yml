@@ -1,0 +1,13 @@
+- name: Remove old ssl certs
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - /etc/nginx/ssl/cert.pem
+    - /etc/nginx/ssl/privkey.pem
+    - /etc/ssl/certs/dhparam.pem
+
+- name: Remove old hosts file
+  file:
+    path: /root/hosts.txt
+    state: absent

@@ -1,12 +1,3 @@
-- name: Remove old ssl certs
-  file:
-    path: "{{ item }}"
-    state: absent
-  with_items:
-    - /etc/nginx/ssl/cert.pem
-    - /etc/nginx/ssl/privkey.pem
-    - /etc/ssl/certs/dhparam.pem
-
 - name: Detect configs genereated by enable-ssl
   shell: "grep -l 'root /var/www/keitaro' *.conf | grep -v 'keitaro.conf' | sed 's/.conf$//g' | tr '\n' ' '"
   args:
