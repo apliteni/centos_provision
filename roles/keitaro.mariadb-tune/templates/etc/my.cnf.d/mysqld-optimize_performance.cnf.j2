@@ -1,7 +1,7 @@
 [mysqld]
 # Calculated using http://mysqlcalculator.com/
 # global settings
-key_buffer_size = 1M
+key_buffer_size = 5M
 # query_cache_size = 2% available db memory
 query_cache_size = {{ 2 * (db_memory_1pct_kb|int) }}K
 # tmp_table_size = max_heap_table_size = 1% available db memory
@@ -18,5 +18,10 @@ table_open_cache = {{ (db_connections|int) * 100 }}
 # In general it is 2x of table_open_cache.
 open_files_limit = {{ (db_connections|int) * 100 * 2 }}
 
+{% if db_engine == 'tokudb' %}
 # 80% of available db memory
 tokudb_cache_size = {{ (db_memory_1pct_kb|int) * 80 }}K
+{% else %}
+# 70% of available db memory
+innodb_buffer_pool_size = {{ (db_memory_1pct_kb|int) * 70 }}K
+{% endif %}
