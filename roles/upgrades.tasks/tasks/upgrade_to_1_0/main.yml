@@ -6,4 +6,4 @@
   notify:
     - reload nginx
 
-- include: finish.yml
+- include: cleanup.yml
