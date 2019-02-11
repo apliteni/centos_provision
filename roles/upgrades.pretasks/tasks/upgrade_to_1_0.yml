@@ -27,4 +27,4 @@
       dest: "{{ ssl_dhparam_path }}"
 
 - name: Detect engine for keitaro DB and explicitly set it in the hosts file
-  script: scripts/set_db_engine.yml
+  script: scripts/set_db_engine.sh
