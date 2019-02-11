@@ -1,0 +1,9 @@
+- include: upgrade_php/main.yml
+  notify:
+    - reload nginx
+
+- include: upgrade_nginx.yml
+  notify:
+    - reload nginx
+
+- include: finish.yml
