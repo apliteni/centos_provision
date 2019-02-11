@@ -62,7 +62,11 @@ set_db_engine() {
   local db_engine="${1}"
   local hosts_file="${2}"
 
-  echo "db_engine=${db_engine}" >> ${hosts_file}
+  if grep -q "^db_engine=" "${hosts_file}"; then
+    sed -i "s/^db_engine=.*/db_engine=${db_engine}/g" "${hosts_file}"
+  else
+    echo "db_engine=${db_engine}" >> "${hosts_file}"
+  fi
 }
 
 db_name="$(read_db_name_from "${KEITARO_CONFIG}")"
