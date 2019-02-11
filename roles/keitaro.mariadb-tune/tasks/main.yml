@@ -1,8 +1,3 @@
-- name: Remove old config file
-  file:
-    path: /etc/my.cnf.d/mysqld.cnf
-    state: absent
-
 - name: Create log directory
   file:
     path: /var/log/mariadb
@@ -17,8 +12,6 @@
   notify: restart mariadb
   with_items:
     - etc/logrotate.d/mariadb
-    - etc/my.cnf.d/mysqld-error_log.cnf
-    - etc/my.cnf.d/mysqld-log_slow_queries.cnf
 
 - name: Generate config files
   template:
@@ -26,5 +19,7 @@
     dest: "/{{ item }}"
   notify: restart mariadb
   with_items:
-    - etc/my.cnf.d/mysqld-optimize_performance.cnf
-    - etc/my.cnf.d/mysqld-set_default_storage_engine.cnf
+    - etc/my.cnf.d/keitaro-mysqld-optimize_performance.cnf
+    - etc/my.cnf.d/keitaro-mysqld-set_default_storage_engine.cnf
+    - etc/my.cnf.d/keitaro-mysqld-error_log.cnf
+    - etc/my.cnf.d/keitaro-mysqld-log_slow_queries.cnf

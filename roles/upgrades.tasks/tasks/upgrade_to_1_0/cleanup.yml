@@ -11,3 +11,4 @@
   file:
     path: /root/hosts.txt
     state: absent
+
