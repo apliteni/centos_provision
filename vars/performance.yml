@@ -5,6 +5,7 @@ hp_memory_level_mb: 32768
 db_memory_mb: "{{ ([ansible_memtotal_mb, hp_memory_level_mb] | min) * 0.4 }}"
 db_memory_1pct_kb: "{{ ((db_memory_mb|int) * 1024 / 100) | int }}"
 db_connections: "{{ [(((db_memory_mb|int) / 512) | int), 6] | max }}"
+db_engine: tokudb
 
 # min 5% RAM, max 1G
 redis_memory_mb: "{{ (([ansible_memtotal_mb, hp_memory_level_mb] | min) * 0.05) | round(-1, 'ceil') | int }}"
