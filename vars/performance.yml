@@ -11,7 +11,7 @@ redis_memory_mb: "{{ (([ansible_memtotal_mb, hp_memory_level_mb] | min) * 0.05) 
 
 # min 45% RAM, max
 php_memory_mb: "{{ 0.9 * ansible_memtotal_mb - (db_memory_mb|int) - (redis_memory_mb|int) }}"
-php_child_size_mb: 35
+php_child_size_mb: 25
 php_children_count: "{{ ((php_memory_mb|float) / php_child_size_mb) | round(-1, 'ceil') | int }}"
 php_min_idle_children_count: "{{ ((php_children_count|int) * 0.1) | round(0, 'ceil') | int }}"
 php_max_idle_children_count: "{{ ((php_children_count|int) * 0.3) | round(0, 'ceil') | int }}"
