@@ -1,0 +1,7 @@
+- name: Download and unpack RoadRunner
+  shell: >
+    curl -sSL https://github.com/spiral/roadrunner/releases/download/v{{ rr_version }}/roadrunner-{{ rr_version }}-linux-amd64.tar.gz | \
+     tar -xz --no-same-owner --no-same-permissions --strip 1 roadrunner-{{ rr_version }}-linux-amd64/rr
+  args:
+    chdir: /usr/local/bin
+
