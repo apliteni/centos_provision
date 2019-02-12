@@ -32,6 +32,7 @@
     - {role: 'geerlingguy.nginx', tags: 'nginx, upgrade_to_1_0'}
     - {role: 'keitaro.nginx-tune', tags: 'nginx, upgrade_to_1_0'}
     - {role: 'keitaro.php', tags: 'php, upgrade_to_1_0'}
+    - {role: 'keitaro.roadrunner', tags: 'php, roadrunner, upgrade_to_1_0'}
     - {role: 'keitaro.tune_autorestarting', tags: 'php, mariadb, nginx, redis, upgrade_to_1_0'}
     - {role: 'keitaro', tags: 'keitaro'}
     - {role: 'keitaro.db_restore', tags: 'db_restore, keitaro', when: "db_restore is defined and db_restore == 'yes'"}
