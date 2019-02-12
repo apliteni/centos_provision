@@ -1,4 +1,7 @@
 - name: Restore DB from packed sql dump
-  shell: "{{cat}} '{{ db_restore_path }}' | mysql --user={{ db_user }} --password={{ db_password }} {{ db_name }}"
+  shell: >
+    {{cat}} '{{ db_restore_path }}' | \
+      sed -r 's/engine=\w+//ig' | \
+      mysql --user={{ db_user }} --password={{ db_password }} {{ db_name }}
   args:
     chdir: ../

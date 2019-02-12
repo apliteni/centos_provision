@@ -1,6 +1,3 @@
-- name: Drop newly created keitaro DB
-  shell: 'mysql -e "DROP DATABASE {{ db_name }}; CREATE DATABASE {{ db_name }}"'
-
 - name: Install file utility
   package:
     name: file
@@ -11,6 +8,12 @@
   args:
     chdir: ../
   register: db_restore_dump_file_mime
+
+- name: Set default engine
+  include: set_default_engine.yml
+
+- name: Drop newly created keitaro DB
+  shell: 'mysql -e "DROP DATABASE {{ db_name }}; CREATE DATABASE {{ db_name }}"'
 
 - name: Restore DB from gzipped SQL dump
   include: restore_from_dump.yml cat=zcat
