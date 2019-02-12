@@ -1,0 +1,3 @@
+[mysqld]
+default_storage_engine = tokudb
+default_tmp_storage_engine = tokudb
