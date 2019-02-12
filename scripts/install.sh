@@ -1495,7 +1495,6 @@ write_inventory_file(){
   print_line_to_inventory_file "[server:vars]"
   print_line_to_inventory_file "skip_firewall=${VARS['skip_firewall']}"
   print_line_to_inventory_file "ssl="${VARS['ssl']}""
-  print_line_to_inventory_file "ssl_certificate="${VARS['ssl_certificate']}""
   print_line_to_inventory_file "ssl_domains="${VARS['ssl_domains']}""
   print_line_to_inventory_file "ssl_email="${VARS['ssl_email']}""
   print_line_to_inventory_file "license_ip="${VARS['license_ip']}""
