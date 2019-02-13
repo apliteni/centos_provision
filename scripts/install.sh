@@ -1467,6 +1467,7 @@ setup_vars(){
   VARS['db_restore_path_want_exit']='no'
   VARS['admin_login']='admin'
   VARS['admin_password']=$(generate_password)
+  VARS['php_engine']='php-fpm'
 }
 
 
@@ -1607,6 +1608,10 @@ write_inventory_file(){
   print_line_to_inventory_file "installer_version=${RELEASE_VERSION}"
   print_line_to_inventory_file "evaluated_by_installer=yes"
   print_line_to_inventory_file "cpu_cores=$(get_cpu_cores)"
+  print_line_to_inventory_file "php_engine=${VARS['php_engine']}"
+  if isset "${VARS['db_engine']}"; then
+    print_line_to_inventory_file "db_engine=${VARS['db_engine']}"
+  fi
   if isset "$KEITARO_RELEASE"; then
     print_line_to_inventory_file "kversion=$KEITARO_RELEASE"
   fi

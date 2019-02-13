@@ -15,6 +15,7 @@ php_child_size_mb: 25
 php_children_count: "{{ ((php_memory_mb|float) / php_child_size_mb) | round(-1, 'ceil') | int }}"
 php_min_idle_children_count: "{{ ((php_children_count|int) * 0.1) | round(0, 'ceil') | int }}"
 php_max_idle_children_count: "{{ ((php_children_count|int) * 0.3) | round(0, 'ceil') | int }}"
+php_rr_workers: 20
 php_opened_files: "{{ (150 * (php_children_count|int)) | round(-3, 'ceil') | int }}"
 
 nginx_worker_processes: "{{ cpu_cores }}"
