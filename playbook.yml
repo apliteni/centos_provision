@@ -28,7 +28,7 @@
     - {role: 'bertvv.mariadb', tags: 'mariadb'}
     - {role: 'keitaro.mariadb-install_tokudb', tags: 'mariadb'}
     - {role: 'keitaro.mariadb-tune', tags: 'mariadb, tune-mariadb, upgrade_to_1_0'}
-    - {role: 'keitaro.prepare', tags: 'keitaro, ssl, upgrade_to_1_0'}
+    - {role: 'keitaro.prepare', tags: 'prepare, ssl, upgrade_to_1_0'}
     - {role: 'geerlingguy.nginx', tags: 'nginx, upgrade_to_1_0'}
     - {role: 'keitaro.nginx-tune', tags: 'nginx, upgrade_to_1_0'}
     - {role: 'keitaro.php', tags: 'php, upgrade_to_1_0'}
