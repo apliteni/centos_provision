@@ -1,0 +1,15 @@
+[Unit]
+Description=Keitaro RoadRunner service
+After=syslog.target network.target
+
+[Service]
+ExecStart=/usr/local/bin/rr serve -v -d -c=application/config/roadrunner/server.yml
+WorkingDirectory={{ keitaro_root }}
+User={{ os_user }}
+Group={{ os_user }}
+SyslogIdentifier=Keitaro-RR
+StandardOutput=syslog
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
