@@ -5,3 +5,20 @@
   args:
     chdir: /usr/local/bin
 
+- name: Install keitaro-roadrunner SystemD service
+  systemd:
+
+- name: Generate keitaro-roadrunner systemd unit file into place.
+  template:
+    src: keitaro-roadrunner.service.j2
+    dest: /etc/systemd/system/keitaro-roadrunner.service
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Enable and start keitaro-roadrunner service
+  systemd:
+    daemon-reload: true
+    name: keitaro-roadrunner
+    state: started
+    enabled: yes
