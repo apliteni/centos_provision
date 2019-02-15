@@ -4,8 +4,7 @@ http:
     command: "php {{ keitaro_root }}/server.php"
     pool:
       numWorkers: {{ php_rr_workers }}
-      destroyTimeout:  600
-    maxJobs:  0
+      maxJobs: {{ php_rr_max_requests }}
 
 rpc:
   enabled: false
