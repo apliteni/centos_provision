@@ -22,7 +22,7 @@
   systemd:
     daemon-reload: true
     name: roadrunner
-    state: started
+    state: restarted
     enabled: yes
   when: "php_engine == 'roadrunner'"
 
