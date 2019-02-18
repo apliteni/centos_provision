@@ -55,7 +55,8 @@ server {
   # end status page
 
   # begin /admin
-  location /admin {
+  rewrite ^/admin$ /admin/ permanent;
+  location /admin/ {
     include {{ nginx_conf_path }}/keitaro-php.php-fpm.inc;
     access_log  /var/log/nginx/keitaro-admin.access.log main buffer=16k flush=15s;
   }
