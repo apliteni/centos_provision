@@ -7,11 +7,15 @@
   notify:
     - reload nginx
 
-- name: Add managed vhost keitaro file (if any vhosts are configured).
+- name: Add managed vhost keitaro files.
   template:
-    src: keitaro.conf.j2
-    dest: "{{ nginx_vhost_path }}/keitaro.conf"
-    mode: 0644
+    src: "{{ item }}.j2"
+    dest: "{{ nginx_vhost_path }}/{{ item }}"
+  with_items:
+    - keitaro.conf
+    - keitaro-php.inc
+    - keitaro-php.php-fpm.inc
+    - keitaro-php.roadrunner.inc
   notify:
     - reload nginx
 
