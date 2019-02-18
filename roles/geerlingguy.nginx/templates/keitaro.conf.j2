@@ -54,17 +54,11 @@ server {
   }
   # end status page
 
-  # begin admin php
-  # location ~ ^admin/\.php$ {
-  #   include keitaro-php.conf;
-  # }
-  # end admin php
-
   # begin /admin
-  # location /admin {
-  #   access_log  /var/log/nginx/keitaro-admin.access.log main buffer=16k flush=15s;
-  #   try_files $uri $uri/ /index.php?$args;
-  # }
+  location /admin {
+    include {{ nginx_conf_path }}/keitaro-php.php-fpm.inc;
+    access_log  /var/log/nginx/keitaro-admin.access.log main buffer=16k flush=15s;
+  }
   # end /admin
 
   # begin php
