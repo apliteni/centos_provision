@@ -6,11 +6,11 @@
     - db_memory_1pct_kb
     - db_connections
     - redis_memory_mb
-    - php_fpm_memory_mb
-    - php_fpm_child_size_mb
-    - php_fpm_children_count
-    - php_fpm_min_idle_children_count
-    - php_fpm_max_idle_children_count
+    - php_memory_mb
+    - php_worker_size_mb
+    - php_fpm_workers_count
+    - php_fpm_min_idle_workers_count
+    - php_fpm_max_idle_workers_count
     - php_fpm_opened_files
     - nginx_worker_processes
     - nginx_worker_connections

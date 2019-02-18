@@ -2,9 +2,6 @@ php_version: "{% if kversion is defined and kversion == 7 %}php70{% elif kversio
 php_memory_limit: 500M
 php_max_upload_size: "{{ max_upload_size }}"
 
-php_fpm_max_requests: 2000
-
-php_rr_host: 127.0.0.1
-php_rr_port: 8080
-php_rr_bind: "{{ php_rr_host }}:{{ php_rr_port }}"
-php_rr_max_requests: 2000
+php_rr_bind_host: 127.0.0.1
+php_rr_bind_port: 8080
+php_rr_bind_address: "{{ php_rr_bind_host }}:{{ php_rr_bind_port }}"
