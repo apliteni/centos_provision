@@ -20,6 +20,8 @@ server {
 
   root {{ keitaro_root }};
 
+  access_log  /var/log/nginx/keitaro.access.log main buffer=16k flush=15s;
+
   index index.php index.html;
 
   # begin caching
@@ -46,23 +48,28 @@ server {
 
   # begin status page
   location /status {
-    fastcgi_pass php;
-    fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-    include fastcgi_params;
+    include {{ nginx_conf_path }}/keitaro-php.php-fpm.inc;
     allow 127.0.0.1;
     deny all;
   }
   # end status page
 
+  # begin admin php
+  # location ~ ^admin/\.php$ {
+  #   include keitaro-php.conf;
+  # }
+  # end admin php
+
+  # begin /admin
+  # location /admin {
+  #   access_log  /var/log/nginx/keitaro-admin.access.log main buffer=16k flush=15s;
+  #   try_files $uri $uri/ /index.php?$args;
+  # }
+  # end /admin
+
   # begin php
   location ~ \.php$ {
-    fastcgi_split_path_info ^(.+\.php)(/.+)$;
-    fastcgi_pass php;
-    fastcgi_index index.php;
-    fastcgi_buffers 16 16k;
-    fastcgi_buffer_size 32k;
-    fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-    include fastcgi_params;
+    include {{ nginx_conf_path }}/keitaro-php.inc;
   }
   # end php
 

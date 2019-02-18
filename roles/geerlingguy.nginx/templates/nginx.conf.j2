@@ -32,8 +32,6 @@ http {
                       '$status $body_bytes_sent "$http_referer" '
                       '"$http_user_agent" "$http_x_forwarded_for" $host';
 
-    access_log  {{ nginx_access_log }};
-
     log_format status '$status';
     access_log /var/log/nginx/access.status-log status buffer=16k flush=15s;
 
@@ -53,10 +51,6 @@ http {
 {% endif %}
 
 {{ nginx_extra_http_options }}
-
-    upstream php {
-      server unix:/var/run/{{ php_version }}-fpm.sock;
-    }
 
     include {{ nginx_conf_path }}/*.conf;
 {% if nginx_conf_path != nginx_vhost_path %}
