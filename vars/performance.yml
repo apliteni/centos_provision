@@ -18,6 +18,7 @@ php_fpm_max_idle_children_count: "{{ ((php_fpm_children_count|int) * 0.3) | roun
 php_fpm_opened_files: "{{ (150 * (php_fpm_children_count|int)) | round(-3, 'ceil') | int }}"
 
 php_rr_workers: 20
+php_rr_opened_files: "{{ (php_rr_workers|int) * 100 }}"
 
 nginx_worker_processes: "{{ cpu_cores }}"
 # total nginx opened files count ~= 20 * php_fpm_children_count
