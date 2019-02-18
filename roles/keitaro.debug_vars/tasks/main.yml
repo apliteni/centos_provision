@@ -8,8 +8,6 @@
     - redis_memory_mb
     - php_memory_mb
     - php_worker_size_mb
-    - php_fpm_workers_count
-    - php_worker_max_requests
     - php_workers_count
     - php_opened_files
     - php_rr_workers_count_factor

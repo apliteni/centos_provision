@@ -17,14 +17,14 @@ php_workers_count: "{{ ((php_memory_mb|float) / php_worker_size_mb) | round(-1, 
 php_opened_files: "{{ (150 * (php_workers_count|int)) | round(-3, 'ceil') | int }}"
 
 php_rr_workers_count_factor: "{% if php_engine == 'roadrunner' %}{{ 0.9 }}{% else %}{{ 0.01 }}{% endif %}"
-php_rr_workers_count: "{{ (php_workers_count|int) * (php_rr_workers_count_factor|float) | round(0, 'ceil') | int }}"
-php_rr_opened_files: "{{ (php_opened_files|int) * (php_rr_workers_count_factor|float) | round(-3, 'ceil') | int }}"
+php_rr_workers_count: "{{ ((php_workers_count|int) * (php_rr_workers_count_factor|float)) | round(0, 'ceil') | int }}"
+php_rr_opened_files: "{{ ((php_opened_files|int) * (php_rr_workers_count_factor|float)) | round(-3, 'ceil') | int }}"
 
-php_fpm_workers_count_factor: "{{ 1 - (php_rr_workers_count_factor|float) | round(1, 'ceil') }}"
-php_fpm_workers_count: "{{ (php_workers_count|int) * (php_fpm_workers_count_factor|int) | round(0, 'ceil') | int }}"
+php_fpm_workers_count_factor: "{{ (1 - (php_rr_workers_count_factor|float)) | round(1, 'ceil') }}"
+php_fpm_workers_count: "{{ ((php_workers_count|int) * (php_fpm_workers_count_factor|float)) | round(0, 'ceil') | int }}"
 php_fpm_min_idle_workers_count: "{{ ((php_fpm_workers_count|int) * 0.1) | round(0, 'ceil') | int }}"
 php_fpm_max_idle_workers_count: "{{ ((php_fpm_workers_count|int) * 0.3) | round(0, 'ceil') | int }}"
-php_fpm_opened_files: "{{ (php_opened_files|int) * (php_fpm_workers_count_factor|float) | round(-3, 'ceil') | int }}"
+php_fpm_opened_files: "{{ ((php_opened_files|int) * (php_fpm_workers_count_factor|float)) | round(-3, 'ceil') | int }}"
 
 nginx_workers_count: "{{ cpu_cores }}"
 # total nginx opened files count ~= 20 * php_workers_count
