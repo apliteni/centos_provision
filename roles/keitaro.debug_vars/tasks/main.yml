@@ -9,10 +9,18 @@
     - php_memory_mb
     - php_worker_size_mb
     - php_fpm_workers_count
+    - php_worker_max_requests
+    - php_workers_count
+    - php_opened_files
+    - php_rr_workers_count_factor
+    - php_rr_workers_count
+    - php_rr_opened_files
+    - php_fpm_workers_count_factor
+    - php_fpm_workers_count
     - php_fpm_min_idle_workers_count
     - php_fpm_max_idle_workers_count
     - php_fpm_opened_files
-    - nginx_worker_processes
+    - nginx_workers_count
     - nginx_worker_connections
     - nginx_opened_files
     - max_opened_files

@@ -12,6 +12,7 @@
     - vars/performance.yml
 
   roles:
+    - {role: 'keitaro.debug_vars', tags: 'debug_vars'}
     - {role: 'upgrades.pretasks', tags: 'never, upgrade_to_1_0'}
     - {role: 'kernel', tags: 'kernel, upgrade_to_1_0'}
     - {role: 'geerlingguy.firewall', tags: 'firewall', when: "skip_firewall is not defined or skip_firewall != 'yes'"}

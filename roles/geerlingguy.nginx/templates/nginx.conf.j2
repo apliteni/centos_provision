@@ -3,7 +3,7 @@ user  {{ nginx_user }};
 error_log  {{ nginx_error_log }};
 pid        {{ nginx_pidfile }};
 
-worker_processes  {{ nginx_worker_processes }};
+worker_processes  {{ nginx_workers_count }};
 
 # number of file descriptors used for nginx
 # the limit for the maximum FDs on the server is usually set by the OS.
