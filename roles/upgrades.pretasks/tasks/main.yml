@@ -1,3 +1,1 @@
-- include: debug.yml
-
 - include: upgrade_to_1_0.yml
