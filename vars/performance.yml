@@ -9,20 +9,34 @@ db_connections: "{{ [(((db_memory_mb|int) / 512) | int), 6] | max }}"
 # min 5% RAM, max 1G
 redis_memory_mb: "{{ (([ansible_memtotal_mb, hp_memory_level_mb] | min) * 0.05) | round(-1, 'ceil') | int }}"
 
-# min 45% RAM, max
-php_fpm_memory_mb: "{{ 0.9 * ansible_memtotal_mb - (db_memory_mb|int) - (redis_memory_mb|int) }}"
-php_fpm_child_size_mb: 25
-php_fpm_children_count: "{{ ((php_fpm_memory_mb|float) / php_fpm_child_size_mb) | round(-1, 'ceil') | int }}"
-php_fpm_min_idle_children_count: "{{ ((php_fpm_children_count|int) * 0.1) | round(0, 'ceil') | int }}"
-php_fpm_max_idle_children_count: "{{ ((php_fpm_children_count|int) * 0.3) | round(0, 'ceil') | int }}"
-php_fpm_opened_files: "{{ (150 * (php_fpm_children_count|int)) | round(-3, 'ceil') | int }}"
+# min 45% RAM
+php_memory_mb: "{{ 0.9 * ansible_memtotal_mb - (db_memory_mb|int) - (redis_memory_mb|int) }}"
+php_worker_size_mb: 25
+php_worker_max_requests: 2000
+php_workers_count: "{{ ((php_memory_mb|float) / php_worker_size_mb) | round(-1, 'ceil') | int }}"
+php_opened_files: "{{ (150 * (php_workers_count|int)) | round(-3, 'ceil') | int }}"
 
-php_rr_workers: 20
-php_rr_opened_files: "{{ (php_rr_workers|int) * 1500 }}"
+php_fpm_workers_count: >
+  {% if php_engine == 'php-fpm' %}
+    {{ php_workers_count }}
+  {% else %}
+    {{ (php_workers_count|int) * 0.1 | round(0, 'ceil') | int }}
+  {% endif %}
+php_fpm_min_idle_workers_count: "{{ ((php_fpm_workers_count|int) * 0.1) | round(0, 'ceil') | int }}"
+php_fpm_max_idle_workers_count: "{{ ((php_fpm_workers_count|int) * 0.3) | round(0, 'ceil') | int }}"
+php_fpm_opened_files: "{{ (150 * (php_fpm_workers_count|int)) | round(-3, 'ceil') | int }}"
+
+php_rr_workers_count: >
+  {% if php_engine == 'php-fpm' %}
+    1
+  {% else %}
+    {{ (php_workers_count|int) * 0.9 | round(0, 'ceil') | int }}
+  {% endif %}
+php_rr_opened_files: "{{ 150 * (php_rr_workers|int) | round(-3, 'ceil') | int }}"
 
 nginx_worker_processes: "{{ cpu_cores }}"
-# total nginx opened files count ~= 20 * php_fpm_children_count
-nginx_worker_connections: "{{ (20 * (php_fpm_children_count|int) / cpu_cores) | round(-3, 'ceil') | int }}"
-nginx_opened_files: "{{ (30 * (php_fpm_children_count|int)) | round(-3, 'ceil') | int }}"
+# total nginx opened files count ~= 20 * php_workers_count
+nginx_worker_connections: "{{ (20 * (php_workers_count|int) / cpu_cores) | round(-3, 'ceil') | int }}"
+nginx_opened_files: "{{ (30 * (php_workers_count|int)) | round(-3, 'ceil') | int }}"
 
 max_opened_files: "{{ 2 * ((php_opened_files|int) + (nginx_opened_files|int)) }}"
