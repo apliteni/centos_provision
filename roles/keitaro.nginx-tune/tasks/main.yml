@@ -1,2 +1,12 @@
-- name: Tune nginx service limits
-  include: tune_systemd.yml
+- name: Make systemd nginx extra config dir
+  file:
+    path: /etc/systemd/system/nginx.service.d
+    state: directory
+
+- name: Generate nginx systemd config
+  template:
+    src: keitaro-set_limits.conf.j2
+    dest: /etc/systemd/system/nginx.service.d/keitaro-set_limits.conf
+  notify:
+    - reconfigure nginx
+
