@@ -579,7 +579,7 @@ regenerate_vhost_config(){
   fi
   if need_to_regenerate_host_config "$vhost_path"; then
     command="${command}cp ${NGINX_KEITARO_CONF} "$vhost_path" && "
-    changes="${changes}$(build_sed_expression_from_nginx_setting_block "listen: listen 80")"
+    changes="${changes}$(build_sed_expression_from_nginx_setting_block "listen 80" "listen 80")"
     changes="${changes}$(build_sed_expression_from_nginx_setting_block "server_name ${domain}")"
   fi
   while isset "${3}"; do
@@ -615,18 +615,13 @@ get_vhost_backup_path(){
 
 
 build_sed_expression_from_nginx_setting_block(){
-  local setting_block="${1}"
-  IFS=":" read block setting <<< "$setting_block"
-  if empty "$setting"; then
-    setting=$block
-    block=""
-  fi
+  local setting="${1}"
+  local search_pattern="${2}"
   read name value <<< "$setting"
-  bounds=""
-  if isset "$block"; then
-    bounds="/# begin ${block}/,/# end ${block}/"
+  if empty "$search_pattern"; then
+    search_pattern="${name} .*"
   fi
-  echo " -e '${bounds}s|${name} .*|${name} ${value};|g'"
+  echo " -e 's|${search_pattern}|${name} ${value};|g'"
 }
 
 
@@ -1307,10 +1302,8 @@ ensure_can_add_vhost(){
 generate_nginx_host_config(){
   local domain="${1}"
   debug "Add vhost"
-  regenerate_vhost_config "$domain" 'messages.add_vhost' \
-    "server_name ${domain}" \
-    "root ${VARS['site_root']}"
-  }
+  regenerate_vhost_config "$domain" 'messages.add_vhost' "root ${VARS['site_root']}"
+}
 
 
 
