@@ -1,0 +1,26 @@
+{% if php_engine == 'php-fpm' %}
+{######################## php-fpm ##########################}
+
+location ~ \.php$ {
+  include {{ nginx_conf_path }}/keitaro.php-fpm.inc;
+}
+
+location / {
+  try_files $uri $uri/ /index.php$is_args$args;
+}
+
+{% else %}
+{###################### roadrunner #########################}
+
+location / {
+  # RoadRunned engine
+  proxy_ssl_session_reuse off;
+  proxy_pass http://{{ php_rr_bind_address }};
+  proxy_set_header  Host $host;
+  proxy_set_header  X-Real-IP $remote_addr;
+  proxy_set_header  X-Forwarded-Proto https;
+  proxy_set_header  X-Forwarded-For $remote_addr;
+  proxy_set_header  X-Forwarded-Host $remote_addr;
+}
+
+{% endif %}
