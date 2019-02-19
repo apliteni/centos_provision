@@ -54,24 +54,34 @@ server {
   }
   # end status page
 
-  # begin /admin
-  rewrite ^/admin$ /admin/ permanent;
-  location /admin/ {
+  # begin @keitaro-admin
+  location @keitaro-admin {
     include {{ nginx_conf_path }}/keitaro-php.php-fpm.inc;
+  }
+  # end @keitaro-admin
+
+  # begin /admin
+  location /admin {
     access_log  /var/log/nginx/keitaro-admin.access.log main buffer=16k flush=15s;
+    try_files $uri $uri/ @keitaro-admin;
   }
   # end /admin
 
-  # begin php
-  location ~ \.php$ {
+  # begin @keitaro
+  location @keitaro {
     include {{ nginx_conf_path }}/keitaro-php.inc;
   }
-  # end php
+  # end @keitaro
 
   # begin /
   location / {
-    try_files $uri $uri/ /index.php?$args;
+    try_files $uri $uri/ @keitaro;
   }
   # end /
 
+  # begin php
+  # location ~ \.php$ {
+  #   include {{ nginx_conf_path }}/keitaro-php.inc;
+  # }
+  # end php
 }
