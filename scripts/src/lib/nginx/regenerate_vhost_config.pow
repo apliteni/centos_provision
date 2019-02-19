@@ -12,7 +12,7 @@ regenerate_vhost_config(domain, message_key)
     cp "${vhost_path}" "${vhost_backup_path}"
   if need_to_regenerate_host_config $vhost_path
     command="${command}cp ${NGINX_KEITARO_CONF} $vhost_path && "
-    changes="${changes}$(build_sed_expression_from_nginx_setting_block "listen: listen 80")"
+    changes="${changes}$(build_sed_expression_from_nginx_setting_block "listen 80" "listen 80")"
     changes="${changes}$(build_sed_expression_from_nginx_setting_block "server_name ${domain}")"
   while isset "${3}"
     changes="${changes}$(build_sed_expression_from_nginx_setting_block "${3}")"
@@ -36,14 +36,9 @@ get_vhost_backup_path(domain)
   echo "${NGINX_VHOSTS_DIR}/${domain}.conf.$(date +%Y%m%d%H%M%S)"
 
 
-build_sed_expression_from_nginx_setting_block(setting_block)
-  IFS=":" read block setting <<< $setting_block
-  if empty $setting
-    setting=$block
-    block=""
+build_sed_expression_from_nginx_setting_block(setting, search_pattern)
   read name value <<< $setting
-  bounds=""
-  if isset $block
-    bounds="/# begin ${block}/,/# end ${block}/"
-  echo " -e '${bounds}s|${name} .*|${name} ${value};|g'"
+  if empty $search_pattern
+    search_pattern="${name} .*"
+  echo " -e 's|${search_pattern}|${name} ${value};|g'"
 
