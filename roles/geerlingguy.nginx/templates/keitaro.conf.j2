@@ -3,11 +3,8 @@
 server {
   server_name _;
 
-  # begin listen
   listen 80 default_server;
-  # end listen
 
-  # begin ssl
   listen 443 ssl;
   ssl_certificate {{ ssl_cert_path }};
   ssl_certificate_key {{ ssl_privkey_path }};
@@ -16,7 +13,6 @@ server {
   ssl_prefer_server_ciphers on;
   ssl_dhparam {{ ssl_dhparam_path }};
   add_header X-Content-Type-Options nosniff;
-  # end ssl
 
   root {{ keitaro_root }};
 
@@ -24,64 +20,38 @@ server {
 
   index index.php index.html;
 
-  # begin caching
   location ~* \.(jpg|jpeg|gif|png|js|css|txt|zip|ico|gz|csv)$ {
     expires 10d;
   }
-  # end caching
 
-  # begin forbid hidden files
   location ~ /\.(?!well-known).* {
     access_log off;
     log_not_found off;
     return 404;
   }
-  # end forbid hidden files
 
-  # begin forbid keitaro
   location ~* /(var|lib|application)/.*$ {
     access_log off;
     log_not_found off;
     return 404;
   }
-  # end forbid keitaro
 
-  # begin status page
   location /status {
-    include {{ nginx_conf_path }}/keitaro-php.php-fpm.inc;
+    include {{ nginx_conf_path }}/keitaro.php-fpm.inc;
+    access_log off;
     allow 127.0.0.1;
     deny all;
   }
-  # end status page
 
-  # begin @keitaro-admin
   location @keitaro-admin {
-    include {{ nginx_conf_path }}/keitaro-php.php-fpm.inc;
+    include {{ nginx_conf_path }}/keitaro.php-fpm.inc;
   }
-  # end @keitaro-admin
 
-  # begin /admin
   location /admin {
+    access_log off;
     access_log  /var/log/nginx/keitaro-admin.access.log main buffer=16k flush=15s;
     try_files $uri $uri/ @keitaro-admin;
   }
-  # end /admin
 
-  # begin @keitaro
-  location @keitaro {
-    include {{ nginx_conf_path }}/keitaro-php.inc;
-  }
-  # end @keitaro
-
-  # begin /
-  location / {
-    try_files $uri $uri/ @keitaro;
-  }
-  # end /
-
-  # begin php
-  # location ~ \.php$ {
-  #   include {{ nginx_conf_path }}/keitaro-php.inc;
-  # }
-  # end php
+  include {{ nginx_conf_path }}/keitaro.root_location.inc;
 }

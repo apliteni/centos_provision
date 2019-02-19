@@ -13,9 +13,8 @@
     dest: "{{ nginx_vhost_path }}/{{ item }}"
   with_items:
     - keitaro.conf
-    - keitaro-php.inc
-    - keitaro-php.php-fpm.inc
-    - keitaro-php.roadrunner.inc
+    - keitaro.root_location.inc
+    - keitaro.php-fpm.inc
   notify:
     - reload nginx
 
