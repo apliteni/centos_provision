@@ -1,11 +1,11 @@
 # we say server is High Performant, if it has more than 32G RAM
 hp_memory_level_mb: 32768
 
-# min 40% RAM, max 8G
-db_memory_mb: "{{ ([ansible_memtotal_mb, hp_memory_level_mb] | min) * 0.4 }}"
+# min 100M, usually 20%RAM, max 8G
+db_memory_mb: "{{ [([100, 0.2 * ansible_memtotal_mb] | max), 8*1024] | min }}"
 db_memory_1pct_kb: "{{ ((db_memory_mb|int) * 1024 / 100) | int }}"
 db_max_connections: "{{ [(((db_memory_mb|int) / 512) | int), 6] | max }}"
-db_key_buffer_size_kb: "{{ 2 * (db_memory_1pct_kb|int) | max }}"
+db_key_buffer_size_kb: "{{ 2 * (db_memory_1pct_kb|int) }}"
 db_query_cache_size_kb: "{{ 2 * (db_memory_1pct_kb|int) }}"
 db_tmp_table_size_kb: "{{ db_memory_1pct_kb|int }}"
 db_max_heap_table_size_kb: "{{ db_memory_1pct_kb|int }}"
@@ -19,12 +19,12 @@ db_open_files_limit: "{{ (db_max_connections|int) * 100 * 2 }}"
 # 80% of available db memory as main engine memory
 db_main_size_kb: "{{ (db_memory_1pct_kb|int) * 80 }}"
 
-# min 5% RAM, max 1G
-redis_memory_mb: "{{ (([ansible_memtotal_mb, hp_memory_level_mb] | min) * 0.05) | round(-1, 'ceil') | int }}"
+# min 20M, usually 5% RAM, max 1G
+redis_memory_mb: "{{ [([10, ansible_memtotal_mb * 0.05] | max), 1000] | min | round(-1, 'ceil') | int }}"
 
-# min 45% RAM
-php_memory_mb: "{{ 0.9 * ansible_memtotal_mb - (db_memory_mb|int) - (redis_memory_mb|int) }}"
-php_worker_size_mb: 25
+# min 100M, max 90% RAM
+php_memory_mb: "{{ [100, (0.9 * ansible_memtotal_mb - (db_memory_mb|int) - (redis_memory_mb|int))] | max }}"
+php_worker_size_mb: 20
 php_worker_max_requests: 2000
 php_workers_count: "{{ ((php_memory_mb|float) / php_worker_size_mb) | round(-1, 'ceil') | int }}"
 php_opened_files: "{{ (150 * (php_workers_count|int)) | round(-3, 'ceil') | int }}"
