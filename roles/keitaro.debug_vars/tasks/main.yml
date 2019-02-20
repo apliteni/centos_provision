@@ -4,7 +4,15 @@
     - ansible_memtotal_mb
     - db_memory_mb
     - db_memory_1pct_kb
-    - db_connections
+    - db_max_connections
+    - db_key_buffer_size_kb
+    - db_query_cache_size_kb
+    - db_tmp_table_size_kb
+    - db_max_heap_table_size_kb
+    - db_join_buffer_size_kb
+    - db_table_open_cache
+    - db_open_files_limit
+    - db_main_size_kb
     - redis_memory_mb
     - php_memory_mb
     - php_worker_size_mb
