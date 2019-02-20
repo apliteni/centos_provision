@@ -12,7 +12,7 @@
     - vars/performance.yml
 
   roles:
-    - {role: 'keitaro.debug_vars', tags: 'debug_vars'}
+    - {role: 'keitaro.debug_vars', tags: 'debug_vars, tune'}
     - {role: 'upgrades.pretasks', tags: 'never, upgrade_to_1_0'}
     - {role: 'kernel', tags: 'kernel, upgrade_to_1_0'}
     - {role: 'geerlingguy.firewall', tags: 'firewall', when: "skip_firewall is not defined or skip_firewall != 'yes'"}
@@ -25,13 +25,13 @@
     - {role: 'mikegleasonjr.swap', tags: 'swap, upgrade_to_1_0'}
     - {role: 'keitaro.install-disable_thp.service', tags: 'mariadb, tokudb, redis, upgrade_to_1_0'}
     - {role: 'keitaro.redis', tags: 'redis'}
-    - {role: 'keitaro.redis-tune', tags: 'redis, upgrade_to_1_0'}
+    - {role: 'keitaro.redis-tune', tags: 'redis, tune, tune-redis, upgrade_to_1_0'}
     - {role: 'bertvv.mariadb', tags: 'mariadb'}
     - {role: 'keitaro.mariadb-install_tokudb', tags: 'mariadb'}
-    - {role: 'keitaro.mariadb-tune', tags: 'mariadb, tune-mariadb, upgrade_to_1_0'}
+    - {role: 'keitaro.mariadb-tune', tags: 'mariadb, tune, tune-mariadb, upgrade_to_1_0'}
     - {role: 'keitaro.prepare', tags: 'prepare, ssl, upgrade_to_1_0'}
     - {role: 'geerlingguy.nginx', tags: 'nginx, upgrade_to_1_0'}
-    - {role: 'keitaro.nginx-tune', tags: 'nginx, upgrade_to_1_0'}
+    - {role: 'keitaro.nginx-tune', tags: 'nginx, tune, tune-nginx, upgrade_to_1_0'}
     - {role: 'keitaro.php', tags: 'php, upgrade_to_1_0'}
     - {role: 'keitaro.roadrunner', tags: 'php, roadrunner, upgrade_to_1_0'}
     - {role: 'keitaro.tune_autorestarting', tags: 'php, mariadb, nginx, redis, upgrade_to_1_0'}
