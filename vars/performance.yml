@@ -4,7 +4,20 @@ hp_memory_level_mb: 32768
 # min 40% RAM, max 8G
 db_memory_mb: "{{ ([ansible_memtotal_mb, hp_memory_level_mb] | min) * 0.4 }}"
 db_memory_1pct_kb: "{{ ((db_memory_mb|int) * 1024 / 100) | int }}"
-db_connections: "{{ [(((db_memory_mb|int) / 512) | int), 6] | max }}"
+db_max_connections: "{{ [(((db_memory_mb|int) / 512) | int), 6] | max }}"
+db_key_buffer_size_kb: "{{ 2 * (db_memory_1pct_kb|int) | max }}"
+db_query_cache_size_kb: "{{ 2 * (db_memory_1pct_kb|int) }}"
+db_tmp_table_size_kb: "{{ db_memory_1pct_kb|int }}"
+db_max_heap_table_size_kb: "{{ db_memory_1pct_kb|int }}"
+# per connection settings
+# join_buffer_size * connections: 5% available db memory
+db_join_buffer_size_kb: "{{ ((db_memory_1pct_kb|int) / (db_max_connections|int) * 5) | round(-2, 'ceil') | int }}"
+# table_open_cache: max_connections * 100 (amount of tables in db)
+db_table_open_cache: "{{ (db_max_connections|int) * 100 }}"
+# In general it is 2x of table_open_cache.
+db_open_files_limit: "{{ (db_max_connections|int) * 100 * 2 }}"
+# 80% of available db memory as main engine memory
+db_main_size_kb: "{{ (db_memory_1pct_kb|int) * 80 }}"
 
 # min 5% RAM, max 1G
 redis_memory_mb: "{{ (([ansible_memtotal_mb, hp_memory_level_mb] | min) * 0.05) | round(-1, 'ceil') | int }}"
