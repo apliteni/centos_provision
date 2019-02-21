@@ -1,0 +1,11 @@
+- name: Add managed vhost keitaro files.
+  template:
+    src: "nginx/{{ item }}.j2"
+    dest: "{{ nginx_vhost_path }}/{{ item }}"
+  with_items:
+    - keitaro.conf
+    - keitaro.root_location.inc
+    - keitaro.php-fpm.inc
+  notify:
+    - reload nginx
+
