@@ -32,7 +32,8 @@
     - {role: 'keitaro.prepare', tags: 'prepare, ssl, upgrade_to_1_0'}
     - {role: 'geerlingguy.nginx', tags: 'nginx, upgrade_to_1_0'}
     - {role: 'keitaro.nginx-tune', tags: 'nginx, tune, tune-nginx, upgrade_to_1_0'}
-    - {role: 'keitaro.php', tags: 'php, upgrade_to_1_0'}
+    - {role: 'keitaro.php', tags: 'php'}
+    - {role: 'keitaro.php-tune', tags: 'php, tune, php-tune, upgrade_to_1_0'}
     - {role: 'keitaro.roadrunner', tags: 'php, roadrunner, upgrade_to_1_0'}
     - {role: 'keitaro.roadrunner-tune', tags: 'php, roadrunner, tune, roadrunner-tune, upgrade_to_1_0'}
     - {role: 'keitaro.tune_autorestarting', tags: 'php, mariadb, nginx, redis, upgrade_to_1_0'}
