@@ -1,0 +1,40 @@
+- name: Increase limits
+  lineinfile:
+    path: /etc/php/php.ini
+    regexp: '^{{ item.key }}'
+    line: '{{ item.key }} = {{ item.value }}'
+  with_dict:
+    memory_limit: '{{ php_memory_limit }}'
+    post_max_size: '{{ php_max_upload_size }}'
+    upload_max_filesize: '{{ php_max_upload_size }}'
+    short_open_tag: 'On'
+  notify:
+    - restart php-fpm
+
+- name: Generate a pool config
+  template:
+    src: "www.conf.j2"
+    dest: "/etc/php/php-fpm.d/www.conf"
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - restart php-fpm
+
+- name: Make php-fpm service extra configuration dir
+  file:
+    path: "/etc/systemd/system/{{ php_version }}-php-fpm.service.d"
+    state: directory
+
+- name: Configure PHP-FPM SystemD service
+  template:
+    src: keitaro.conf.j2
+    dest: "/etc/systemd/system/{{ php_version }}-php-fpm.service.d/keitaro.conf"
+  notify:
+    - reconfigure php-fpm
+
+- name: Enable and run php-fpm
+  service:
+    name: "{{php_version}}-php-fpm"
+    state: started
+    enabled: yes

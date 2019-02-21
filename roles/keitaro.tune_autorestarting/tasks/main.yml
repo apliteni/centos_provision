@@ -3,5 +3,4 @@
   with_items:
     - mariadb
     - redis
-    - "{{ php_version }}-php-fpm"
     - nginx
