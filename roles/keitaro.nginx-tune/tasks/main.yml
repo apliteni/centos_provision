@@ -5,8 +5,8 @@
 
 - name: Generate nginx systemd config
   template:
-    src: keitaro-set_limits.conf.j2
-    dest: /etc/systemd/system/nginx.service.d/keitaro-set_limits.conf
+    src: keitaro.conf.j2
+    dest: /etc/systemd/system/nginx.service.d/keitaro.conf
   notify:
     - reconfigure nginx
 
