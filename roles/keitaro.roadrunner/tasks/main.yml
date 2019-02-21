@@ -1,33 +1,15 @@
 - name: Download and unpack RoadRunner
   shell: >
-    curl -sSL https://github.com/spiral/roadrunner/releases/download/v{{ rr_version }}/roadrunner-{{ rr_version }}-linux-amd64.tar.gz | \
-     tar -xz --no-same-owner --no-same-permissions --strip 1 roadrunner-{{ rr_version }}-linux-amd64/rr && \
-     mv /usr/local/bin/rr /usr/local/bin/roadrunner
+    curl -sSL https://github.com/spiral/roadrunner/releases/download/v{{ rr_version }}/{{ rr_release_name }}.tar.gz | \
+     tar -xz --no-same-owner --no-same-permissions --strip 1 {{ rr_release_name }}/rr && \
+     mv /usr/local/bin/rr /usr/local/bin/roadrunner-{{ rr_version }}
   args:
     chdir: /usr/local/bin
+    creates: "/usr/local/bin/roadrunner-{{ rr_version }}"
 
-- name: Generate roadrunner config
-  template:
-    src: roadrunner.yml.j2
-    dest: "{{ configs_root }}/roadrunner.yml"
-
-- name: Generate roadrunner systemd unit file into place.
-  template:
-    src: roadrunner.service.j2
-    dest: /etc/systemd/system/roadrunner.service
-
-- name: Enable and start roadrunner service if engine is roadrunner
-  systemd:
-    daemon-reload: true
-    name: roadrunner
-    state: restarted
-    enabled: yes
-  when: "php_engine == 'roadrunner'"
-
-- name: Disable and stop roadrunner service if engine is not roadrunner
-  systemd:
-    daemon-reload: true
-    name: roadrunner
-    state: stopped
-    enabled: no
-  when: "php_engine != 'roadrunner'"
+- name: Make symlink to current roadrunner
+  file:
+    src: "roadrunner-{{ rr_version }}"
+    dest: /usr/local/bin/roadrunner
+    state: link
+    force: true
