@@ -3,4 +3,3 @@
   with_items:
     - mariadb
     - redis
-    - nginx
