@@ -36,6 +36,6 @@
     - {role: 'keitaro.php-tune', tags: 'php, tune, php-tune, upgrade_to_1_0'}
     - {role: 'keitaro.roadrunner', tags: 'php, roadrunner, upgrade_to_1_0'}
     - {role: 'keitaro.roadrunner-tune', tags: 'php, roadrunner, tune, roadrunner-tune, upgrade_to_1_0'}
-    - {role: 'keitaro', tags: 'keitaro'}
+    - {role: 'keitaro.tracker', tags: 'keitaro'}
     - {role: 'keitaro.db_restore', tags: 'db_restore, keitaro', when: "db_restore is defined and db_restore == 'yes'"}
     - {role: 'upgrades.tasks', tags: 'never, upgrade_to_1_0' }
