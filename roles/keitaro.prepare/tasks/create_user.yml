@@ -1,5 +1,13 @@
+- name: Create keitaro group
+  group:
+    name: "{{ keitaro_group }}"
+    system: true
+
 - name: Create keitaro user
   user:
     name: "{{ keitaro_user }}"
     group: "{{ keitaro_group }}"
+    system: true
+    create_home: no
+    shell: /sbin/nologin
 
