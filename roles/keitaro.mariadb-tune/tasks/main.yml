@@ -24,7 +24,7 @@
 
 - name: Configure MariaDB service
   template:
-    src: /etc/systemd/system/mariadb/keitaro.conf.j2
+    src: etc/systemd/system/mariadb.service.d/keitaro.conf.j2
     dest: "/etc/systemd/system/mariadb.service.d/keitaro.conf"
   notify:
     - reconfigure mariadb
