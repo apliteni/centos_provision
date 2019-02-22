@@ -10,3 +10,8 @@
 
 - name: Setup cron jobs
   include: setup_cron.yml
+
+- name: Remove install.php
+  file:
+    path: "{{ keitaro_root }}/install.php"
+    state: absent
