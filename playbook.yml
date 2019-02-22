@@ -21,7 +21,7 @@
     - {role: 'mrlesmithjr.timezone'}
     - {role: 'geerlingguy.repo-epel', tags: 'repo-epel'}
     - {role: 'geerlingguy.repo-remi', tags: 'repo-remi'}
-    - {role: 'tools'}
+    - {role: 'keitaro.prepare', tags: 'prepare, ssl, upgrade_to_1_0'}
     - {role: 'mikegleasonjr.swap', tags: 'swap, upgrade_to_1_0'}
     - {role: 'keitaro.disable_thp', tags: 'mariadb, tokudb, redis, upgrade_to_1_0'}
     - {role: 'keitaro.redis', tags: 'redis'}
@@ -30,7 +30,6 @@
     - {role: 'keitaro.mariadb-install_tokudb', tags: 'mariadb, tokudb, upgrade_to_1_0'}
     - {role: 'keitaro.mariadb-tune', tags: 'mariadb, tokudb, tune, mariadb-tune, upgrade_to_1_0'}
     - {role: 'keitaro.nginx', tags: 'nginx'}
-    - {role: 'keitaro.prepare', tags: 'prepare, ssl, upgrade_to_1_0'}
     - {role: 'keitaro.nginx-tune', tags: 'nginx, tune, nginx-tune, upgrade_to_1_0'}
     - {role: 'keitaro.php', tags: 'php'}
     - {role: 'keitaro.php-tune', tags: 'php, tune, php-tune, upgrade_to_1_0'}

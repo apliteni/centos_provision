@@ -1,0 +1,10 @@
+- name: Install cronie cron daemon
+  package:
+    name: cronie
+    state: present
+
+- name: Run crond
+  service:
+    name: crond
+    state: started
+    enabled: yes
