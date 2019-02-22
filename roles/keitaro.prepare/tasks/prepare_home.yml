@@ -3,5 +3,4 @@
     path: "{{ keitaro_root }}"
     state: directory
     owner: "{{ keitaro_user }}"
-    group: "{{ keitaro_user }}"
-    mode: 0777
+    group: "{{ keitaro_group }}"

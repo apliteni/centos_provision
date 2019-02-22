@@ -2,6 +2,7 @@ max_upload_size: 100M
 timezone: Europe/Moscow
 swap_size: "{{ [[ansible_memtotal_mb, 1024] | max, 8192] | min }}"
 keitaro_user: keitaro
+keitaro_group: keitaro
 
 configs_root: /etc/keitaro
 backups_root: "{{ configs_root }}/backups"

@@ -1,14 +1,6 @@
----
-- name: install tools
-  yum:
-    name:
-      - nano
-      - htop
-      - httpd-tools
-      - sudo
-      - cronie
-      - libselinux-python
-      - unzip
+- name: Install sudo
+  package:
+    name: sudo
     state: present
 
 - name: Remove require tty
@@ -18,8 +10,4 @@
 - name: Remove require tty - alt
   lineinfile: regexp="requiretty" dest=/etc/sudoers.d/os_defaults state=absent
 
-- name: Run crond
-  service:
-    name: crond
-    state: started
-    enabled: yes
+

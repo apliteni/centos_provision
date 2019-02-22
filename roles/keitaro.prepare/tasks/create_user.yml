@@ -1,0 +1,5 @@
+- name: Create keitaro user
+  user:
+    name: "{{ keitaro_user }}"
+    group: "{{ keitaro_group }}"
+
