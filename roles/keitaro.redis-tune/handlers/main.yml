@@ -1,0 +1,10 @@
+- name: restart redis
+  service:
+    name: redis
+    state: restarted
+
+- name: reconfigure redis
+  service:
+    daemon-reload: true
+    name: redis
+    state: restarted

@@ -1,0 +1,5 @@
+- name: reconfigure mariadb
+  service:
+    daemon-reload: true
+    name: mariadb
+    state: restarted

@@ -1,5 +1,0 @@
-- name: Configure auto restart on service crash
-  include: configure_service.yml service_name="{{ item }}"
-  with_items:
-    - mariadb
-    - redis
