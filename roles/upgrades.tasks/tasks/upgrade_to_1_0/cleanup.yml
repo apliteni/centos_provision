@@ -12,3 +12,7 @@
     path: /root/hosts.txt
     state: absent
 
+- name: Remove install.php
+  file:
+    path: "{{ keitaro_root }}/install.php"
+    state: absent
