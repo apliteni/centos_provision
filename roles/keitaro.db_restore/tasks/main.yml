@@ -27,7 +27,7 @@
   command: "php bin/cli.php system:reload_cache"
   args:
     chdir: "{{ keitaro_root }}"
-  become_user: "{{ os_user }}"
+  become_user: "{{ keitaro_user }}"
 
 - name: Reset Keitaro salt
   lineinfile:

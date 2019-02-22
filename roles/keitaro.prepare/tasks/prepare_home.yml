@@ -2,6 +2,6 @@
   file:
     path: "{{ keitaro_root }}"
     state: directory
-    owner: "{{ os_user }}"
-    group: "{{ os_user }}"
+    owner: "{{ keitaro_user }}"
+    group: "{{ keitaro_user }}"
     mode: 0777

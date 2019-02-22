@@ -21,4 +21,4 @@
   shell: "curl https://keitaro.io/releases/{{ get_keitaro_version.stdout }}/package8.tar.gz | tar -xz --strip=1"
   args:
     chdir: "{{ keitaro_root }}"
-  become_user: "{{ os_user }}"
+  become_user: "{{ keitaro_user }}"
