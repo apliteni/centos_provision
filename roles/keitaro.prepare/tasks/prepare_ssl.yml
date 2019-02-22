@@ -12,4 +12,4 @@
   cron:
     name: Renew Let's Encrypt certs
     state: absent
-    user: "{{ os_user }}"
+    user: "{{ keitaro_user }}"

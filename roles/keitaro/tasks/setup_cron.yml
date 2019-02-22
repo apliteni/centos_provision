@@ -1,12 +1,12 @@
 - name: Configure cron to run keitaro task every minute
   cron:
-    user: "{{ os_user }}"
+    user: "{{ keitaro_user }}"
     name: "keitaro"
     job: "php {{ keitaro_root }}/cron.php"
 
 - name: Configure cron to update geo databases every week
   cron:
-    user: "{{ os_user }}"
+    user: "{{ keitaro_user }}"
     name: "update geodbs"
     weekday: "{{ 6 | random }}"
     hour: "{{ 23 | random }}"
