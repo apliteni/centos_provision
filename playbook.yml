@@ -19,7 +19,6 @@
     - {role: 'selinux', tags: 'selinux'}
     - {role: 'resmo.ntp', tags: 'ntp'}
     - {role: 'mrlesmithjr.timezone'}
-    - {role: 'geerlingguy.repo-epel', tags: 'repo-epel'}
     - {role: 'geerlingguy.repo-remi', tags: 'repo-remi'}
     - {role: 'keitaro.prepare', tags: 'prepare, ssl, upgrade_to_1_0'}
     - {role: 'mikegleasonjr.swap', tags: 'swap, upgrade_to_1_0'}
