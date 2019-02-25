@@ -8,7 +8,6 @@
     name: "{{ keitaro_user }}"
     group: "{{ keitaro_group }}"
     system: true
-    create_home: no
-    home: /var/www/keitaro
     shell: /sbin/nologin
-
+    createhome: false
+    home: "{{ keitaro_home }}"
