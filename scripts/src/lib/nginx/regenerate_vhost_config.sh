@@ -20,7 +20,7 @@ regenerate_vhost_config(){
   fi
   if need_to_regenerate_host_config "$vhost_path"; then
     command="${command}cp ${NGINX_KEITARO_CONF} "$vhost_path" && "
-    changes="${changes}$(build_sed_expression_from_nginx_setting_block "listen 80" "listen 80")"
+    changes="${changes}$(build_sed_expression_from_nginx_setting_block "listen 80" "listen 80 .*")"
     changes="${changes}$(build_sed_expression_from_nginx_setting_block "server_name ${domain}")"
   fi
   while isset "${3}"; do

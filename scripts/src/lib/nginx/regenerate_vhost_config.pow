@@ -12,7 +12,7 @@ regenerate_vhost_config(domain, message_key)
     cp "${vhost_path}" "${vhost_backup_path}"
   if need_to_regenerate_host_config $vhost_path
     command="${command}cp ${NGINX_KEITARO_CONF} $vhost_path && "
-    changes="${changes}$(build_sed_expression_from_nginx_setting_block "listen 80" "listen 80")"
+    changes="${changes}$(build_sed_expression_from_nginx_setting_block "listen 80" "listen 80 .*")"
     changes="${changes}$(build_sed_expression_from_nginx_setting_block "server_name ${domain}")"
   while isset "${3}"
     changes="${changes}$(build_sed_expression_from_nginx_setting_block "${3}")"
