@@ -13,7 +13,6 @@ location / {
 {###################### roadrunner #########################}
 
 location / {
-  # RoadRunned engine
   proxy_ssl_session_reuse off;
   proxy_pass http://{{ php_rr_bind_address }};
   proxy_set_header  Host $host;

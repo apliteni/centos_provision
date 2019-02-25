@@ -16,41 +16,43 @@ server {
 
   root {{ keitaro_root }};
 
-  access_log  /var/log/nginx/keitaro.access.log main buffer=16k flush=15s;
-
   index index.php index.html;
 
+  {{ nginx_keitaro_access_log_entry }};
+  {{ nginx_keitaro_status_log_entry }};
+
   location ~* \.(jpg|jpeg|gif|png|js|css|txt|zip|ico|gz|csv)$ {
+    {{ nginx_keitaro_access_log_entry }};
+
     expires 10d;
   }
 
   location ~ /\.(?!well-known).* {
     access_log off;
-    log_not_found off;
     return 404;
   }
 
-  location ~* /(var|lib|application)/.*$ {
+  location ~ ^/(var|lib|application)/.*$ {
     access_log off;
-    log_not_found off;
     return 404;
   }
 
   location /status {
-    include {{ nginx_conf_path }}/keitaro.php-fpm.inc;
     access_log off;
+    include {{ nginx_conf_path }}/keitaro.php-fpm.inc;
     allow 127.0.0.1;
     deny all;
   }
 
-  location @keitaro-admin {
-    include {{ nginx_conf_path }}/keitaro.php-fpm.inc;
+  location /admin {
+     return 301 /admin/;
   }
 
-  location /admin {
-    access_log off;
-    access_log  /var/log/nginx/keitaro-admin.access.log main buffer=16k flush=15s;
-    try_files $uri $uri/ @keitaro-admin;
+  location /admin/ {
+    {{ nginx_keitaro_admin_access_log_entry }};
+    {{ nginx_keitaro_status_log_entry }};
+
+    include {{ nginx_conf_path }}/keitaro.php-fpm.inc;
   }
 
   include {{ nginx_conf_path }}/keitaro.root_location.inc;
