@@ -16,3 +16,6 @@
   file:
     path: "{{ keitaro_root }}/install.php"
     state: absent
+
+- name: Remove all cron tasks of nginx user
+  command: "crontab -r -u {{ nginx_user }}"
