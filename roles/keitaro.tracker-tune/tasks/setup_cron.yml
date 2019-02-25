@@ -1,0 +1,31 @@
+- name: Configure cron to run keitaro task every minute
+  cron:
+    user: "{{ keitaro_user }}"
+    name: "keitaro"
+    job: "php {{ keitaro_root }}/cron.php"
+
+- name: Configure cron to update geo databases every week
+  cron:
+    user: "{{ keitaro_user }}"
+    name: "update geodbs"
+    weekday: "{{ 6 | random }}"
+    hour: "{{ 23 | random }}"
+    minute: "{{ 59 | random }}"
+    job: "php {{ keitaro_root }}/bin/cli.php geodbs:update_all"
+
+- name: Install executable files
+  copy:
+    src: "{{ item }}"
+    dest: "/usr/local/bin/{{ item }}"
+    mode: "0755"
+  with_items:
+    - get_keitaro_stat
+    - rotate_nginx_status_logs
+
+- name: Add rotating nginx status log files cron job
+  cron:
+    name: "Rotate nginx http status logs"
+    job: |
+      /usr/local/bin/rotate_nginx_status_logs && /usr/local/bin/get_keitaro_stat > {{ keitaro_root }}/var/stats.json
+    minute: 2,17,32,47
+

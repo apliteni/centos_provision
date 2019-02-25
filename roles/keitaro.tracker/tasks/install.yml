@@ -26,3 +26,8 @@
   become_user: "{{ keitaro_user }}"
   register: command_result
   failed_when: "'Installation Finished' not in command_result.stdout and 'Установка завершена' not in command_result.stdout"
+
+- name: Remove install.php
+  file:
+    path: "{{ keitaro_root }}/install.php"
+    state: absent

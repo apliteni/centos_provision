@@ -1,0 +1,2 @@
+- name: Setup cron jobs
+  include: setup_cron.yml
