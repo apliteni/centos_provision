@@ -1,4 +1,3 @@
-# PHP-FPM engine
 fastcgi_split_path_info ^(.+\.php)(/.+)$;
 fastcgi_pass unix:/var/run/{{ php_version }}-fpm.sock;
 fastcgi_index index.php;
