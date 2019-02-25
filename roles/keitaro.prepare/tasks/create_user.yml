@@ -9,5 +9,6 @@
     group: "{{ keitaro_group }}"
     system: true
     create_home: no
+    home: /var/www/keitaro
     shell: /sbin/nologin
 
