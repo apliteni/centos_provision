@@ -1,5 +1,5 @@
 - name: Create directory for backups
   file:
-    path: "{{ backups_root }}"
+    path: "{{ keitaro_config_backups_dir }}"
     state: directory
 
