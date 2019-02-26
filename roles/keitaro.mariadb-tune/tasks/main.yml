@@ -1,30 +1,8 @@
-- name: Create log directory
-  file:
-    path: /var/log/mariadb
-    owner: mysql
-    group: mysql
-    state: directory
+- name: Tune logroatate
+  include: tune-logrotate.yml
 
-- name: Generate config files
-  template:
-    src: "{{ item }}.j2"
-    dest: "/{{ item }}"
-  notify: restart mariadb
-  with_items:
-    - etc/my.cnf.d/keitaro-mysqld-optimize_performance.cnf
-    - etc/my.cnf.d/keitaro-mysqld-set_default_storage_engine.cnf
-    - etc/my.cnf.d/keitaro-mysqld-error_log.cnf
-    - etc/my.cnf.d/keitaro-mysqld-log_slow_queries.cnf
-    - etc/logrotate.d/mariadb
+- name: Tune mariadb
+  include: tune-mariadb.yml
 
-- name: Make mariadb service extra configuration dir
-  file:
-    path: "/etc/systemd/system/mariadb.service.d"
-    state: directory
-
-- name: Configure MariaDB service
-  template:
-    src: etc/systemd/system/mariadb.service.d/keitaro.conf.j2
-    dest: "/etc/systemd/system/mariadb.service.d/keitaro.conf"
-  notify:
-    - reconfigure mariadb
+- name: Tune systemd
+  include: tune-systemd.yml

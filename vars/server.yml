@@ -9,6 +9,8 @@ keitaro_root: /var/www/keitaro
 keitaro_config_dir: /etc/keitaro
 keitaro_config_backups_dir: "{{ keitaro_config_dir }}/backups"
 keitaro_stats_json_path: "{{ keitaro_root }}/var/stats.json"
+keitaro_logrotate_common_period: 5
+
 
 # Firewall
 firewall_allowed_tcp_ports:
