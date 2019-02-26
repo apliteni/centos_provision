@@ -14,13 +14,13 @@
   roles:
     - {role: 'keitaro.debug', tags: 'debug, tune, upgrade_to_1_0'}
     - {role: 'upgrades.pretasks', tags: 'never, upgrade_to_1_0'}
+    - {role: 'keitaro.prepare', tags: 'prepare, upgrade_to_1_0'}
     - {role: 'kernel', tags: 'kernel, upgrade_to_1_0'}
     - {role: 'geerlingguy.firewall', tags: 'firewall', when: "skip_firewall is not defined or skip_firewall != 'yes'"}
     - {role: 'selinux', tags: 'selinux'}
     - {role: 'resmo.ntp', tags: 'ntp'}
     - {role: 'mrlesmithjr.timezone'}
     - {role: 'geerlingguy.repo-remi', tags: 'repo-remi'}
-    - {role: 'keitaro.prepare', tags: 'prepare, upgrade_to_1_0'}
     - {role: 'mikegleasonjr.swap', tags: 'swap, upgrade_to_1_0'}
     - {role: 'keitaro.disable_thp', tags: 'mariadb, tokudb, redis, upgrade_to_1_0'}
     - {role: 'keitaro.redis', tags: 'redis'}
