@@ -8,6 +8,7 @@ keitaro_home: /home/keitaro
 keitaro_root: /var/www/keitaro
 keitaro_config_dir: /etc/keitaro
 keitaro_config_backups_dir: "{{ keitaro_config_dir }}/backups"
+keitaro_stats_json_path: "{{ keitaro_root }}/var/stats.json"
 
 # Firewall
 firewall_allowed_tcp_ports:

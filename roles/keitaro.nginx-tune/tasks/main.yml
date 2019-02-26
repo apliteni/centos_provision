@@ -1,24 +1,9 @@
-- name: Generate nginx configs
-  template:
-    src: "{{ item }}.j2"
-    dest: "/etc/{{ item }}"
-  with_items:
-    - nginx/nginx.conf
-    - nginx/conf.d/keitaro.conf
-    - nginx/conf.d/keitaro.root_location.inc
-    - nginx/conf.d/keitaro.php-fpm.inc
-  notify:
-    - reload nginx
+- name: Generate configs
+  include: generate_configs.yml
 
-- name: Make systemd nginx extra config dir
-  file:
-    path: /etc/systemd/system/nginx.service.d
-    state: directory
+- name: Configure systemd service
+  include: configure_systemd.yml
 
-- name: Generate nginx systemd config
-  template:
-    src: systemd/keitaro.conf.j2
-    dest: /etc/systemd/system/nginx.service.d/keitaro.conf
-  notify:
-    - reconfigure nginx
+- name: Setup generating stats.json
+  include: setup_generating_stats_json.yml
 

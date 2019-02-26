@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-RESPONSE_STATUSES_PATH=/var/log/nginx/access.status-log.old
+NGINX_KEITARO_STATUS_LOG_SNAPSHOT="{{ nginx_keitaro_status_log }}.snapshot"
 
 escape() {
   local value="$1"
@@ -24,7 +24,7 @@ print_json() {
   local value=""
   local pairs=""
   local pair=""
-  while test ${#} -gt 0; do
+  while test $# -gt 0; do
     key="${1}"
     value="${2}"
     pair="$(escape "${key}"): $(escape "${value}")"
@@ -63,8 +63,8 @@ redis_version() {
 
 responses_json() {
   local responses=""
-  if [ -f ${RESPONSE_STATUSES_PATH} ]; then
-    responses=$(sort ${RESPONSE_STATUSES_PATH} \
+  if [ -f ${NGINX_KEITARO_STATUS_LOG_SNAPSHOT} ]; then
+    responses=$(sort ${NGINX_KEITARO_STATUS_LOG_SNAPSHOT} \
                 | uniq -c \
                 | awk '{print "\"" $2 "\":", $1 ", "}' \
                 | sed '$ s/, $//g' \
