@@ -1,9 +1,12 @@
-- name: Generate configs
-  include: generate_configs.yml
+- name: Tune logroatate
+  include: tune-logrotate.yml
 
-- name: Configure systemd service
-  include: configure_systemd.yml
+- name: Tune nginx
+  include: tune-nginx.yml
 
-- name: Setup generating stats.json
-  include: setup_generating_stats_json.yml
+- name: Tune systemd
+  include: tune-systemd.yml
+
+- name: Tune generating stats.json
+  include: tune-generating_stats_json.yml
 
