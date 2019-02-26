@@ -3,9 +3,9 @@
     path: /etc/systemd/system/nginx.service.d
     state: directory
 
-- name: Generate nginx systemd config
+- name: Generate systemd nginx config
   template:
-    src: systemd/keitaro.conf.j2
-    dest: /etc/systemd/system/nginx.service.d/keitaro.conf
+    src: systemd/keitaro-systemd-nginx.conf.j2
+    dest: /etc/systemd/system/nginx.service.d/keitaro-systemd-nginx.conf
   notify:
     - reconfigure nginx

@@ -9,8 +9,3 @@
     - nginx/conf.d/keitaro.php-fpm.inc
   notify:
     - reload nginx
-
-- name: Make systemd nginx extra config dir
-  file:
-    path: /etc/systemd/system/nginx.service.d
-    state: directory
