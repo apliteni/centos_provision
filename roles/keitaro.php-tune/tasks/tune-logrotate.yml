@@ -1,0 +1,7 @@
+- name: Tune logrotate - set rotation period
+  lineinfile:
+    path: "/etc/logrotate.d/{{ php_version }}-php-fpm"
+    regexp: '^(\s*)rotate '
+    line: '\1rotate {{ keitaro_logrotate_common_period }}'
+    backrefs: true
+    insertbefore: postrotate

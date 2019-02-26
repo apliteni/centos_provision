@@ -1,8 +1,3 @@
-- name: Install scl repo
-  yum:
-    name: centos-release-scl
-    state: latest
-
 - name: Install php extensions
   yum:
     name:
@@ -31,3 +26,8 @@
     - {from: "/etc/opt/remi/{{php_version}}", to: '/etc/php'}
     - {from: "/var/opt/remi/{{php_version}}/log/php-fpm", to: '/var/log/php-fpm'}
 
+- name: Enable and run php-fpm
+  service:
+    name: "{{php_version}}-php-fpm"
+    state: started
+    enabled: yes
