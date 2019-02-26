@@ -1,0 +1,18 @@
+- name: Create log directory
+  file:
+    path: /var/log/mariadb
+    owner: mysql
+    group: mysql
+    state: directory
+
+- name: Generate config files
+  template:
+    src: "mariadb/{{ item }}.j2"
+    dest: "/etc/my.cnf.d/{ item }}"
+  notify: restart mariadb
+  with_items:
+    - keitaro-mysqld-optimize_performance.cnf
+    - keitaro-mysqld-set_default_storage_engine.cnf
+    - keitaro-mysqld-error_log.cnf
+    - keitaro-mysqld-log_slow_queries.cnf
+
