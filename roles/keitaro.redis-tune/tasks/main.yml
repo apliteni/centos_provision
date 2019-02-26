@@ -1,36 +1,9 @@
-- name: Update kernel params
-  sysctl:
-    name: "{{ item.key }}"
-    value: "{{ item.value }}"
-    state: present
-  ignore_errors: true
-  with_dict: "{{ redis_sysctl_tweaks }}"
-  notify: restart redis
+- name: Tune logroatate
+  include: tune-logrotate.yml
 
-- name: Tune redis tcp-backlog
-  lineinfile:
-    dest: /etc/redis.conf
-    regexp: '^tcp-backlog \d+'
-    line: 'tcp-backlog 65535'
-  notify: restart redis
+- name: Tune redis
+  include: tune-redis.yml
 
-- name: Set memory limit
-  lineinfile:
-    path: /etc/redis.conf
-    insertafter: '^# maxmemory '
-    regexp: '^maxmemory '
-    line: 'maxmemory {{ redis_memory_mb }}mb'
-  notify:
-    - restart redis
+- name: Tune systemd
+  include: tune-systemd.yml
 
-- name: Make redis service extra configuration dir
-  file:
-    path: "/etc/systemd/system/redis.service.d"
-    state: directory
-
-- name: Configure Redis service
-  template:
-    src: keitaro.conf.j2
-    dest: "/etc/systemd/system/redis.service.d/keitaro.conf"
-  notify:
-    - reconfigure redis
