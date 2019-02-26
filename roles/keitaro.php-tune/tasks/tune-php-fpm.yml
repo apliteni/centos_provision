@@ -1,0 +1,10 @@
+- name: Generate a pool config
+  template:
+    src: "php-fpm/www.conf.j2"
+    dest: "/etc/php/php-fpm.d/www.conf"
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - restart php-fpm
+
