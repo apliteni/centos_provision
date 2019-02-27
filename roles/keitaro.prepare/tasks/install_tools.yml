@@ -1,4 +1,4 @@
 - name: install tools
   package:
-    name: [nano, htop, httpd-tools, libselinux-python, unzip]
+    name: [nano, htop, httpd-tools, libselinux-python, unzip, bind-utils, git]
     state: present
