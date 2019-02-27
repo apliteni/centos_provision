@@ -8,7 +8,7 @@
 - name: Generate config files
   template:
     src: "mariadb/{{ item }}.j2"
-    dest: "/etc/my.cnf.d/{ item }}"
+    dest: "/etc/my.cnf.d/{{ item }}"
   notify: restart mariadb
   with_items:
     - keitaro-mysqld-optimize_performance.cnf
