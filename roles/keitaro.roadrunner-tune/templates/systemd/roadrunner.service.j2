@@ -4,7 +4,7 @@ After=syslog.target network.target
 
 [Service]
 ExecStart=/usr/local/bin/roadrunner serve -v -c={{ keitaro_config_dir }}/roadrunner.yml
-WorkingDirectory=~
+WorkingDirectory={{ keitaro_home }}
 
 Restart=always
 RestartSec=5s
