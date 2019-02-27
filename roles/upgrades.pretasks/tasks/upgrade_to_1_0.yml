@@ -33,6 +33,7 @@
   with_items:
     - mysqld-error_log.cnf
     - mysqld-log_slow_queries.cnf
+    - mysqld-optimize_performance.cnf
     - mysqld-set_pidfile_path.cnf
     - mysqld.cnf
 
