@@ -6,7 +6,7 @@
 
 
 write_inventory_on_reconfiguration(){
-  if ! is_file_exist ${INVENTORY_FILE}; then
+  if ! read_inventory; then
     collect_inventory_variables
     write_inventory_file
   fi
@@ -16,21 +16,34 @@ write_inventory_on_reconfiguration(){
 collect_inventory_variables(){
   if is_file_exist "${HOME}/hosts.txt"; then
     read_inventory_file "${HOME}/hosts.txt"
-  fi
-  if empty VARS['license_key']; then
-    VARS['license_key']="$(cat ${WEBROOT_PATH}/var/license/key.lic)"
-    VARS['license_ip']="$(get_host_ip)"
-    VARS['db_name']="$(get_var_from_keitaro_config name)"
-    VARS['db_user']="$(get_var_from_keitaro_config user)"
-    VARS['db_password']="$(get_var_from_keitaro_config password)"
-    VARS['db_root_password']="$(get_var_from_config ~/.my.cnf password '=')"
+  else
     VARS['admin_login']=''
     VARS['admin_password']=''
+  fi
+  if empty VARS['license_key']; then
+    if [[ -f ${WEBROOT_PATH}/var/license/key.lic ]]; then
+      VARS['license_key']="$(cat ${WEBROOT_PATH}/var/license/key.lic)"
+    fi
+  fi
+  if empty VARS['license_ip']; then
+    VARS['license_ip']="$(get_host_ip)"
+  fi
+  if empty VARS['db_name']; then
+    VARS['db_name']="$(get_var_from_keitaro_app_config name)"
+  fi
+  if empty VARS['db_user']; then
+    VARS['db_user']="$(get_var_from_keitaro_app_config user)"
+  fi
+  if empty VARS['db_password']; then
+    VARS['db_password']="$(get_var_from_keitaro_app_config password)"
+  fi
+  if empty VARS['db_root_password']; then
+    VARS['db_root_password']="$(get_var_from_config ~/.my.cnf password '=')"
   fi
 }
 
 
-get_var_from_keitaro_config(){
+get_var_from_keitaro_app_config(){
   local var="${1}"
   get_var_from_config "${var}" "${WEBROOT_PATH}/application/config/config.ini.php" '='
 }
