@@ -4,8 +4,5 @@
 read_inventory()
   if is_file_exist "${HOME}/${INVENTORY_FILE}" "no"
     read_inventory_file "${HOME}/${INVENTORY_FILE}"
-    return ${TRUE}
   if is_file_exist "${INVENTORY_FILE}"
     read_inventory_file "${INVENTORY_FILE}"
-    return ${TRUE}
-  return ${FALSE}
