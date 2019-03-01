@@ -45,7 +45,7 @@ parse_options(){
         CUSTOM_PACKAGE=$OPTARG
         ;;
       r)
-        RECONFIGURE=true
+        RECONFIGURE="true"
         ;;
       :)
         print_err "Option -$OPTARG requires an argument."

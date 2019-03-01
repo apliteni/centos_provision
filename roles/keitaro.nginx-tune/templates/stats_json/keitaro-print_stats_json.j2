@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 NGINX_KEITARO_STATUS_LOG_SNAPSHOT="{{ nginx_keitaro_status_log }}.snapshot"
+KEITARO_CONFIG="${HOME}/.keitaro/installer_config"
 
 escape() {
   local value="$1"
@@ -39,14 +40,15 @@ print_json() {
 }
 
 versions_json() {
-  print_json installer "\"$(installer_version)\"" \
+  print_json installer "\"$(get_config_var 'installer_version')\"" \
              php "\"$(php_version)\"" \
              mariadb "\"$(mariadb_version)\"" \
              redis "\"$(redis_version)\""
 }
 
-installer_version() {
-  grep 'installer_version' /root/.keitaro/installer_config | awk -F= '{print $2}'
+get_config_var() {
+  local var_name="${1}"
+  grep "${var_name}" "${KEITARO_CONFIG}" | awk -F= '{print $2}'
 }
 
 php_version() {
@@ -60,6 +62,16 @@ mariadb_version() {
 redis_version() {
   redis-server --version | head -n1 | awk '{print $3}' | sed s/v=//g
 }
+
+roadrunner_version() {
+  roadrunner
+}
+
+engines_json() {
+  print_json php_engine "\"$(get_config_var 'php_engine')\"" \
+             db_engine "\"$(get_config_var 'db_engine')\"" \
+}
+
 
 responses_json() {
   local responses=""
@@ -106,6 +118,7 @@ info_json() {
 }
 
 print_json versions "$(versions_json)" \
+           engines "$(engines_json)" \
            responses "$(responses_json)" \
            cpu "$(cpu_json)" \
            info "$(info_json)"
