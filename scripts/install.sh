@@ -1151,7 +1151,10 @@ get_var_from_config(){
 
 write_inventory_on_reconfiguration(){
   debug "Stages 3-5: write inventory on reconfiguration"
-  if ! read_inventory; then
+  if is_file_exist "${HOME}/${INVENTORY_FILE}" "no" || is_file_exist "${INVENTORY_FILE}"; then
+    setup_vars
+    read_inventory
+  else
     setup_vars_on_reconfiguration
     collect_inventory_variables
     write_inventory_file
@@ -1459,13 +1462,10 @@ stage3(){
 read_inventory(){
   if is_file_exist "${HOME}/${INVENTORY_FILE}" "no"; then
     read_inventory_file "${HOME}/${INVENTORY_FILE}"
-    return ${TRUE}
   fi
   if is_file_exist "${INVENTORY_FILE}"; then
     read_inventory_file "${INVENTORY_FILE}"
-    return ${TRUE}
   fi
-  return ${FALSE}
 }
 
 
