@@ -15,3 +15,7 @@
 - include: generate_selfsigned_certs.yml
 
 - include: generate_dhparam.yml
+
+- include: disable_ipv6.yml
+
+- include: disable_selinux.yml
