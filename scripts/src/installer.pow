@@ -91,13 +91,13 @@ install()
   init $@
   stage1 $@                 # initial script setup
   stage2                    # make some asserts
-  stage3                    # read previously saved vars from the inventory file
-  if ! $RECONFIGURE
+  if isset $RECONFIGURE
+    write_inventory_on_reconfiguration
+  else
+    stage3                  # read previously saved vars from the inventory file
     assert_keitaro_not_installed
     stage4                  # get and save vars to the inventory file
     stage5                  # upgrade packages and install ansible
-  else
-    write_inventory_on_reconfiguration
   stage6                    # run ansible playbook
 
 

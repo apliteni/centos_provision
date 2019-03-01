@@ -29,7 +29,7 @@ parse_options()
       case a
         CUSTOM_PACKAGE=$OPTARG
       case r
-        RECONFIGURE=true
+        RECONFIGURE="true"
       case :
         print_err "Option -$OPTARG requires an argument."
         exit ${FAILURE_RESULT}
