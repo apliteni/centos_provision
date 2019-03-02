@@ -5,13 +5,7 @@ DICT={}
 DICT['en.errors.program_failed']='PROGRAM FAILED'
 DICT['en.errors.must_be_root']='You must run this program as root.'
 DICT['en.errors.reconfigure_keitaro']=$(cat <<-END
-	You are using obsolete Keitaro configuration.
-	Please reconfigure Keitaro by running following command (backup first)
-
-	:upgrade_command:
-
-
-	Alternatively, you can continue using obsolete version of this tool by evaluating following command
+	Please run following command
 
 	:obsolete_tool_command:
 END
@@ -31,13 +25,7 @@ DICT['en.prompt_errors.validate_yes_no']='Please answer "yes" or "no"'
 DICT['ru.errors.program_failed']='ОШИБКА ВЫПОЛНЕНИЯ ПРОГРАММЫ'
 DICT['ru.errors.must_be_root']='Эту программу может запускать только root.'
 DICT['ru.errors.reconfigure_keitaro']=$(cat <<- END
-	На вашем сервере установлена устаревшая конфигурация.
-	Вам необходимо переконфигурировать сервер, выполнив следующую команду (предварительно сделайте бэкап)
-
-	:upgrade_command:
-
-
-	Однако вы можете воспользоваться устаревшей версией этой утилиты без переконфигурации сервера
+	Запустите пожалуйста команду
 
 	:obsolete_tool_command:
 END
