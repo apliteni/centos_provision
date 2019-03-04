@@ -626,7 +626,11 @@ ANSIBLE_LAST_TASK_LOG="${CONFIG_DIR}/ansible_last_task.log"
 
 
 run_ansible_playbook(){
-  local command="ANSIBLE_FORCE_COLOR=true ANSIBLE_CONFIG=${PROVISION_DIRECTORY}/ansible.cfg ansible-playbook -vvv -i ${INVENTORY_FILE} ${PROVISION_DIRECTORY}/playbook.yml"
+  local env=""
+  env="${env} ANSIBLE_FORCE_COLOR=true"
+  env="${env} ANSIBLE_CONFIG=${PROVISION_DIRECTORY}/ansible.cfg"
+  env="${env} ANSIBLE_GATHER_TIMEOUT=30"
+  local command="${env} ansible-playbook -vvv -i ${INVENTORY_FILE} ${PROVISION_DIRECTORY}/playbook.yml"
   if isset "$ANSIBLE_TAGS"; then
     command="${command} --tags ${ANSIBLE_TAGS}"
   fi
