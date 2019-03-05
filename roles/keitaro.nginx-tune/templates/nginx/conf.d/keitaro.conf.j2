@@ -32,6 +32,10 @@ server {
     return 404;
   }
 
+  location /.well-known {
+    allow all;
+  }
+
   location ~ ^/(var|lib|application)/.*$ {
     access_log off;
     return 404;
