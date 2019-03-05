@@ -1,10 +1,13 @@
 - name: Install redis
   yum:
-    name=redis
-    state=latest
+    name: redis
+    state: latest
+  notify:
+    - restart redis
 
-- name: start redis
+- name: Start and enable redis
   service:
     name: redis
     state: started
+    enabled: true
 
