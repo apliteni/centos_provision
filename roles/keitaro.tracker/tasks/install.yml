@@ -1,6 +1,6 @@
 - name: Download installer
   get_url:
-    url: "https://keitaro.io/getfile/install"
+    url: "https://keitaro.io/files/install.php"
     dest: "{{ keitaro_root }}/install.php"
     force: yes
 
