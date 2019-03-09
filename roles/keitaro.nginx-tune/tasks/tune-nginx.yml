@@ -9,3 +9,8 @@
     - nginx/conf.d/keitaro.php-fpm.inc
   notify:
     - reload nginx
+
+- name: Reload nginx
+  service:
+    name: nginx
+    state: reloaded
