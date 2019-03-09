@@ -5,6 +5,8 @@
     owner: root
     group: root
     mode: 0644
-  notify:
-    - restart php-fpm
 
+- name: Restart php-fpm
+  service:
+    name: "{{php_version}}-php-fpm"
+    state: restarted
