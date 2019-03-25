@@ -725,7 +725,7 @@ command_run_as(){
   local command="${1}"
   local run_as="${2}"
   if isset "$run_as"; then
-    echo "sudo -u '${run_as}' bash '${command}'"
+    echo "sudo -u '${run_as}' bash -c '${command}'"
   else
     echo "bash ${command}"
   fi
