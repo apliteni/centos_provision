@@ -24,8 +24,8 @@ redis_memory_mb: "{{ [([10, ansible_memtotal_mb * 0.05] | max), 1000] | min | ro
 
 # min 100M, max 90% RAM
 php_memory_mb: "{{ [100, (0.9 * ansible_memtotal_mb - (db_memory_mb|int) - (redis_memory_mb|int))] | max }}"
-php_worker_size_mb: 33
-php_worker_max_requests: 1000
+php_worker_size_mb: 25
+php_worker_max_requests: 300
 php_workers_count: "{{ [((php_memory_mb|float) / php_worker_size_mb) | round(-1, 'ceil') | int, 3] | max }}"
 php_opened_files: "{{ (150 * (php_workers_count|int)) | round(-3, 'ceil') | int }}"
 
