@@ -1,7 +1,12 @@
+- name: Remove default pool www.conf
+  file:
+    path: "/etc/php/php-fpm.d/wwww.conf"
+    state: absent
+
 - name: Generate a pool config
   template:
-    src: "php-fpm/www.conf.j2"
-    dest: "/etc/php/php-fpm.d/www.conf"
+    src: "php-fpm.d/keitaro.conf.j2"
+    dest: "/etc/php/php-fpm.d/keitaro.conf"
     owner: root
     group: root
     mode: 0644
