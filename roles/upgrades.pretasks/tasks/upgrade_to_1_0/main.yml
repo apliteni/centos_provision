@@ -3,3 +3,5 @@
 - include: prepare_nginx.yml
 
 - include: prepare_mysql.yml
+
+- include: remove_swap.yml
