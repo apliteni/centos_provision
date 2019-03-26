@@ -1,0 +1,11 @@
+http:
+  address: {{ php_rr_bind_address }}
+  workers:
+    command: "php {{ keitaro_root }}/server.php"
+    pool:
+      numWorkers: {{ php_rr_workers_count }}
+      maxJobs: {{ php_worker_max_requests }}
+
+rpc:
+  enabled: false
+

@@ -1,0 +1,15 @@
+- name: Install packages
+  package:
+    name: certbot
+    state: installed
+
+- name: Create directory for ssl certs
+  file:
+    path: "{{ ssl_root }}"
+    state: directory
+
+- name: Remove old renewal certs job
+  cron:
+    name: Renew Let's Encrypt certs
+    state: absent
+    user: "{{ nginx_user }}"

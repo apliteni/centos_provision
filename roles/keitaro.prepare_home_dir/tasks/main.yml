@@ -1,9 +1,0 @@
----
-- name: Prepare keitaro home dir
-  file:
-    path: "{{ keitaro.path }}"
-    state: directory
-    owner: "{{ os_user }}"
-    group: "{{ os_user }}"
-    mode: 0777
-

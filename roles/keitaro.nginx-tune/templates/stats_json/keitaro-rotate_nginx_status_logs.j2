@@ -1,0 +1,13 @@
+#!/bin/sh
+
+NGINX_KEITARO_STATUS_LOG="{{ nginx_keitaro_status_log }}"
+NGINX_KEITARO_STATUS_LOG_SNAPSHOT="{{ nginx_keitaro_status_log }}.snapshot"
+NGINX_PIDFILE="{{ nginx_pidfile }}"
+
+if [ -f "${NGINX_KEITARO_STATUS_LOG}" ]; then
+  mv "${NGINX_KEITARO_STATUS_LOG}" "${NGINX_KEITARO_STATUS_LOG_SNAPSHOT}"
+
+  if [ -f "${NGINX_PIDFILE}" ]; then
+    kill -USR1 "$(cat "${NGINX_PIDFILE}")"
+  fi
+fi

@@ -1,0 +1,16 @@
+- name: Generate nginx configs
+  template:
+    src: "{{ item }}.j2"
+    dest: "/etc/{{ item }}"
+  with_items:
+    - nginx/nginx.conf
+    - nginx/conf.d/keitaro.conf
+    - nginx/conf.d/keitaro.root_location.inc
+    - nginx/conf.d/keitaro.php-fpm.inc
+  notify:
+    - reload nginx
+
+- name: Reload nginx
+  service:
+    name: nginx
+    state: reloaded

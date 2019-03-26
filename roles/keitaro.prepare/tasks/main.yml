@@ -1,0 +1,21 @@
+- include: create_user.yml
+
+- include: install_tools.yml
+
+- include: install_cronie.yml
+
+- include: install_sudo.yml
+
+- include: prepare_home.yml
+
+- include: prepare_ssl.yml
+
+- include: prepare_config_dirs.yml
+
+- include: generate_selfsigned_certs.yml
+
+- include: generate_dhparam.yml
+
+- include: disable_ipv6.yml
+
+- include: disable_selinux.yml

@@ -1,0 +1,18 @@
+[Unit]
+Description=Keitaro RoadRunner service
+After=syslog.target network.target
+
+[Service]
+ExecStart=/usr/local/bin/roadrunner serve -v -c={{ keitaro_config_dir }}/roadrunner.yml
+WorkingDirectory={{ keitaro_home }}
+
+Restart=always
+RestartSec=5s
+
+User={{ keitaro_user }}
+Group={{ keitaro_group }}
+
+LimitNOFILE={{ php_rr_opened_files }}
+
+[Install]
+WantedBy=multi-user.target
