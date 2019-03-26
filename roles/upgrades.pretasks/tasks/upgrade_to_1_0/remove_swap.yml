@@ -1,0 +1,7 @@
+- name: Disable swap
+  shell: "grep -q '^{{ swap_location }} ' /proc/swaps && swapoff {{ swap_location }} || true"
+
+- name: Remove swap
+  file:
+    path: "{{ swap_location }}"
+    state: absent
