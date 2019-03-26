@@ -1,8 +1,3 @@
-- name: Backup nginx configs
-  copy:
-    src: /etc/nginx/conf.d/
-    dest: "/etc/nginx/conf.d.{{ ansible_date_time.iso8601_basic_short }}"
-
 - name: Stat vhosts.conf
   stat: path=/etc/nginx/conf.d/vhosts.conf
   register: vhosts_conf
@@ -25,17 +20,3 @@
       dest: "{{ ssl_privkey_path }}"
     - src: /etc/ssl/certs/dhparam.pem
       dest: "{{ ssl_dhparam_path }}"
-
-- name: Remove old mariadb config files
-  file:
-    path: "/etc/my.cnf.d/{{ item }}"
-    state: absent
-  with_items:
-    - mysqld-error_log.cnf
-    - mysqld-log_slow_queries.cnf
-    - mysqld-optimize_performance.cnf
-    - mysqld-set_pidfile_path.cnf
-    - mysqld.cnf
-
-- name: Detect engine for keitaro DB and explicitly set it in the hosts file
-  script: scripts/set_db_engine.sh
