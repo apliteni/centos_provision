@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-PROGRAM_NAME='add-site'
+TOOL_NAME='add-site'

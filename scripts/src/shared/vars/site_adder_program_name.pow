@@ -1,4 +1,4 @@
 #!/usr/bin/env powscript
 
 
-PROGRAM_NAME='add-site'
+TOOL_NAME='add-site'

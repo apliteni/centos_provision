@@ -1,21 +1,8 @@
-- name: Remove old config file
-  file:
-    path: /etc/my.cnf.d/mysqld.cnf
-    state: absent
+- name: Tune logroatate
+  include: tune-logrotate.yml
 
-- name: Create log directory
-  file:
-    path: /var/log/mariadb
-    owner: mysql
-    group: mysql
-    state: directory
+- name: Tune mariadb
+  include: tune-mariadb.yml
 
-- name: Install config files
-  copy:
-    src: "{{ item }}"
-    dest: "/{{ item }}"
-  notify: restart mariadb
-  with_items:
-    - etc/logrotate.d/mariadb
-    - etc/my.cnf.d/mysqld-error_log.cnf
-    - etc/my.cnf.d/mysqld-log_slow_queries.cnf
+- name: Tune systemd
+  include: tune-systemd.yml

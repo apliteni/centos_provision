@@ -1,0 +1,11 @@
+- name: Make systemd php-fpm extra config dir
+  file:
+    path: "/etc/systemd/system/{{ php_version }}-php-fpm.service.d"
+    state: directory
+
+- name: Generate systemd php-fpm config
+  template:
+    src: systemd/keitaro-systemd-php-fpm.conf.j2
+    dest: "/etc/systemd/system/{{ php_version }}-php-fpm.service.d/keitaro-systemd-php-fpm.conf"
+  notify:
+    - reconfigure php-fpm

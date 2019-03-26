@@ -1,0 +1,122 @@
+#!/usr/bin/env powscript
+
+
+ANSIBLE_TASK_HEADER="^TASK \[(.*)\].*"
+ANSIBLE_TASK_FAILURE_HEADER="^fatal: "
+ANSIBLE_FAILURE_JSON_FILEPATH="${CONFIG_DIR}/ansible_failure.json"
+ANSIBLE_LAST_TASK_LOG="${CONFIG_DIR}/ansible_last_task.log"
+
+
+run_ansible_playbook()
+  local env=""
+  env="${env} ANSIBLE_FORCE_COLOR=true"
+  env="${env} ANSIBLE_CONFIG=${PROVISION_DIRECTORY}/ansible.cfg"
+  env="${env} ANSIBLE_GATHER_TIMEOUT=30"
+  local command="${env} ansible-playbook -vvv -i ${INVENTORY_FILE} ${PROVISION_DIRECTORY}/playbook.yml"
+  if isset $ANSIBLE_TAGS
+    command="${command} --tags ${ANSIBLE_TAGS}"
+  if isset $ANSIBLE_IGNORE_TAGS
+    command="${command} --skip-tags ${ANSIBLE_IGNORE_TAGS}"
+  run_command "${command}" '' '' '' '' 'print_ansible_fail_message'
+
+
+print_ansible_fail_message(current_command_script)
+  if ansible_task_found
+    debug "Found last ansible task"
+    print_tail_content_of $CURRENT_COMMAND_ERROR_LOG
+    cat $CURRENT_COMMAND_OUTPUT_LOG | remove_text_before_last_pattern_occurence $ANSIBLE_TASK_HEADER > $ANSIBLE_LAST_TASK_LOG
+    print_ansible_last_task_info
+    print_ansible_last_task_external_info
+    rm $ANSIBLE_LAST_TASK_LOG
+  else
+    print_common_fail_message $current_command_script
+
+
+ansible_task_found()
+  grep -qE $ANSIBLE_TASK_HEADER $CURRENT_COMMAND_OUTPUT_LOG
+
+
+print_ansible_last_task_info()
+  echo "Task info:"
+  head -n2 $ANSIBLE_LAST_TASK_LOG | sed -r 's/\*+$//g' | add_indentation
+
+
+print_ansible_last_task_external_info()
+  if ansible_task_failure_found
+    debug "Found last ansible failure"
+    cat $ANSIBLE_LAST_TASK_LOG \
+      | keep_json_only \
+      > $ANSIBLE_FAILURE_JSON_FILEPATH
+    print_ansible_task_module_info
+    rm $ANSIBLE_FAILURE_JSON_FILEPATH
+
+
+ansible_task_failure_found()
+  grep -q $ANSIBLE_TASK_FAILURE_HEADER $ANSIBLE_LAST_TASK_LOG
+
+
+keep_json_only()
+  # The json with error is inbuilt into text. The structure of text is about:
+  #
+  # TASK [$ROLE_NAME : $TASK_NAME] *******
+  # task path: /path/to/task/file.yml:$LINE
+  # .....
+  # fatal: [localhost]: FAILED! => {
+  #     .....
+  #     failure JSON
+  #     .....
+  # }
+  # .....
+  #
+  # So, firstly remove all before "fatal: [localhost]: FAILED! => {" line
+  # then replace first line to just '{'
+  # then remove all after '}'
+  sed -n -r "/${ANSIBLE_TASK_FAILURE_HEADER}/,\$p" \
+    | sed '1c{' \
+    | sed -e '/^}$/q'
+
+
+remove_text_before_last_pattern_occurence(pattern)
+  sed -n -r "H;/${pattern}/h;\${g;p;}"
+
+
+print_ansible_task_module_info()
+  json={}
+  eval "json=$(cat $ANSIBLE_FAILURE_JSON_FILEPATH | json2dict)" 2>/dev/null
+  ansible_module=$json['invocation.module_name']
+  echo "Ansible module: ${json['invocation.module_name']}"
+  if isset "${json['msg']}"
+    print_field_content "Field 'msg'" "${json['msg']}"
+  if need_print_stdout_stderr $ansible_module "${json['stdout']}" "${json['stderr']}"
+    print_field_content "Field 'stdout'" "${json['stdout']}"
+    print_field_content "Field 'stderr'" "${json['stderr']}"
+  if need_print_full_json $ansible_module "${json['stdout']}" "${json['stderr']}" "${json['msg']}"
+    print_content_of $ANSIBLE_FAILURE_JSON_FILEPATH
+
+
+print_field_content(field_caption, field_content)
+  if empty "${field_content}"
+    echo "${field_caption} is empty"
+  else
+    echo "${field_caption}:"
+    echo -e "${field_content}" | fold -s -w $((${COLUMNS:-80} - ${INDENTATION_LENGTH})) | add_indentation
+
+
+need_print_stdout_stderr(ansible_module, stdout, stderr)
+  isset "${stdout}"
+  local is_stdout_set=$?
+  isset "${stderr}"
+  local is_stderr_set=$?
+  [[ $ansible_module == 'cmd' || ${is_stdout_set} == ${SUCCESS_RESULT} || ${is_stderr_set} == ${SUCCESS_RESULT} ]]
+
+
+need_print_full_json(ansible_module, stdout, stderr, msg)
+  need_print_stdout_stderr $ansible_module $stdout $stderr
+  local need_print_output_fields=$?
+  isset $msg
+  is_msg_set=$?
+  [[ ${need_print_output_fields} != ${SUCCESS_RESULT} && ${is_msg_set} != ${SUCCESS_RESULT}  ]]
+
+
+get_printable_fields(ansible_module, fields)
+  echo $fields

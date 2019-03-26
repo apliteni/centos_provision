@@ -57,8 +57,8 @@ last ()
 
 
 
-PROGRAM_NAME='test-run-command'
 
+TOOL_NAME='test-run-command'
 
 
 #
@@ -76,17 +76,22 @@ ROOT_UID=0
 
 KEITARO_URL="https://keitaro.io"
 
-RELEASE_VERSION="0.9"
+RELEASE_VERSION="1.0"
+DEFAULT_RELEASE_BRANCH="release-${RELEASE_VERSION}"
+RELEASE_BRANCH="${RELEASE_BRANCH:-${DEFAULT_RELEASE_BRANCH}}"
 
 WEBROOT_PATH="/var/www/keitaro"
 
+CONFIG_DIR=".keitaro"
+INVENTORY_FILE="${CONFIG_DIR}/installer_config"
+
 NGINX_ROOT_PATH="/etc/nginx"
 NGINX_VHOSTS_DIR="${NGINX_ROOT_PATH}/conf.d"
-NGINX_KEITARO_CONF="${NGINX_VHOSTS_DIR}/vhosts.conf"
+NGINX_KEITARO_CONF="${NGINX_VHOSTS_DIR}/keitaro.conf"
 
-SCRIPT_NAME="${PROGRAM_NAME}.sh"
-SCRIPT_URL="${KEITARO_URL}/${PROGRAM_NAME}.sh"
-SCRIPT_LOG="${PROGRAM_NAME}.log"
+SCRIPT_NAME="${TOOL_NAME}.sh"
+SCRIPT_URL="${KEITARO_URL}/${TOOL_NAME}.sh"
+SCRIPT_LOG="${TOOL_NAME}.log"
 
 CURRENT_COMMAND_OUTPUT_LOG="current_command.output.log"
 CURRENT_COMMAND_ERROR_LOG="current_command.error.log"
@@ -95,32 +100,32 @@ CURRENT_COMMAND_SCRIPT_NAME="current_command.sh"
 INDENTATION_LENGTH=2
 INDENTATION_SPACES=$(printf "%${INDENTATION_LENGTH}s")
 
-if [[ "${SHELL_NAME}" == 'bash' ]]; then
-  if ! empty ${@}; then
-    SCRIPT_COMMAND="curl -sSL "$SCRIPT_URL" | bash -s -- ${@}"
-  else
-    SCRIPT_COMMAND="curl -sSL "$SCRIPT_URL" | bash"
-  fi
+if ! empty ${@}; then
+  SCRIPT_COMMAND="curl -sSL "$SCRIPT_URL" > run; bash run ${@}"
+  TOOL_ARGS="${@}"
 else
-  if ! empty ${@}; then
-    SCRIPT_COMMAND="${SHELL_NAME} ${@}"
-  else
-    SCRIPT_COMMAND="${SHELL_NAME}"
-  fi
+  SCRIPT_COMMAND="curl -sSL "$SCRIPT_URL" > run; bash run"
 fi
 
 declare -A VARS
 
-RECONFIGURE_KEITARO_COMMAND_EN="curl -sSL ${KEITARO_URL}/install.sh | bash"
-RECONFIGURE_KEITARO_COMMAND_RU="curl -sSL ${KEITARO_URL}/install.sh | bash -s -- -l ru"
+RECONFIGURE_KEITARO_COMMAND_EN="curl -sSL ${KEITARO_URL}/install.sh > run; bash run"
+RECONFIGURE_KEITARO_COMMAND_RU="curl -sSL ${KEITARO_URL}/install.sh > run; bash run -l ru"
 
-SSL_ENABLER_ERRORS_LOG="${HOME}/.ssl_enabler_errors.log"
+SSL_ENABLER_ERRORS_LOG="${CONFIG_DIR}/ssl_enabler_errors.log"
 
 
 declare -A DICT
 
 DICT['en.errors.program_failed']='PROGRAM FAILED'
 DICT['en.errors.must_be_root']='You must run this program as root.'
+DICT['en.errors.reconfigure_keitaro']=$(cat <<-END
+	Please run following command
+
+	:obsolete_tool_command:
+END
+)
+
 DICT['en.errors.run_command.fail']='There was an error evaluating current command'
 DICT['en.errors.run_command.fail_extra']=''
 DICT['en.errors.terminated']='Terminated by user'
@@ -134,6 +139,12 @@ DICT['en.prompt_errors.validate_yes_no']='Please answer "yes" or "no"'
 
 DICT['ru.errors.program_failed']='ОШИБКА ВЫПОЛНЕНИЯ ПРОГРАММЫ'
 DICT['ru.errors.must_be_root']='Эту программу может запускать только root.'
+DICT['ru.errors.reconfigure_keitaro']=$(cat <<- END
+	Запустите пожалуйста команду
+
+	:obsolete_tool_command:
+END
+)
 DICT['ru.errors.run_command.fail']='Ошибка выполнения текущей команды'
 DICT['ru.errors.run_command.fail_extra']=''
 DICT['ru.errors.terminated']='Выполнение прервано'
@@ -294,7 +305,12 @@ init(){
 
 
 init_log(){
-  > ${SCRIPT_LOG}
+  if mkdir -p ${CONFIG_DIR} &> /dev/null; then
+    > ${SCRIPT_LOG}
+  else
+    echo "Can't create keitaro config dir ${CONFIG_DIR}" >&2
+    exit 1
+  fi
 }
 
 
@@ -497,7 +513,7 @@ command_run_as(){
   local command="${1}"
   local run_as="${2}"
   if isset "$run_as"; then
-    echo "sudo -u '${run_as}' bash '${command}'"
+    echo "sudo -u '${run_as}' bash -c '${command}'"
   else
     echo "bash ${command}"
   fi
@@ -605,12 +621,16 @@ remove_current_command(){
 
 ANSIBLE_TASK_HEADER="^TASK \[(.*)\].*"
 ANSIBLE_TASK_FAILURE_HEADER="^fatal: "
-ANSIBLE_FAILURE_JSON_FILEPATH="ansible_failure.json"
-ANSIBLE_LAST_TASK_LOG="ansible_last_task.log"
+ANSIBLE_FAILURE_JSON_FILEPATH="${CONFIG_DIR}/ansible_failure.json"
+ANSIBLE_LAST_TASK_LOG="${CONFIG_DIR}/ansible_last_task.log"
 
 
 run_ansible_playbook(){
-  local command="ANSIBLE_FORCE_COLOR=true ANSIBLE_CONFIG=${PROVISION_DIRECTORY}/ansible.cfg ansible-playbook -vvv -i ${INVENTORY_FILE} ${PROVISION_DIRECTORY}/playbook.yml"
+  local env=""
+  env="${env} ANSIBLE_FORCE_COLOR=true"
+  env="${env} ANSIBLE_CONFIG=${PROVISION_DIRECTORY}/ansible.cfg"
+  env="${env} ANSIBLE_GATHER_TIMEOUT=30"
+  local command="${env} ansible-playbook -vvv -i ${INVENTORY_FILE} ${PROVISION_DIRECTORY}/playbook.yml"
   if isset "$ANSIBLE_TAGS"; then
     command="${command} --tags ${ANSIBLE_TAGS}"
   fi

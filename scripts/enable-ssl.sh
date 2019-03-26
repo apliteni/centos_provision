@@ -58,7 +58,7 @@ last ()
 
 
 
-PROGRAM_NAME='enable-ssl'
+TOOL_NAME='enable-ssl'
 
 
 #
@@ -76,17 +76,22 @@ ROOT_UID=0
 
 KEITARO_URL="https://keitaro.io"
 
-RELEASE_VERSION="0.9"
+RELEASE_VERSION="1.0"
+DEFAULT_RELEASE_BRANCH="release-${RELEASE_VERSION}"
+RELEASE_BRANCH="${RELEASE_BRANCH:-${DEFAULT_RELEASE_BRANCH}}"
 
 WEBROOT_PATH="/var/www/keitaro"
 
+CONFIG_DIR=".keitaro"
+INVENTORY_FILE="${CONFIG_DIR}/installer_config"
+
 NGINX_ROOT_PATH="/etc/nginx"
 NGINX_VHOSTS_DIR="${NGINX_ROOT_PATH}/conf.d"
-NGINX_KEITARO_CONF="${NGINX_VHOSTS_DIR}/vhosts.conf"
+NGINX_KEITARO_CONF="${NGINX_VHOSTS_DIR}/keitaro.conf"
 
-SCRIPT_NAME="${PROGRAM_NAME}.sh"
-SCRIPT_URL="${KEITARO_URL}/${PROGRAM_NAME}.sh"
-SCRIPT_LOG="${PROGRAM_NAME}.log"
+SCRIPT_NAME="${TOOL_NAME}.sh"
+SCRIPT_URL="${KEITARO_URL}/${TOOL_NAME}.sh"
+SCRIPT_LOG="${TOOL_NAME}.log"
 
 CURRENT_COMMAND_OUTPUT_LOG="current_command.output.log"
 CURRENT_COMMAND_ERROR_LOG="current_command.error.log"
@@ -95,32 +100,32 @@ CURRENT_COMMAND_SCRIPT_NAME="current_command.sh"
 INDENTATION_LENGTH=2
 INDENTATION_SPACES=$(printf "%${INDENTATION_LENGTH}s")
 
-if [[ "${SHELL_NAME}" == 'bash' ]]; then
-  if ! empty ${@}; then
-    SCRIPT_COMMAND="curl -sSL "$SCRIPT_URL" | bash -s -- ${@}"
-  else
-    SCRIPT_COMMAND="curl -sSL "$SCRIPT_URL" | bash"
-  fi
+if ! empty ${@}; then
+  SCRIPT_COMMAND="curl -sSL "$SCRIPT_URL" > run; bash run ${@}"
+  TOOL_ARGS="${@}"
 else
-  if ! empty ${@}; then
-    SCRIPT_COMMAND="${SHELL_NAME} ${@}"
-  else
-    SCRIPT_COMMAND="${SHELL_NAME}"
-  fi
+  SCRIPT_COMMAND="curl -sSL "$SCRIPT_URL" > run; bash run"
 fi
 
 declare -A VARS
 
-RECONFIGURE_KEITARO_COMMAND_EN="curl -sSL ${KEITARO_URL}/install.sh | bash"
-RECONFIGURE_KEITARO_COMMAND_RU="curl -sSL ${KEITARO_URL}/install.sh | bash -s -- -l ru"
+RECONFIGURE_KEITARO_COMMAND_EN="curl -sSL ${KEITARO_URL}/install.sh > run; bash run"
+RECONFIGURE_KEITARO_COMMAND_RU="curl -sSL ${KEITARO_URL}/install.sh > run; bash run -l ru"
 
-SSL_ENABLER_ERRORS_LOG="${HOME}/.ssl_enabler_errors.log"
+SSL_ENABLER_ERRORS_LOG="${CONFIG_DIR}/ssl_enabler_errors.log"
 
 
 declare -A DICT
 
 DICT['en.errors.program_failed']='PROGRAM FAILED'
 DICT['en.errors.must_be_root']='You must run this program as root.'
+DICT['en.errors.reconfigure_keitaro']=$(cat <<-END
+	Please run following command
+
+	:obsolete_tool_command:
+END
+)
+
 DICT['en.errors.run_command.fail']='There was an error evaluating current command'
 DICT['en.errors.run_command.fail_extra']=''
 DICT['en.errors.terminated']='Terminated by user'
@@ -134,6 +139,12 @@ DICT['en.prompt_errors.validate_yes_no']='Please answer "yes" or "no"'
 
 DICT['ru.errors.program_failed']='ОШИБКА ВЫПОЛНЕНИЯ ПРОГРАММЫ'
 DICT['ru.errors.must_be_root']='Эту программу может запускать только root.'
+DICT['ru.errors.reconfigure_keitaro']=$(cat <<- END
+	Запустите пожалуйста команду
+
+	:obsolete_tool_command:
+END
+)
 DICT['ru.errors.run_command.fail']='Ошибка выполнения текущей команды'
 DICT['ru.errors.run_command.fail_extra']=''
 DICT['ru.errors.terminated']='Выполнение прервано'
@@ -150,11 +161,11 @@ DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет
 declare -a DOMAINS
 declare -a SUCCESSFUL_DOMAINS
 declare -a FAILED_DOMAINS
-NGINX_SSL_PATH="${NGINX_ROOT_PATH}/ssl"
-NGINX_SSL_CERT_PATH="${NGINX_SSL_PATH}/cert.pem"
-NGINX_SSL_PRIVKEY_PATH="${NGINX_SSL_PATH}/privkey.pem"
-CERT_DOMAINS_PATH="/${HOME}/.ssl_enabler_cert_domains"
-CERTBOT_LOG="/${HOME}/.ssl_enabler_cerbot.log"
+SSL_ROOT="/etc/keitaro/ssl"
+SSL_CERT_PATH="${SSL_ROOT}/cert.pem"
+SSL_PRIVKEY_PATH="${SSL_ROOT}/privkey.pem"
+CERT_DOMAINS_PATH="${CONFIG_DIR}/ssl_enabler_cert_domains"
+CERTBOT_LOG="${CONFIG_DIR}/ssl_enabler_cerbot.log"
 
 
 #
@@ -172,15 +183,12 @@ DICT['en.errors.see_logs']="Evaluating log saved to ${SCRIPT_LOG}. Please rerun 
 DICT['en.errors.domain_invalid']=":domain: doesn't look as valid domain"
 DICT['en.certbot_errors.wrong_a_entry']="Please make sure that your domain name was entered correctly and the DNS A record for that domain contains the right IP address. You need to wait a little if the DNS A record was updated recently."
 DICT['en.certbot_errors.too_many_requests']="There were too many requests. See https://letsencrypt.org/docs/rate-limits/."
-DICT['en.certbot_errors.unknown_error']="There was unknown error while issuing certificate, please contact with support team"
+DICT['en.certbot_errors.unknown_error']="There was unknown error while issuing certificate, please contact support team"
 DICT['en.messages.check_renewal_job_scheduled']="Check that the renewal job is scheduled"
-DICT['en.messages.check_inactual_renewal_job_scheduled']="Check that inactual renewal job is scheduled"
 DICT['en.messages.make_ssl_cert_links']="Make SSL certificate links"
 DICT['en.messages.requesting_certificate_for']="Requesting certificate for"
 DICT['en.messages.generating_nginx_config_for']="Generating nginx config for"
-DICT['en.messages.actual_renewal_job_already_scheduled']="Actual renewal job already scheduled"
 DICT['en.messages.schedule_renewal_job']="Schedule renewal SSL certificate cron job"
-DICT['en.messages.unschedule_inactual_renewal_job']="Unschedule inactual renewal job"
 DICT['en.messages.ssl_enabled_for_domains']="SSL certificates are issued for domains:"
 DICT['en.messages.ssl_not_enabled_for_domains']="There were errors while issuing certificates for domains:"
 DICT['en.warnings.nginx_config_exists_for_domain']="nginx config already exists"
@@ -203,13 +211,10 @@ DICT['ru.certbot_errors.wrong_a_entry']="Убедитесь что домен в
 DICT['ru.certbot_errors.too_many_requests']="Было слишком много запросов, см. https://letsencrypt.org/docs/rate-limits/"
 DICT['ru.certbot_errors.unknown_error']="Во время выпуска сертификата произошла неизвестная ошибка. Пожалуйста, обратитесь в службу поддержки"
 DICT['ru.messages.check_renewal_job_scheduled']="Проверяем наличие cron задачи обновления сертификатов"
-DICT['ru.messages.check_inactual_renewal_job_scheduled']="Проверяем наличие неактуальной cron задачи"
 DICT['ru.messages.make_ssl_cert_links']="Создаются ссылки на SSL сертификаты"
 DICT['ru.messages.requesting_certificate_for']="Запрос сертификата для"
 DICT['ru.messages.generating_nginx_config_for']="Генерация конфигурации для"
-DICT['ru.messages.actual_renewal_job_already_scheduled']="Актуальная cron задача обновления сертификатов уже существует"
 DICT['ru.messages.schedule_renewal_job']="Добавляется cron задача обновления сертификатов"
-DICT['ru.messages.unschedule_inactual_renewal_job']="Удаляется неактуальная cron задача обновления сертификатов"
 DICT['ru.messages.ssl_enabled_for_domains']="SSL сертификаты выпущены для сайтов:"
 DICT['ru.messages.ssl_not_enabled_for_domains']="SSL сертификаты не выпущены для сайтов:"
 DICT['ru.warnings.nginx_config_exists_for_domain']="nginx конфигурация уже существует"
@@ -263,7 +268,61 @@ assert_installed(){
 
 
 
-is_exists_file(){
+
+assert_server_configuration_relevant(){
+  debug 'Ensure configs has been genereated by relevant installer'
+  if isset "$SKIP_CHECKS"; then
+    debug "SKIP: аctual check of installer version in ${INVENTORY_FILE} disabled"
+  else
+    installed_version=$(detect_installed_version)
+    if [[ "${RELEASE_VERSION}" == "${installed_version}" ]]; then
+      debug "Configs has been generated by recent version of installer ${RELEASE_VERSION}"
+    else
+      fail "$(build_upgrade_message "${installed_version}")"
+    fi
+  fi
+}
+
+
+detect_installed_version(){
+  local version=""
+  if is_file_exist ${INVENTORY_FILE}; then
+    version=$(grep "^installer_version=" ${INVENTORY_FILE} | sed s/^installer_version=//g)
+  fi
+  if empty "$version"; then
+    version="0.9"
+  fi
+  echo "$version"
+}
+
+
+build_upgrade_message(){
+  local installed_version="${1}"
+  translate 'errors.reconfigure_keitaro' "upgrade_command='$(build_upgrade_command)'" \
+    "obsolete_tool_command='$(build_obsolete_tool_command "${installed_version}")'"
+  }
+
+
+build_upgrade_command(){
+  installer_url="https://keitaro.io/release-${RELEASE_VERSION}/install.sh"
+  echo "curl ${installer_url} > run; bash run -rt upgrade,upgrade_to_${RELEASE_VERSION//\./_}"
+}
+
+
+build_obsolete_tool_command(){
+  local installed_version="${1}"
+  local obsolete_tool_name="release-${installed_version}/${TOOL_NAME}"
+  echo "${SCRIPT_COMMAND/${TOOL_NAME}/${obsolete_tool_name}}"
+}
+
+
+#
+
+
+
+
+
+is_file_exist(){
   local file="${1}"
   local result_on_skip="${2}"
   debug "Checking ${file} file existence"
@@ -292,7 +351,7 @@ is_exists_file(){
 
 
 
-is_exists_directory(){
+is_directory_exist(){
   local directory="${1}"
   local result_on_skip="${2}"
   debug "Checking ${directory} directory existence"
@@ -513,6 +572,73 @@ read_stdin(){
 }
 
 
+#
+
+
+
+
+
+
+regenerate_vhost_config(){
+  local domain="${1}"
+  local message_key="${2}"
+  local generating_message="$(translate "${message_key}")"
+  local command=""
+  local changes=""
+  local vhost_path="$(get_vhost_path "$domain")"
+  local vhost_backup_path="$(get_vhost_backup_path "$domain")"
+  if is_file_exist "$vhost_path" no; then
+    debug "Backing up nginx config for ${domain} to ${vhost_backup_path}"
+    cp "${vhost_path}" "${vhost_backup_path}"
+  fi
+  if need_to_regenerate_host_config "$vhost_path"; then
+    command="${command}cp ${NGINX_KEITARO_CONF} "$vhost_path" && "
+    changes="${changes}$(build_sed_expression_from_nginx_setting_block "listen 80" "listen 80 .*")"
+    changes="${changes}$(build_sed_expression_from_nginx_setting_block "server_name ${domain}")"
+  fi
+  while isset "${3}"; do
+    changes="${changes}$(build_sed_expression_from_nginx_setting_block "${3}")"
+    shift
+  done
+  command="${command}sed -i${changes} ${vhost_path}"
+  run_command "${command}" "${generating_message} ${domain}" "hide_output"
+}
+
+
+need_to_regenerate_host_config(){
+  local vhost_path="${1}"
+  ! is_file_exist "$vhost_path" no || ! vhost_config_relevant "$vhost_path"
+}
+
+
+vhost_config_relevant(){
+  local vhost_path="${1}"
+  grep -q -P "^# Generated by Keitaro .* v${RELEASE_VERSION}" "${vhost_path}"
+}
+
+
+get_vhost_path(){
+  local domain="${1}"
+  echo "${NGINX_VHOSTS_DIR}/${domain}.conf"
+}
+
+get_vhost_backup_path(){
+  local domain="${1}"
+  echo "${NGINX_VHOSTS_DIR}/${domain}.conf.$(date +%Y%m%d%H%M%S)"
+}
+
+
+build_sed_expression_from_nginx_setting_block(){
+  local setting="${1}"
+  local search_pattern="${2}"
+  read name value <<< "$setting"
+  if empty "$search_pattern"; then
+    search_pattern="${name} .*"
+  fi
+  echo " -e 's|${search_pattern}|${name} ${value};|g'"
+}
+
+
 
 clean_up(){
   debug 'called clean_up()'
@@ -570,7 +696,12 @@ init(){
 
 
 init_log(){
-  > ${SCRIPT_LOG}
+  if mkdir -p ${CONFIG_DIR} &> /dev/null; then
+    > ${SCRIPT_LOG}
+  else
+    echo "Can't create keitaro config dir ${CONFIG_DIR}" >&2
+    exit 1
+  fi
 }
 
 
@@ -780,7 +911,7 @@ command_run_as(){
   local command="${1}"
   local run_as="${2}"
   if isset "$run_as"; then
-    echo "sudo -u '${run_as}' bash '${command}'"
+    echo "sudo -u '${run_as}' bash -c '${command}'"
   else
     echo "bash ${command}"
   fi
@@ -982,12 +1113,6 @@ validate_yes_no(){
 
 
 
-get_domains(){
-  (cat "${CERT_DOMAINS_PATH}" 2>/dev/null; join_by " " "${DOMAINS[@]}")
-}
-
-
-
 stage1(){
   debug "Starting stage 1: initial script setup"
   parse_options "$@"
@@ -1137,57 +1262,7 @@ en_usage(){
 stage2(){
   debug "Starting stage 2: make some asserts"
   assert_caller_root
-  assert_installed 'nginx' 'errors.reinstall_keitaro'
-  assert_installed 'crontab' 'errors.reinstall_keitaro'
-  assert_installed 'certbot' 'errors.reinstall_keitaro_ssl'
-  assert_nginx_configured
-}
-
-
-#
-
-
-
-
-
-assert_nginx_configured(){
-  if ! is_nginx_properly_configured; then
-    fail "$(translate 'errors.reinstall_keitaro_ssl')" "see_logs"
-  fi
-}
-
-
-is_nginx_properly_configured(){
-  if ! is_exists_file "${NGINX_KEITARO_CONF}"; then
-    log_and_print_err "ERROR: File ${NGINX_KEITARO_CONF} doesn't exists"
-    return ${FAILURE_RESULT}
-  fi
-  if ! is_exists_file "${NGINX_SSL_CERT_PATH}"; then
-    log_and_print_err "ERROR: File ${NGINX_SSL_CERT_PATH} doesn't exists"
-    return ${FAILURE_RESULT}
-  fi
-  if ! is_exists_file "${NGINX_SSL_PRIVKEY_PATH}"; then
-    log_and_print_err "ERROR: File ${NGINX_SSL_PRIVKEY_PATH} doesn't exists"
-    return ${FAILURE_RESULT}
-  fi
-  is_ssl_configured
-}
-
-
-is_ssl_configured(){
-  debug "Checking ssl params in ${NGINX_KEITARO_CONF}"
-  if isset "$SKIP_CHECKS"; then
-    debug "SKIP: аctual check of ssl params in ${NGINX_KEITARO_CONF} disabled"
-    return ${SUCCESS_RESULT}
-  fi
-  if grep -q -e "ssl_certificate #{NGINX_SSL_CERT_PATH};" -e "ssl_certificate_key ${NGINX_SSL_PRIVKEY_PATH};" "${NGINX_KEITARO_CONF}"; then
-    debug "OK: it seems like ${NGINX_KEITARO_CONF} is properly configured"
-    return ${SUCCESS_RESULT}
-  else
-    log_and_print_err "ERROR: ${NGINX_KEITARO_CONF} is not properly configured"
-    log_and_print_err $(print_content_of "$NGINX_KEITARO_CONF")
-    return ${FAILURE_RESULT}
-  fi
+  assert_server_configuration_relevant
 }
 
 
@@ -1248,7 +1323,6 @@ get_user_email(){
 
 stage4(){
   debug "Starting stage 4: install LE certificates"
-  regenerate_self_signed_cert
   generate_certificates
   add_renewal_job
   if isset "$SUCCESSFUL_DOMAINS"; then
@@ -1287,53 +1361,6 @@ renewal_job_installed(){
 }
 
 
-
-regenerate_self_signed_cert(){
-  if [ -L ${NGINX_SSL_CERT_PATH} ]; then
-    debug "${NGINX_SSL_CERT_PATH} is link. Getting cert domains"
-    local domains=$(get_domains_from_cert)
-    local main_domain=$(awk '{print $1}' <<< "${domains}")
-    debug "Current domains in ${NGINX_SSL_CERT_PATH}: ${domains}. Main domain: ${main_domain}"
-    save_cert_domains "${domains}"
-    remove_letsencrypt_certificate "$main_domain"
-    generate_self_signed_certificate
-  else
-    debug "${NGINX_SSL_CERT_PATH} is not link, do not regenerate self-signed cert"
-  fi
-}
-
-
-get_domains_from_cert(){
-  debug "Getting domains from existent cert"
-  openssl x509 -text < "$NGINX_SSL_CERT_PATH" | grep DNS | sed -r -e 's/(DNS:|,)//g'
-}
-
-
-save_cert_domains(){
-  local domains="${1}"
-  debug "Saving cert domains"
-  echo ${domains} > "$CERT_DOMAINS_PATH"
-}
-
-
-remove_letsencrypt_certificate(){
-  local domain="${1}"
-  debug "Removing old certificate for domain ${domain}"
-  rm -rf "/etc/letsencrypt/live/${domain}"
-  rm -rf "/etc/letsencrypt/archive/${domain}"
-  rm -f "/etc/letsencrypt/renewal/${domain}.conf"
-  rm -f "$NGINX_SSL_CERT_PATH" "$NGINX_SSL_PRIVKEY_PATH"
-}
-
-
-generate_self_signed_certificate(){
-  command="openssl req -x509 -newkey rsa:4096 -sha256 -nodes -days 3650"
-  command="${command} -out "$NGINX_SSL_CERT_PATH" -keyout "$NGINX_SSL_PRIVKEY_PATH""
-  command="${command} -subj '/CN=$(get_host_ip)'"
-  run_command "${command}" 'Generating self-signed certificate' 'hide_output'
-}
-
-
 #
 
 
@@ -1343,10 +1370,10 @@ generate_self_signed_certificate(){
 generate_certificates(){
   debug "Requesting certificates"
   echo -n > "$SSL_ENABLER_ERRORS_LOG"
-  for domain in $(get_domains); do
+  for domain in "${DOMAINS[@]}"; do
     certificate_generated=${FALSE}
     certificate_error=""
-    if certificate_exists_for_domain $domain; then
+    if certificate_exists_for_domain "$domain"; then
       SUCCESSFUL_DOMAINS+=($domain)
       debug "Certificate already exists for domain ${domain}"
       print_with_color "${domain}: $(translate 'warnings.certificate_exists_for_domain')" "yellow"
@@ -1357,22 +1384,17 @@ generate_certificates(){
         SUCCESSFUL_DOMAINS+=($domain)
         debug "Certificate for domain ${domain} successfully issued"
         certificate_generated=${TRUE}
-        rm -rf $CERTBOT_LOG
+        rm -rf "$CERTBOT_LOG"
       else
         FAILED_DOMAINS+=($domain)
         debug "There was an error while issuing certificate for domain ${domain}"
-        certificate_error="$(recognize_error $CERTBOT_LOG)"
-        echo "${domain}: ${certificate_error}" >> $SSL_ENABLER_ERRORS_LOG
+        certificate_error="$(recognize_error "$CERTBOT_LOG")"
+        echo "${domain}: ${certificate_error}" >> "$SSL_ENABLER_ERRORS_LOG"
       fi
     fi
     if [[ ${certificate_generated} == ${TRUE} ]]; then
-      if nginx_config_exists_for_domain $domain; then
-        new_name="${domain}.conf.$(date +%Y%m%d%H%M)"
-        debug "Saving old nginx config for ${domain} to ${new_name}"
-        cp "/etc/nginx/conf.d/${domain}.conf" "/etc/nginx/conf.d/${new_name}"
-      fi
       debug "Generating nginx config for ${domain}"
-      generate_nginx_config_for "${domain}"
+      setup_le_certs_in_vhost_config "${domain}"
     else
       debug "Skip generation nginx config ${domain} due errors while cert issuing"
       print_with_color "${domain}: ${certificate_error}" "red"
@@ -1385,13 +1407,7 @@ generate_certificates(){
 
 certificate_exists_for_domain(){
   local domain="${1}"
-  is_exists_directory "/etc/letsencrypt/live/${domain}" "no"
-}
-
-
-nginx_config_exists_for_domain(){
-  local domain="${1}"
-  is_exists_file "/etc/nginx/conf.d/${domain}.conf" "no"
+  is_directory_exist "/etc/letsencrypt/live/${domain}" "no"
 }
 
 
@@ -1407,24 +1423,18 @@ request_certificate_for(){
     certbot_command="${certbot_command} --register-unsafely-without-email"
   fi
   requesting_message="$(translate "messages.requesting_certificate_for") ${domain}"
-  run_command "${certbot_command}" "${requesting_message}" "hide_output" "allow_errors" "" "" $CERTBOT_LOG
+  run_command "${certbot_command}" "${requesting_message}" "hide_output" "allow_errors" "" "" "$CERTBOT_LOG"
 }
 
 
-generate_nginx_config_for(){
+
+setup_le_certs_in_vhost_config(){
   local domain="${1}"
-  changes="-e 's|listen 80.*|listen 80;|g'"
-  changes="${changes} -e 's|server_name .*|server_name ${domain};|g'"
-  changes="${changes} -e 's|ssl_certificate .*|ssl_certificate /etc/letsencrypt/live/${domain}/fullchain.pem;|g'"
-  changes="${changes} -e 's|ssl_certificate_key .*|ssl_certificate_key /etc/letsencrypt/live/${domain}/privkey.pem;|g'"
-  changes="${changes} -e 's|error_log .*|error_log /var/log/nginx/${domain}-error.log;|g'"
-  changes="${changes} -e '/error_log/a    access_log /var/log/nginx/${domain}-access.log combined buffer=16k;'"
-  changes="${changes} -e 's|admin.access.log|${domain}-admin.access.log|g'"
-  changes="${changes} -e '/admin.access.log/a    error_log /var/log/nginx/${domain}-admin.error.log;'"
-  command="cat /etc/nginx/conf.d/vhosts.conf | sed ${changes} > /etc/nginx/conf.d/${domain}.conf"
-  generating_message=$(translate "messages.generating_nginx_config_for")
-  run_command "${command}" "${generating_message} ${domain}" "hide_output"
-}
+  local certs_root_path="/etc/letsencrypt/live/${domain}"
+  regenerate_vhost_config "$domain" 'messages.generating_nginx_config_for' \
+    "ssl_certificate ${certs_root_path}/fullchain.pem" \
+    "ssl_certificate_key ${certs_root_path}/privkey.pem"
+  }
 
 
 #

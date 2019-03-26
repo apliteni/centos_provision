@@ -62,7 +62,7 @@ usage(){
 ru_usage(){
   print_err "$SCRIPT_NAME позволяет запустить дополнительный сайт совместно с Keitaro"
   print_err
-  print_err "Использование: "$SCRIPT_NAME" [-ps] [-l en|ru] "
+  print_err "Использование: "$SCRIPT_NAME" [-ps] [-l en|ru]"
   print_err
   print_err "  -p"
   print_err "    С опцией -p (preserve commands running) "$SCRIPT_NAME" не выполняет установочные команды. Вместо этого текст команд будет показан на экране."
@@ -80,7 +80,7 @@ ru_usage(){
 en_usage(){
   print_err "$SCRIPT_NAME allows to run additional site together with Keitaro"
   print_err
-  print_err "Usage: "$SCRIPT_NAME" [-ps] [-l en|ru] domain1.tld [domain2.tld] ..."
+  print_err "Usage: "$SCRIPT_NAME" [-ps] [-l en|ru]"
   print_err
   print_err "  -p"
   print_err "    The -p (preserve commands running) option causes "$SCRIPT_NAME" to preserve the invoking of installation commands. Installation commands will be printed to stdout instead."

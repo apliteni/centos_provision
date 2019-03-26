@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 
 read_inventory_file(){
-  if [ -f "$INVENTORY_FILE" ]; then
+  local file="${1}"
+  if [ -f "${file}" ]; then
     debug "Inventory file found, read defaults from it"
     while IFS="" read -r line; do
       parse_line_from_inventory_file "$line"
-    done <   $INVENTORY_FILE
+    done < "${file}"
   else
     debug "Inventory file not found"
   fi

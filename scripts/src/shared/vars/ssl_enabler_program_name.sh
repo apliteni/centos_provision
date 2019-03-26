@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-PROGRAM_NAME='enable-ssl'
+TOOL_NAME='enable-ssl'

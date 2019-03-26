@@ -60,7 +60,7 @@ really_run_command(command, hide_output, allow_errors, run_as, print_fail_messag
 
 command_run_as(command, run_as)
   if isset $run_as
-    echo "sudo -u '${run_as}' bash '${command}'"
+    echo "sudo -u '${run_as}' bash -c '${command}'"
   else
     echo "bash ${command}"
 

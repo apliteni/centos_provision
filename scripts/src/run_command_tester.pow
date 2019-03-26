@@ -1,8 +1,8 @@
 #!/usr/bin/env powscript
 
 _require 'lib/stdlib.sh'
-_require 'shared/vars/test_run_command_program_name.sh'
 
+_require 'shared/vars/test_run_command_program_name.sh'
 _require 'shared/vars/common.sh'
 _require 'shared/vars/dict.sh'
 
@@ -24,8 +24,8 @@ _require 'lib/system/print_translated.sh'
 _require 'lib/system/print_with_color.sh'
 _require 'lib/system/run_command.sh'
 
-_require 'app/installer/stage5/run_ansible_playbook.sh'
-_require 'app/installer/stage5/json2dict.sh'
+_require 'app/installer/stage6/run_ansible_playbook.sh'
+_require 'app/installer/stage6/json2dict.sh'
 
 
 # We wrap the entire script in a big function which we only call at the very end, in order to

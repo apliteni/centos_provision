@@ -3,7 +3,7 @@
 
 assert_centos_distro()
   assert_installed 'yum' 'errors.wrong_distro'
-  if ! is_exists_file /etc/centos-release
+  if ! is_file_exist /etc/centos-release
     fail "$(translate errors.wrong_distro)" "see_logs"
     if ! cat /etc/centos-release | grep -q 'release 7\.'
       fail "$(translate errors.wrong_distro)" "see_logs"

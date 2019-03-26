@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-PROGRAM_NAME='install'
+TOOL_NAME='install'

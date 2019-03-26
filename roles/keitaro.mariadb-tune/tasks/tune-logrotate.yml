@@ -1,0 +1,14 @@
+- name: Tune logrotate - set log pattern
+  lineinfile:
+    path: /etc/logrotate.d/mysql
+    regexp: '^/.*\.log {'
+    line: "/var/log/mariadb/*.log {"
+    insertbefore: BOF
+
+- name: Tune logrotate - set rotation period
+  lineinfile:
+    path: /etc/logrotate.d/mysql
+    regexp: '^(\s*)rotate '
+    line: '\1rotate {{ keitaro_logrotate_common_period }}'
+    backrefs: true
+    insertbefore: postrotate

@@ -1,0 +1,11 @@
+- name: Make mariadb service extra configuration dir
+  file:
+    path: /etc/systemd/system/mariadb.service.d
+    state: directory
+
+- name: Generate systemd nginx config
+  template:
+    src: systemd/keitaro-systemd-mariadb.conf.j2
+    dest: /etc/systemd/system/mariadb.service.d/keitaro-systemd-mariadb.conf
+  notify:
+    - reconfigure mariadb
