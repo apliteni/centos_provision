@@ -25,9 +25,3 @@
     - {from: "/opt/remi/{{php_version}}/root/bin/php-config", to: '/usr/bin/php-config'}
     - {from: "/etc/opt/remi/{{php_version}}", to: '/etc/php'}
     - {from: "/var/opt/remi/{{php_version}}/log/php-fpm", to: '/var/log/php-fpm'}
-
-- name: Enable and run php-fpm
-  service:
-    name: "{{php_version}}-php-fpm"
-    state: started
-    enabled: yes

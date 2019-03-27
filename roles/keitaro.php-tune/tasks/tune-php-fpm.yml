@@ -1,6 +1,6 @@
 - name: Remove default pool www.conf
   file:
-    path: "/etc/php/php-fpm.d/wwww.conf"
+    path: "/etc/php/php-fpm.d/www.conf"
     state: absent
 
 - name: Generate a pool config
@@ -21,7 +21,9 @@
     emergency_restart_interval: 10s
     process_control_timeout: 10s
 
-- name: Restart php-fpm
+- name: Enable and run php-fpm
   service:
     name: "{{php_version}}-php-fpm"
     state: restarted
+    daemon-reload: true
+    enabled: yes
