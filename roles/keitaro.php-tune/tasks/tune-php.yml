@@ -10,4 +10,3 @@
     short_open_tag: 'On'
   notify:
     - restart php-fpm
-

@@ -1,0 +1,18 @@
+[keitaro]
+user = keitaro
+group = keitaro
+
+listen = '/var/run/{{ php_version }}-fpm-keitaro-nontracker.sock'
+listen.owner = {{ nginx_user }}
+listen.group = {{ nginx_group }}
+listen.mode = 0660
+
+pm = dynamic
+pm.max_children = {{ php_nontracker_workers_count }}
+pm.start_servers = {{ php_nontracker_min_idle_workers_count }}
+pm.min_spare_servers = {{ php_nontracker_min_idle_workers_count }}
+pm.max_spare_servers = {{ php_nontracker_max_idle_workers_count }}
+pm.max_requests = {{ php_worker_max_requests }}
+
+php_admin_value[error_log] = /var/log/php-fpm/keitaro-nontracker-error.log
+php_admin_flag[log_errors] = on

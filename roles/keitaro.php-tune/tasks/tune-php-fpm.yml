@@ -5,11 +5,14 @@
 
 - name: Generate a pool config
   template:
-    src: "php-fpm.d/keitaro.conf.j2"
-    dest: "/etc/php/php-fpm.d/keitaro.conf"
+    src: "php-fpm.d/{{ item }}.j2"
+    dest: "/etc/php/php-fpm.d/{{ item }}"
     owner: root
     group: root
     mode: 0644
+  with_items:
+    - keitaro-tracker.conf
+    - keitaro-nontracker.conf
 
 - name: Tune php-fpm master
   lineinfile:
