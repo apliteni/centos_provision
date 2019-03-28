@@ -27,7 +27,7 @@ server {
     expires 10d;
   }
 
-  location ~ /\.(?!well-known).* {
+  location ~ /\.(?!well-known/).* {
     access_log off;
     return 404;
   }
@@ -36,16 +36,9 @@ server {
     allow all;
   }
 
-  location ~ ^/(var|lib|application)/.*$ {
+  location ~ ^/(var|lib|application)/.* {
     access_log off;
     return 404;
-  }
-
-  location = /status {
-    access_log off;
-    include {{ nginx_conf_path }}/keitaro.php-fpm.inc;
-    allow 127.0.0.1;
-    deny all;
   }
 
   location = /admin {
@@ -56,8 +49,27 @@ server {
     {{ nginx_keitaro_admin_access_log_entry }};
     {{ nginx_keitaro_status_log_entry }};
 
-    include {{ nginx_conf_path }}/keitaro.php-fpm.inc;
+    include {{ nginx_conf_path }}/keitaro-nontracker.php-fpm.inc;
   }
 
-  include {{ nginx_conf_path }}/keitaro.root_location.inc;
+  location ~ \.php$ {
+    try_files $uri =404;
+
+    include {{ nginx_conf_path }}/keitaro.nontracker.php-fpm.inc;
+  }
+
+  location = /status {
+    access_log off;
+    allow 127.0.0.1;
+    deny all;
+    include {{ nginx_conf_path }}/keitaro-tracker.php-fpm.inc;
+  }
+
+  location ~ ^/(index.php|api.php)$ {
+    include {{ nginx_conf_path }}/keitaro.tracker.inc;
+  }
+
+  location / {
+    try_files $uri $uri/ /index.php$is_args$args;
+  }
 }
