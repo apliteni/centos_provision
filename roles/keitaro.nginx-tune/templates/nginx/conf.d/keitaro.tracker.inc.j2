@@ -1,0 +1,5 @@
+{% if php_engine == 'php-fpm' %}
+  include {{ nginx_conf_path }}/keitaro.tracker.php-fpm.inc;
+{% else %}
+  include {{ nginx_conf_path }}/keitaro.tracker.roadrunner.inc;
+{% endif %}
