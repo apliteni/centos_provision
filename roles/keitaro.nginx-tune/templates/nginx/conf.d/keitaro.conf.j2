@@ -32,7 +32,7 @@ server {
     return 404;
   }
 
-  location /.well-known {
+  location /.well-known/ {
     allow all;
   }
 
@@ -41,14 +41,14 @@ server {
     return 404;
   }
 
-  location /status {
+  location = /status {
     access_log off;
     include {{ nginx_conf_path }}/keitaro.php-fpm.inc;
     allow 127.0.0.1;
     deny all;
   }
 
-  location /admin {
+  location = /admin {
      return 301 /admin/;
   }
 
