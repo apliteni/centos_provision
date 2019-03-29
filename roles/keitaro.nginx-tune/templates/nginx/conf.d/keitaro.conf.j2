@@ -55,7 +55,7 @@ server {
   location ~ \.php$ {
     try_files $uri =404;
 
-    include {{ nginx_conf_path }}/keitaro.nontracker.php-fpm.inc;
+    include {{ nginx_conf_path }}/keitaro-nontracker.php-fpm.inc;
   }
 
   location = /status {
@@ -66,7 +66,7 @@ server {
   }
 
   location ~ ^/(index.php|api.php)$ {
-    include {{ nginx_conf_path }}/keitaro.tracker.inc;
+    include {{ nginx_conf_path }}/keitaro-tracker.inc;
   }
 
   location / {
