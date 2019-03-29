@@ -17,8 +17,6 @@ RSpec.describe 'install.sh' do
   let(:db_restore_path) { nil }
   let(:db_restore_path_want_exit) { nil }
   let(:db_restore_salt) { nil }
-  let(:admin_login) { 'admin' }
-  let(:admin_password) { 'admin_password' }
 
   let(:prompts) do
     {
@@ -33,16 +31,12 @@ RSpec.describe 'install.sh' do
         db_restore_path: 'Please enter the path to the SQL dump file',
         db_restore_salt: 'Please enter the value of "salt" parameter from the old config (application/config/config.ini.php)',
         db_restore_path_want_exit: 'Do you want to exit?',
-        admin_login: 'Please enter Keitaro admin login',
-        admin_password: 'Please enter Keitaro admin password'
       },
       ru: {
         ssl: 'Установить бесплатные SSL сертификаты (можно сделать это позже)?',
         license_ip: 'Укажите IP адрес сервера',
         license_key: 'Укажите лицензионный ключ',
         db_restore: 'Хотите восстановить базу данных из SQL дампа?',
-        admin_login: 'Укажите имя администратора Keitaro',
-        admin_password: 'Укажите пароль администратора Keitaro',
       }
     }
   end
@@ -59,8 +53,6 @@ RSpec.describe 'install.sh' do
       db_restore_path: db_restore_path,
       db_restore_path_want_exit: db_restore_path_want_exit,
       db_restore_salt: db_restore_salt,
-      admin_login: admin_login,
-      admin_password: admin_password,
     }
   end
 
@@ -174,10 +166,6 @@ RSpec.describe 'install.sh' do
     it_behaves_like 'should show default value', :db_restore, showed_value: 'no'
 
     it_behaves_like 'should store default value', :db_restore, readed_inventory_value: 'no'
-
-    it_behaves_like 'field with default', :admin_login, default: 'admin'
-
-    it_behaves_like 'password field', :admin_password
 
     it_behaves_like 'inventory contains value', :evaluated_by_installer, 'yes'
 
