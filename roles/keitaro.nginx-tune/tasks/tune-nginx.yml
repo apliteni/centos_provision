@@ -5,10 +5,18 @@
   with_items:
     - nginx/nginx.conf
     - nginx/conf.d/keitaro.conf
-    - nginx/conf.d/keitaro.root_location.inc
-    - nginx/conf.d/keitaro.php-fpm.inc
-  notify:
-    - reload nginx
+    - nginx/conf.d/keitaro-tracker.inc
+    - nginx/conf.d/keitaro-tracker.php-fpm.inc
+    - nginx/conf.d/keitaro-tracker.roadrunner.inc
+
+- name: Remove obsolete files
+  file:
+    path: "/etc/nginx/conf.d/{{ item }}"
+    state: absent
+  with_items:
+    - keitaro.php-fpm.inc
+    - keitaro.roadrunner.inc
+    - keitaro.root_location.inc
 
 - name: Reload nginx
   service:

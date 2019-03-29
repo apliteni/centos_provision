@@ -15,22 +15,25 @@
     - db_main_size_kb
     - redis_memory_mb
     - php_memory_mb
-    - php_worker_size_mb
-    - php_workers_count
     - php_opened_files
-    - php_rr_workers_count_factor
-    - php_rr_workers_count
-    - php_rr_opened_files
-    - php_fpm_workers_count_factor
-    - php_fpm_workers_count
-    - php_fpm_min_idle_workers_count
-    - php_fpm_max_idle_workers_count
-    - php_fpm_opened_files
+    - php_tracker_memory_factor
+    - php_tracker_memory_mb
+    - php_tracker_worker_size_mb
+    - php_tracker_worker_max_requests
+    - php_tracker_workers_count
+    - php_tracker_min_idle_workers_count
+    - php_tracker_max_idle_workers_count
+    - php_tracker_start_idle_workers_count
+    - php_tracker_opened_files
+    - php_nontracker_memory_factor
+    - php_nontracker_worker_size_mb
+    - php_nontracker_worker_max_requests
+    - php_nontracker_memory_mb
+    - php_nontracker_workers_count
+    - php_nontracker_min_idle_workers_count
+    - php_nontracker_max_idle_workers_count
+    - php_nontracker_opened_files
     - nginx_workers_count
     - nginx_worker_connections
     - nginx_opened_files
     - max_opened_files
-
-
-
-
