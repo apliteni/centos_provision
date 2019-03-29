@@ -9,7 +9,7 @@ listen.mode = 0660
 
 pm = dynamic
 pm.max_children = {{ php_tracker_workers_count }}
-pm.start_servers = {{ php_tracker_min_idle_workers_count }}
+pm.start_servers = {{ php_tracker_start_workers_count }}
 pm.min_spare_servers = {{ php_tracker_min_idle_workers_count }}
 pm.max_spare_servers = {{ php_tracker_max_idle_workers_count }}
 pm.max_requests = {{ php_tracker_worker_max_requests }}
