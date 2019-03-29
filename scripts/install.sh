@@ -555,10 +555,10 @@ print_content_of(){
     if [ -s "$filepath" ]; then
       echo "Content of '${filepath}':\n$(cat "$filepath" | add_indentation)"
     else
-      echo "File '${filepath}' is empty"
+      debug "File '${filepath}' is empty"
     fi
   else
-    echo "Can't show '${filepath}' content - file does not exist"
+    debug "Can't show '${filepath}' content - file does not exist"
   fi
 }
 
@@ -1736,7 +1736,7 @@ remove_log_files(){
 
 
 ANSIBLE_TASK_HEADER="^TASK \[(.*)\].*"
-ANSIBLE_TASK_FAILURE_HEADER="^fatal: "
+ANSIBLE_TASK_FAILURE_HEADER="^(fatal|failed): "
 ANSIBLE_FAILURE_JSON_FILEPATH="${CONFIG_DIR}/ansible_failure.json"
 ANSIBLE_LAST_TASK_LOG="${CONFIG_DIR}/ansible_last_task.log"
 
@@ -1796,7 +1796,7 @@ print_ansible_last_task_external_info(){
 
 
 ansible_task_failure_found(){
-  grep -q "$ANSIBLE_TASK_FAILURE_HEADER" "$ANSIBLE_LAST_TASK_LOG"
+  grep -qP "$ANSIBLE_TASK_FAILURE_HEADER" "$ANSIBLE_LAST_TASK_LOG"
 }
 
 
@@ -1813,7 +1813,7 @@ keep_json_only(){
   # }
   # .....
   #
-  # So, firstly remove all before "fatal: [localhost]: FAILED! => {" line
+  # So, first remove all before "fatal: [localhost]: FAILED! => {" line
   # then replace first line to just '{'
   # then remove all after '}'
   sed -n -r "/${ANSIBLE_TASK_FAILURE_HEADER}/,\$p" \
@@ -1832,7 +1832,9 @@ print_ansible_task_module_info(){
   declare -A   json
   eval "json=$(cat "$ANSIBLE_FAILURE_JSON_FILEPATH" | json2dict)" 2>/dev/null
   ansible_module="${json['invocation.module_name']}"
-  echo "Ansible module: ${json['invocation.module_name']}"
+  if isset "${json['invocation.module_name']}"; then
+    echo "Ansible module: ${json['invocation.module_name']}"
+  fi
   if isset "${json['msg']}"; then
     print_field_content "Field 'msg'" "${json['msg']}"
   fi
