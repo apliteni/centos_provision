@@ -49,13 +49,13 @@ server {
     {{ nginx_keitaro_admin_access_log_entry }};
     {{ nginx_keitaro_status_log_entry }};
 
-    include {{ nginx_conf_path }}/keitaro-nontracker.php-fpm.inc;
+    include {{ nginx_conf_path }}/keitaro-nontracker.inc;
   }
 
   location ~ \.php$ {
     try_files $uri =404;
 
-    include {{ nginx_conf_path }}/keitaro-nontracker.php-fpm.inc;
+    include {{ nginx_conf_path }}/keitaro-nontracker.inc;
   }
 
   location = /status {
@@ -65,7 +65,11 @@ server {
     include {{ nginx_conf_path }}/keitaro-tracker.php-fpm.inc;
   }
 
-  location ~ ^/(index.php|api.php)$ {
+  location = /api.php {
+    include {{ nginx_conf_path }}/keitaro-tracker.inc;
+  }
+
+  location = /index.php {
     include {{ nginx_conf_path }}/keitaro-tracker.inc;
   }
 
