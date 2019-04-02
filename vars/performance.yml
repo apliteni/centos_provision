@@ -1,10 +1,10 @@
 # Set memory bounds for main services
 # Database - 20%RAM, max 8G
-db_memory_mb: "{{ [0.20 * ansible_memtotal_mb, 8192] | min }}"
-# Redis - 5% RAM, max 2G
-redis_memory_mb: "{{ [0.05 * ansible_memtotal_mb, 2000] | min | round(-1, 'ceil') | int }}"
+db_memory_mb: "{{ [0.2 * ansible_memtotal_mb, 8192] | min }}"
+# Redis - 10% RAM, max 4G
+redis_memory_mb: "{{ [0.1 * ansible_memtotal_mb, 4096] | min | round(-1, 'ceil') | int }}"
 # PHP - < 90% RAM
-php_memory_mb: "{{ 0.90 * ansible_memtotal_mb - (db_memory_mb|int) - (redis_memory_mb|int) }}"
+php_memory_mb: "{{ 0.9 * ansible_memtotal_mb - (db_memory_mb|int) - (redis_memory_mb|int) }}"
 
 
 # PHP settings
