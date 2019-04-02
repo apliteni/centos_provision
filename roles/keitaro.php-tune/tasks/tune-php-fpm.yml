@@ -14,6 +14,12 @@
     - keitaro-tracker.conf
     - keitaro-nontracker.conf
 
+- name: Remove php-fpm pool for serving tracker requests
+  file:
+    path: /etc/php/php-fpm.d/keitaro-tracker.conf
+    state: absent
+  when: "php_engine == 'roadrunner'"
+
 - name: Tune php-fpm master
   lineinfile:
     path: /etc/php/php-fpm.conf
