@@ -1,8 +1,3 @@
-- name: Generate roadrunner config
-  template:
-    src: roadrunner/roadrunner.yml.j2
-    dest: "{{ keitaro_config_dir }}/roadrunner.yml"
-
 - name: Generate roadrunner systemd unit file into place.
   template:
     src: systemd/roadrunner.service.j2

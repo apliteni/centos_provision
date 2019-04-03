@@ -3,7 +3,8 @@ http:
   workers:
     command: "php {{ keitaro_root }}/server.php"
     pool:
-      maxJobs: {{ php_tracker_worker_max_requests }}
+      numWorkers: {{ php_tracker_rr_workers_count }}
+      maxJobs: {{ php_tracker_rr_worker_max_requests }}
       allocateTimeout: 10
       destroyTimeout:  10
 

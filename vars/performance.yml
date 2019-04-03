@@ -10,7 +10,7 @@ php_memory_mb: "{{ 0.9 * ansible_memtotal_mb - (db_memory_mb|int) - (redis_memor
 # PHP settings
 php_tracker_memory_factor: 0.7
 php_tracker_memory_mb: "{{ (php_memory_mb|float) * php_tracker_memory_factor }}"
-php_tracker_worker_size_mb: 20
+php_tracker_worker_size_mb: 25
 php_tracker_worker_max_requests: 300
 php_tracker_workers_count: "{{ ((php_tracker_memory_mb|float)/php_tracker_worker_size_mb) | round(-1, 'ceil') | int }}"
 php_tracker_min_idle_workers_count: "{{ ((php_tracker_workers_count|int) * 0.1) | int }}"
@@ -19,7 +19,7 @@ php_tracker_start_workers_count: "{{ ((php_tracker_workers_count|int) * 0.2) | i
 php_tracker_opened_files: "{{ (200 * (php_tracker_workers_count|int)) | int }}"
 
 php_nontracker_memory_factor: "{{ 1 - (php_tracker_memory_factor|float) }}"
-php_nontracker_worker_size_mb: 35
+php_nontracker_worker_size_mb: 40
 php_nontracker_worker_max_requests: 50
 php_nontracker_memory_mb: "{{ (php_memory_mb|float) * (php_nontracker_memory_factor|float) }}"
 php_nontracker_workers_count: "{{((php_nontracker_memory_mb|float)/php_nontracker_worker_size_mb) | round(-1, 'ceil') | int}}"
@@ -27,6 +27,10 @@ php_nontracker_min_idle_workers_count: "{{ ((php_nontracker_workers_count|int) *
 php_nontracker_max_idle_workers_count: "{{ ((php_nontracker_workers_count|int) * 0.3) | int }}"
 php_nontracker_start_workers_count: "{{ ((php_nontracker_workers_count|int) * 0.2) | int }}"
 php_nontracker_opened_files: "{{ (200 * (php_nontracker_workers_count|int)) | int }}"
+
+php_tracker_rr_workers_count: "{{ ((php_tracker_workers_count|int) / 2) | round(-1, 'ceil') | int }}"
+php_tracker_rr_worker_max_requests: "{{ (php_tracker_worker_max_requests|int) * 2 }}"
+php_tracker_rr_opened_files: "{{ (200 * (php_tracker_rr_workers_count|int)) | int }}"
 
 php_opened_files: "{{ (php_tracker_opened_files|int) + (php_nontracker_opened_files|int) }}"
 php_workers_count: "{{ (php_tracker_workers_count|int) + (php_nontracker_workers_count|int) }}"
