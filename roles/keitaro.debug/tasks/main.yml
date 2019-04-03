@@ -25,6 +25,9 @@
     - php_tracker_max_idle_workers_count
     - php_tracker_start_workers_count
     - php_tracker_opened_files
+    - php_tracker_rr_worker_max_requests
+    - php_tracker_rr_workers_count
+    - php_tracker_rr_opened_files
     - php_nontracker_memory_factor
     - php_nontracker_worker_size_mb
     - php_nontracker_worker_max_requests
