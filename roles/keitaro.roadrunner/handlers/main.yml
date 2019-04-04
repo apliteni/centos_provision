@@ -2,3 +2,4 @@
   service:
     name: roadrunner
     state: restarted
+  when: "php_engine == 'roadrunner'"

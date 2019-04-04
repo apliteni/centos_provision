@@ -2,4 +2,6 @@
   template:
     src: roadrunner/roadrunner.yml.j2
     dest: "/etc/php/roadrunner.yml"
+  notify:
+    - restart roadrunner
 
