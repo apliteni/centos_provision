@@ -24,6 +24,8 @@
   args:
     chdir: "{{ keitaro_root }}"
   become_user: "{{ keitaro_user }}"
+  notify:
+    - restart roadrunner
 
 - name: Remove install.php
   file:

@@ -1,0 +1,4 @@
+- name: restart roadrunner
+  service:
+    name: roadrunner
+    state: restarted
