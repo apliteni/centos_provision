@@ -19,44 +19,19 @@ server {
   index index.php index.html;
 
   {{ nginx_keitaro_access_log_entry }};
-  {{ nginx_keitaro_status_log_entry }};
 
-  location ~* \.(jpg|jpeg|gif|png|js|css|txt|zip|ico|gz|csv)$ {
-    {{ nginx_keitaro_access_log_entry }};
-
-    expires 10d;
-  }
-
-  location ~ /\.(?!well-known/).* {
+  # Hide hidden locations
+  location ~ /\..* {
     access_log off;
     return 404;
+
+    # Except LE locations
+    location ~ /\.well-known/ {
+      allow all;
+    }
   }
 
-  location /.well-known/ {
-    allow all;
-  }
-
-  location ~ ^/(var|lib|application)/.* {
-    access_log off;
-    return 404;
-  }
-
-  location = /admin {
-     return 301 /admin/;
-  }
-
-  location /admin/ {
-    {{ nginx_keitaro_admin_access_log_entry }};
-    {{ nginx_keitaro_status_log_entry }};
-
-    include {{ nginx_conf_path }}/keitaro-nontracker.inc;
-  }
-
-  location ~ \.php$ {
-    try_files $uri =404;
-
-    include {{ nginx_conf_path }}/keitaro-nontracker.inc;
-  }
+  # Status page
 
   location = /status {
     access_log off;
@@ -65,11 +40,61 @@ server {
     include {{ nginx_conf_path }}/keitaro-tracker.php-fpm.inc;
   }
 
+  # Landings & other PHP scripts
+
+  location ~* \.(jpg|jpeg|gif|png|js|css|txt|zip|ico|gz|csv|svg|ttf)$ {
+    access_log off;
+    expires 10d;
+  }
+
+  location ~ \.php$ {
+    {{ nginx_keitaro_access_log_entry }};
+    {{ nginx_keitaro_status_log_entry }};
+
+    try_files $uri =404;
+
+    include {{ nginx_conf_path }}/keitaro-nontracker.inc;
+  }
+
+  # Admin locations
+
+  location /admin/assets/ {
+    access_log off;
+  }
+
+  location = /admin/index.php {
+    {{ nginx_keitaro_admin_access_log_entry }};
+    {{ nginx_keitaro_status_log_entry }};
+
+    include {{ nginx_conf_path }}/keitaro-nontracker.inc;
+  }
+
+  location = /admin {
+     return 301 /admin/;
+  }
+
+  location /admin/ {
+    try_files $uri /admin/index.php$is_args$args;
+  }
+
+  # Tracker locations
+
+  location ~ ^/(var|lib|application)/.* {
+    access_log off;
+    return 404;
+  }
+
   location = /api.php {
+    {{ nginx_keitaro_access_log_entry }};
+    {{ nginx_keitaro_status_log_entry }};
+
     include {{ nginx_conf_path }}/keitaro-tracker.inc;
   }
 
   location = /index.php {
+    {{ nginx_keitaro_access_log_entry }};
+    {{ nginx_keitaro_status_log_entry }};
+
     include {{ nginx_conf_path }}/keitaro-tracker.inc;
   }
 
