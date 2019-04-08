@@ -5,6 +5,7 @@
   with_items:
     - nginx/nginx.conf
     - nginx/conf.d/keitaro.conf
+    - nginx/conf.d/keitaro-admin.inc
     - nginx/conf.d/keitaro-tracker.inc
     - nginx/conf.d/keitaro-tracker.php-fpm.inc
     - nginx/conf.d/keitaro-tracker.roadrunner.inc

@@ -1,7 +1,7 @@
 #!/bin/sh
 
-NGINX_KEITARO_STATUS_LOG="{{ nginx_keitaro_status_log }}"
-NGINX_KEITARO_STATUS_LOG_SNAPSHOT="{{ nginx_keitaro_status_log }}.snapshot"
+NGINX_KEITARO_STATUS_LOG="{{ nginx_access_log_keitaro_tracker_status }}"
+NGINX_KEITARO_STATUS_LOG_SNAPSHOT="{{ nginx_access_log_keitaro_tracker_status }}.snapshot"
 NGINX_PIDFILE="{{ nginx_pidfile }}"
 
 if [ -f "${NGINX_KEITARO_STATUS_LOG}" ]; then

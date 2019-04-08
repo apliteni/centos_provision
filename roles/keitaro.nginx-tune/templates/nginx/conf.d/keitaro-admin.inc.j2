@@ -1,4 +1,4 @@
-access_log {{ nginx_access_log_keitaro_nontracker }} main {{ nginx_access_log_options }};
+access_log {{ nginx_access_log_keitaro_admin }} main {{ nginx_access_log_options }};
 
 fastcgi_split_path_info ^(.+\.php)(/.+)$;
 fastcgi_pass unix:/var/run/{{ php_version }}-fpm-keitaro-nontracker.sock;
