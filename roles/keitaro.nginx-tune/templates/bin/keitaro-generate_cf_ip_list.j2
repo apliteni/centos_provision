@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+
+set -e # halt on error
+set -o pipefail
+
+CF_BASE_URL="https://www.cloudflare.com/"
+CF_HEADER="CF-Connecting-IP"
+IP_VERSIONS="v4"
+CF_IP_LIST_PATH="${1}"
+
+if [ "${CF_IP_LIST_PATH}" == "" ]; then
+  echo "Usage $0 /path/to/nginx/file"
+  exit 1
+fi
+
+get_cf_url() {
+  local ip_ver="${1}"
+  echo "${CF_BASE_URL}/ips-${ip_ver}"
+}
+
+print_cf_ip_list() {
+  local ip_ver="${1}"
+  curl -sSL "$(get_cf_url "${ip_ver}")" 2>/dev/null
+}
+
+print_nginx_config() {
+  for ip_ver in ${IP_VERSIONS}; do
+    echo "# ip${ip_ver} list"
+    print_cf_ip_list "${ip_ver}" | awk '{printf "set_real_ip_from %s;\n", $1}'
+  done
+  echo "real_ip_header ${CF_HEADER};"
+}
+
+new_nginx_config=$(print_nginx_config)
+old_nginx_config=""
+
+if [ -f "${CF_IP_LIST_PATH}" ]; then
+  old_nginx_config="$(cat "${CF_IP_LIST_PATH}")"
+fi
+
+if [ "${old_nginx_config}" != "${new_nginx_config}" ]; then
+  echo "${new_nginx_config}" > "${CF_IP_LIST_PATH}"
+fi

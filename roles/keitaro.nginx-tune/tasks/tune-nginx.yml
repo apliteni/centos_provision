@@ -20,6 +20,15 @@
     - keitaro.roadrunner.inc
     - keitaro.root_location.inc
 
+- name: Generate CF IP list
+  command: "/usr/local/bin/keitaro-generate_cf_ip_list {{ nginx_cf_ip_list_path }}"
+- name: Configure cron to update CF IP list every day
+  cron:
+    name: "Generate {{ keitaro_cf_ip_list_path }}"
+    hour: "{{ 23 | random }}"
+    minute: "{{ 59 | random }}"
+    job: "/usr/local/bin/keitaro-generate_cf_ip_list {{ nginx_cf_ip_list_path }}"
+
 - name: Reload nginx
   service:
     name: nginx
