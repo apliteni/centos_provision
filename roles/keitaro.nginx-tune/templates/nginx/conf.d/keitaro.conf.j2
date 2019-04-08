@@ -18,9 +18,24 @@ server {
 
   index index.php index.html;
 
-  {{ nginx_keitaro_access_log_entry }};
+  access_log {{ nginx_access_log_keitaro_nontracker }} main {{ nginx_access_log_options }};
 
-  # Hide hidden locations
+  # Internal locations
+
+  location = /status {
+    allow 127.0.0.1;
+    deny all;
+
+    include {{ nginx_conf_path }}/keitaro-tracker.php-fpm.inc;
+
+    access_log off;
+  }
+
+  location ~ ^/(var|lib|application)/.* {
+    access_log off;
+    return 404;
+  }
+
   location ~ /\..* {
     access_log off;
     return 404;
@@ -31,26 +46,14 @@ server {
     }
   }
 
-  # Status page
+  # Assets & landings
 
-  location = /status {
-    access_log off;
-    allow 127.0.0.1;
-    deny all;
-    include {{ nginx_conf_path }}/keitaro-tracker.php-fpm.inc;
-  }
-
-  # Landings & other PHP scripts
-
-  location ~* \.(jpg|jpeg|gif|png|js|css|txt|zip|ico|gz|csv|svg|ttf)$ {
+  location ~* \.(jpg|jpeg|gif|png|js|css|txt|zip|ico|gz|csv|svg|ttf|woff|mp.|mpeg|mkv)$ {
     access_log off;
     expires 10d;
   }
 
   location ~ \.php$ {
-    {{ nginx_keitaro_access_log_entry }};
-    {{ nginx_keitaro_status_log_entry }};
-
     try_files $uri =404;
 
     include {{ nginx_conf_path }}/keitaro-nontracker.inc;
@@ -58,47 +61,38 @@ server {
 
   # Admin locations
 
-  location /admin/assets/ {
-    access_log off;
-  }
-
-  location = /admin/index.php {
-    {{ nginx_keitaro_admin_access_log_entry }};
-    {{ nginx_keitaro_status_log_entry }};
-
-    include {{ nginx_conf_path }}/keitaro-nontracker.inc;
-  }
-
   location = /admin {
      return 301 /admin/;
   }
 
   location /admin/ {
+    location /admin/assets/ {
+      access_log off;
+    }
+
+    location = /admin/index.php {
+      include {{ nginx_conf_path }}/keitaro-admin.inc;
+    }
+
     try_files $uri /admin/index.php$is_args$args;
+  }
+
+  location /admin_api/ {
+    include {{ nginx_conf_path }}/keitaro-admin.inc;
+    fastcgi_param SCRIPT_FILENAME $document_root/index.php;
   }
 
   # Tracker locations
 
-  location ~ ^/(var|lib|application)/.* {
-    access_log off;
-    return 404;
-  }
-
-  location = /api.php {
-    {{ nginx_keitaro_access_log_entry }};
-    {{ nginx_keitaro_status_log_entry }};
-
-    include {{ nginx_conf_path }}/keitaro-tracker.inc;
-  }
-
-  location = /index.php {
-    {{ nginx_keitaro_access_log_entry }};
-    {{ nginx_keitaro_status_log_entry }};
-
-    include {{ nginx_conf_path }}/keitaro-tracker.inc;
-  }
-
   location / {
+    location = /api.php {
+      include {{ nginx_conf_path }}/keitaro-tracker.inc;
+    }
+
+    location = /index.php {
+      include {{ nginx_conf_path }}/keitaro-tracker.inc;
+    }
+
     try_files $uri $uri/ /index.php$is_args$args;
   }
 }

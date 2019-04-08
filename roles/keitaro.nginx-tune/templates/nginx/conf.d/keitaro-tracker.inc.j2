@@ -1,3 +1,6 @@
+access_log {{ nginx_access_log_keitaro_tracker }} main {{ nginx_access_log_options }};
+access_log {{ nginx_access_log_keitaro_tracker_status }} status {{ nginx_access_log_options }};
+
 {% if php_engine == 'php-fpm' %}
   include {{ nginx_conf_path }}/keitaro-tracker.php-fpm.inc;
 {% else %}
