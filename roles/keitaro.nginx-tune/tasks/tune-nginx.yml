@@ -21,13 +21,20 @@
     - keitaro.root_location.inc
 
 - name: Generate CF IP list
-  command: "/usr/local/bin/keitaro-generate_cf_ip_list {{ nginx_ip_list_cf_path }}"
+  command: "/usr/local/bin/keitaro-generate_cf_ip_lists {{ nginx_ip_list_cf_v4_path }} {{ nginx_ip_list_cf_v6_path }}"
+
+- name: Make sure local IP list exists
+  copy:
+    content: ""
+    dest: "{{ nginx_ip_list_local_path }}"
+    force: no
+
 - name: Configure cron to update CF IP list every day
   cron:
     name: "Generate CloudFlare IP list"
     hour: "{{ 23 | random }}"
     minute: "{{ 59 | random }}"
-    job: "/usr/local/bin/keitaro-generate_cf_ip_list {{ nginx_ip_list_cf_path }}"
+    job: "/usr/local/bin/keitaro-generate_cf_ip_lists {{ nginx_ip_list_cf_v4_path }} {{ nginx_ip_list_cf_v6_path }}"
 
 - name: Reload nginx
   service:
