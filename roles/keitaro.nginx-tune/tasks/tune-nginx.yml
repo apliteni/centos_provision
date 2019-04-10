@@ -39,4 +39,5 @@
 - name: Reload nginx
   service:
     name: nginx
+    daemon-reload: true
     state: reloaded
