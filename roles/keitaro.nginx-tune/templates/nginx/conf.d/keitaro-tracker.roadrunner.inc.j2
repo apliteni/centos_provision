@@ -3,7 +3,7 @@ proxy_ssl_session_reuse off;
 
 proxy_pass http://{{ php_rr_bind_address }}$request_uri;
 proxy_set_header  Host $host;
-proxy_set_header  X-Forwarded-For $remote_addr;
-proxy_set_header  X-Forwarded-Host $remote_addr;
 proxy_set_header  X-Forwarded-Proto $scheme;
+proxy_set_header  X-Forwarded-For $remote_addr;
 proxy_set_header  X-Real-IP $remote_addr;
+proxy_set_header  CF-Connecting-IP $remote_addr;
