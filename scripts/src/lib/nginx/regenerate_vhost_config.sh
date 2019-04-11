@@ -18,23 +18,15 @@ regenerate_vhost_config(){
     debug "Backing up nginx config for ${domain} to ${vhost_backup_path}"
     cp "${vhost_path}" "${vhost_backup_path}"
   fi
-  if need_to_regenerate_host_config "$vhost_path"; then
-    command="${command}cp ${NGINX_KEITARO_CONF} "$vhost_path" && "
-    changes="${changes}$(build_sed_expression_from_nginx_setting_block "listen 80" "listen 80 .*")"
-    changes="${changes}$(build_sed_expression_from_nginx_setting_block "server_name ${domain}")"
-  fi
+  command="${command}cp ${NGINX_KEITARO_CONF} "$vhost_path" && "
+  changes="${changes}$(build_sed_expression_from_nginx_setting_block "listen 80" "listen 80 .*")"
+  changes="${changes}$(build_sed_expression_from_nginx_setting_block "server_name ${domain}")"
   while isset "${3}"; do
     changes="${changes}$(build_sed_expression_from_nginx_setting_block "${3}")"
     shift
   done
   command="${command}sed -i${changes} ${vhost_path}"
   run_command "${command}" "${generating_message} ${domain}" "hide_output"
-}
-
-
-need_to_regenerate_host_config(){
-  local vhost_path="${1}"
-  ! is_file_exist "$vhost_path" no || ! vhost_config_relevant "$vhost_path"
 }
 
 
