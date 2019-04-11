@@ -26,13 +26,7 @@
     state: absent
 
 - name: Remove old nginx files
-  file:
-    path: "/etc/nginx/conf.d/{{ item }}"
-    state: absent
-  with_items:
-    - keitaro.php-fpm.inc
-    - keitaro.roadrunner.inc
-    - keitaro.root_location.inc
+  shell: "rm -f /etc/nginx/conf.d/keitaro-*.inc"
 
 - name: Remove old roadrunner files
   file:
