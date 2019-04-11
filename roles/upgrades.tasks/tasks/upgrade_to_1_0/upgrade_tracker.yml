@@ -1,0 +1,27 @@
+- name: Get current tracker version
+  command: "grep -oP '\\d+(\\.\\d+)+' /var/www/keitaro/version.php"
+  register: get_current_tracker_version
+
+- name: Get latest stable tracker version
+  shell: "curl -sf 'keitaro.io/license/api/checkUpdate?version=9&stability=stable' | awk -F '::' '{print $2}'"
+  register: get_stable_tracker_version
+
+- name: Reinstall Keitaro
+  shell: "curl -sf https://keitaro.io/releases/{{ get_stable_tracker_version.stdout }}/package8.tar.gz | tar -xz --strip=1"
+  args:
+    chdir: "{{ keitaro_root }}"
+  become_user: "{{ keitaro_user }}"
+  when: "get_stable_tracker_version.stdout  > get_current_tracker_version.stdout "
+  notify:
+    - restart php-fpm
+    - restart roadrunner
+
+- name: Migrate database
+  command: "php bin/cli.php db:migrate"
+  args:
+    chdir: "{{ keitaro_root }}"
+  become_user: "{{ keitaro_user }}"
+  when: "get_stable_tracker_version.stdout  > get_current_tracker_version.stdout "
+  notify:
+    - restart php-fpm
+    - restart roadrunner
