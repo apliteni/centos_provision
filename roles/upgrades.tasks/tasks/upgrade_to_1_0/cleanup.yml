@@ -28,6 +28,9 @@
 - name: Remove old nginx files
   shell: "rm -f /etc/nginx/conf.d/keitaro-*.inc"
 
+- name: Remove old backup nginx host files
+  shell: "rm -f /etc/nginx/conf.d/*.conf.20*"
+
 - name: Remove old roadrunner files
   file:
     path: /etc/keitaro/roadrunner.yml
