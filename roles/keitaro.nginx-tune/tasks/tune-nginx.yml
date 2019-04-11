@@ -11,15 +11,6 @@
     - nginx/conf.d/keitaro-tracker.roadrunner.inc
     - nginx/conf.d/keitaro-nontracker.inc
 
-- name: Remove obsolete files
-  file:
-    path: "/etc/nginx/conf.d/{{ item }}"
-    state: absent
-  with_items:
-    - keitaro.php-fpm.inc
-    - keitaro.roadrunner.inc
-    - keitaro.root_location.inc
-
 - name: Generate CF IP list
   command: "/usr/local/bin/keitaro-generate_cf_ip_lists {{ nginx_ip_list_cf_v4_path }} {{ nginx_ip_list_cf_v6_path }}"
 
