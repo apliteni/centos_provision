@@ -6,4 +6,3 @@ redis_memory_mb: "{{ [0.1 * ansible_memtotal_mb, 4096] | min | round(-1, 'ceil')
 # PHP: 70% - 90% RAM
 php_memory_mb: "{{ 0.9 * ansible_memtotal_mb - (db_memory_mb|int) - (redis_memory_mb|int) }}"
 php_tracker_memory_factor: 0.7
-
