@@ -14,6 +14,8 @@ server {
   ssl_dhparam {{ ssl_dhparam_path }};
   add_header X-Content-Type-Options nosniff;
 
+  include {{ nginx_conf_path }}/keitaro/server.local.inc;
+
   root {{ keitaro_root }};
 
   index index.php index.html;
@@ -26,12 +28,12 @@ server {
     allow 127.0.0.1;
     deny all;
 
-    include {{ nginx_conf_path }}/keitaro-tracker.php-fpm.inc;
+    include {{ nginx_conf_path }}/keitaro/tracker.engine.php-fpm.inc;
 
     access_log off;
   }
 
-  location ~ ^/(var|lib|application)/.* {
+  location ~ ^/(application|bin|lib|var|vendor)/.* {
     access_log off;
     return 404;
   }
@@ -56,7 +58,7 @@ server {
   location ~ \.php$ {
     try_files $uri =404;
 
-    include {{ nginx_conf_path }}/keitaro-nontracker.inc;
+    include {{ nginx_conf_path }}/keitaro/nontracker.inc;
   }
 
   # Admin locations
@@ -71,14 +73,14 @@ server {
     }
 
     location = /admin/index.php {
-      include {{ nginx_conf_path }}/keitaro-admin.inc;
+      include {{ nginx_conf_path }}/keitaro/admin.inc;
     }
 
     try_files $uri /admin/index.php$is_args$args;
   }
 
   location /admin_api/ {
-    include {{ nginx_conf_path }}/keitaro-admin.inc;
+    include {{ nginx_conf_path }}/keitaro/admin.inc;
     fastcgi_param SCRIPT_FILENAME $document_root/index.php;
   }
 
@@ -86,11 +88,11 @@ server {
 
   location / {
     location = /api.php {
-      include {{ nginx_conf_path }}/keitaro-tracker.inc;
+      include {{ nginx_conf_path }}/keitaro/tracker.inc;
     }
 
     location = /index.php {
-      include {{ nginx_conf_path }}/keitaro-tracker.inc;
+      include {{ nginx_conf_path }}/keitaro/tracker.inc;
     }
 
     try_files $uri $uri/ /index.php$is_args$args;
