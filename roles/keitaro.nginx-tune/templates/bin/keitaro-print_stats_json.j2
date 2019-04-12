@@ -52,7 +52,7 @@ get_config_var() {
 }
 
 php_version() {
-  php --version | head -n1 | awk '{print $2}'
+  {{ php_path }} --version | head -n1 | awk '{print $2}'
 }
 
 mariadb_version() {
