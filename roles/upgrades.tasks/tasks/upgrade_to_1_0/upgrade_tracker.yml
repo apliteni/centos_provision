@@ -17,7 +17,7 @@
     - restart roadrunner
 
 - name: Migrate database
-  command: "php bin/cli.php db:migrate"
+  command: "{{ php_path }} bin/cli.php db:migrate"
   args:
     chdir: "{{ keitaro_root }}"
   become_user: "{{ keitaro_user }}"
