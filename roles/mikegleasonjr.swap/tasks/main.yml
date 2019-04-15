@@ -8,7 +8,7 @@
 
 - name: Create swap space
   shell: >
-    fallocate -l {{ swap_size }}M {{ swap_location }} 2 > /dev/null || \
+    fallocate -l {{ swap_size }}M {{ swap_location }} 2> /dev/null || \
       dd if=/dev/zero of={{ swap_location }} count={{ swap_size }} bs=1MiB
 
 - name: Make swap file
