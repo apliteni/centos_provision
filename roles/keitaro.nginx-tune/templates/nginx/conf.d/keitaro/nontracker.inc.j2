@@ -1,3 +1,7 @@
+include {{ nginx_conf_path }}/keitaro/nontracker.local.inc;
+
+access_log {{ nginx_access_log_keitaro_nontracker }} main {{ nginx_access_log_options }};
+
 fastcgi_split_path_info ^(.+\.php)(/.+)$;
 fastcgi_pass unix:/var/run/{{ php_version }}-fpm-keitaro-nontracker.sock;
 fastcgi_index index.php;

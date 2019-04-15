@@ -1,3 +1,6 @@
+- name: Install scripts
+  include: install-scripts.yml
+
 - name: Tune logroatate
   include: tune-logrotate.yml
 

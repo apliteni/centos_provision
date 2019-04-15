@@ -3,7 +3,7 @@ Description=Keitaro RoadRunner service
 After=syslog.target network.target
 
 [Service]
-ExecStart=/usr/local/bin/roadrunner serve -v -c={{ keitaro_config_dir }}/roadrunner.yml
+ExecStart=/usr/local/bin/roadrunner serve -v -c=/etc/php/roadrunner.yml
 WorkingDirectory={{ keitaro_home }}
 
 Restart=always

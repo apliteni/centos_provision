@@ -1,0 +1,16 @@
+- name: Get current php version
+  shell: head -n2 /var/www/keitaro/index.php | tail -n1 | cut -f 5 -d ' '
+  register: get_php_version
+
+- name: Stop and disable old php-fpm
+  service:
+    name: "{{ item }}-php-fpm"
+    state: stopped
+    enabled: false
+  ignore_errors: true
+  with_items:
+    - php54
+    - php56
+    - php70
+    - php71
+  when: get_php_version.stdout < 'php71'

@@ -1,7 +1,0 @@
-- name: Get current php version
-  shell: head -n2 /var/www/keitaro/index.php | tail -n1 | cut -f 5 -d ' '
-  register: get_php_version
-
-- name: Upgrade configs
-  include: upgrade.yml
-  when: get_php_version.stdout < 'php72'

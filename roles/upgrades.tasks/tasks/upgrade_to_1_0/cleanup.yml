@@ -18,10 +18,20 @@
     state: absent
 
 - name: Remove all cron tasks of nginx user
-  command: "crontab -r -u {{ nginx_user }}"
-  ignore_errors: yes
+  shell: "crontab -r -u {{ nginx_user }} || true"
 
 - name: Remove old mariadb logrotate config
   file:
     path: /etc/logrotate.d/mariadb
+    state: absent
+
+- name: Remove old nginx files
+  shell: "rm -f /etc/nginx/conf.d/keitaro-*.inc"
+
+- name: Remove old backup nginx host files
+  shell: "rm -f /etc/nginx/conf.d/*.conf.20*"
+
+- name: Remove old roadrunner files
+  file:
+    path: /etc/keitaro/roadrunner.yml
     state: absent

@@ -1,9 +1,11 @@
-- include: upgrade_php/main.yml
+- include: upgrade_php.yml
   notify:
     - reload nginx
 
 - include: upgrade_nginx.yml
   notify:
     - reload nginx
+
+- include: upgrade_tracker.yml
 
 - include: cleanup.yml

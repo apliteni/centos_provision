@@ -13,3 +13,10 @@
     dest: /usr/local/bin/roadrunner
     state: link
     force: true
+
+- name: Make rr -> roadrunner symlink
+  file:
+    src: "roadrunner"
+    dest: /usr/local/bin/rr
+    state: link
+    force: true
