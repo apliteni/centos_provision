@@ -6,7 +6,7 @@
   check_mode: no
 
 - name: Regenerate SSL certs
-  shell: "curl -sSL https://keitaro.io/release-1.0/enable-ssl.sh | bash -s -- -aw {{ ssl_domains.stdout }}"
+  shell: "curl -sSL https://keitaro.io/release-1.1/enable-ssl.sh | bash -s -- -aw {{ ssl_domains.stdout }}"
   args:
     chdir: /root
   when: ssl_domains.stdout != ""

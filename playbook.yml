@@ -13,27 +13,27 @@
     - vars/performance.yml
 
   roles:
-    - {role: 'keitaro.debug', tags: 'debug, tune, upgrade_to_1_0'}
-    - {role: 'upgrades.pretasks', tags: 'never, upgrade_to_1_0'}
-    - {role: 'mikegleasonjr.swap', tags: 'swap, upgrade_to_1_0'}
-    - {role: 'keitaro.prepare', tags: 'prepare, upgrade_to_1_0'}
+    - {role: 'keitaro.debug', tags: 'debug, tune, upgrade'}
+    - {role: 'upgrades.pretasks', tags: 'never, upgrade'}
+    - {role: 'mikegleasonjr.swap', tags: 'swap, upgrade'}
+    - {role: 'keitaro.prepare', tags: 'prepare, upgrade'}
     - {role: 'geerlingguy.firewall', tags: 'firewall', when: "skip_firewall is not defined or skip_firewall != 'yes'"}
     - {role: 'resmo.ntp', tags: 'ntp'}
     - {role: 'mrlesmithjr.timezone'}
     - {role: 'geerlingguy.repo-remi', tags: 'repo-remi'}
-    - {role: 'keitaro.disable_thp', tags: 'mariadb, tokudb, redis, upgrade_to_1_0'}
+    - {role: 'keitaro.disable_thp', tags: 'mariadb, tokudb, redis, upgrade'}
     - {role: 'keitaro.redis', tags: 'redis'}
-    - {role: 'keitaro.redis-tune', tags: 'redis, tune, redis-tune, upgrade_to_1_0'}
+    - {role: 'keitaro.redis-tune', tags: 'redis, tune, redis-tune, upgrade'}
     - {role: 'bertvv.mariadb', tags: 'mariadb'}
-    - {role: 'keitaro.mariadb-install_tokudb', tags: 'mariadb, tokudb, upgrade_to_1_0'}
-    - {role: 'keitaro.mariadb-tune', tags: 'mariadb, tokudb, tune, mariadb-tune, upgrade_to_1_0'}
+    - {role: 'keitaro.mariadb-install_tokudb', tags: 'mariadb, tokudb, upgrade'}
+    - {role: 'keitaro.mariadb-tune', tags: 'mariadb, tokudb, tune, mariadb-tune, upgrade'}
     - {role: 'keitaro.nginx', tags: 'nginx'}
-    - {role: 'keitaro.nginx-tune', tags: 'nginx, tune, nginx-tune, upgrade_to_1_0'}
+    - {role: 'keitaro.nginx-tune', tags: 'nginx, tune, nginx-tune, upgrade'}
     - {role: 'keitaro.php', tags: 'php'}
-    - {role: 'keitaro.php-tune', tags: 'php, tune, php-tune, upgrade_to_1_0'}
-    - {role: 'keitaro.roadrunner', tags: 'php, roadrunner, upgrade_to_1_0'}
-    - {role: 'keitaro.roadrunner-tune', tags: 'php, roadrunner, tune, roadrunner-tune, upgrade_to_1_0'}
+    - {role: 'keitaro.php-tune', tags: 'php, tune, php-tune, upgrade'}
+    - {role: 'keitaro.roadrunner', tags: 'php, roadrunner, upgrade'}
+    - {role: 'keitaro.roadrunner-tune', tags: 'php, roadrunner, tune, roadrunner-tune, upgrade'}
     - {role: 'keitaro.tracker', tags: 'tracker'}
-    - {role: 'keitaro.tracker-tune', tags: 'tracker, tune, tracker-tune, upgrade_to_1_0'}
+    - {role: 'keitaro.tracker-tune', tags: 'tracker, tune, tracker-tune, upgrade'}
     - {role: 'keitaro.db_restore', tags: 'db_restore', when: "db_restore is defined and db_restore == 'yes'"}
-    - {role: 'upgrades.tasks', tags: 'never, upgrade_to_1_0' }
+    - {role: 'upgrades.tasks', tags: 'never, upgrade' }

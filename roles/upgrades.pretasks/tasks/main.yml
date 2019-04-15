@@ -1,2 +1,2 @@
-- include: upgrade_to_1_0/main.yml
-  tags: 'upgrade_to_1_0'
+- include: upgrade_to_1_1/main.yml
+  tags: 'upgrade_to_1_1'
