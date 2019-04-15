@@ -24,13 +24,20 @@ server {
 
   # Internal locations
 
+  location = /status-nontracker {
+    allow 127.0.0.1;
+    deny all;
+    access_log off;
+
+    include {{ nginx_conf_path }}/keitaro/nontracker.php-fpm.inc;
+  }
+
   location = /status {
     allow 127.0.0.1;
     deny all;
+    access_log off;
 
     include {{ nginx_conf_path }}/keitaro/tracker.engine.php-fpm.inc;
-
-    access_log off;
   }
 
   location ~ ^/(application|bin|lib|var|vendor)/.* {

@@ -86,6 +86,31 @@ responses_json() {
   echo "${responses}"
 }
 
+statuses_json() {
+  print_json tracker "$(statuses_tracker_json)" \
+             nontracker "$(statuses_nontracker_json)"
+}
+
+statuses_tracker_json() {
+  print_json text "$(statuses_tracker_text)"
+}
+
+statuses_nontracker_json() {
+  print_json text "$(statuses_nontracker_text)"
+}
+
+statuses_tracker_text() {
+  if [ "$(get_config_var 'php_engine')" == "php-fpm" ]; then
+    curl -sf localhost/status
+  else
+    roadrunner http:workers -l plain -c /etc/php/roadrunner.yml
+  fi
+}
+
+statuses_nontracker_text() {
+  curl -sf localhost/status-nontracker
+}
+
 cpu_json() {
   model_name="$(awk -F': ' '/^model name/ {print $2}' /proc/cpuinfo | head -n1)"
   frequency_mhz="$(awk -F': ' '/^cpu MHz/ {print $2}' /proc/cpuinfo | head -n1)"
@@ -120,5 +145,6 @@ info_json() {
 print_json versions "$(versions_json)" \
            engines "$(engines_json)" \
            responses "$(responses_json)" \
+           statuses "$(statuses_json)" \
            cpu "$(cpu_json)" \
            info "$(info_json)"

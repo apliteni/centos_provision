@@ -13,6 +13,8 @@
   with_items:
     - keitaro-tracker.conf
     - keitaro-nontracker.conf
+  notify:
+    - restart php-fpm
 
 - name: Remove php-fpm pool for serving tracker requests
   file:
