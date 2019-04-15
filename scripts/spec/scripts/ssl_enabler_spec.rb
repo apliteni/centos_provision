@@ -29,7 +29,7 @@ RSpec.describe 'enable-ssl.sh' do
 
   let(:make_proper_nginx_conf) do
     [
-      'mkdir -p /etc/nginx/conf.d/local /etc/keitaro/ssl',
+      'mkdir -p /etc/nginx/conf.d/local /etc/nginx/keitaro/local /etc/keitaro/ssl',
       'touch /etc/keitaro/ssl/{cert,privkey}.pem',
       %Q{echo -e "#{nginx_conf}"> /etc/nginx/conf.d/keitaro.conf}
     ]
