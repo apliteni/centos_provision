@@ -1,6 +1,6 @@
 - name: Create keitaro nginx dir
   file:
-    path: /etc/nginx/conf.d/keitaro
+    path: /etc/nginx/conf.d/keitaro/local
     state: directory
 
 - name: Generate nginx configs
@@ -25,10 +25,10 @@
     dest: "{{ item }}"
     force: no
   with_items:
-    - "{{ nginx_conf_path }}/keitaro/server.local.inc"
-    - "{{ nginx_conf_path }}/keitaro/admin.local.inc"
-    - "{{ nginx_conf_path }}/keitaro/nontracker.local.inc"
-    - "{{ nginx_conf_path }}/keitaro/tracker.local.inc"
+    - "{{ nginx_conf_path }}/keitaro/local/server.inc"
+    - "{{ nginx_conf_path }}/keitaro/local/admin.inc"
+    - "{{ nginx_conf_path }}/keitaro/local/nontracker.inc"
+    - "{{ nginx_conf_path }}/keitaro/local/tracker.inc"
 
 - name: Configure cron to update CF IP list every day
   cron:
