@@ -120,9 +120,7 @@ declare -A DICT
 DICT['en.errors.program_failed']='PROGRAM FAILED'
 DICT['en.errors.must_be_root']='You must run this program as root.'
 DICT['en.errors.reconfigure_keitaro']=$(cat <<-END
-	Please run following command
-
-	:obsolete_tool_command:
+	Yoa are using obsolete server configuration. Please contact support team.
 END
 )
 
@@ -139,10 +137,8 @@ DICT['en.prompt_errors.validate_yes_no']='Please answer "yes" or "no"'
 
 DICT['ru.errors.program_failed']='ОШИБКА ВЫПОЛНЕНИЯ ПРОГРАММЫ'
 DICT['ru.errors.must_be_root']='Эту программу может запускать только root.'
-DICT['ru.errors.reconfigure_keitaro']=$(cat <<- END
-	Запустите пожалуйста команду
-
-	:obsolete_tool_command:
+DICT['ru.errors.reconfigure_keitaro']=$(cat <<-END
+	Вы используете устаревшую серверную конфигурацию. Пожалуйста, обратитесь в службу поддержки Keitaro.
 END
 )
 DICT['ru.errors.run_command.fail']='Ошибка выполнения текущей команды'
