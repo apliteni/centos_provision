@@ -27,7 +27,7 @@ vhost_config_relevant(vhost_path)
 
 
 get_vhost_override_path(domain)
-  echo "${NGINX_VHOSTS_DIR}/keitaro/local/${domain}.inc"
+  echo "${NGINX_VHOSTS_DIR}/local/${domain}.inc"
 
 get_vhost_path(domain)
   echo "${NGINX_VHOSTS_DIR}/${domain}.conf"
