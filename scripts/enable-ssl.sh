@@ -597,7 +597,7 @@ regenerate_vhost_config(){
     command="cp ${vhost_path} ${vhost_backup_path} && "
   fi
   command="${command}cp ${NGINX_KEITARO_CONF} "$vhost_path" && touch ${vhost_override_path} && "
-  changes="-e '/server.local.inc;/a\ \ include ${vhost_override_path};'"
+  changes="-e '/server.inc;/a\ \ include ${vhost_override_path};'"
   changes="${changes}$(build_sed_expression_from_nginx_setting_block "listen 80" "listen 80 .*")"
   changes="${changes}$(build_sed_expression_from_nginx_setting_block "server_name ${domain}")"
   while isset "${3}"; do
@@ -617,7 +617,7 @@ vhost_config_relevant(){
 
 get_vhost_override_path(){
   local domain="${1}"
-  echo "${NGINX_VHOSTS_DIR}/${domain}.inc"
+  echo "${NGINX_VHOSTS_DIR}/keitaro/local/${domain}.inc"
 }
 
 get_vhost_path(){
