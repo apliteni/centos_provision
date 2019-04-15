@@ -1,7 +1,7 @@
 user  {{ nginx_user }};
 
-error_log  {{ nginx_error_log }};
-pid        {{ nginx_pidfile }};
+error_log {{ nginx_error_log }} {{ nginx_error_log_format }};
+pid {{ nginx_pidfile }};
 
 worker_processes  {{ nginx_workers_count }};
 
@@ -35,6 +35,8 @@ http {
     log_format status '$status';
 
     log_not_found off;
+
+    access_log {{ nginx_access_log }} main {{ nginx_access_log_options }};
 
     sendfile        {{ nginx_sendfile }};
     tcp_nopush      {{ nginx_tcp_nopush }};

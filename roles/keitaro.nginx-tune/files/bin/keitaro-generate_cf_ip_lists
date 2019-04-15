@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+set -e # halt on error
+set -o pipefail
+
+if [ "${#}" != "2" ]; then
+  echo "Usage $0 /path/to/nginx/ipv4_list /path/to/nginx/ipv6_list"
+  exit 1
+fi
+
+CF_BASE_URL="https://www.cloudflare.com/"
+LIST_UPDATE_STATUS=""
+
+declare -a NGINX_LIST_FILES=("${1}" "${2}")
+declare -a IP_VERSIONS=("v4" "v6")
+declare -a NGINX_CONFIGS
+
+get_cf_url() {
+  local ip_ver="${1}"
+  echo "${CF_BASE_URL}/ips-${ip_ver}"
+}
+
+print_cf_ip_list() {
+  local ip_ver="${1}"
+  local result="$(curl -fsSL "$(get_cf_url "${ip_ver}")" 2>/dev/null)"
+  if [ "${result}" == "" ]; then
+    exit 1;
+  fi
+  echo "${result}"
+}
+
+print_nginx_config() {
+  local ip_ver="${1}"
+  echo "# CloudFlare ip${ip_ver} list"
+  print_cf_ip_list "${ip_ver}" | awk '{printf "set_real_ip_from %s;\n", $1}'
+}
+
+update_nginx_config() {
+  local nginx_list_file="${1}"
+  local new_nginx_config="${2}"
+  local old_nginx_config=""
+
+  if [ -f "${nginx_list_file}" ]; then
+    old_nginx_config="$(cat "${nginx_list_file}")"
+  fi
+
+  if [ "${old_nginx_config}" != "${new_nginx_config}" ]; then
+    LIST_UPDATE_STATUS="updated"
+    echo "${new_nginx_config}" > "${nginx_list_file}"
+  fi
+}
+
+for i in 0 1; do
+  NGINX_CONFIGS[${i}]="$(print_nginx_config "${IP_VERSIONS[${i}]}")"
+done
+
+for i in 0 1; do
+  update_nginx_config "${NGINX_LIST_FILES[${i}]}" "${NGINX_CONFIGS[${i}]}"
+done
+
+if [ "${LIST_UPDATE_STATUS}" != "" ]; then
+  systemctl reload nginx
+fi

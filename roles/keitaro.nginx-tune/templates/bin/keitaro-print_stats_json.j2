@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-NGINX_KEITARO_STATUS_LOG_SNAPSHOT="{{ nginx_keitaro_status_log }}.snapshot"
+NGINX_KEITARO_STATUS_LOG_SNAPSHOT="{{ nginx_access_log_keitaro_tracker_status }}.snapshot"
 KEITARO_CONFIG="${HOME}/.keitaro/installer_config"
 
 escape() {
@@ -52,7 +52,7 @@ get_config_var() {
 }
 
 php_version() {
-  php --version | head -n1 | awk '{print $2}'
+  {{ php_path }} --version | head -n1 | awk '{print $2}'
 }
 
 mariadb_version() {
