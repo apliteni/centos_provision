@@ -14,7 +14,7 @@ server {
   ssl_dhparam {{ ssl_dhparam_path }};
   add_header X-Content-Type-Options nosniff;
 
-  include {{ nginx_conf_path }}/keitaro/server.local.inc;
+  include {{ nginx_conf_path }}/keitaro/local/server.inc;
 
   root {{ keitaro_root }};
 

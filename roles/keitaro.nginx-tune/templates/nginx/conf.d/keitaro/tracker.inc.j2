@@ -1,4 +1,4 @@
-include {{ nginx_conf_path }}/keitaro/tracker.local.inc;
+include {{ nginx_conf_path }}/keitaro/local/tracker.inc;
 include {{ nginx_ip_list_cf_v4_path }};
 real_ip_header X-Forwarded-For;
 
