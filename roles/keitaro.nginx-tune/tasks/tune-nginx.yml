@@ -1,7 +1,10 @@
 - name: Create keitaro nginx dir
   file:
-    path: /etc/nginx/conf.d/keitaro/local
+    path: "{{ item }}"
     state: directory
+  with_items:
+    - /etc/nginx/conf.d/keitaro/local
+    - /etc/nginx/conf.d/local
 
 - name: Generate nginx configs
   template:
