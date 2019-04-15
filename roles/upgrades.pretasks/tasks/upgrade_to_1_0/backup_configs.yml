@@ -5,9 +5,7 @@
     state: directory
 
 - name: Backup configs
-  copy:
-    src: /etc/{{ item }}
-    dest: "{{ keitaro_backup_dir }}/{{ item }}"
+  shell: cp -R /etc/{{ item }} "{{ keitaro_backup_dir }}/{{ item }}"
   with_items:
     - letsencrypt
     - logrotate.d
