@@ -15,6 +15,7 @@
     - nginx/conf.d/keitaro.conf
     - nginx/conf.d/keitaro/admin.inc
     - nginx/conf.d/keitaro/nontracker.inc
+    - nginx/conf.d/keitaro/nontracker.php-fpm.inc
     - nginx/conf.d/keitaro/tracker.inc
     - nginx/conf.d/keitaro/tracker.engine.php-fpm.inc
     - nginx/conf.d/keitaro/tracker.engine.roadrunner.inc

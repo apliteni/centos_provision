@@ -86,10 +86,73 @@ responses_json() {
   echo "${responses}"
 }
 
+statuses_json() {
+  print_json nontracker "$(statuses_nontracker_json)" \
+             tracker "$(statuses_tracker_json)"
+}
+
+statuses_nontracker_json() {
+  statuses_php_fpm_json 'nontracker'
+}
+
+statuses_tracker_json() {
+  if [ "$(get_config_var 'php_engine')" == "php-fpm" ]; then
+    statuses_php_fpm_json 'tracker'
+  else
+    statuses_tracker_roadrunner_json
+  fi
+}
+
+statuses_tracker_roadrunner_json() {
+  systemd_output=$(systemctl status roadrunner | grep Active:)
+  if [[ "${systemd_output}" =~ 'inactive' ]]; then
+    print_json state inactive
+  else
+    local since=$(date -d "$(echo "${systemd_output}" | awk '{printf "%s %s", $6, $7}')")
+    local roadrunner_output=$(roadrunner http:workers -l plain -c /etc/php/roadrunner.yml | tail -n +4 | head -n -1)
+    local idle=$(echo "${roadrunner_output}" | grep ready | wc -l)
+    local active=$(echo "${roadrunner_output}" | grep working | wc -l)
+    local total=$(echo "${roadrunner_output}" | wc -l)
+    local max="$(grep numWorkers: /etc/php/roadrunner.yml | awk -F': +' '{print $2}')"
+    print_json state active \
+               since "${since}" \
+               "idle processes" "${idle}" \
+               "active processes" "${active}" \
+               "total processes" "${total}" \
+               "max processes" "${max}"
+
+  fi
+}
+
+statuses_php_fpm_json() {
+  local pool="${1}"
+  local pool_config="/etc/php/php-fpm.d/keitaro-${pool}.conf"
+  local status_page="$(grep ^pm.status_path "${pool_config}" | awk -F'= *' '{print $2}')"
+  if [ "${status_page}" != "" ]; then
+    curl_output="$(curl -sf "http://localhost${status_page}")"
+    if [[ "${curl_output}" == '' ]]; then
+      print_json state inactive
+    else
+      local start_time=$(echo "${curl_output}" | grep 'start time' | awk -F': *' '{print $2}')
+      local since=$(date -d "$(echo "${start_time}" | sed -e 's|/| |g'  -e 's/:/ /')")
+      local idle=$(echo "${curl_output}" | grep '^idle processes' | awk -F': *' '{print $2}')
+      local active=$(echo "${curl_output}" | grep '^active processes' | awk -F': *' '{print $2}')
+      local total=$(echo "${curl_output}" | grep '^total processes' | awk -F': *' '{print $2}')
+      local max="$(grep ^pm.max_children "${pool_config}" | awk -F'= *' '{print $2}')"
+      print_json state active \
+                 since "${since}" \
+                 "idle processes" "${idle}" \
+                 "active processes" "${active}" \
+                 "total processes" "${total}" \
+                 "max processes" "${max}"
+    fi
+  fi
+}
+
 cpu_json() {
-  model_name="$(awk -F': ' '/^model name/ {print $2}' /proc/cpuinfo | head -n1)"
-  frequency_mhz="$(awk -F': ' '/^cpu MHz/ {print $2}' /proc/cpuinfo | head -n1)"
-  cpu_cores="$(grep -w ^processor /proc/cpuinfo  | wc -l)"
+  local model_name="$(awk -F': ' '/^model name/ {print $2}' /proc/cpuinfo | head -n1)"
+  local frequency_mhz="$(awk -F': ' '/^cpu MHz/ {print $2}' /proc/cpuinfo | head -n1)"
+  local cpu_cores="$(grep -w ^processor /proc/cpuinfo  | wc -l)"
   print_json model_name "${model_name}" cpu_cores "${cpu_cores}" frequency_mhz "${frequency_mhz}"
 }
 
@@ -120,5 +183,6 @@ info_json() {
 print_json versions "$(versions_json)" \
            engines "$(engines_json)" \
            responses "$(responses_json)" \
+           statuses "$(statuses_json)" \
            cpu "$(cpu_json)" \
            info "$(info_json)"
