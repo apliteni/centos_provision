@@ -3,8 +3,8 @@
     path: "{{ item }}"
     state: directory
   with_items:
-    - /etc/nginx/conf.d/keitaro/local
-    - /etc/nginx/conf.d/local
+    - /etc/nginx/conf.d/keitaro
+    - /etc/nginx/conf.d/local/keitaro
 
 - name: Generate nginx configs
   template:
@@ -17,8 +17,9 @@
     - nginx/conf.d/keitaro/nontracker.inc
     - nginx/conf.d/keitaro/nontracker.php-fpm.inc
     - nginx/conf.d/keitaro/tracker.inc
-    - nginx/conf.d/keitaro/tracker.engine.php-fpm.inc
-    - nginx/conf.d/keitaro/tracker.engine.roadrunner.inc
+    - nginx/conf.d/keitaro/tracker.php-fpm.inc
+    - nginx/conf.d/keitaro/tracker.roadrunner.inc
+    - nginx/conf.d/keitaro/realip.inc
 
 - name: Generate CF IP list
   command: "/usr/local/bin/keitaro-generate_cf_ip_lists {{ nginx_ip_list_cf_v4_path }} {{ nginx_ip_list_cf_v6_path }}"
@@ -29,10 +30,11 @@
     dest: "{{ item }}"
     force: no
   with_items:
-    - "{{ nginx_conf_path }}/keitaro/local/server.inc"
-    - "{{ nginx_conf_path }}/keitaro/local/admin.inc"
-    - "{{ nginx_conf_path }}/keitaro/local/nontracker.inc"
-    - "{{ nginx_conf_path }}/keitaro/local/tracker.inc"
+    - "{{ nginx_conf_path }}/local/keitaro/server.inc"
+    - "{{ nginx_conf_path }}/local/keitaro/admin.inc"
+    - "{{ nginx_conf_path }}/local/keitaro/nontracker.inc"
+    - "{{ nginx_conf_path }}/local/keitaro/tracker.inc"
+    - "{{ nginx_conf_path }}/local/keitaro/realip.inc"
 
 - name: Configure cron to update CF IP list every day
   cron:
