@@ -1,0 +1,5 @@
+include {{ nginx_conf_path }}/local/keitaro/realip.inc;
+include {{ nginx_ip_list_cf_v4_path }};
+# include {{ nginx_ip_list_cf_v6_path }};
+
+real_ip_header X-Forwarded-For;
