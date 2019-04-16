@@ -29,7 +29,15 @@
     state: absent
 
 - name: Remove old nginx files
-  shell: "rm -f /etc/nginx/conf.d/keitaro-*.inc /etc/nginx/conf.d/*.inc /etc/nginx/conf.d/keitaro/*.local.inc"
+  shell: >
+    rm -rf /etc/nginx/conf.d/keitaro-*.inc \
+          /etc/nginx/conf.d/*.inc \
+          /etc/nginx/conf.d/keitaro/*.local.inc \
+          /etc/nginx/conf.d/keitaro/local \
+          /etc/nginx/conf.d/keitaro/tracker.engine.* \
+          /etc/nginx/conf.d/keitaro/tracker.realip.*
+  notify:
+    - reload nginx
 
 - name: Remove old backup nginx host files
   shell: "rm -f /etc/nginx/conf.d/*.conf.20*"

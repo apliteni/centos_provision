@@ -4,6 +4,7 @@
   become: yes
   become_method: sudo
   vars_files:
+    - vars/keitaro.yml
     - vars/server.yml
     - vars/ssl.yml
     - vars/mariadb.yml

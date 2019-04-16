@@ -252,7 +252,7 @@ build_upgrade_message(){
 
 build_upgrade_command(){
   installer_url="https://keitaro.io/release-${RELEASE_VERSION}/install.sh"
-  echo "curl ${installer_url} > run; bash run -rt upgrade,upgrade_to_${RELEASE_VERSION//\./_}"
+  echo "curl ${installer_url} > run; bash run -rt upgrade"
 }
 
 
