@@ -1,3 +1,3 @@
-- include: upgrade_to_1_1/main.yml
-  tags: 'upgrade_to_1_1'
+- include: upgrade/main.yml
+  tags: 'upgrade'
 
