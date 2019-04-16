@@ -4,6 +4,9 @@ RSpec.describe 'install.sh' do
   include_context 'run script in tmp dir'
   include_context 'build subject'
 
+  RELEASE_BRANCH="release-#{Script::INSTALLER_RELEASE}"
+  PLAYBOOK_PATH="centos_provision-release-#{Script::INSTALLER_RELEASE}/playbook.yml"
+
   let(:stored_values) { {} }
   let(:script_name) { 'install.sh' }
 
@@ -206,23 +209,23 @@ RSpec.describe 'install.sh' do
 
     shared_examples_for 'should install keitaro' do
       it_behaves_like 'should print to', :stdout,
-                      'curl -sSL https://github.com/apliteni/centos_provision/archive/release-1.1.tar.gz | tar xz'
+                      "curl -sSL https://github.com/apliteni/centos_provision/archive/#{RELEASE_BRANCH}.tar.gz | tar xz"
 
       it_behaves_like 'should print to', :stdout,
-                      "ansible-playbook -vvv -i #{Inventory::INVENTORY_FILE} centos_provision-release-1.1/playbook.yml"
+                      "ansible-playbook -vvv -i #{Inventory::INVENTORY_FILE} #{PLAYBOOK_PATH}"
 
       context '-t specified' do
         let(:options) { '-p -t tag1,tag2' }
 
         it_behaves_like 'should print to', :stdout,
-                        "ansible-playbook -vvv -i #{Inventory::INVENTORY_FILE} centos_provision-release-1.1/playbook.yml --tags tag1,tag2"
+                        "ansible-playbook -vvv -i #{Inventory::INVENTORY_FILE} #{PLAYBOOK_PATH} --tags tag1,tag2"
       end
 
       context '-i specified' do
         let(:options) { '-p -i tag1,tag2' }
 
         it_behaves_like 'should print to', :stdout,
-                        "ansible-playbook -vvv -i #{Inventory::INVENTORY_FILE} centos_provision-release-1.1/playbook.yml --skip-tags tag1,tag2"
+                        "ansible-playbook -vvv -i #{Inventory::INVENTORY_FILE} #{PLAYBOOK_PATH} --skip-tags tag1,tag2"
       end
     end
 
