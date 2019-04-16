@@ -38,6 +38,7 @@ collect_inventory_variables()
   if empty "${VARS['db_root_password']}"
     VARS['db_root_password']="$(get_var_from_config ~/.my.cnf password '=')"
   VARS['installer_version']="${RELEASE_VERSION}"
+  VARS['php_engine']="roadrunner"
 
 
 get_var_from_keitaro_app_config(var)
