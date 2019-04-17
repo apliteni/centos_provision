@@ -1183,7 +1183,6 @@ collect_inventory_variables(){
     VARS['db_root_password']="$(get_var_from_config ~/.my.cnf password '=')"
   fi
   VARS['installer_version']="${RELEASE_VERSION}"
-  VARS['php_engine']="roadrunner"
 }
 
 
