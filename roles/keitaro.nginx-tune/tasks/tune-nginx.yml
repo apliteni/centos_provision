@@ -14,6 +14,8 @@
     - nginx/nginx.conf
     - nginx/conf.d/keitaro.conf
     - nginx/conf.d/keitaro/admin.inc
+    - nginx/conf.d/keitaro/locations-common.inc
+    - nginx/conf.d/keitaro/locations-tracker.inc
     - nginx/conf.d/keitaro/nontracker.inc
     - nginx/conf.d/keitaro/nontracker.php-fpm.inc
     - nginx/conf.d/keitaro/tracker.inc
