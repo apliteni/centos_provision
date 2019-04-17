@@ -43,10 +43,12 @@ get_vhost_override_path(){
   echo "${NGINX_VHOSTS_DIR}/local/${domain}.inc"
 }
 
+
 get_vhost_path(){
   local domain="${1}"
   echo "${NGINX_VHOSTS_DIR}/${domain}.conf"
 }
+
 
 get_vhost_backup_path(){
   local domain="${1}"

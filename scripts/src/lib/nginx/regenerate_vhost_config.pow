@@ -29,8 +29,10 @@ vhost_config_relevant(vhost_path)
 get_vhost_override_path(domain)
   echo "${NGINX_VHOSTS_DIR}/local/${domain}.inc"
 
+
 get_vhost_path(domain)
   echo "${NGINX_VHOSTS_DIR}/${domain}.conf"
+
 
 get_vhost_backup_path(domain)
   echo "${NGINX_VHOSTS_DIR}/${domain}.conf.$(date +%Y%m%d%H%M%S)"
