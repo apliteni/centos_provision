@@ -14,94 +14,14 @@ server {
   ssl_dhparam {{ ssl_dhparam_path }};
   add_header X-Content-Type-Options nosniff;
 
+  access_log {{ nginx_access_log_keitaro_nontracker }} main {{ nginx_access_log_options }};
+
   include {{ nginx_conf_path }}/local/keitaro/server.inc;
 
   root {{ keitaro_root }};
 
   index index.php index.html;
 
-  access_log {{ nginx_access_log_keitaro_nontracker }} main {{ nginx_access_log_options }};
-
-  # Internal locations
-
-  location = /status-nontracker {
-    allow 127.0.0.1;
-    deny all;
-    access_log off;
-
-    include {{ nginx_conf_path }}/keitaro/nontracker.php-fpm.inc;
-  }
-
-  location = /status {
-    allow 127.0.0.1;
-    deny all;
-    access_log off;
-
-    include {{ nginx_conf_path }}/keitaro/tracker.php-fpm.inc;
-  }
-
-  location ~ ^/(application|bin|lib|var|vendor)/.* {
-    access_log off;
-    return 404;
-  }
-
-  location ~ /\..* {
-    access_log off;
-    return 404;
-
-    # Except LE locations
-    location ~ /\.well-known/ {
-      allow all;
-    }
-  }
-
-  # Assets & landings
-
-  location ~* \.(jpg|jpeg|gif|png|js|css|txt|zip|ico|gz|csv|svg|ttf|woff|mp.|mpeg|mkv)$ {
-    access_log off;
-    expires 10d;
-  }
-
-  location ~ \.php$ {
-    try_files $uri =404;
-
-    include {{ nginx_conf_path }}/keitaro/nontracker.inc;
-  }
-
-  # Admin locations
-
-  location = /admin {
-     return 301 /admin/;
-  }
-
-  location /admin/ {
-    location /admin/assets/ {
-      access_log off;
-    }
-
-    location = /admin/index.php {
-      include {{ nginx_conf_path }}/keitaro/admin.inc;
-    }
-
-    try_files $uri /admin/index.php$is_args$args;
-  }
-
-  location /admin_api/ {
-    include {{ nginx_conf_path }}/keitaro/admin.inc;
-    fastcgi_param SCRIPT_FILENAME $document_root/index.php;
-  }
-
-  # Tracker locations
-
-  location / {
-    location = /api.php {
-      include {{ nginx_conf_path }}/keitaro/tracker.inc;
-    }
-
-    location = /index.php {
-      include {{ nginx_conf_path }}/keitaro/tracker.inc;
-    }
-
-    try_files $uri $uri/ /index.php$is_args$args;
-  }
+  include {{ nginx_conf_path }}/keitaro/locations-common.inc;
+  include {{ nginx_conf_path }}/keitaro/locations-tracker.inc;
 }
