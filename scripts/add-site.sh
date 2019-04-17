@@ -557,7 +557,6 @@ read_stdin(){
 
 
 
-
 regenerate_vhost_config(){
   local domain="${1}"
   local message_key="${2}"
@@ -572,11 +571,12 @@ regenerate_vhost_config(){
     command="cp ${vhost_path} ${vhost_backup_path} && "
   fi
   command="${command}cp ${NGINX_KEITARO_CONF} "$vhost_path" && touch ${vhost_override_path} && "
-  changes="-e '/server.inc;/a\ \ include ${vhost_override_path};'"
-  changes="${changes}$(build_sed_expression_from_nginx_setting_block "listen 80" "listen 80 .*")"
-  changes="${changes}$(build_sed_expression_from_nginx_setting_block "server_name ${domain}")"
+  changes="${changes} -e '1a# Post-processed by ${TOOL_NAME} v${RELEASE_VERSION}'"
+  changes="${changes} -e '/server.inc;/a\ \ include ${vhost_override_path};'"
+  changes="${changes} -e 's/listen 80 default_server/listen 80/'"
+  changes="${changes} -e 's/server_name _/server_name ${domain}/'"
   while isset "${3}"; do
-    changes="${changes}$(build_sed_expression_from_nginx_setting_block "${3}")"
+    changes="${changes} -e '${3}'"
     shift
   done
   command="${command}sed -i ${changes} ${vhost_path}"
@@ -605,17 +605,6 @@ get_vhost_path(){
 get_vhost_backup_path(){
   local domain="${1}"
   echo "${NGINX_VHOSTS_DIR}/${domain}.conf.$(date +%Y%m%d%H%M%S)"
-}
-
-
-build_sed_expression_from_nginx_setting_block(){
-  local setting="${1}"
-  local search_pattern="${2}"
-  read name value <<< "$setting"
-  if empty "$search_pattern"; then
-    search_pattern="${name} .*"
-  fi
-  echo " -e 's|${search_pattern}|${name} ${value};|g'"
 }
 
 
@@ -1243,8 +1232,10 @@ ensure_can_add_vhost(){
 generate_nginx_host_config(){
   local domain="${1}"
   debug "Add vhost"
-  regenerate_vhost_config "$domain" 'messages.add_vhost' "root ${VARS['site_root']}"
-}
+  regenerate_vhost_config "$domain" 'messages.add_vhost' \
+                          "s|root .*|root ${VARS['site_root']};|" \
+                          "/locations-tracker.inc/d"
+                        }
 
 
 
