@@ -24,11 +24,6 @@ location ~* \.(jpg|jpeg|gif|png|js|css|txt|zip|ico|gz|csv|svg|ttf|woff|mp.|mpeg|
   expires 10d;
 }
 
-# Cache html pages
-location ~* \.(htm|html)$ {
-  expires 10d;
-}
-
 # Serve PHP pages via nontracker engine
 location ~ \.php$ {
   try_files $uri =404;
