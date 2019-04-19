@@ -9,5 +9,19 @@
     - mysqld-set_pidfile_path.cnf
     - mysqld.cnf
 
-- name: Detect engine for keitaro DB and explicitly set it in the hosts file
-  script: scripts/set_db_engine.sh
+- name: Detect db engine
+  shell: "mysqldump -d keitaro | grep -i 'engine=tokudb' > /dev/null  && echo tokudb || echo innodb"
+  register: detected_db_engine
+  when: db_engine is not defined
+
+- name: Write db_engine to inventory
+  lineinfile:
+    path: "{{ inventory_file }}"
+    regexp: ^db_engine=
+    line: "db_engine={{ detected_db_engine.stdout | trim }}"
+  when: db_engine is not defined
+
+- name: Set db_engine var
+  set_fact:
+    db_engine: "{{ detected_db_engine.stdout | trim }}"
+  when: db_engine is not defined
