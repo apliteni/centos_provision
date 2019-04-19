@@ -14,9 +14,11 @@ write_inventory_on_reconfiguration(){
   else
     setup_vars_on_reconfiguration
     collect_inventory_variables
-    write_inventory_file
   fi
+  VARS['installer_version']="${RELEASE_VERSION}"
+  write_inventory_file
 }
+
 
 setup_vars_on_reconfiguration(){
   setup_vars
@@ -53,7 +55,6 @@ collect_inventory_variables(){
   if empty "${VARS['db_root_password']}"; then
     VARS['db_root_password']="$(get_var_from_config ~/.my.cnf password '=')"
   fi
-  VARS['installer_version']="${RELEASE_VERSION}"
 }
 
 
