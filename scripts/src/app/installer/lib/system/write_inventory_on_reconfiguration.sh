@@ -28,6 +28,7 @@ setup_vars_on_reconfiguration(){
   VARS['db_user']=''
   VARS['db_password']=''
   VARS['db_root_password']=''
+  VARS['db_engine']=''
 }
 
 

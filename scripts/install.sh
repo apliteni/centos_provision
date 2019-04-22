@@ -1157,6 +1157,7 @@ setup_vars_on_reconfiguration(){
   VARS['db_user']=''
   VARS['db_password']=''
   VARS['db_root_password']=''
+  VARS['db_engine']=''
 }
 
 
@@ -1491,6 +1492,7 @@ setup_vars(){
   VARS['db_password']=$(generate_password)
   VARS['db_restore']='no'
   VARS['db_restore_path_want_exit']='no'
+  VARS['db_engine']='tokudb'
   VARS['admin_login']='admin'
   VARS['admin_password']=$(generate_password)
   VARS['php_engine']='php-fpm'
