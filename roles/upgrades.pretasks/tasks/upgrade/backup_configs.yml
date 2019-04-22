@@ -11,4 +11,5 @@
     - logrotate.d
     - my.cnf.d
     - nginx
+    - php
     - selinux
