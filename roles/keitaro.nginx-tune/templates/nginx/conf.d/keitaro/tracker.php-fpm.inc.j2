@@ -4,7 +4,4 @@ fastcgi_index index.php;
 fastcgi_buffers 16 16k;
 fastcgi_buffer_size 32k;
 fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-fastcgi_param HTTP_CF_CONNECTING_IP "";
-fastcgi_param HTTP_X_REAL_IP "";
-fastcgi_param HTTP_X_FORWARDED_FOR "";
 include fastcgi_params;
