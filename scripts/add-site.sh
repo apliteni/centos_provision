@@ -225,9 +225,7 @@ assert_server_configuration_relevant(){
     else
       local tool_url="${KEITARO_URL}/release-${installed_version}/${TOOL_NAME}.sh"
       command="curl -fsSL ${tool_url} | bash -s -- -wa ${TOOL_ARGS}"
-      if run_command "${command}" "Run obsolete ${TOOL_NAME} (v${installed_version}) " "" "allow_errors"; then
-        print_with_color "$(build_upgrade_message "${installed_version}")" "red"
-      fi
+      run_command "${command}" "Run obsolete ${TOOL_NAME} (v${installed_version}) " ""
       exit
     fi
   fi
