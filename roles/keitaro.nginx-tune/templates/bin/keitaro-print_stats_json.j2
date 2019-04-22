@@ -96,10 +96,10 @@ statuses_nontracker_json() {
 }
 
 statuses_tracker_json() {
-  if [ "$(get_config_var 'php_engine')" == "php-fpm" ]; then
-    statuses_php_fpm_json 'tracker'
-  else
+  if [ "$(get_config_var 'php_engine')" == "roadrunner" ]; then
     statuses_tracker_roadrunner_json
+  else
+    statuses_php_fpm_json 'tracker'
   fi
 }
 

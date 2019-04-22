@@ -16,11 +16,9 @@
   notify:
     - restart php-fpm
 
-- name: Remove php-fpm pool for serving tracker requests
-  file:
-    path: /etc/php/php-fpm.d/keitaro-tracker.conf
-    state: absent
-  when: "php_engine == 'roadrunner'"
+- name: Disable php-fpm tracker pool if engine is roadrunner
+  command: mv /etc/php/php-fpm.d/keitaro-tracker.conf /etc/php/php-fpm.d/keitaro-tracker.conf.disabled
+  when: php_engine == 'roadrunner'
 
 - name: Tune php-fpm master
   lineinfile:

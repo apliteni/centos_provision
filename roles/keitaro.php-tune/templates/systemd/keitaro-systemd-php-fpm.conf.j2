@@ -1,3 +1,3 @@
 [Service]
-LimitNOFILE={% if php_engine == 'php-fpm' %}{{ php_opened_files }}{% else %}{{ php_nontracker_opened_files }}{% endif %}
+LimitNOFILE={{ php_opened_files }}
 Restart=always
