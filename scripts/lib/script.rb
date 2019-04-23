@@ -7,7 +7,7 @@ class Script
 
   DOCKER_DATA_DIR = '/data'
   DOCKER_SCRIPTS_DIR = '/scripts'
-  INSTALLER_RELEASE='1.2'
+  INSTALLER_RELEASE='1.3'
 
   def initialize(
     script_command,
