@@ -1495,7 +1495,7 @@ setup_vars(){
   VARS['db_engine']='tokudb'
   VARS['admin_login']='admin'
   VARS['admin_password']=$(generate_password)
-  VARS['php_engine']='php-fpm'
+  VARS['php_engine']='roadrunner'
 }
 
 
