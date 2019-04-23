@@ -3,7 +3,9 @@
   register: get_current_tracker_version
 
 - name: Get latest stable tracker version
-  shell: "curl -sf 'keitaro.io/license/api/checkUpdate?version=9&stability=stable' | awk -F '::' '{print $2}'"
+  shell: >
+    curl -sf 'keitaro.io/license/api/checkUpdate?version={{ keitaro_release }}&stability=stable' | \
+      awk -F '::' '{print $2}'
   register: get_stable_tracker_version
 
 - name: Reinstall Keitaro
