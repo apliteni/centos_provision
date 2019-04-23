@@ -184,7 +184,7 @@ RSpec.describe 'add-site.sh' do
     let(:commands) { make_proper_nginx_conf + make_keitaro_root_dir + make_site_root_dir + remove_inventory }
 
     it_behaves_like 'should exit with error',
-                    'You are using obsolete Keitaro configuration'
+                    'Please contact Keitaro support team'
   end
 
   describe 'add-site result' do
