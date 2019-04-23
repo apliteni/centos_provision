@@ -1,0 +1,4 @@
+- name: Ensure relevant Keitaro is installed
+  shell: >
+    grep -P "'{{ keitaro_release }}\..*'" /var/www/keitaro/version.php || \
+      (echo "Upgrade Keitaro to {{ keitaro_release }}.x version before running this tool" > /dev/stderr && false)
