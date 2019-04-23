@@ -22,6 +22,8 @@ server {
 
   index index.php index.html;
 
+  include {{ nginx_conf_path }}/keitaro/realip.inc;
+
   include {{ nginx_conf_path }}/keitaro/locations-common.inc;
   include {{ nginx_conf_path }}/keitaro/locations-tracker.inc;
 }
