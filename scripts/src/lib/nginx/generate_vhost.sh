@@ -5,7 +5,7 @@
 
 
 
-regenerate_vhost_config(){
+generate_vhost(){
   local domain="${1}"
   local message_key="${2}"
   local generating_message="$(translate "${message_key}")"

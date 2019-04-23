@@ -1,7 +1,7 @@
 #!/usr/bin/env powscript
 
 
-regenerate_vhost_config(domain, message_key)
+generate_vhost(domain, message_key)
   local generating_message="$(translate "${message_key}")"
   local command=""
   local changes=""

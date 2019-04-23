@@ -579,7 +579,7 @@ read_stdin(){
 
 
 
-regenerate_vhost_config(){
+generate_vhost(){
   local domain="${1}"
   local message_key="${2}"
   local generating_message="$(translate "${message_key}")"
@@ -1422,7 +1422,7 @@ request_certificate_for(){
 setup_le_certs_in_vhost_config(){
   local domain="${1}"
   local certs_root_path="/etc/letsencrypt/live/${domain}"
-  regenerate_vhost_config "$domain" 'messages.generating_nginx_config_for' \
+  generate_vhost "$domain" 'messages.generating_nginx_config_for' \
     "s|ssl_certificate .*|ssl_certificate ${certs_root_path}/fullchain.pem;|" \
     "s|ssl_certificate_key .*|ssl_certificate_key ${certs_root_path}/privkey.pem;|"
   }
