@@ -555,7 +555,7 @@ read_stdin(){
 
 
 
-regenerate_vhost_config(){
+generate_vhost(){
   local domain="${1}"
   local message_key="${2}"
   local generating_message="$(translate "${message_key}")"
@@ -1230,7 +1230,7 @@ ensure_can_add_vhost(){
 generate_nginx_host_config(){
   local domain="${1}"
   debug "Add vhost"
-  regenerate_vhost_config "$domain" 'messages.add_vhost' \
+  generate_vhost "$domain" 'messages.add_vhost' \
                           "s|root .*|root ${VARS['site_root']};|" \
                           "/locations-tracker.inc/d"
                         }
