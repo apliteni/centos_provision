@@ -32,7 +32,7 @@ generate_certificates(){
     fi
     if [[ ${certificate_generated} == ${TRUE} ]]; then
       debug "Generating nginx config for ${domain}"
-      setup_le_certs_in_vhost_config "${domain}"
+      generate_vhost_ssl_enabler "${domain}"
     else
       debug "Skip generation nginx config ${domain} due errors while cert issuing"
       print_with_color "${domain}: ${certificate_error}" "red"

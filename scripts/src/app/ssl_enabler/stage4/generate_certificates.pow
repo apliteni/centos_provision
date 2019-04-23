@@ -26,7 +26,7 @@ generate_certificates()
         echo "${domain}: ${certificate_error}" >> $SSL_ENABLER_ERRORS_LOG
     if ${certificate_generated} == ${TRUE}
       debug "Generating nginx config for ${domain}"
-      setup_le_certs_in_vhost_config "${domain}"
+      generate_vhost_ssl_enabler "${domain}"
     else
       debug "Skip generation nginx config ${domain} due errors while cert issuing"
       print_with_color "${domain}: ${certificate_error}" "red"
