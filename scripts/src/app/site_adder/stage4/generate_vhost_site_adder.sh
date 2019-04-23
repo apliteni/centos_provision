@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-generate_nginx_host_config(){
+generate_vhost_site_adder(){
   local domain="${1}"
   debug "Add vhost"
   generate_vhost "$domain" 'messages.add_vhost' \
