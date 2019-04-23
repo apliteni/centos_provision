@@ -131,15 +131,14 @@ RSpec.describe 'add-site.sh' do
     end
   end
 
-  context 'inventory file does not exists' do
+  describe 'should run obsolete add-site for old versions' do
     include_context 'run in docker'
 
     let(:command_stubs) { all_command_stubs }
     let(:remove_inventory) { ['rm -rf .keitaro'] }
     let(:commands) { make_proper_nginx_conf + make_site_root_dir + remove_inventory }
 
-    it_behaves_like 'should exit with error',
-                    'You are using obsolete Keitaro configuration'
+    it_behaves_like 'should print to', :stdout, 'Run obsolete add-site (v0.9)'
   end
 
   describe 'add-site result' do

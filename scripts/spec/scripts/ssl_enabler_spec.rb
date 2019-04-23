@@ -265,5 +265,15 @@ RSpec.describe 'enable-ssl.sh' do
       end
     end
   end
+
+  describe 'should run obsolete enable-ssl for old versions' do
+    include_context 'run in docker'
+
+    let(:command_stubs) { all_command_stubs }
+    let(:remove_inventory) { ['rm -rf .keitaro'] }
+    let(:commands) { make_proper_nginx_conf + emulate_crontab + remove_inventory }
+
+    it_behaves_like 'should print to', :stdout, 'Run obsolete enable-ssl (v0.9)'
+  end
 end
 
