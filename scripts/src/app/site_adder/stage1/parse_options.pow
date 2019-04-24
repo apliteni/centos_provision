@@ -2,7 +2,7 @@
 
 
 parse_options()
-  while getopts ":hpsvl:" opt
+  while getopts ":hpsvl:d:r:" opt
     switch $opt
       case p
         PRESERVE_RUNNING=true
@@ -17,6 +17,11 @@ parse_options()
           case *
             print_err "Specified language \"$OPTARG\" is not supported"
             exit ${FAILURE_RESULT}
+      case d
+        VARS['site_domains']=$OPTARG
+        ensure_valid site_domains 'validate_domains_list'
+      case r
+        VARS['site_root']=$OPTARG
       case :
         print_err "Option -$OPTARG requires an argument."
         exit ${FAILURE_RESULT}
