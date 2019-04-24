@@ -996,6 +996,23 @@ remove_current_command(){
 }
 
 
+#
+
+
+
+
+
+ensure_valid(){
+  local var_name="${1}"
+  local validation_methods_string="${2}"
+  error=$(get_error "${var_name}" "$validation_methods")
+  if isset "$error"; then
+    debug "$var_name: validation error - '${error}'"
+    fail "$error"
+  fi
+}
+
+
 
 get_error(){
   local var_name="${1}"
@@ -1108,7 +1125,7 @@ stage1(){
 
 
 parse_options(){
-  while getopts ":hpsvl:" opt; do
+  while getopts ":hpsvl:d:r:" opt; do
     case $opt in
       p)
         PRESERVE_RUNNING=true
@@ -1129,6 +1146,13 @@ parse_options(){
             exit ${FAILURE_RESULT}
             ;;
         esac
+        ;;
+      d)
+        VARS['site_domains']=$OPTARG
+        ensure_valid site_domains 'validate_domains_list'
+        ;;
+      r)
+        VARS['site_root']=$OPTARG
         ;;
       :)
         print_err "Option -$OPTARG requires an argument."
@@ -1213,13 +1237,22 @@ stage3(){
 }
 
 
+#
+
+
+
+
 
 get_user_vars(){
   debug 'Read vars from user input'
   hack_stdin_if_pipe_mode
-  get_user_var 'site_domains' 'validate_presence validate_domains_list'
-  VARS['site_root']="/var/www/$(first_domain)"
-  get_user_var 'site_root' 'validate_presence'
+  if empty "${VARS['site_root']}"; then
+    get_user_var 'site_domains' 'validate_presence validate_domains_list'
+  fi
+  if empty "${VARS['site_root']}"; then
+    VARS['site_root']="/var/www/$(first_domain)"
+    get_user_var 'site_root' 'validate_presence'
+  fi
 }
 
 
@@ -1238,9 +1271,6 @@ stage4(){
 
 ensure_can_add_vhost(){
   debug "Ensure can add vhost"
-  if is_path_exist "$(vhost_filepath)" "no"; then
-    fail "$(translate 'errors.vhost_already_exists' "vhost_filepath=$(vhost_filepath)")"
-  fi
   if ! is_directory_exist "${VARS['site_root']}"; then
     fail "$(translate 'errors.site_root_not_exists' "site_root=${VARS['site_root']}")"
   fi
