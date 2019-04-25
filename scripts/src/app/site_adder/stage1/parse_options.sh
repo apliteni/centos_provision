@@ -6,7 +6,7 @@
 
 
 parse_options(){
-  while getopts ":hpsvl:" opt; do
+  while getopts ":hpsvl:d:r:" opt; do
     case $opt in
       p)
         PRESERVE_RUNNING=true
@@ -27,6 +27,13 @@ parse_options(){
             exit ${FAILURE_RESULT}
             ;;
         esac
+        ;;
+      d)
+        VARS['site_domains']=$OPTARG
+        ensure_valid site_domains 'validate_domains_list'
+        ;;
+      r)
+        VARS['site_root']=$OPTARG
         ;;
       :)
         print_err "Option -$OPTARG requires an argument."
