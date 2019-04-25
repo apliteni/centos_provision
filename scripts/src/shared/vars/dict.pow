@@ -12,6 +12,7 @@ END
 DICT['en.errors.run_command.fail']='There was an error evaluating current command'
 DICT['en.errors.run_command.fail_extra']=''
 DICT['en.errors.terminated']='Terminated by user'
+DICT['en.messages.generating_nginx_vhost']="Generating nginx config for domain :domain:"
 DICT['en.messages.reload_nginx']="Reloading nginx"
 DICT['en.messages.skip_nginx_conf_generation']="Skip nginx config generation"
 DICT['en.messages.run_command']='Evaluating command'
@@ -30,6 +31,7 @@ END
 DICT['ru.errors.run_command.fail']='Ошибка выполнения текущей команды'
 DICT['ru.errors.run_command.fail_extra']=''
 DICT['ru.errors.terminated']='Выполнение прервано'
+DICT['ru.messages.generating_nginx_vhost']="Генерируется конфигурация для сайта :domain:"
 DICT['ru.messages.reload_nginx']="Перезагружается nginx"
 DICT['ru.messages.skip_nginx_conf_generation']="Пропуск генерации конфигурации nginx"
 DICT['ru.messages.run_command']='Выполняется команда'

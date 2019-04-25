@@ -119,16 +119,6 @@ RSpec.describe 'add-site.sh' do
         expect(content).to match('root /var/www/example.com;')
       end
     end
-
-    context '/etc/nginx/conf.d/example.com.conf already exists' do
-      let(:make_example_com_vhost) { ['touch /etc/nginx/conf.d/example.com.conf'] }
-      let(:commands) do
-        make_proper_nginx_conf + make_site_root_dir + make_example_com_vhost
-      end
-
-      it_behaves_like 'should exit with error',
-                      'Can not save site configuration - /etc/nginx/conf.d/example.com.conf already exists'
-    end
   end
 
   describe 'should run obsolete add-site for old versions' do
