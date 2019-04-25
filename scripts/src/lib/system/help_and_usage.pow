@@ -1,0 +1,50 @@
+#!/usr/bin/env powscript
+
+common_parse_options(option, argument)
+  switch $option
+    case l
+      switch $argument
+        case en
+          UI_LANG=en
+        case ru
+          UI_LANG=ru
+        case *
+          wrong_options
+    case v
+      version
+    case h
+      help
+    case s
+      SKIP_CHECKS=true
+    case p
+      PRESERVE_RUNNING=true
+    case :
+      wrong_options
+    case \?
+      wrong_options
+
+help()
+  if $(get_ui_lang) == 'ru'
+    ru_help
+  else
+    en_help
+  exit ${SUCCESS_RESULT}
+
+usage()
+  if $(get_ui_lang) == 'ru'
+    ru_usage
+  else
+    en_usage
+  exit ${FAILURE_RESULT}
+
+version()
+  echo "${SCRIPT_NAME} v${RELEASE_VERSION}"
+  exit ${SUCCESS_RESULT}
+
+wrong_options()
+  WRONG_OPTIONS="wrong_options"
+
+ensure_options_correct()
+  if isset "${WRONG_OPTIONS}"
+    usage
+

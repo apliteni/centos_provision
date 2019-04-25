@@ -1,8 +1,6 @@
 #!/usr/bin/env powscript
 
 
-ensure_valid(var_name, validation_methods_string)
-  error=$(get_error "${var_name}" "$validation_methods")
-  if isset $error
-    debug "$var_name: validation error - '${error}'"
-    fail $error
+ensure_valid(var_name, validation_methods)
+  if isset "$(get_error "${var_name}" "$validation_methods")"
+    wrong_options

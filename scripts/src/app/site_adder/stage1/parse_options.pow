@@ -2,77 +2,62 @@
 
 
 parse_options()
-  while getopts ":hpsvl:d:r:" opt
-    switch $opt
-      case p
-        PRESERVE_RUNNING=true
-      case s
-        SKIP_CHECKS=true
-      case l
-        switch $OPTARG
-          case en
-            UI_LANG=en
-          case ru
-            UI_LANG=ru
-          case *
-            print_err "Specified language \"$OPTARG\" is not supported"
-            exit ${FAILURE_RESULT}
+  while getopts "d:r:l:vhsp" option
+    argument=$OPTARG
+    switch $option
       case d
-        VARS['site_domains']=$OPTARG
+        VARS['site_domains']=$argument
         ensure_valid site_domains 'validate_domains_list'
       case r
-        VARS['site_root']=$OPTARG
-      case :
-        print_err "Option -$OPTARG requires an argument."
-        exit ${FAILURE_RESULT}
-      case h
-        usage
-        exit ${SUCCESS_RESULT}
-      case v
-        echo "${SCRIPT_NAME} v${RELEASE_VERSION}"
-        exit ${SUCCESS_RESULT}
-      case \?
-        usage
-        exit ${FAILURE_RESULT}
-
-
-usage()
-  set_ui_lang
-  if $UI_LANG == 'ru'
-    ru_usage
-  else
-    en_usage
-
+        VARS['site_root']=$argument
+      case *
+        common_parse_options $option $argument
+  ensure_options_correct
 
 ru_usage()
-  print_err "$SCRIPT_NAME позволяет запустить дополнительный сайт совместно с Keitaro"
-  print_err
-  print_err "Использование: $SCRIPT_NAME [-ps] [-l en|ru]"
-  print_err
-  print_err "  -p"
-  print_err "    С опцией -p (preserve commands running) $SCRIPT_NAME не выполняет установочные команды. Вместо этого текст команд будет показан на экране."
-  print_err
-  print_err "  -s"
-  print_err "    С опцией -s (skip checks) $SCRIPT_NAME не будет проверять присутствие нужных программ в системе, не будет проверять факт запуска из под root."
-  print_err
-  print_err "  -l <lang>"
-  print_err "    $SCRIPT_NAME определяет язык через установленные переменные окружения LANG/LC_MESSAGES/LC_ALL, однако язык может быть явно задан помощи параметра -l."
-  print_err "    На данный момент поддерживаются значения en и ru (для английского и русского языков)."
+  print_err "Использование: $SCRIPT_NAME [OPTION]..."
+  print_err "Попробуйте '${SCRIPT_NAME} -h' для большей информации."
   print_err
 
+ru_help()
+  print_err "Использование: $SCRIPT_NAME [OPTION]..."
+  print_err "$SCRIPT_NAME позволяет запустить дополнительный сайт совместно с Keitaro"
+  print_err "Пример: $SCRIPT_NAME -l ru -d domain1.tld,domain2.tld -r /var/www/domain1.tld"
+  print_err
+  print_err "Автоматизация:"
+  print_err "  -d DOMAIN_LIST           задать список доменов через запятую"
+  print_err
+  print_err "  -r PATH                  задать существующий путь к корневой директории сайта"
+  print_err
+  print_err "Интернационализация:"
+  print_err "  -l LANGUAGE              задать язык - en или ru соответсвенно для английского или русского языка"
+  print_err
+  print_err "Разное:"
+  print_err "  -v                       показать версию и выйти"
+  print_err
+  print_err "  -h                       показать эту справку выйти"
+  print_err
 
 en_usage()
+  print_err "Usage: $SCRIPT_NAME [OPTION]..."
+  print_err "Try '${SCRIPT_NAME} -h' for more information."
+  print_err
+
+en_help()
+  print_err "Usage: $SCRIPT_NAME [OPTION]..."
   print_err "$SCRIPT_NAME allows to run additional site together with Keitaro"
+  print_err "Example: $SCRIPT_NAME -l en -d domain1.tld,domain2.tld -r /var/www/domain1.tld"
   print_err
-  print_err "Usage: $SCRIPT_NAME [-ps] [-l en|ru]"
+  print_err "Script automation:"
+  print_err "  -d DOMAIN_LIST           set list of domains separated by comma"
   print_err
-  print_err "  -p"
-  print_err "    The -p (preserve commands running) option causes $SCRIPT_NAME to preserve the invoking of installation commands. Installation commands will be printed to stdout instead."
+  print_err "  -r PATH                  set existent path to the site root"
   print_err
-  print_err "  -s"
-  print_err "    The -s (skip checks) option causes $SCRIPT_NAME to skip checks of required programs presence, skip check root running"
+  print_err "Internationalization:"
+  print_err "  -l LANGUAGE              set language - either en or ru for English and Russian appropriately"
   print_err
-  print_err "  -l <lang>"
-  print_err "    By default $SCRIPT_NAME tries to detect language from LANG/LC_MESSAGES/LC_ALL environment variables, but language can be explicitly set  with -l option."
-  print_err "    Only en and ru (for English and Russian) values are supported now."
+  print_err "Miscellaneous:"
+  print_err "  -v                       display version information and exit"
+  print_err
+  print_err "  -h                       display this help text and exit"
   print_err

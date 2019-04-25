@@ -7,7 +7,7 @@
 
 translate(){
   local key="${1}"
-  local i18n_key=$UI_LANG.$key
+  local i18n_key=$(get_ui_lang).$key
   message="${DICT[$i18n_key]}"
   while isset "${2}"; do
     message=$(interpolate "${message}" "${2}")

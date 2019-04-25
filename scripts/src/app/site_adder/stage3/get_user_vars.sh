@@ -8,7 +8,7 @@
 get_user_vars(){
   debug 'Read vars from user input'
   hack_stdin_if_pipe_mode
-  if empty "${VARS['site_root']}"; then
+  if empty "${VARS['site_domains']}"; then
     get_user_var 'site_domains' 'validate_presence validate_domains_list'
   fi
   if empty "${VARS['site_root']}"; then

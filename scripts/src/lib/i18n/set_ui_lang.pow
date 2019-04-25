@@ -4,6 +4,8 @@
 set_ui_lang()
   if empty $UI_LANG
     UI_LANG=$(detect_language)
+    if empty $UI_LANG
+      UI_LANG="en"
   debug "Language: ${UI_LANG}"
 
 
@@ -22,3 +24,9 @@ detect_language_from_var(lang_value)
     echo ru
   else
     echo en
+
+
+get_ui_lang()
+  if empty $UI_LANG
+    set_ui_lang
+  echo $UI_LANG
