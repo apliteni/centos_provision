@@ -153,7 +153,7 @@ DICT['ru.messages.skip_nginx_conf_generation']="Пропуск генераци�
 DICT['ru.messages.run_command']='Выполняется команда'
 DICT['ru.messages.successful']='Готово!'
 DICT['ru.no']='нет'
-DICT['ru.prompt_errors.validate_domains_list']='Укажите список доменных имён через запятую без пробелов (например domain1.tld,www.domain1.tld). Каждое доменное имя должно состоять только из букв, цифр и тире и содержать хотябы одну точку.'
+DICT['ru.prompt_errors.validate_domains_list']='Укажите список доменных имён через запятую без пробелов (например domain1.tld,www.domain1.tld). Каждое доменное имя должно состоять только из букв, цифр и тире и содержать хотя бы одну точку.'
 DICT['ru.prompt_errors.validate_presence']='Введите значение'
 DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
 
@@ -168,6 +168,9 @@ DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет
 set_ui_lang(){
   if empty "$UI_LANG"; then
     UI_LANG=$(detect_language)
+    if empty "$UI_LANG"; then
+      UI_LANG="en"
+    fi
   fi
   debug "Language: ${UI_LANG}"
 }
@@ -196,6 +199,14 @@ detect_language_from_var(){
 }
 
 
+get_ui_lang(){
+  if empty "$UI_LANG"; then
+    set_ui_lang
+  fi
+  echo "$UI_LANG"
+}
+
+
 #
 
 
@@ -204,7 +215,7 @@ detect_language_from_var(){
 
 translate(){
   local key="${1}"
-  local i18n_key=$UI_LANG.$key
+  local i18n_key=$(get_ui_lang).$key
   message="${DICT[$i18n_key]}"
   while isset "${2}"; do
     message=$(interpolate "${message}" "${2}")
