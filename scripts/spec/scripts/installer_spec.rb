@@ -12,7 +12,6 @@ RSpec.describe 'install.sh' do
 
   let(:ssl) { 'no' }
   let(:ssl_domains) { nil }
-  let(:ssl_email) { nil }
   let(:skip_firewall) { 'yes' }
   let(:license_ip) { '8.8.8.8' }
   let(:license_key) { 'WWWW-XXXX-YYYY-ZZZZ' }
@@ -27,7 +26,6 @@ RSpec.describe 'install.sh' do
         skip_firewall: 'Do you want to skip installing firewall?',
         ssl: 'Do you want to install Free SSL certificates (you can do it later)?',
         ssl_domains: 'Please enter server domains, separated by comma without spaces (i.e. domain1.tld,domain2.tld)',
-        ssl_email: 'Please enter your email (you can left this field empty)',
         license_ip: 'Please enter server IP',
         license_key: 'Please enter license key',
         db_restore: 'Do you want to restore the database from SQL dump?',
@@ -49,7 +47,6 @@ RSpec.describe 'install.sh' do
       skip_firewall: skip_firewall,
       ssl: ssl,
       ssl_domains: ssl_domains,
-      ssl_email: ssl_email,
       license_ip: license_ip,
       license_key: license_key,
       db_restore: db_restore,
@@ -193,7 +190,7 @@ RSpec.describe 'install.sh' do
 
       context 'specified -k with wrong value' do
         let(:options) { '-s -p -k 10' }
-        it_behaves_like 'should exit with error', 'Specified Keitaro Release "10" is not supported'
+        it_behaves_like 'should exit with error', "Specified Keitaro release '10' is not supported"
       end
     end
 
@@ -362,7 +359,6 @@ RSpec.describe 'install.sh' do
 
     let(:ssl) { 'yes' }
     let(:ssl_domains) { 'd1.com,d2.com' }
-    let(:ssl_email) { 'some@mail.com' }
 
     it_behaves_like 'should print to', :stdout, 'Enabling SSL . SKIPPED'
     it_behaves_like 'should print to', :log,
