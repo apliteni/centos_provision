@@ -1,0 +1,20 @@
+- name: Comment out all ipv6 nameservers in /etc/resolv.conf
+  lineinfile:
+    path: /etc/resolv.conf
+    regexp: '^(nameserver.*)$'
+    line: '# \1'
+    backrefs: yes
+
+- name: Add ipv4 public nameservers
+  lineinfile:
+    path: /etc/resolv.conf
+    line: 'nameserver {{ item }}'
+  with_items:
+    - 1.1.1.1
+    - 8.8.8.8
+    - 9.9.9.9
+
+- name: Protect /etc/resolv.conf from rewriting by dhcp client
+  file:
+    path: /etc/resolv.conf
+    attributes: '+i'

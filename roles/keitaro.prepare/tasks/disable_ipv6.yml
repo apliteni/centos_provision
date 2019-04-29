@@ -3,8 +3,8 @@
   register: get_ipv4_nameservers
   changed_when: false
 
-- name: Add public ipv4 nameserver to resolv.conf
-  include: disable_ipv6-set_ipv4_nameserver.yml
+- name: Add public ipv4 nameservers to resolv.conf
+  include: disable_ipv6-add_ipv4_nameservers.yml
   when: not (get_ipv4_nameservers.stdout is match("nameserver"))
 
 - name: Update kernel params
