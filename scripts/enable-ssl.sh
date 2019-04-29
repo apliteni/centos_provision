@@ -153,7 +153,7 @@ DICT['ru.messages.skip_nginx_conf_generation']="Пропуск генераци�
 DICT['ru.messages.run_command']='Выполняется команда'
 DICT['ru.messages.successful']='Готово!'
 DICT['ru.no']='нет'
-DICT['ru.prompt_errors.validate_domains_list']='Укажите список доменных имён через запятую без пробелов (например domain1.tld,www.domain1.tld). Каждое доменное имя должно состоять только из букв, цифр и тире и содержать хотябы одну точку.'
+DICT['ru.prompt_errors.validate_domains_list']='Укажите список доменных имён через запятую без пробелов (например domain1.tld,www.domain1.tld). Каждое доменное имя должно состоять только из букв, цифр и тире и содержать хотя бы одну точку.'
 DICT['ru.prompt_errors.validate_presence']='Введите значение'
 DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
 
@@ -412,6 +412,9 @@ is_directory_exist(){
 set_ui_lang(){
   if empty "$UI_LANG"; then
     UI_LANG=$(detect_language)
+    if empty "$UI_LANG"; then
+      UI_LANG="en"
+    fi
   fi
   debug "Language: ${UI_LANG}"
 }
@@ -440,6 +443,14 @@ detect_language_from_var(){
 }
 
 
+get_ui_lang(){
+  if empty "$UI_LANG"; then
+    set_ui_lang
+  fi
+  echo "$UI_LANG"
+}
+
+
 #
 
 
@@ -448,7 +459,7 @@ detect_language_from_var(){
 
 translate(){
   local key="${1}"
-  local i18n_key=$UI_LANG.$key
+  local i18n_key=$(get_ui_lang).$key
   message="${DICT[$i18n_key]}"
   while isset "${2}"; do
     message=$(interpolate "${message}" "${2}")
@@ -1064,6 +1075,114 @@ remove_current_command(){
 }
 
 
+#
+
+
+
+
+common_parse_options(){
+  local option="${1}"
+  local argument="${2}"
+  case $option in
+    l|L)
+      case $argument in
+        en)
+          UI_LANG=en
+          ;;
+        ru)
+          UI_LANG=ru
+          ;;
+        *)
+          wrong_options
+          ;;
+      esac
+      ;;
+    v)
+      version
+      ;;
+    h)
+      help
+      ;;
+    s)
+      SKIP_CHECKS=true
+      ;;
+    p)
+      PRESERVE_RUNNING=true
+      ;;
+    :)
+      wrong_options
+      ;;
+    \?)
+      wrong_options
+      ;;
+  esac
+}
+
+
+help(){
+  if [[ $(get_ui_lang) == 'ru' ]]; then
+    ru_help
+  else
+    en_help
+  fi
+  exit ${SUCCESS_RESULT}
+}
+
+
+usage(){
+  if [[ $(get_ui_lang) == 'ru' ]]; then
+    usage_ru
+    usage_ru_common
+  else
+    usage_en
+    usage_en_common
+  fi
+  exit ${FAILURE_RESULT}
+}
+
+
+usage_ru_common(){
+  print_err "Интернационализация:"
+  print_err "  -L LANGUAGE              задать язык - en или ru соответсвенно для английского или русского языка"
+  print_err
+  print_err "Разное:"
+  print_err "  -v                       показать версию и выйти"
+  print_err
+  print_err "  -h                       показать эту справку выйти"
+  print_err
+}
+
+
+usage_en_common(){
+  print_err "Internationalization:"
+  print_err "  -L LANGUAGE              set language - either en or ru for English and Russian appropriately"
+  print_err
+  print_err "Miscellaneous:"
+  print_err "  -v                       display version information and exit"
+  print_err
+  print_err "  -h                       display this help text and exit"
+  print_err
+}
+
+
+version(){
+  echo "${SCRIPT_NAME} v${RELEASE_VERSION}"
+  exit ${SUCCESS_RESULT}
+}
+
+
+wrong_options(){
+  WRONG_OPTIONS="wrong_options"
+}
+
+
+ensure_options_correct(){
+  if isset "${WRONG_OPTIONS}"; then
+    usage
+  fi
+}
+
+
 
 get_host_ip(){
   hostname -I 2>/dev/null | tr ' ' "\n" | grep -oP '(\d+\.){3}\d+' \
@@ -1176,140 +1295,85 @@ stage1(){
 }
 
 
-#
-
-
-
-
 
 parse_options(){
-  while getopts ":hpsl:ae:wv" opt; do
-    case $opt in
-      p)
-        PRESERVE_RUNNING=true
-        ;;
-      s)
-        SKIP_CHECKS=true
-        ;;
-      l)
-        case $OPTARG in
-          en)
-            UI_LANG=en
-            ;;
-          ru)
-            UI_LANG=ru
-            ;;
-          *)
-            print_err "Specified language \"$OPTARG\" is not supported"
-            exit ${FAILURE_RESULT}
-            ;;
-        esac
-        ;;
+  while getopts "ae:wL:l:vhsp" option; do
+    argument=$OPTARG
+    case $option in
       a)
         SKIP_SSL_AGREE_TOS=true
         ;;
       e)
+        SKIP_SSL_EMAIL=""
         EMAIL="${OPTARG}"
         ;;
       w)
-        SKIP_SSL_EMAIL=true
+        SKIP_SSL_EMAIL=skip_ssl_email
+        EMAIL=""
         ;;
-      :)
-        print_err "Option -$OPTARG requires an argument."
-        exit ${FAILURE_RESULT}
-        ;;
-      h)
-        usage
-        exit ${SUCCESS_RESULT}
-        ;;
-      v)
-        echo "${SCRIPT_NAME} v${RELEASE_VERSION}"
-        exit ${SUCCESS_RESULT}
-        ;;
-      \?)
-        usage
-        exit ${FAILURE_RESULT}
+      *)
+        common_parse_options "$option" "$argument"
         ;;
     esac
   done
   shift $((OPTIND-1))
   if [[ ${#} == 0 ]]; then
-    usage
-    exit ${FAILURE_RESULT}
+    wrong_options
   else
     while [[ ${#} -gt 0 ]]; do
-      if [[ "$1" =~ (,) ]]; then
-        usage
-        exit ${FAILURE_RESULT}
-      fi
-      if [[ ! "${1}" =~ ^(-) ]]; then
-        if validate_domain "${1}"; then
-          DOMAINS+=("$(to_lower "${1}")")
-        else
-          set_ui_lang
-          fail "$(translate 'errors.domain_invalid' "domain=${1}")"
-        fi
+      if validate_domain "$1"; then
+        DOMAINS+=("$(to_lower "${1}")")
+      else
+        wrong_options
+        break
       fi
       shift
     done
   fi
+  ensure_options_correct
 }
 
 
-usage(){
-  set_ui_lang
-  if [[ "$UI_LANG" == 'ru' ]]; then
-    ru_usage
-  else
-    en_usage
-  fi
-}
-
-
-ru_usage(){
-  print_err "$SCRIPT_NAME подключает SSL сертификат от Let's Encrypt для указанных доменов Keitaro"
-  print_err
-  print_err "Использование: "$SCRIPT_NAME" [-ps] [-l en|ru] [-e some.email@example.org] domain1.tld [domain2.tld] ..."
-  print_err
-  print_err "  -p"
-  print_err "    С опцией -p (preserve commands running) "$SCRIPT_NAME" не выполняет установочные команды. Вместо этого текст команд будет показан на экране."
-  print_err
-  print_err "  -s"
-  print_err "    С опцией -s (skip checks) "$SCRIPT_NAME" не будет проверять присутствие нужных программ в системе, не будет проверять факт запуска из под root."
-  print_err
-  print_err "  -l <lang>"
-  print_err "    "$SCRIPT_NAME" определяет язык через установленные переменные окружения LANG/LC_MESSAGES/LC_ALL, однако язык может быть явно задан помощи параметра -l."
-  print_err "    На данный момент поддерживаются значения en и ru (для английского и русского языков)."
-  print_err
-  print_err "  -e <email>"
-  print_err "    Адрес электронной почты исползуемый для регистрации при получении бесплатных SSL сертификатов. Let's Encrypt"
-  print_err
-  print_err "  -w"
-  print_err "    C опцией -w (without email) "$SCRIPT_NAME" не будет запрашивать у пользователя адрес электронной почты."
+usage_ru(){
+  print_err "Использование: "$SCRIPT_NAME" [OPTION]... domain1.tld ..."
+  print_err "Попробуйте '${SCRIPT_NAME} -h' для большей информации."
   print_err
 }
 
 
-en_usage(){
-  print_err "$SCRIPT_NAME generates Let's Encrypt SSL for the specified domains of Keitaro"
+help_ru(){
+  print_err "Использование: "$SCRIPT_NAME" [OPTION]... domain1.tld ..."
+  print_err "$SCRIPT_NAME подключает SSL сертификат от Let's Encrypt и генерирует кофигурацию nginx"
+  print_err "Пример: "$SCRIPT_NAME" -l ru -a -w domain1.tld domain2.tld"
   print_err
-  print_err "Usage: "$SCRIPT_NAME" [-ps] [-l en|ru] domain1.tld [domain2.tld] ..."
+  print_err "Автоматизация:"
+  print_err "  -a                       подразумевает принятие пользовательского соглашения Let's Encrypt"
   print_err
-  print_err "  -p"
-  print_err "    The -p (preserve commands running) option causes "$SCRIPT_NAME" to preserve the invoking of installation commands. Installation commands will be printed to stdout instead."
+  print_err "  -e EMAIL                 email адрес для получения уведомлений от Let's Encrypt (отключает -w)"
   print_err
-  print_err "  -s"
-  print_err "    The -s (skip checks) option causes "$SCRIPT_NAME" to skip checks of required programs presence, skip check root running"
+  print_err "  -w                       не получать уведомления от Let's Encrypt (отключает -e)"
   print_err
-  print_err "  -l <lang>"
-  print_err "    By default "$SCRIPT_NAME" tries to detect language from LANG/LC_MESSAGES/LC_ALL environment variables, but language can be explicitly set  with -l option."
-  print_err "    Only en and ru (for English and Russian) values are supported now."
+}
+
+
+usage_en(){
+  print_err "Usage: "$SCRIPT_NAME" [OPTION]... domain1.tld ..."
+  print_err "Try '${SCRIPT_NAME} -h' for more information."
   print_err
-  print_err "  -e <email>"
-  print_err "    Email used for registration while getting Free SSL Let's Encrypt certificates."
+}
+
+
+help_en(){
+  print_err "Usage: "$SCRIPT_NAME" [OPTION]... domain1.tld ..."
+  print_err "$SCRIPT_NAME issues Let's Encrypt SSL certificate and generates nginx configuration"
+  print_err "Example: "$SCRIPT_NAME" -l en -a -w domain1.tld domain2.tld"
   print_err
-  print_err "  -w"
-  print_err "    The -w (without email) option causes "$SCRIPT_NAME" to skip email request."
+  print_err "Script automation:"
+  print_err "  -a                       implies accepting terms of Let's Encrypt license agreement"
+  print_err
+  print_err "  -e EMAIL                 email for notifications from Let's Encrypt (disables -w)"
+  print_err
+  print_err "  -w                       do not receive notifications from Let's Encrypt (disables -e)"
   print_err
 }
 
