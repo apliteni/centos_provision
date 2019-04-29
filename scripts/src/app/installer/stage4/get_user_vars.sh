@@ -31,12 +31,10 @@ get_user_vars(){
 
 
 get_user_ssl_vars(){
-  VARS['ssl_certificate']='self-signed'
   get_user_var 'ssl' 'validate_yes_no'
   if is_yes ${VARS['ssl']}; then
     VARS['ssl_certificate']='letsencrypt'
     get_user_var 'ssl_domains' 'validate_presence validate_domains_list'
-    get_user_var 'ssl_email'
   fi
 }
 

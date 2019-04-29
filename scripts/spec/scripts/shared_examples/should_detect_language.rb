@@ -12,7 +12,9 @@ RSpec.shared_examples_for 'should detect language' do
   end
 
   context 'set unsupported language' do
-    it_behaves_like 'should print usage when invoked with', args: '-l xx'
+    let(:options) { '-l xx' }
+
+    it_behaves_like 'should exit with error', "Specified language 'xx' is not supported"
   end
 
   # TODO: Detect language from LC_MESSAGES

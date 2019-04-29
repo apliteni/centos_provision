@@ -9,10 +9,9 @@
 write_inventory_on_reconfiguration(){
   debug "Stages 3-5: write inventory on reconfiguration"
   if is_file_exist "${HOME}/${INVENTORY_FILE}" "no" || is_file_exist "${INVENTORY_FILE}"; then
-    setup_vars
     read_inventory
   else
-    setup_vars_on_reconfiguration
+    reset_vars_on_reconfiguration
     collect_inventory_variables
   fi
   VARS['php_engine']="roadrunner"
@@ -21,8 +20,7 @@ write_inventory_on_reconfiguration(){
 }
 
 
-setup_vars_on_reconfiguration(){
-  setup_vars
+reset_vars_on_reconfiguration(){
   VARS['admin_login']=''
   VARS['admin_password']=''
   VARS['db_name']=''

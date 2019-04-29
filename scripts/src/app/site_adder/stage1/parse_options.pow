@@ -16,13 +16,11 @@ parse_options()
 
 
 usage_ru()
-  print_err "Использование: $SCRIPT_NAME [OPTION]..."
   print_err "Попробуйте '${SCRIPT_NAME} -h' для большей информации."
   print_err
 
 
 help_ru()
-  print_err "Использование: $SCRIPT_NAME [OPTION]..."
   print_err "$SCRIPT_NAME позволяет запустить дополнительный сайт совместно с Keitaro"
   print_err "Пример: $SCRIPT_NAME -l ru -d domain1.tld,domain2.tld -r /var/www/domain1.tld"
   print_err
@@ -34,13 +32,11 @@ help_ru()
 
 
 usage_en()
-  print_err "Usage: $SCRIPT_NAME [OPTION]..."
   print_err "Try '${SCRIPT_NAME} -h' for more information."
   print_err
 
 
 help_en()
-  print_err "Usage: $SCRIPT_NAME [OPTION]..."
   print_err "$SCRIPT_NAME allows to run additional site together with Keitaro"
   print_err "Example: $SCRIPT_NAME -l en -d domain1.tld,domain2.tld -r /var/www/domain1.tld"
   print_err

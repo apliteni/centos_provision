@@ -1,8 +1,10 @@
-#!/usr/bin/env bash
+#!/usr/bin/env powscript
 
-setup_vars(){
+
+setup_vars()
   VARS['skip_firewall']='no'
   VARS['ssl']='no'
+  VARS['ssl_certificate']='self-signed'
   VARS['db_root_password']=$(generate_password)
   VARS['db_name']='keitaro'
   VARS['db_user']='keitaro'
@@ -13,10 +15,8 @@ setup_vars(){
   VARS['admin_login']='admin'
   VARS['admin_password']=$(generate_password)
   VARS['php_engine']='roadrunner'
-}
 
 
-generate_password(){
+generate_password()
   local PASSWORD_LENGTH=16
   LC_ALL=C tr -cd '[:alnum:]' < /dev/urandom | head -c${PASSWORD_LENGTH}
-}

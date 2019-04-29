@@ -163,7 +163,7 @@ DICT['ru.messages.skip_nginx_conf_generation']="Пропуск генераци�
 DICT['ru.messages.run_command']='Выполняется команда'
 DICT['ru.messages.successful']='Готово!'
 DICT['ru.no']='нет'
-DICT['ru.prompt_errors.validate_domains_list']='Укажите список доменных имён через запятую без пробелов (например domain1.tld,www.domain1.tld). Каждое доменное имя должно состоять только из букв, цифр и тире и содержать хотябы одну точку.'
+DICT['ru.prompt_errors.validate_domains_list']='Укажите список доменных имён через запятую без пробелов (например domain1.tld,www.domain1.tld). Каждое доменное имя должно состоять только из букв, цифр и тире и содержать хотя бы одну точку.'
 DICT['ru.prompt_errors.validate_presence']='Введите значение'
 DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
 
@@ -250,24 +250,31 @@ is_file_exist(){
 
 
 
+
 set_ui_lang(){
   if empty "$UI_LANG"; then
     UI_LANG=$(detect_language)
+    if empty "$UI_LANG"; then
+      UI_LANG="en"
+    fi
   fi
   debug "Language: ${UI_LANG}"
 }
 
 
 detect_language(){
-  if ! empty "$LC_ALL"; then
-    detect_language_from_var "$LC_ALL"
-  else
-    if ! empty "$LC_MESSAGES"; then
-      detect_language_from_var "$LC_MESSAGES"
-    else
-      detect_language_from_var "$LANG"
+  detect_language_from_vars "$LC_ALL" "$LC_MESSAGES" "$LANG"
+}
+
+
+detect_language_from_vars(){
+  while [[ ${#} -gt 0 ]]; do
+    if isset "${1}"; then
+      detect_language_from_var "${1}"
+      break
     fi
-  fi
+    shift
+  done
 }
 
 
@@ -281,6 +288,14 @@ detect_language_from_var(){
 }
 
 
+get_ui_lang(){
+  if empty "$UI_LANG"; then
+    set_ui_lang
+  fi
+  echo "$UI_LANG"
+}
+
+
 #
 
 
@@ -289,7 +304,7 @@ detect_language_from_var(){
 
 translate(){
   local key="${1}"
-  local i18n_key=$UI_LANG.$key
+  local i18n_key=$(get_ui_lang).$key
   message="${DICT[$i18n_key]}"
   while isset "${2}"; do
     message=$(interpolate "${message}" "${2}")
@@ -500,6 +515,138 @@ fail(){
   print_err
   clean_up
   exit ${FAILURE_RESULT}
+}
+
+
+#
+
+
+
+
+common_parse_options(){
+  local option="${1}"
+  local argument="${2}"
+  case $option in
+    l|L)
+      case $argument in
+        en)
+          UI_LANG=en
+          ;;
+        ru)
+          UI_LANG=ru
+          ;;
+        *)
+          print_err "Specified language '$argument' is not supported"
+          exit ${FAILURE_RESULT}
+          ;;
+      esac
+      ;;
+    v)
+      version
+      ;;
+    h)
+      help
+      ;;
+    s)
+      SKIP_CHECKS=true
+      ;;
+    p)
+      PRESERVE_RUNNING=true
+      ;;
+    *)
+      wrong_options
+      ;;
+  esac
+}
+
+
+help(){
+  if [[ $(get_ui_lang) == 'ru' ]]; then
+    usage_ru_header
+    help_ru
+    help_ru_common
+  else
+    usage_en_header
+    help_en
+    help_en_common
+  fi
+  exit ${SUCCESS_RESULT}
+}
+
+
+usage(){
+  if [[ $(get_ui_lang) == 'ru' ]]; then
+    usage_ru
+  else
+    usage_en
+  fi
+  exit ${FAILURE_RESULT}
+}
+
+
+version(){
+  echo "${SCRIPT_NAME} v${RELEASE_VERSION}"
+  exit ${SUCCESS_RESULT}
+}
+
+
+wrong_options(){
+  WRONG_OPTIONS="wrong_options"
+}
+
+
+ensure_options_correct(){
+  if isset "${WRONG_OPTIONS}"; then
+    usage
+  fi
+}
+
+
+usage_ru(){
+  usage_ru_header
+  print_err "Попробуйте '${SCRIPT_NAME} -h' для большей информации."
+  print_err
+}
+
+
+usage_en(){
+  usage_en_header
+  print_err "Try '${SCRIPT_NAME} -h' for more information."
+  print_err
+}
+
+
+usage_ru_header(){
+  print_err "Использование: "$SCRIPT_NAME" [OPTION]..."
+}
+
+
+usage_en_header(){
+  print_err "Usage: "$SCRIPT_NAME" [OPTION]..."
+}
+
+
+help_ru_common(){
+  print_err "Интернационализация:"
+  print_err "  -L LANGUAGE              задать язык - en или ru соответсвенно для английского или русского языка"
+  print_err
+  print_err "Разное:"
+  print_err "  -h                       показать эту справку выйти"
+  print_err
+  print_err "  -v                       показать версию и выйти"
+  print_err
+}
+
+
+help_en_common(){
+  print_err "Internationalization:"
+  print_err "  -L LANGUAGE              set language - either en or ru for English and Russian appropriately"
+  print_err
+  print_err "Miscellaneous:"
+  print_err "  -h                       display this help text and exit"
+  print_err
+  print_err "  -v                       display version information and exit"
+  print_err
 }
 
 
@@ -993,7 +1140,6 @@ KEITARO_ALREADY_INSTALLED_RESULT=2
 
 
 
-
 SSL_ENABLER_COMMAND_EN="curl -sSL ${KEITARO_URL}/enable-ssl.sh | bash -s -- domain1.tld [domain2.tld...]"
 SSL_ENABLER_COMMAND_RU="curl -sSL ${KEITARO_URL}/enable-ssl.sh | bash -s -- -l ru domain1.tld [domain2.tld...]"
 
@@ -1034,15 +1180,13 @@ DICT['en.prompts.license_ip']='Please enter server IP'
 DICT['en.prompts.license_key']='Please enter license key'
 DICT['en.prompts.ssl']="Do you want to install Free SSL certificates (you can do it later)?"
 DICT['en.prompts.ssl_domains']='Please enter server domains, separated by comma without spaces (i.e. domain1.tld,domain2.tld)'
-DICT['en.prompts.ssl_email']='Please enter your email (you can left this field empty)'
-DICT['en.prompts.ssl_email.help']='You can obtain SSL certificate with no email address. This is strongly discouraged, because in the event of key loss or LetsEncrypt account compromise you will irrevocably lose access to your LetsEncrypt account. You will also be unable to receive notice about impending expiration or revocation of your certificates.'
 DICT['en.welcome']=$(cat <<- END
 	Welcome to Keitaro installer.
 	This installer will guide you through the steps required to install Keitaro on your server.
 END
 )
-DICT['en.prompt_errors.validate_ip']='Please enter valid IPv4 address (ex. 8.8.8.8)'
-DICT['en.prompt_errors.validate_license_key']='Please enter valid license key (ex. AAAA-BBBB-CCCC-DDDD)'
+DICT['en.prompt_errors.validate_ip']='Please enter valid IPv4 address (eg 1.2.3.4)'
+DICT['en.prompt_errors.validate_license_key']='Please enter valid license key (eg AAAA-BBBB-CCCC-DDDD)'
 DICT['en.prompt_errors.validate_alnumdashdot']='Only Latin letters, numbers, dashes, underscores and dots allowed'
 DICT['en.prompt_errors.validate_starts_with_latin_letter']='The value must begin with a Latin letter'
 DICT['en.prompt_errors.validate_file_existence']='The file was not found by the specified path, please enter the correct path to the file'
@@ -1087,14 +1231,12 @@ DICT['ru.prompts.license_ip']='Укажите IP адрес сервера'
 DICT['ru.prompts.license_key']='Укажите лицензионный ключ'
 DICT['ru.prompts.ssl']="Установить бесплатные SSL сертификаты (можно сделать это позже)?"
 DICT['ru.prompts.ssl_domains']='Укажите список доменов через запятую без пробелов (например domain1.tld,domain2.tld)'
-DICT['ru.prompts.ssl_email']='Укажите email (можно не указывать)'
-DICT['ru.prompts.ssl_email.help']='Вы можете получить SSL сертификат без указания email адреса. Однако LetsEncrypt настоятельно рекомендует указать его, так как в случае потери ключа или компрометации LetsEncrypt аккаунта вы полностью потеряете доступ к своему LetsEncrypt аккаунту. Без email вы также не сможете получить уведомление о предстоящем истечении срока действия или отзыве сертификата'
 DICT['ru.welcome']=$(cat <<- END
 	Добро пожаловать в программу установки Keitaro.
 	Эта программа поможет собрать информацию необходимую для установки Keitaro на вашем сервере.
 END
 )
-DICT['ru.prompt_errors.validate_ip']='Введите корректный IPv4 адрес (например 8.8.8.8)'
+DICT['ru.prompt_errors.validate_ip']='Введите корректный IPv4 адрес (например 1.2.3.4)'
 DICT['ru.prompt_errors.validate_license_key']='Введите корректный ключ лицензии (например AAAA-BBBB-CCCC-DDDD)'
 DICT['ru.prompt_errors.validate_alnumdashdot']='Можно использовать только латинские бувы, цифры, тире, подчёркивание и точку'
 DICT['ru.prompt_errors.validate_starts_with_latin_letter']='Значение должно начинаться с латинской буквы'
@@ -1141,10 +1283,9 @@ get_var_from_config(){
 write_inventory_on_reconfiguration(){
   debug "Stages 3-5: write inventory on reconfiguration"
   if is_file_exist "${HOME}/${INVENTORY_FILE}" "no" || is_file_exist "${INVENTORY_FILE}"; then
-    setup_vars
     read_inventory
   else
-    setup_vars_on_reconfiguration
+    reset_vars_on_reconfiguration
     collect_inventory_variables
   fi
   VARS['php_engine']="roadrunner"
@@ -1153,8 +1294,7 @@ write_inventory_on_reconfiguration(){
 }
 
 
-setup_vars_on_reconfiguration(){
-  setup_vars
+reset_vars_on_reconfiguration(){
   VARS['admin_login']=''
   VARS['admin_password']=''
   VARS['db_name']=''
@@ -1204,6 +1344,7 @@ stage1(){
   debug "Starting stage 1: initial script setup"
   parse_options "$@"
   set_ui_lang
+  setup_vars
 }
 
 
@@ -1213,138 +1354,119 @@ stage1(){
 
 
 
+
 parse_options(){
-  while getopts ":hpsrvl:t:k:i:a:" opt; do
-    case $opt in
-      p)
-        PRESERVE_RUNNING=true
+  while getopts ":A:K:ra:t:i:k:L:l:hvps" option; do
+    argument=$OPTARG
+    case $option in
+      A)
+        VARS['license_ip']=$argument
         ;;
-      s)
-        SKIP_CHECKS=true
-        ;;
-      l)
-        case $OPTARG in
-          en)
-            UI_LANG=en
-            ;;
-          ru)
-            UI_LANG=ru
-            ;;
-          *)
-            print_err "Specified language \"$OPTARG\" is not supported"
-            exit ${FAILURE_RESULT}
-            ;;
-        esac
-        ;;
-      t)
-        ANSIBLE_TAGS=$OPTARG
-        ;;
-      i)
-        ANSIBLE_IGNORE_TAGS=$OPTARG
-        ;;
-      k)
-        if [[ "$OPTARG" -ne 6 && "$OPTARG" -ne 7 && "$OPTARG" -ne 8 && "$OPTARG" -ne 9 ]]; then
-          print_err "Specified Keitaro Release \"$OPTARG\" is not supported"
-          exit ${FAILURE_RESULT}
-        fi
-        KEITARO_RELEASE=$OPTARG
-        ;;
-      a)
-        CUSTOM_PACKAGE=$OPTARG
+      K)
+        VARS['license_key']=$argument
         ;;
       r)
         RECONFIGURE="true"
         ;;
-      :)
-        print_err "Option -$OPTARG requires an argument."
-        exit ${FAILURE_RESULT}
+      a)
+        CUSTOM_PACKAGE=$argument
         ;;
-      h)
-        usage
-        exit ${SUCCESS_RESULT}
+      t)
+        ANSIBLE_TAGS=$argument
         ;;
-      v)
-        echo "${SCRIPT_NAME} v${RELEASE_VERSION}"
-        exit ${SUCCESS_RESULT}
+      i)
+        ANSIBLE_IGNORE_TAGS=$argument
         ;;
-      \?)
-        usage
-        exit ${FAILURE_RESULT}
+      k)
+        case $argument in
+          8|9)
+            KEITARO_RELEASE=$argument
+            ;;
+          *)
+            print_err "Specified Keitaro release '${argument}' is not supported"
+            exit ${FAILURE_RESULT}
+            ;;
+        esac
+        ;;
+      *)
+        common_parse_options "$option" "$argument"
         ;;
     esac
   done
-}
-
-
-usage(){
-  set_ui_lang
-  if [[ "$UI_LANG" == 'ru' ]]; then
-    ru_usage
-  else
-    en_usage
+  if isset "${VARS['license_ip']}" && isset "${VARS['license_key']}"; then
+    RECONFIGURE="true"
   fi
+  ensure_options_correct
 }
 
 
-ru_usage(){
-  print_err "$SCRIPT_NAME устанавливает Keitaro"
+help_ru(){
+  print_err "$SCRIPT_NAME уставливает и настраивает Keitaro"
+  print_err "Пример: "$SCRIPT_NAME" -L ru -A a.b.c.d -K AAAA-BBBB-CCCC-DDDD"
   print_err
-  print_err "Использование: "$SCRIPT_NAME" [-prs] [-l en|ru] [-t TAG1[,TAG2...]]"
+  print_err "Автоматизация:"
+  print_err "  -A IP_ADDRESS            задать IP адрес лицензии Keitaro"
   print_err
-  print_err "  -p"
-  print_err "    С опцией -p (preserve installation) "$SCRIPT_NAME" не запускает установочные команды. Вместо этого текс команд будет показан на экране."
+  print_err "  -K LICENSE_KEY           задать ключ лицензии Keitaro"
   print_err
-  print_err "  -r"
-  print_err "    Используется только для переконфигурирования сервисов. ${INVENTORY_FILE} создаваться не будет."
+  print_err "  -r                       отключить интерактивный режим (-A совместно с -K подразумевает -r)"
   print_err
-  print_err "  -s"
-  print_err "    С опцией -s (skip checks) "$SCRIPT_NAME" не будет проверять присутствие yum/ansible в системе, не будет проверять факт запуска из под root."
+  print_err "Настройка:"
+  print_err "  -a PATH_TO_PACKAGE       устанавить Keitaro из пакета"
   print_err
-  print_err "  -l <language>"
-  print_err "    "$SCRIPT_NAME" определяет язык через установленные переменные окружения LANG/LC_MESSAGES/LC_ALL, однако вы можете явно задать язык при помощи этого параметра."
-  print_err "    На данный момент поддерживаются значения en и ru (для английского и русского языков)."
+  print_err "  -t TAGS                  задать список ansible-playbook тегов, TAGS=tag1[,tag2...]"
   print_err
-  print_err "  -t <tag1[,tag2...]>"
-  print_err "    Запуск ansible-playbook с указанными тэгами."
+  print_err "  -i TAGS                  задать список игнорируемых ansible-playbook тегов, TAGS=tag1[,tag2...]"
   print_err
-  print_err "  -i <tag1[,tag2...]>"
-  print_err "    Запуск ansible-playbook без выполнения указанных тэгов."
-  print_err
-  print_err "  -k <keitaro_release>"
-  print_err "    "$SCRIPT_NAME" по умолчанию устанавливает текущую стабильную версию Keitaro. Вы можете явно задать устанавливаемую версию через этот параметр."
-  print_err "    На данный момент поддерживаются значения 6, 7 и 8."
+  print_err "  -k RELEASE               задать релиз Keitaro, поддерживается 8 и 9"
   print_err
 }
 
 
-en_usage(){
-  print_err "$SCRIPT_NAME installs Keitaro"
+help_en(){
+  print_err "$SCRIPT_NAME installs and configures Keitaro"
+  print_err "Example: "$SCRIPT_NAME" -L en -A a.b.c.d -K AAAA-BBBB-CCCC-DDDD"
   print_err
-  print_err "Usage: "$SCRIPT_NAME" [-prs] [-l en|ru]"
+  print_err "Script automation:"
+  print_err "  -A                       set Keitaro license IP"
   print_err
-  print_err "  -p"
-  print_err "    The -p (preserve installation) option causes "$SCRIPT_NAME" to preserve the invoking of installation commands. Installation commands will be printed to stdout instead."
+  print_err "  -K                       set Keitaro license key"
   print_err
-  print_err "  -r"
-  print_err "    Use only for reconfiguration of services. In this mode installer does not create ${INVENTORY_FILE}."
+  print_err "  -r                       disable interactive mode (setting -A among with -K implies -r)"
   print_err
-  print_err "  -s"
-  print_err "    The -s (skip checks) option causes "$SCRIPT_NAME" to skip checks of yum/ansible presence, skip check root running"
+  print_err "Customization:"
+  print_err "  -a PATH_TO_PACKAGE       use Keitaro package for installation"
   print_err
-  print_err "  -l <language>"
-  print_err "    By default "$SCRIPT_NAME" tries to detect language from LANG/LC_MESSAGES/LC_ALL environment variables, but you can explicitly set language with this option."
-  print_err "    Only en and ru (for English and Russian) values are supported now."
+  print_err "  -t TAGS                  set ansible-playbook tags, TAGS=tag1[,tag2...]"
   print_err
-  print_err "  -t <tag1[,tag2...]>"
-  print_err "    Runs ansible-playbook with specified tags."
+  print_err "  -i TAGS                  set ansible-playbook ignore tags, TAGS=tag1[,tag2...]"
   print_err
-  print_err "  -i <tag1[,tag2...]>"
-  print_err "    Runs ansible-playbook with skipping specified tags."
+  print_err "  -k RELEASE               set Keitaro release, 8 and 9 are only valid values"
   print_err
-  print_err "  -k <keitaro_release>"
-  print_err "    By default "$SCRIPT_NAME" installs current stable Keitaro. You can specify Keitaro release with this option."
-  print_err "    Only 6, 7 and 8 values are supported now."
-  print_err
+}
+
+
+
+setup_vars(){
+  VARS['skip_firewall']='no'
+  VARS['ssl']='no'
+  VARS['ssl_certificate']='self-signed'
+  VARS['db_root_password']=$(generate_password)
+  VARS['db_name']='keitaro'
+  VARS['db_user']='keitaro'
+  VARS['db_password']=$(generate_password)
+  VARS['db_restore']='no'
+  VARS['db_restore_path_want_exit']='no'
+  VARS['db_engine']='tokudb'
+  VARS['admin_login']='admin'
+  VARS['admin_password']=$(generate_password)
+  VARS['php_engine']='roadrunner'
+}
+
+
+generate_password(){
+  local PASSWORD_LENGTH=16
+  LC_ALL=C tr -cd '[:alnum:]' < /dev/urandom | head -c${PASSWORD_LENGTH}
 }
 
 
@@ -1487,29 +1609,6 @@ parse_line_from_inventory_file(){
 
 
 
-setup_vars(){
-  VARS['skip_firewall']='no'
-  VARS['ssl']='no'
-  VARS['db_root_password']=$(generate_password)
-  VARS['db_name']='keitaro'
-  VARS['db_user']='keitaro'
-  VARS['db_password']=$(generate_password)
-  VARS['db_restore']='no'
-  VARS['db_restore_path_want_exit']='no'
-  VARS['db_engine']='tokudb'
-  VARS['admin_login']='admin'
-  VARS['admin_password']=$(generate_password)
-  VARS['php_engine']='roadrunner'
-}
-
-
-generate_password(){
-  local PASSWORD_LENGTH=16
-  LC_ALL=C tr -cd '[:alnum:]' < /dev/urandom | head -c${PASSWORD_LENGTH}
-}
-
-
-
 stage4(){
   debug "Starting stage 4: generate inventory file"
   get_user_vars
@@ -1549,12 +1648,10 @@ get_user_vars(){
 
 
 get_user_ssl_vars(){
-  VARS['ssl_certificate']='self-signed'
   get_user_var 'ssl' 'validate_yes_no'
   if is_yes ${VARS['ssl']}; then
     VARS['ssl_certificate']='letsencrypt'
     get_user_var 'ssl_domains' 'validate_presence validate_domains_list'
-    get_user_var 'ssl_email'
   fi
 }
 

@@ -5,6 +5,7 @@
 
 
 
+
 set_ui_lang(){
   if empty "$UI_LANG"; then
     UI_LANG=$(detect_language)
@@ -17,15 +18,18 @@ set_ui_lang(){
 
 
 detect_language(){
-  if ! empty "$LC_ALL"; then
-    detect_language_from_var "$LC_ALL"
-  else
-    if ! empty "$LC_MESSAGES"; then
-      detect_language_from_var "$LC_MESSAGES"
-    else
-      detect_language_from_var "$LANG"
+  detect_language_from_vars "$LC_ALL" "$LC_MESSAGES" "$LANG"
+}
+
+
+detect_language_from_vars(){
+  while [[ ${#} -gt 0 ]]; do
+    if isset "${1}"; then
+      detect_language_from_var "${1}"
+      break
     fi
-  fi
+    shift
+  done
 }
 
 

@@ -10,13 +10,15 @@ set_ui_lang()
 
 
 detect_language()
-  if not empty $LC_ALL
-    detect_language_from_var $LC_ALL
-  else
-    if not empty $LC_MESSAGES
-      detect_language_from_var $LC_MESSAGES
-    else
-      detect_language_from_var $LANG
+  detect_language_from_vars $LC_ALL $LC_MESSAGES $LANG
+
+
+detect_language_from_vars()
+  while ${#} > 0
+    if isset "${1}"
+      detect_language_from_var "${1}"
+      break
+    shift
 
 
 detect_language_from_var(lang_value)

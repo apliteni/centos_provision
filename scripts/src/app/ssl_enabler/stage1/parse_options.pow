@@ -2,68 +2,79 @@
 
 
 parse_options()
-  while getopts "ae:wL:l:vhsp" option
+  while getopts "d:e:waL:l:vhsp" option
     argument=$OPTARG
     switch $option
-      case a
+      case d
+        IFS=',' read -r -a DOMAINS <<< "$argument"
         SKIP_SSL_AGREE_TOS=true
       case e
+        EMAIL="${argument}"
         SKIP_SSL_EMAIL=""
-        EMAIL="${OPTARG}"
+        SKIP_SSL_AGREE_TOS=true
       case w
-        SKIP_SSL_EMAIL=skip_ssl_email
         EMAIL=""
+        SKIP_SSL_EMAIL=skip_ssl_email
+        SKIP_SSL_AGREE_TOS=true
+      case a
+        SKIP_SSL_AGREE_TOS=true
       case *
         common_parse_options $option $argument
   shift $((OPTIND-1))
-  if ${#} == 0
+  if ${#} == 0 && empty "${DOMAINS[@]}"
     wrong_options
   else
-    while ${#} > 0
-      if validate_domain $1
-        DOMAINS+="$(to_lower "${1}")"
-      else
-        wrong_options
-        break
-      shift
+    if empty "${DOMAINS[@]}"
+      print_err "DEPRECATION: Please set domains with -d option"
+      while ${#} > 0
+        if validate_domain $1
+          DOMAINS+="$(to_lower "${1}")"
+        else
+          wrong_options
+          break
+        shift
+    else
+      fail "You should set domains with -d option only"
   ensure_options_correct
 
 
 usage_ru()
-  print_err "Использование: $SCRIPT_NAME [OPTION]... domain1.tld ..."
   print_err "Попробуйте '${SCRIPT_NAME} -h' для большей информации."
   print_err
 
 
 help_ru()
-  print_err "Использование: $SCRIPT_NAME [OPTION]... domain1.tld ..."
   print_err "$SCRIPT_NAME подключает SSL сертификат от Let's Encrypt и генерирует кофигурацию nginx"
-  print_err "Пример: $SCRIPT_NAME -l ru -a -w domain1.tld domain2.tld"
+  print_err "Пример: $SCRIPT_NAME -L ru -w -d domain1.tld,domain2.tld"
   print_err
   print_err "Автоматизация:"
-  print_err "  -a                       подразумевает принятие пользовательского соглашения Let's Encrypt"
+  print_err "  -d DOMAINS               выписать сертификаты для списка доменов, DOMAINS=domain1.tld[,domain2.tld...]"
   print_err
-  print_err "  -e EMAIL                 email адрес для получения уведомлений от Let's Encrypt (отключает -w)"
+  print_err "  -e EMAIL                 задать email адрес для получения уведомлений от Let's Encrypt (отключает -w)"
   print_err
   print_err "  -w                       не получать уведомления от Let's Encrypt (отключает -e)"
+  print_err
+  print_err "  -a                       принять пользовательское соглашения Let's Encrypt"
+  print_err "                           Использование -d, -e или -w включает -a"
   print_err
 
 
 usage_en()
-  print_err "Usage: $SCRIPT_NAME [OPTION]... domain1.tld ..."
   print_err "Try '${SCRIPT_NAME} -h' for more information."
   print_err
 
 
 help_en()
-  print_err "Usage: $SCRIPT_NAME [OPTION]... domain1.tld ..."
   print_err "$SCRIPT_NAME issues Let's Encrypt SSL certificate and generates nginx configuration"
-  print_err "Example: $SCRIPT_NAME -l en -a -w domain1.tld domain2.tld"
+  print_err "Example: $SCRIPT_NAME -L en -w -d domain1.tld,domain2.tld"
   print_err
   print_err "Script automation:"
-  print_err "  -a                       implies accepting terms of Let's Encrypt license agreement"
+  print_err "  -d DOMAINS               issue certs for domains, DOMAINS=domain1.tld[,domain2.tld...]"
   print_err
-  print_err "  -e EMAIL                 email for notifications from Let's Encrypt (disables -w)"
+  print_err "  -e EMAIL                 set email for notifications from Let's Encrypt (disables -w)"
   print_err
   print_err "  -w                       do not receive notifications from Let's Encrypt (disables -e)"
+  print_err
+  print_err "  -a                       accept terms of Let's Encrypt license agreement."
+  print_err "                           using either of -d, -e or -w implies -a"
   print_err
