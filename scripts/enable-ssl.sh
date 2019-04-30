@@ -1329,6 +1329,11 @@ stage1(){
 }
 
 
+#
+
+
+
+
 
 parse_options(){
   while getopts ":D:L:l:hvps" option; do
@@ -1344,7 +1349,30 @@ parse_options(){
     esac
   done
   ensure_options_correct
+  get_domains_from_arguments ${@}
 }
+
+
+get_domains_from_arguments(){
+  shift $((OPTIND-1))
+  if [[ ${#} == 0 ]]; then
+    return
+  fi
+  if isset "${VARS['ssl_domains']}"; then
+    fail "You should set domains with -d option only"
+  fi
+  print_err "DEPRECATION WARNING: Please set domains with -D option" "yellow"
+  while [[ ${#} -gt 0 ]]; do
+    if validate_domain "$1"; then
+      DOMAINS+=("$(to_lower "${1}")")
+    else
+      fail "$1 - invalid domain"
+    fi
+    shift
+  done
+  VARS['ssl_domains']="$(join_by "," "${DOMAINS[@]}")"
+}
+
 
 
 help_ru(){

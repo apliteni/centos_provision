@@ -11,6 +11,24 @@ parse_options()
       case *
         common_parse_options $option $argument
   ensure_options_correct
+  get_domains_from_arguments ${@}
+
+
+get_domains_from_arguments()
+  shift $((OPTIND-1))
+  if ${#} == 0
+    return
+  if isset "${VARS['ssl_domains']}"
+    fail "You should set domains with -d option only"
+  print_err "DEPRECATION WARNING: Please set domains with -D option" "yellow"
+  while ${#} > 0
+    if validate_domain $1
+      DOMAINS+="$(to_lower "${1}")"
+    else
+      fail "$1 - invalid domain"
+    shift
+  VARS['ssl_domains']="$(join_by "," "${DOMAINS[@]}")"
+
 
 
 help_ru()
