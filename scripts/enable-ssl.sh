@@ -111,9 +111,6 @@ fi
 
 declare -A VARS
 
-RECONFIGURE_KEITARO_COMMAND_EN="curl -sSL ${KEITARO_URL}/install.sh > run; bash run"
-RECONFIGURE_KEITARO_COMMAND_RU="curl -sSL ${KEITARO_URL}/install.sh > run; bash run -l ru"
-
 SSL_ENABLER_ERRORS_LOG="${CONFIG_DIR}/ssl_enabler_errors.log"
 
 
@@ -134,7 +131,13 @@ DICT['en.messages.skip_nginx_conf_generation']="Skip nginx config generation"
 DICT['en.messages.run_command']='Evaluating command'
 DICT['en.messages.successful']='Everything is done!'
 DICT['en.no']='no'
-DICT['en.prompt_errors.validate_domains_list']='Please enter domains list, separated by comma without spaces (i.e. domain1.tld,www.domain1.tld). Each domain name must consist of only letters, numbers and hyphens and contain at least one dot.'
+DICT['en.prompts.ssl_domains']='Please enter domains separated by comma without spaces'
+DICT['en.prompts.ssl_domains.help']='Make sure all the domains are already linked to this server in the DNS'
+DICT['en.prompt_errors.validate_domains_list']=$(cat <<-END
+	Please enter domains list, separated by comma without spaces (eg domain1.tld,www.domain1.tld).
+	Each domain name should consist of only letters, numbers and hyphens and contain at least one dot.
+END
+)
 DICT['en.prompt_errors.validate_presence']='Please enter value'
 DICT['en.prompt_errors.validate_yes_no']='Please answer "yes" or "no"'
 
@@ -153,7 +156,13 @@ DICT['ru.messages.skip_nginx_conf_generation']="Пропуск генераци�
 DICT['ru.messages.run_command']='Выполняется команда'
 DICT['ru.messages.successful']='Готово!'
 DICT['ru.no']='нет'
-DICT['ru.prompt_errors.validate_domains_list']='Укажите список доменных имён через запятую без пробелов (например domain1.tld,www.domain1.tld). Каждое доменное имя должно состоять только из букв, цифр и тире и содержать хотя бы одну точку.'
+DICT['ru.prompts.ssl_domains']='Укажите список доменов через запятую без пробелов'
+DICT['ru.prompts.ssl_domains.help']='Убедитесь, что все указанные домены привязаны к этому серверу в DNS.'
+DICT['ru.prompt_errors.validate_domains_list']=$(cat <<-END
+	Укажите список доменных имён через запятую без пробелов (например domain1.tld,www.domain1.tld).
+	Каждое доменное имя должно сстоять только из букв, цифр и тире и содержать хотя бы одну точку.
+END
+)
 DICT['ru.prompt_errors.validate_presence']='Введите значение'
 DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
 
@@ -169,17 +178,6 @@ CERT_DOMAINS_PATH="${CONFIG_DIR}/ssl_enabler_cert_domains"
 CERTBOT_LOG="${CONFIG_DIR}/ssl_enabler_cerbot.log"
 
 
-#
-
-
-
-
-RECONFIGURE_KEITARO_SSL_COMMAND_EN="curl -sSL ${KEITARO_URL}/install.sh | bash -s -- -l en -t nginx,ssl"
-
-RECONFIGURE_KEITARO_SSL_COMMAND_RU="curl -sSL ${KEITARO_URL}/install.sh | bash -s -- -l ru -t nginx,ssl"
-
-DICT['en.errors.reinstall_keitaro']="Your Keitaro installation does not properly configured. Please reconfigure Keitaro by evaluating command \`${RECONFIGURE_KEITARO_COMMAND_EN}\`"
-DICT['en.errors.reinstall_keitaro_ssl']="Nginx settings of your Keitaro installation does not properly configured. Please reconfigure Nginx by evaluating command \`${RECONFIGURE_KEITARO_SSL_COMMAND_EN}\`"
 DICT['en.errors.see_logs']="Evaluating log saved to ${SCRIPT_LOG}. Please rerun \`${SCRIPT_COMMAND}\` after resolving problems."
 DICT['en.errors.domain_invalid']=":domain: doesn't look as valid domain"
 DICT['en.certbot_errors.wrong_a_entry']="Please make sure that your domain name was entered correctly and the DNS A record for that domain contains the right IP address. You need to wait a little if the DNS A record was updated recently."
@@ -194,17 +192,7 @@ DICT['en.messages.ssl_not_enabled_for_domains']="There were errors while issuing
 DICT['en.warnings.nginx_config_exists_for_domain']="nginx config already exists"
 DICT['en.warnings.certificate_exists_for_domain']="certificate already exists"
 DICT['en.warnings.skip_nginx_config_generation']="skipping nginx config generation"
-DICT['en.prompts.ssl_agree_tos']="Do you agree with terms of Let's Encrypt Subscriber Agreement?"
-DICT['en.prompts.ssl_agree_tos.help']=$(cat <<- END
-	Make sure all the domains are already linked to this server in the DNS
-	In order to install Let's Encrypt Free SSL certificates for your Keitaro you must agree with terms of Let's Encrypt Subscriber Agreement (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf).
-END
-)
-DICT['en.prompts.ssl_email']='Please enter your email (you can left this field empty)'
-DICT['en.prompts.ssl_email.help']='You can obtain SSL certificate with no email address. This is strongly discouraged, because in the event of key loss or LetsEncrypt account compromise you will irrevocably lose access to your LetsEncrypt account. You will also be unable to receive notice about impending expiration or revocation of your certificates.'
 
-DICT['ru.errors.reinstall_keitaro']="Keitaro отконфигурирована неправильно. Пожалуйста выполните перенастройку Keitaro выполнив команду \`${RECONFIGURE_KEITARO_COMMAND_RU}\`"
-DICT['ru.errors.reinstall_keitaro_ssl']="Настройки Nginx вашей Keitaro отконфигурированы неправильно. Пожалуйста выполните перенастройку Nginx выполнив команду \`${RECONFIGURE_KEITARO_SSL_COMMAND_RU}\`"
 DICT['ru.errors.see_logs']="Журнал выполнения сохранён в ${SCRIPT_LOG}. Пожалуйста запустите \`${SCRIPT_COMMAND}\` после устранения возникших проблем."
 DICT['ru.errors.domain_invalid']=":domain: не похож на домен"
 DICT['ru.certbot_errors.wrong_a_entry']="Убедитесь что домен верный и что DNS A запись указывает на нужный IP адрес. Если A запись была обновлена недавно, то следует подождать некоторое время."
@@ -219,14 +207,6 @@ DICT['ru.messages.ssl_not_enabled_for_domains']="SSL сертификаты не
 DICT['ru.warnings.nginx_config_exists_for_domain']="nginx конфигурация уже существует"
 DICT['ru.warnings.certificate_exists_for_domain']="сертификат уже существует"
 DICT['ru.warnings.skip_nginx_config_generation']="пропускаем генерацию конфигурации nginx"
-DICT['ru.prompts.ssl_agree_tos']="Вы согласны с условиями Абонентского Соглашения Let's Encrypt?"
-DICT['ru.prompts.ssl_agree_tos.help']=$(cat <<- END
-	Убедитесь, что все указанные домены привязаны к этому серверу в DNS.
-	Для получения бесплатных SSL сертификатов Let's Encrypt вы должны согласиться с условиями Абонентского Соглашения Let's Encrypt (https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf)."
-END
-)
-DICT['ru.prompts.ssl_email']='Укажите email (можно не указывать)'
-DICT['ru.prompts.ssl_email.help']='Вы можете получить SSL сертификат без указания email адреса. Однако LetsEncrypt настоятельно рекомендует указать его, так как в случае потери ключа или компрометации LetsEncrypt аккаунта вы полностью потеряете доступ к своему LetsEncrypt аккаунту. Без email вы также не сможете получить уведомление о предстоящем истечении срока действия или отзыве сертификата'
 
 
 
@@ -1097,7 +1077,7 @@ common_parse_options(){
           UI_LANG=ru
           ;;
         *)
-          print_err "Specified language '$argument' is not supported"
+          print_err "-L: language '$argument' is not supported"
           exit ${FAILURE_RESULT}
           ;;
       esac
@@ -1238,6 +1218,24 @@ to_lower(){
 }
 
 
+#
+
+
+
+
+
+ensure_valid(){
+  local option="${1}"
+  local var_name="${2}"
+  local validation_methods="${3}"
+  error="$(get_error "${var_name}" "${validation_methods}")"
+  if isset "$error"; then
+    print_err "-${option}: $(translate "prompt_errors.${error}" "value=${VARS[$var_name]}")"
+    exit ${FAILURE_RESULT}
+  fi
+}
+
+
 
 get_error(){
   local var_name="${1}"
@@ -1264,6 +1262,14 @@ DOMAIN_REGEXP="(${SUBDOMAIN_REGEXP}\.)+[[:alpha:]]${SUBDOMAIN_REGEXP}"
 validate_domain(){
   local value="${1}"
   [[ "$value" =~ ^${DOMAIN_REGEXP}$ ]]
+}
+
+
+DOMAIN_LIST_REGEXP="${DOMAIN_REGEXP}(,${DOMAIN_REGEXP})*"
+
+validate_domains_list(){
+  local value="${1}"
+  [[ "$value" =~ ^${DOMAIN_LIST_REGEXP}$ ]]
 }
 
 
@@ -1325,83 +1331,40 @@ stage1(){
 
 
 parse_options(){
-  while getopts "ae:wL:l:vhsp" option; do
+  while getopts ":D:L:l:hvps" option; do
     argument=$OPTARG
     case $option in
-      a)
-        SKIP_SSL_AGREE_TOS=true
-        ;;
-      e)
-        SKIP_SSL_EMAIL=""
-        EMAIL="${OPTARG}"
-        ;;
-      w)
-        SKIP_SSL_EMAIL=skip_ssl_email
-        EMAIL=""
+      D)
+        VARS['ssl_domains']=$argument
+        ensure_valid D ssl_domains validate_domains_list
         ;;
       *)
         common_parse_options "$option" "$argument"
         ;;
     esac
   done
-  shift $((OPTIND-1))
-  if [[ ${#} == 0 ]]; then
-    wrong_options
-  else
-    while [[ ${#} -gt 0 ]]; do
-      if validate_domain "$1"; then
-        DOMAINS+=("$(to_lower "${1}")")
-      else
-        wrong_options
-        break
-      fi
-      shift
-    done
-  fi
   ensure_options_correct
 }
 
 
-usage_ru(){
-  print_err "Использование: "$SCRIPT_NAME" [OPTION]... domain1.tld ..."
-  print_err "Попробуйте '${SCRIPT_NAME} -h' для большей информации."
-  print_err
-}
-
-
 help_ru(){
-  print_err "Использование: "$SCRIPT_NAME" [OPTION]... domain1.tld ..."
   print_err "$SCRIPT_NAME подключает SSL сертификат от Let's Encrypt и генерирует кофигурацию nginx"
-  print_err "Пример: "$SCRIPT_NAME" -l ru -a -w domain1.tld domain2.tld"
+  print_err "Использование этой программы подразумевает принятие условий соглашения подписки Let's Encrypt."
+  print_err "Пример: "$SCRIPT_NAME" -L ru -D domain1.tld,domain2.tld"
   print_err
   print_err "Автоматизация:"
-  print_err "  -a                       подразумевает принятие пользовательского соглашения Let's Encrypt"
-  print_err
-  print_err "  -e EMAIL                 email адрес для получения уведомлений от Let's Encrypt (отключает -w)"
-  print_err
-  print_err "  -w                       не получать уведомления от Let's Encrypt (отключает -e)"
-  print_err
-}
-
-
-usage_en(){
-  print_err "Usage: "$SCRIPT_NAME" [OPTION]... domain1.tld ..."
-  print_err "Try '${SCRIPT_NAME} -h' for more information."
+  print_err "  -D DOMAINS               выписать сертификаты для списка доменов, DOMAINS=domain1.tld[,domain2.tld...]."
   print_err
 }
 
 
 help_en(){
-  print_err "Usage: "$SCRIPT_NAME" [OPTION]... domain1.tld ..."
   print_err "$SCRIPT_NAME issues Let's Encrypt SSL certificate and generates nginx configuration"
-  print_err "Example: "$SCRIPT_NAME" -l en -a -w domain1.tld domain2.tld"
+  print_err "The use of this program implies acceptance of the terms of the Let's Encrypt Subscriber Agreement."
+  print_err "Example: "$SCRIPT_NAME" -L en -D domain1.tld,domain2.tld"
   print_err
   print_err "Script automation:"
-  print_err "  -a                       implies accepting terms of Let's Encrypt license agreement"
-  print_err
-  print_err "  -e EMAIL                 email for notifications from Let's Encrypt (disables -w)"
-  print_err
-  print_err "  -w                       do not receive notifications from Let's Encrypt (disables -e)"
+  print_err "  -D DOMAINS               issue certs for domains, DOMAINS=domain1.tld[,domain2.tld...]."
   print_err
 }
 
@@ -1421,44 +1384,12 @@ stage3(){
 }
 
 
-#
 
-
-
-
-
-get_user_vars(){
+get_user_vars() {
   debug 'Read vars from user input'
   hack_stdin_if_pipe_mode
-  get_user_le_sa_agreement
-  if is_yes ${VARS['ssl_agree_tos']}; then
-    get_user_email
-  else
-    fail "$(translate 'prompts.ssl_agree_tos.help')"
-  fi
-}
-
-
-get_user_le_sa_agreement(){
-  VARS['ssl_agree_tos']='yes'
-  if isset "$SKIP_SSL_AGREE_TOS"; then
-    debug "Do not request SSL user agreement because appropriate option specified"
-  else
-    get_user_var 'ssl_agree_tos' 'validate_yes_no'
-  fi
-}
-
-
-get_user_email(){
-  if isset "$SKIP_SSL_EMAIL"; then
-    debug "Do not request SSL email because appropriate option specified"
-  else
-    if isset "$EMAIL"; then
-      debug "Do not request SSL email because email specified by option"
-      VARS['ssl_email']="${EMAIL}"
-    else
-      get_user_var 'ssl_email'
-    fi
+  if empty "${VARS['ssl_domains']}"; then
+    get_user_var 'ssl_domains' 'validate_presence validate_domains_list'
   fi
 }
 
@@ -1518,7 +1449,8 @@ renewal_job_installed(){
 generate_certificates(){
   debug "Requesting certificates"
   echo -n > "$SSL_ENABLER_ERRORS_LOG"
-  for domain in "${DOMAINS[@]}"; do
+  IFS=',' read -r -a domains <<< "${VARS['ssl_domains']}"
+  for domain in "${domains[@]}"; do
     certificate_generated=${FALSE}
     certificate_error=""
     if certificate_exists_for_domain "$domain"; then

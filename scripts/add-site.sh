@@ -111,9 +111,6 @@ fi
 
 declare -A VARS
 
-RECONFIGURE_KEITARO_COMMAND_EN="curl -sSL ${KEITARO_URL}/install.sh > run; bash run"
-RECONFIGURE_KEITARO_COMMAND_RU="curl -sSL ${KEITARO_URL}/install.sh > run; bash run -l ru"
-
 SSL_ENABLER_ERRORS_LOG="${CONFIG_DIR}/ssl_enabler_errors.log"
 
 
@@ -134,7 +131,13 @@ DICT['en.messages.skip_nginx_conf_generation']="Skip nginx config generation"
 DICT['en.messages.run_command']='Evaluating command'
 DICT['en.messages.successful']='Everything is done!'
 DICT['en.no']='no'
-DICT['en.prompt_errors.validate_domains_list']='Please enter domains list, separated by comma without spaces (i.e. domain1.tld,www.domain1.tld). Each domain name must consist of only letters, numbers and hyphens and contain at least one dot.'
+DICT['en.prompts.ssl_domains']='Please enter domains separated by comma without spaces'
+DICT['en.prompts.ssl_domains.help']='Make sure all the domains are already linked to this server in the DNS'
+DICT['en.prompt_errors.validate_domains_list']=$(cat <<-END
+	Please enter domains list, separated by comma without spaces (eg domain1.tld,www.domain1.tld).
+	Each domain name should consist of only letters, numbers and hyphens and contain at least one dot.
+END
+)
 DICT['en.prompt_errors.validate_presence']='Please enter value'
 DICT['en.prompt_errors.validate_yes_no']='Please answer "yes" or "no"'
 
@@ -153,7 +156,13 @@ DICT['ru.messages.skip_nginx_conf_generation']="Пропуск генераци�
 DICT['ru.messages.run_command']='Выполняется команда'
 DICT['ru.messages.successful']='Готово!'
 DICT['ru.no']='нет'
-DICT['ru.prompt_errors.validate_domains_list']='Укажите список доменных имён через запятую без пробелов (например domain1.tld,www.domain1.tld). Каждое доменное имя должно состоять только из букв, цифр и тире и содержать хотя бы одну точку.'
+DICT['ru.prompts.ssl_domains']='Укажите список доменов через запятую без пробелов'
+DICT['ru.prompts.ssl_domains.help']='Убедитесь, что все указанные домены привязаны к этому серверу в DNS.'
+DICT['ru.prompt_errors.validate_domains_list']=$(cat <<-END
+	Укажите список доменных имён через запятую без пробелов (например domain1.tld,www.domain1.tld).
+	Каждое доменное имя должно сстоять только из букв, цифр и тире и содержать хотя бы одну точку.
+END
+)
 DICT['ru.prompt_errors.validate_presence']='Введите значение'
 DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
 
@@ -162,18 +171,18 @@ DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет
 
 
 DICT['en.errors.see_logs']="Evaluating log saved to ${SCRIPT_LOG}. Please rerun \`${SCRIPT_COMMAND}\` after resolving problems."
-DICT['en.errors.reinstall_keitaro']="Your Keitaro installation does not properly configured. Please reconfigure Keitaro by evaluating command \`${RECONFIGURE_KEITARO_COMMAND_EN}\`"
 DICT['en.errors.vhost_already_exists']="Can not save site configuration - :vhost_filepath: already exists"
 DICT['en.errors.site_root_not_exists']="Can not save site configuration - :site_root: directory does not exist"
-DICT['en.prompts.site_domains']='Please enter domain name with aliases, separated by comma without spaces (i.e. domain1.tld,www.domain1.tld)'
+DICT['en.prompts.site_domains']="${DICT['en.prompts.ssl_domains']}"
 DICT['en.prompts.site_root']='Please enter site root directory'
+DICT['en.prompt_errors.validate_directory_existence']="Directory :value: doesn't exist"
 
-DICT['ru.errors.reinstall_keitaro']="Keitaro отконфигурирована неправильно. Пожалуйста выполните перенастройку Keitaro выполнив команду \`${RECONFIGURE_KEITARO_COMMAND_RU}\`"
 DICT['ru.errors.see_logs']="Журнал выполнения сохранён в ${SCRIPT_LOG}. Пожалуйста запустите \`${SCRIPT_COMMAND}\` после устранения возникших проблем."
 DICT['ru.errors.vhost_already_exists']="Невозможно сохранить конфигурацию сайта - :vhost_filepath: уже существует"
 DICT['ru.errors.site_root_not_exists']="Невозможно сохранить конфигурацию сайта - нет директории :site_root:"
-DICT['ru.prompts.site_domains']='Укажите доменное имя и список альясов через запятую без пробелов (например domain1.tld,www.domain1.tld)'
+DICT['ru.prompts.site_domains']="${DICT['ru.prompts.ssl_domains']}"
 DICT['ru.prompts.site_root']='Укажите корневую директорию сайта'
+DICT['ru.prompt_errors.validate_directory_existence']="Директория :value: не существует"
 
 
 
@@ -1073,7 +1082,7 @@ common_parse_options(){
           UI_LANG=ru
           ;;
         *)
-          print_err "Specified language '$argument' is not supported"
+          print_err "-L: language '$argument' is not supported"
           exit ${FAILURE_RESULT}
           ;;
       esac
@@ -1194,10 +1203,13 @@ help_en_common(){
 
 
 ensure_valid(){
-  local var_name="${1}"
-  local validation_methods="${2}"
-  if isset "$(get_error "${var_name}" "$validation_methods")"; then
-    wrong_options
+  local option="${1}"
+  local var_name="${2}"
+  local validation_methods="${3}"
+  error="$(get_error "${var_name}" "${validation_methods}")"
+  if isset "$error"; then
+    print_err "-${option}: $(translate "prompt_errors.${error}" "value=${VARS[$var_name]}")"
+    exit ${FAILURE_RESULT}
   fi
 }
 
@@ -1248,6 +1260,13 @@ DOMAIN_LIST_REGEXP="${DOMAIN_REGEXP}(,${DOMAIN_REGEXP})*"
 validate_domains_list(){
   local value="${1}"
   [[ "$value" =~ ^${DOMAIN_LIST_REGEXP}$ ]]
+}
+
+
+
+validate_directory_existence(){
+  local value="${1}"
+  [[ -d "$value" ]]
 }
 
 
@@ -1319,15 +1338,16 @@ stage1(){
 
 
 parse_options(){
-  while getopts "d:r:L:l:vhsp" option; do
+  while getopts ":D:R:L:l:vhsp" option; do
     argument=$OPTARG
     case $option in
-      d)
+      D)
         VARS['site_domains']=$argument
-        ensure_valid site_domains 'validate_domains_list'
+        ensure_valid D site_domains validate_domains_list
         ;;
-      r)
+      R)
         VARS['site_root']=$argument
+        ensure_valid R site_root validate_directory_existence
         ;;
       *)
         common_parse_options "$option" "$argument"
@@ -1338,42 +1358,26 @@ parse_options(){
 }
 
 
-usage_ru(){
-  print_err "Использование: "$SCRIPT_NAME" [OPTION]..."
-  print_err "Попробуйте '${SCRIPT_NAME} -h' для большей информации."
-  print_err
-}
-
-
 help_ru(){
-  print_err "Использование: "$SCRIPT_NAME" [OPTION]..."
   print_err "$SCRIPT_NAME позволяет запустить дополнительный сайт совместно с Keitaro"
-  print_err "Пример: "$SCRIPT_NAME" -l ru -d domain1.tld,domain2.tld -r /var/www/domain1.tld"
+  print_err "Пример: "$SCRIPT_NAME" -L ru -D domain1.tld,domain2.tld -R /var/www/domain1.tld"
   print_err
   print_err "Автоматизация:"
-  print_err "  -d DOMAIN_LIST           задать список доменов через запятую"
+  print_err "  -D DOMAINS               задать список доменов, DOMAINS=domain1.tld[,domain2.tld...]"
   print_err
-  print_err "  -r PATH                  задать существующий путь к корневой директории сайта"
-  print_err
-}
-
-
-usage_en(){
-  print_err "Usage: "$SCRIPT_NAME" [OPTION]..."
-  print_err "Try '${SCRIPT_NAME} -h' for more information."
+  print_err "  -R PATH                  задать существующий путь к корневой директории сайта"
   print_err
 }
 
 
 help_en(){
-  print_err "Usage: "$SCRIPT_NAME" [OPTION]..."
   print_err "$SCRIPT_NAME allows to run additional site together with Keitaro"
-  print_err "Example: "$SCRIPT_NAME" -l en -d domain1.tld,domain2.tld -r /var/www/domain1.tld"
+  print_err "Example: "$SCRIPT_NAME" -L en -D domain1.tld,domain2.tld -R /var/www/domain1.tld"
   print_err
   print_err "Script automation:"
-  print_err "  -d DOMAIN_LIST           set list of domains separated by comma"
+  print_err "  -D DOMAIN_LIST           set list of domains, DOMAINS=domain1.tld[,domain2.tld...]"
   print_err
-  print_err "  -r PATH                  set existent path to the site root"
+  print_err "  -R PATH                  set existent path to the site root"
   print_err
 }
 
@@ -1382,7 +1386,6 @@ help_en(){
 stage2(){
   debug "Starting stage 2: make some asserts"
   assert_caller_root
-  assert_installed 'nginx' 'errors.reinstall_keitaro'
   assert_server_configuration_relevant
 }
 

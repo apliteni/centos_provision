@@ -121,9 +121,6 @@ fi
 
 declare -A VARS
 
-RECONFIGURE_KEITARO_COMMAND_EN="curl -sSL ${KEITARO_URL}/install.sh > run; bash run"
-RECONFIGURE_KEITARO_COMMAND_RU="curl -sSL ${KEITARO_URL}/install.sh > run; bash run -l ru"
-
 SSL_ENABLER_ERRORS_LOG="${CONFIG_DIR}/ssl_enabler_errors.log"
 
 
@@ -144,7 +141,13 @@ DICT['en.messages.skip_nginx_conf_generation']="Skip nginx config generation"
 DICT['en.messages.run_command']='Evaluating command'
 DICT['en.messages.successful']='Everything is done!'
 DICT['en.no']='no'
-DICT['en.prompt_errors.validate_domains_list']='Please enter domains list, separated by comma without spaces (i.e. domain1.tld,www.domain1.tld). Each domain name must consist of only letters, numbers and hyphens and contain at least one dot.'
+DICT['en.prompts.ssl_domains']='Please enter domains separated by comma without spaces'
+DICT['en.prompts.ssl_domains.help']='Make sure all the domains are already linked to this server in the DNS'
+DICT['en.prompt_errors.validate_domains_list']=$(cat <<-END
+	Please enter domains list, separated by comma without spaces (eg domain1.tld,www.domain1.tld).
+	Each domain name should consist of only letters, numbers and hyphens and contain at least one dot.
+END
+)
 DICT['en.prompt_errors.validate_presence']='Please enter value'
 DICT['en.prompt_errors.validate_yes_no']='Please answer "yes" or "no"'
 
@@ -163,7 +166,13 @@ DICT['ru.messages.skip_nginx_conf_generation']="Пропуск генераци�
 DICT['ru.messages.run_command']='Выполняется команда'
 DICT['ru.messages.successful']='Готово!'
 DICT['ru.no']='нет'
-DICT['ru.prompt_errors.validate_domains_list']='Укажите список доменных имён через запятую без пробелов (например domain1.tld,www.domain1.tld). Каждое доменное имя должно состоять только из букв, цифр и тире и содержать хотя бы одну точку.'
+DICT['ru.prompts.ssl_domains']='Укажите список доменов через запятую без пробелов'
+DICT['ru.prompts.ssl_domains.help']='Убедитесь, что все указанные домены привязаны к этому серверу в DNS.'
+DICT['ru.prompt_errors.validate_domains_list']=$(cat <<-END
+	Укажите список доменных имён через запятую без пробелов (например domain1.tld,www.domain1.tld).
+	Каждое доменное имя должно сстоять только из букв, цифр и тире и содержать хотя бы одну точку.
+END
+)
 DICT['ru.prompt_errors.validate_presence']='Введите значение'
 DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
 
@@ -536,7 +545,7 @@ common_parse_options(){
           UI_LANG=ru
           ;;
         *)
-          print_err "Specified language '$argument' is not supported"
+          print_err "-L: language '$argument' is not supported"
           exit ${FAILURE_RESULT}
           ;;
       esac
@@ -1179,7 +1188,6 @@ DICT['en.prompts.db_restore_salt']='Please enter the value of "salt" parameter f
 DICT['en.prompts.license_ip']='Please enter server IP'
 DICT['en.prompts.license_key']='Please enter license key'
 DICT['en.prompts.ssl']="Do you want to install Free SSL certificates (you can do it later)?"
-DICT['en.prompts.ssl_domains']='Please enter server domains, separated by comma without spaces (i.e. domain1.tld,domain2.tld)'
 DICT['en.welcome']=$(cat <<- END
 	Welcome to Keitaro installer.
 	This installer will guide you through the steps required to install Keitaro on your server.
@@ -1230,13 +1238,12 @@ DICT['ru.prompts.db_restore_salt']='Укажите значение параме
 DICT['ru.prompts.license_ip']='Укажите IP адрес сервера'
 DICT['ru.prompts.license_key']='Укажите лицензионный ключ'
 DICT['ru.prompts.ssl']="Установить бесплатные SSL сертификаты (можно сделать это позже)?"
-DICT['ru.prompts.ssl_domains']='Укажите список доменов через запятую без пробелов (например domain1.tld,domain2.tld)'
 DICT['ru.welcome']=$(cat <<- END
 	Добро пожаловать в программу установки Keitaro.
 	Эта программа поможет собрать информацию необходимую для установки Keitaro на вашем сервере.
 END
 )
-DICT['ru.prompt_errors.validate_ip']='Введите корректный IPv4 адрес (например 1.2.3.4)'
+DICT['ru.prompt_errors.validate_ip']='Введите корректный IPv4 адрес (например 1.2.8.8)'
 DICT['ru.prompt_errors.validate_license_key']='Введите корректный ключ лицензии (например AAAA-BBBB-CCCC-DDDD)'
 DICT['ru.prompt_errors.validate_alnumdashdot']='Можно использовать только латинские бувы, цифры, тире, подчёркивание и точку'
 DICT['ru.prompt_errors.validate_starts_with_latin_letter']='Значение должно начинаться с латинской буквы'
@@ -1361,9 +1368,11 @@ parse_options(){
     case $option in
       A)
         VARS['license_ip']=$argument
+        ensure_valid A license_ip validate_ip
         ;;
       K)
         VARS['license_key']=$argument
+        ensure_valid K license_key validate_license_key
         ;;
       r)
         RECONFIGURE="true"
