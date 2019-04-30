@@ -18,14 +18,18 @@ assert_server_configuration_relevant(){
       local tool_url="${KEITARO_URL}/release-${installed_version}/${TOOL_NAME}.sh"
       local tool_args="${TOOL_ARGS}"
       if [[ "${TOOL_NAME}" == "add-site" ]]; then
-        if [[ "${installed_version}" -lt "1.3" ]]; then
+        if [[ "${installed_version}" -lt "1.4" ]]; then
           fail "$(build_upgrade_message($installed_version))"
         else
-          tool_args="-d ${VARS['site_domains']} -r ${VARS['site_root']} ${TOOL_ARGS}"
+          tool_args="-D ${VARS['site_domains']} -R ${VARS['site_root']}"
         fi
       fi
       if [[ "${TOOL_NAME}" == "enable-ssl" ]]; then
-        tool_args="-wa ${TOOL_ARGS}"
+        if [[ "${installed_version}" -lt "1.4" ]]; then
+          tool_args="-wa ${VARS['ssl_domains']//,/ }"
+        else
+          tool_args="-D ${VARS['ssl_domains']}"
+        fi
       fi
       command="curl -fsSL ${tool_url} | bash -s -- ${tool_args}"
       run_command "${command}" "Run obsolete ${TOOL_NAME} (v${installed_version})"
