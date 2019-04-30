@@ -7,8 +7,10 @@ parse_options()
     switch $option
       case A
         VARS['license_ip']=$argument
+        ensure_valid A license_ip validate_ip
       case K
         VARS['license_key']=$argument
+        ensure_valid K license_key validate_license_key
       case r
         RECONFIGURE="true"
       case a

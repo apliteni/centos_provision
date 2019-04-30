@@ -43,7 +43,6 @@ DICT['en.prompts.db_restore_salt']='Please enter the value of "salt" parameter f
 DICT['en.prompts.license_ip']='Please enter server IP'
 DICT['en.prompts.license_key']='Please enter license key'
 DICT['en.prompts.ssl']="Do you want to install Free SSL certificates (you can do it later)?"
-DICT['en.prompts.ssl_domains']='Please enter server domains, separated by comma without spaces (i.e. domain1.tld,domain2.tld)'
 DICT['en.welcome']=$(cat <<- END
 	Welcome to Keitaro installer.
 	This installer will guide you through the steps required to install Keitaro on your server.
@@ -94,13 +93,12 @@ DICT['ru.prompts.db_restore_salt']='Укажите значение параме
 DICT['ru.prompts.license_ip']='Укажите IP адрес сервера'
 DICT['ru.prompts.license_key']='Укажите лицензионный ключ'
 DICT['ru.prompts.ssl']="Установить бесплатные SSL сертификаты (можно сделать это позже)?"
-DICT['ru.prompts.ssl_domains']='Укажите список доменов через запятую без пробелов (например domain1.tld,domain2.tld)'
 DICT['ru.welcome']=$(cat <<- END
 	Добро пожаловать в программу установки Keitaro.
 	Эта программа поможет собрать информацию необходимую для установки Keitaro на вашем сервере.
 END
 )
-DICT['ru.prompt_errors.validate_ip']='Введите корректный IPv4 адрес (например 1.2.3.4)'
+DICT['ru.prompt_errors.validate_ip']='Введите корректный IPv4 адрес (например 1.2.8.8)'
 DICT['ru.prompt_errors.validate_license_key']='Введите корректный ключ лицензии (например AAAA-BBBB-CCCC-DDDD)'
 DICT['ru.prompt_errors.validate_alnumdashdot']='Можно использовать только латинские бувы, цифры, тире, подчёркивание и точку'
 DICT['ru.prompt_errors.validate_starts_with_latin_letter']='Значение должно начинаться с латинской буквы'

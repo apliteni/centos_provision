@@ -8,7 +8,8 @@
 generate_certificates(){
   debug "Requesting certificates"
   echo -n > "$SSL_ENABLER_ERRORS_LOG"
-  for domain in "${DOMAINS[@]}"; do
+  IFS=',' read -r -a domains <<< "${VARS['ssl_domains']}"
+  for domain in "${domains[@]}"; do
     certificate_generated=${FALSE}
     certificate_error=""
     if certificate_exists_for_domain "$domain"; then

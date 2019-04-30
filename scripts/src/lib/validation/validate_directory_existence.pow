@@ -1,0 +1,5 @@
+#!/usr/bin/env powscript
+
+
+validate_directory_existence(value)
+  [[ -d $value ]]

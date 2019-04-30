@@ -17,7 +17,7 @@ common_parse_options(){
           UI_LANG=ru
           ;;
         *)
-          print_err "Specified language '$argument' is not supported"
+          print_err "-L: language '$argument' is not supported"
           exit ${FAILURE_RESULT}
           ;;
       esac

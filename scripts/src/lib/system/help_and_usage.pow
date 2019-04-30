@@ -9,7 +9,7 @@ common_parse_options(option, argument)
         case ru
           UI_LANG=ru
         case *
-          print_err "Specified language '$argument' is not supported"
+          print_err "-L: language '$argument' is not supported"
           exit ${FAILURE_RESULT}
     case v
       version

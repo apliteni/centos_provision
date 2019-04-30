@@ -16,7 +16,13 @@ DICT['en.messages.skip_nginx_conf_generation']="Skip nginx config generation"
 DICT['en.messages.run_command']='Evaluating command'
 DICT['en.messages.successful']='Everything is done!'
 DICT['en.no']='no'
-DICT['en.prompt_errors.validate_domains_list']='Please enter domains list, separated by comma without spaces (i.e. domain1.tld,www.domain1.tld). Each domain name must consist of only letters, numbers and hyphens and contain at least one dot.'
+DICT['en.prompts.ssl_domains']='Please enter domains separated by comma without spaces'
+DICT['en.prompts.ssl_domains.help']='Make sure all the domains are already linked to this server in the DNS'
+DICT['en.prompt_errors.validate_domains_list']=$(cat <<-END
+	Please enter domains list, separated by comma without spaces (eg domain1.tld,www.domain1.tld).
+	Each domain name should consist of only letters, numbers and hyphens and contain at least one dot.
+END
+)
 DICT['en.prompt_errors.validate_presence']='Please enter value'
 DICT['en.prompt_errors.validate_yes_no']='Please answer "yes" or "no"'
 
@@ -35,6 +41,12 @@ DICT['ru.messages.skip_nginx_conf_generation']="Пропуск генераци�
 DICT['ru.messages.run_command']='Выполняется команда'
 DICT['ru.messages.successful']='Готово!'
 DICT['ru.no']='нет'
-DICT['ru.prompt_errors.validate_domains_list']='Укажите список доменных имён через запятую без пробелов (например domain1.tld,www.domain1.tld). Каждое доменное имя должно состоять только из букв, цифр и тире и содержать хотя бы одну точку.'
+DICT['ru.prompts.ssl_domains']='Укажите список доменов через запятую без пробелов'
+DICT['ru.prompts.ssl_domains.help']='Убедитесь, что все указанные домены привязаны к этому серверу в DNS.'
+DICT['ru.prompt_errors.validate_domains_list']=$(cat <<-END
+	Укажите список доменных имён через запятую без пробелов (например domain1.tld,www.domain1.tld).
+	Каждое доменное имя должно сстоять только из букв, цифр и тире и содержать хотя бы одну точку.
+END
+)
 DICT['ru.prompt_errors.validate_presence']='Введите значение'
 DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'

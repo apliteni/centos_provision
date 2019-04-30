@@ -25,7 +25,7 @@ RSpec.describe 'install.sh' do
       en: {
         skip_firewall: 'Do you want to skip installing firewall?',
         ssl: 'Do you want to install Free SSL certificates (you can do it later)?',
-        ssl_domains: 'Please enter server domains, separated by comma without spaces (i.e. domain1.tld,domain2.tld)',
+        ssl_domains: 'Please enter domains separated by comma without spaces',
         license_ip: 'Please enter server IP',
         license_key: 'Please enter license key',
         db_restore: 'Do you want to restore the database from SQL dump?',

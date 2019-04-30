@@ -12,9 +12,11 @@ parse_options(){
     case $option in
       A)
         VARS['license_ip']=$argument
+        ensure_valid A license_ip validate_ip
         ;;
       K)
         VARS['license_key']=$argument
+        ensure_valid K license_key validate_license_key
         ;;
       r)
         RECONFIGURE="true"

@@ -25,11 +25,11 @@ RSpec.describe 'add-site.sh' do
   let(:prompts) do
     {
       en: {
-        site_domains: 'Please enter domain name with aliases, separated by comma without spaces (i.e. domain1.tld,www.domain1.tld)',
+        site_domains: 'Please enter domains separated by comma without spaces',
         site_root: 'Please enter site root directory',
       },
       ru: {
-        site_domains: 'Укажите доменное имя и список альясов через запятую без пробелов (например domain1.tld,www.domain1.tld)',
+        site_domains: 'Укажите список доменов через запятую без пробелов',
         site_root: 'Укажите корневую директорию сайта',
       }
     }
@@ -56,13 +56,12 @@ RSpec.describe 'add-site.sh' do
     include_context 'run in docker'
     let(:options) { '-p' }
 
-    context 'nginx is installed, keitaro is installed, nginx is configured properly' do
+    context 'keitaro is installed, nginx is configured properly' do
       let(:command_stubs) { all_command_stubs }
 
       let(:commands) { make_proper_nginx_conf + make_site_root_dir }
 
       it_behaves_like 'should print to', :log, [
-        "Try to found nginx\nFOUND",
         "Checking /var/www/example.com directory existence\nYES",
       ]
     end

@@ -1,20 +1,20 @@
 RSpec.shared_examples_for 'should detect language' do
-  describe 'invoked with `-l en` option' do
-    let(:options) { '-l en' }
+  describe 'invoked with `-L en` option' do
+    let(:options) { '-L en' }
 
     it_behaves_like 'should print to', :log, 'Language: en'
   end
 
-  describe 'invoked with `-l ru` option' do
-    let(:options) { '-l ru' }
+  describe 'invoked with `-L ru` option' do
+    let(:options) { '-L ru' }
 
     it_behaves_like 'should print to', :log, 'Language: ru'
   end
 
   context 'set unsupported language' do
-    let(:options) { '-l xx' }
+    let(:options) { '-L xx' }
 
-    it_behaves_like 'should exit with error', "Specified language 'xx' is not supported"
+    it_behaves_like 'should exit with error', "-L: language 'xx' is not supported"
   end
 
   # TODO: Detect language from LC_MESSAGES
