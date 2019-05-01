@@ -43,7 +43,8 @@ versions_json() {
   print_json installer "\"$(get_config_var 'installer_version')\"" \
              php "\"$(php_version)\"" \
              mariadb "\"$(mariadb_version)\"" \
-             redis "\"$(redis_version)\""
+             redis "\"$(redis_version)\"" \
+             roadrunner "\"$(roadrunner_version)\"" \
 }
 
 get_config_var() {
@@ -64,7 +65,7 @@ redis_version() {
 }
 
 roadrunner_version() {
-  roadrunner
+  /usr/local/bin/roadrunner --help | head -n2 | tail -n1 | awk '{print $2}' | sed s/,//
 }
 
 engines_json() {
@@ -109,7 +110,8 @@ statuses_tracker_roadrunner_json() {
     print_json state inactive
   else
     local since=$(date -d "$(echo "${systemd_output}" | awk '{printf "%s %s", $6, $7}')")
-    local roadrunner_output=$(roadrunner http:workers -l plain -c /etc/php/roadrunner.yml | tail -n +4 | head -n -1)
+    local roadrunner_raw_output=$(/usr/local/bin/roadrunner http:workers -l plain -c /etc/php/roadrunner.yml)
+    local roadrunner_output=$(echo "${roadrunner_raw_output}" | tail -n +4 | head -n -1)
     local idle=$(echo "${roadrunner_output}" | grep ready | wc -l)
     local active=$(echo "${roadrunner_output}" | grep working | wc -l)
     local total=$(echo "${roadrunner_output}" | wc -l)
