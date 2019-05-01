@@ -15,7 +15,7 @@ write_inventory_on_reconfiguration(){
     setup_vars_on_reconfiguration
     collect_inventory_variables
   fi
-  VARS['php_engine']="roadrunner"
+  VARS['php_engine']="php-fpm"
   VARS['installer_version']="${RELEASE_VERSION}"
   write_inventory_file
 }

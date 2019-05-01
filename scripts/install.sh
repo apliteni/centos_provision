@@ -1147,7 +1147,7 @@ write_inventory_on_reconfiguration(){
     setup_vars_on_reconfiguration
     collect_inventory_variables
   fi
-  VARS['php_engine']="roadrunner"
+  VARS['php_engine']="php-fpm"
   VARS['installer_version']="${RELEASE_VERSION}"
   write_inventory_file
 }
@@ -1499,7 +1499,7 @@ setup_vars(){
   VARS['db_engine']='tokudb'
   VARS['admin_login']='admin'
   VARS['admin_password']=$(generate_password)
-  VARS['php_engine']='roadrunner'
+  VARS['php_engine']='php-fpm'
 }
 
 
