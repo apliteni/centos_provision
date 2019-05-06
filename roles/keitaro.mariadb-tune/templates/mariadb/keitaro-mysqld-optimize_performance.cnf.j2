@@ -19,7 +19,7 @@ table_open_cache = {{ db_table_open_cache }}
 open_files_limit = {{ db_open_files_limit }}
 
 {% if db_engine == 'tokudb' %}
-tokudb_cache_size = {{ db_main_size_kb }}K
+tokudb_cache_size = {{ [(db_main_size_kb|int),262144] | max }}K
 {% else %}
 innodb_buffer_pool_size = {{ db_main_size_kb }}K
 {% endif %}
