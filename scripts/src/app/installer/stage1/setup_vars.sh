@@ -14,6 +14,7 @@ setup_vars(){
   VARS['admin_login']='admin'
   VARS['admin_password']=$(generate_password)
   VARS['php_engine']='roadrunner'
+  VARS['language']='en'
 }
 
 

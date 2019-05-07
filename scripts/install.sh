@@ -1349,9 +1349,9 @@ get_var_from_keitaro_app_config(){
 
 stage1(){
   debug "Starting stage 1: initial script setup"
+  setup_vars
   parse_options "$@"
   set_ui_lang
-  setup_vars
 }
 
 
@@ -1470,6 +1470,7 @@ setup_vars(){
   VARS['admin_login']='admin'
   VARS['admin_password']=$(generate_password)
   VARS['php_engine']='roadrunner'
+  VARS['language']='en'
 }
 
 
@@ -1577,7 +1578,6 @@ databases_exist(){
 
 stage3(){
   debug "Starting stage 3: read values from inventory file"
-  setup_vars
   read_inventory
 }
 
@@ -1738,7 +1738,7 @@ write_inventory_file(){
   print_line_to_inventory_file "db_restore_salt="${VARS['db_restore_salt']}""
   print_line_to_inventory_file "admin_login="${VARS['admin_login']}""
   print_line_to_inventory_file "admin_password="${VARS['admin_password']}""
-  print_line_to_inventory_file "language=${UI_LANG}"
+  print_line_to_inventory_file "language=$(get_ui_lang)"
   print_line_to_inventory_file "installer_version=${RELEASE_VERSION}"
   print_line_to_inventory_file "evaluated_by_installer=yes"
   print_line_to_inventory_file "cpu_cores=$(get_cpu_cores)"
@@ -2017,23 +2017,15 @@ run_ssl_enabler(){
     return
   fi
   if [[ "${VARS['ssl_certificate']}" == 'letsencrypt' ]]; then
-    local options="-a"                                  # accept LE license agreement
-    options="${options} -l ${UI_LANG}"                  # set language
-    if [[ "${VARS['ssl_email']}" ]]; then
-      options="${options} -e ${VARS['ssl_email']}"
-    else
-      options="${options} -w"
-    fi
-    local domains="${VARS['ssl_domains']//,/ }"
-    local command="curl -sSL ${SSL_SCRIPT_URL} | bash -s -- ${options} ${domains}"
-    message="$(translate 'messages.enabling_ssl')"
+    local command="curl -fsSL ${SSL_SCRIPT_URL} | bash -s -- -L $(get_ui_lang) -D ${VARS['ssl_domains']}"
+    local message="$(translate 'messages.enabling_ssl')"
     > ${SSL_OUTPUT_LOG}
     run_command "${command}" "${message}" "hide_output" "" "" "" "${SSL_OUTPUT_LOG}"
     SSL_SUCCESSFUL_DOMAINS="$(extract_domains_from_enable_ssl_log ^OK)"
     local failed_domains="$(extract_domains_from_enable_ssl_log ^NOK)"
     SSL_FAILED_MESSAGE="$(get_message_from_enable_ssl_log ^NOK)"
     SSL_FAILED_MESSAGE="${SSL_FAILED_MESSAGE/NOK. /}"
-    SSL_RERUN_COMMAND="curl -sSL ${SSL_SCRIPT_URL} | bash -s -- ${options} ${failed_domains}"
+    SSL_RERUN_COMMAND="curl -fsSL ${SSL_SCRIPT_URL} | bash -s -- -L $(get_ui_lang) -D ${failed_domains}"
     rm -f "${SSL_OUTPUT_LOG}"
   fi
 }
@@ -2057,7 +2049,7 @@ get_message_from_enable_ssl_log(){
 extract_domains_from_enable_ssl_log(){
   local prefix="${1}"
   get_message_from_enable_ssl_log "$prefix" \
-    | sed -e 's/.*: //g' -e 's/,//'     # extract domains list from message
+    | sed -e 's/.*: //g' -e 's/ //'     # extract domains list from message
   }
 
 

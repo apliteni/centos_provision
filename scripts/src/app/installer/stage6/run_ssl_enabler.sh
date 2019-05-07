@@ -16,23 +16,15 @@ run_ssl_enabler(){
     return
   fi
   if [[ "${VARS['ssl_certificate']}" == 'letsencrypt' ]]; then
-    local options="-a"                                  # accept LE license agreement
-    options="${options} -l ${UI_LANG}"                  # set language
-    if [[ "${VARS['ssl_email']}" ]]; then
-      options="${options} -e ${VARS['ssl_email']}"
-    else
-      options="${options} -w"
-    fi
-    local domains="${VARS['ssl_domains']//,/ }"
-    local command="curl -sSL ${SSL_SCRIPT_URL} | bash -s -- ${options} ${domains}"
-    message="$(translate 'messages.enabling_ssl')"
+    local command="curl -fsSL ${SSL_SCRIPT_URL} | bash -s -- -L $(get_ui_lang) -D ${VARS['ssl_domains']}"
+    local message="$(translate 'messages.enabling_ssl')"
     > ${SSL_OUTPUT_LOG}
     run_command "${command}" "${message}" "hide_output" "" "" "" "${SSL_OUTPUT_LOG}"
     SSL_SUCCESSFUL_DOMAINS="$(extract_domains_from_enable_ssl_log ^OK)"
     local failed_domains="$(extract_domains_from_enable_ssl_log ^NOK)"
     SSL_FAILED_MESSAGE="$(get_message_from_enable_ssl_log ^NOK)"
     SSL_FAILED_MESSAGE="${SSL_FAILED_MESSAGE/NOK. /}"
-    SSL_RERUN_COMMAND="curl -sSL ${SSL_SCRIPT_URL} | bash -s -- ${options} ${failed_domains}"
+    SSL_RERUN_COMMAND="curl -fsSL ${SSL_SCRIPT_URL} | bash -s -- -L $(get_ui_lang) -D ${failed_domains}"
     rm -f "${SSL_OUTPUT_LOG}"
   fi
 }
@@ -56,5 +48,5 @@ get_message_from_enable_ssl_log(){
 extract_domains_from_enable_ssl_log(){
   local prefix="${1}"
   get_message_from_enable_ssl_log "$prefix" \
-    | sed -e 's/.*: //g' -e 's/,//'     # extract domains list from message
+    | sed -e 's/.*: //g' -e 's/ //'     # extract domains list from message
   }
