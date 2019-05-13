@@ -5,6 +5,7 @@
 
 
 
+
 get_user_vars(){
   debug 'Read vars from user input'
   hack_stdin_if_pipe_mode
@@ -15,13 +16,13 @@ get_user_vars(){
       fail "$(translate 'errors.cant_install_firewall')"
     fi
   fi
+  get_user_license_vars
   get_user_ssl_vars
-  get_user_var 'db_restore' 'validate_presence validate_yes_no'
-  if is_yes "${VARS['db_restore']}"; then
-    get_user_var_db_restore_path
-    get_user_var 'db_restore_salt' 'validate_presence validate_alnumdashdot'
-  fi
-  common_validators="validate_presence validate_alnumdashdot validate_not_reserved_word"
+  get_user_db_restore_vars
+}
+
+
+get_user_license_vars(){
   if empty "${VARS['license_ip']}"; then
     VARS['license_ip']=$(get_host_ip)
   fi
@@ -39,43 +40,13 @@ get_user_ssl_vars(){
 }
 
 
-get_user_var_db_restore_path(){
-  get_user_var 'db_restore_path' 'validate_presence validate_file_existence'
-  if ! is_keitaro_dump_valid ${VARS['db_restore_path']}; then
-    print_prompt_error 'validate_keitaro_dump'
-    get_user_var 'db_restore_path_want_exit' 'validate_yes_no'
-    if is_yes "${VARS['db_restore_path_want_exit']}"; then
-      fail "$(translate 'errors.keitaro_dump_invalid')"
-    else
-      get_user_var_db_restore_path
-    fi
+get_user_db_restore_vars(){
+  get_user_var 'db_restore_path' 'validate_file_existence validate_keitaro_dump'
+  if isset "${VARS['db_restore_path']}"; then
+    get_user_var 'db_restore_salt' 'validate_presence validate_alnumdashdot'
   fi
 }
 
-
-is_keitaro_dump_valid(){
-  local file="${1}"
-  local cat_command=''
-  local mime_type="$(detect_mime_type ${file})"
-  debug "Detected mime type: ${mime_type}"
-  if [[ "$mime_type" == 'application/x-gzip' ]]; then
-    grep_command='zgrep'
-  else
-    grep_command='grep'
-  fi
-  check_table_1="$(ensure_table_dumped "${grep_command}" "keitaro_clicks" "${file}")"
-  check_table_2="$(ensure_table_dumped "${grep_command}" "schema_version" "${file}")"
-  ensure_tables_dumped="${check_table_1} && ${check_table_2}"
-  message="$(translate 'messages.check_keitaro_dump_validity')"
-  run_command "${ensure_tables_dumped}" "${message}" 'hide_output' 'allow_errors'
-}
-
-ensure_table_dumped(){
-  local grep_command="${1}"
-  local table="${2}"
-  local file="${3}"
-  echo "${grep_command} -qP '^CREATE TABLE( IF NOT EXISTS)? \`${table}\`' ${file}"
-}
 
 can_install_firewall(){
   command='iptables -t nat -L'

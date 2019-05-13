@@ -1,1 +1,1 @@
-CREATE TABLE `keitaro_clicks`;
+CREATE TABLE `keitaro_acl`;

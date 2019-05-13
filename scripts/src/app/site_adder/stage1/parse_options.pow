@@ -32,7 +32,7 @@ help_en()
   print_err "Example: $SCRIPT_NAME -L en -D domain1.tld,domain2.tld -R /var/www/domain1.tld"
   print_err
   print_err "Script automation:"
-  print_err "  -D DOMAIN_LIST           set list of domains, DOMAINS=domain1.tld[,domain2.tld...]"
+  print_err "  -D DOMAINS               set list of domains, DOMAINS=domain1.tld[,domain2.tld...]"
   print_err
   print_err "  -R PATH                  set existent path to the site root"
   print_err

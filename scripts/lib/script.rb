@@ -46,7 +46,7 @@ class Script
       stdin.sync = true
 
       @stdout = emulate_interactive_io(stdin, stdout)
-      @stderr = Thread.new { stderr.read }.value
+      @stderr = without_formatting Thread.new { stderr.read }.value
 
       @ret_value = wait_thr.value
     end
@@ -102,6 +102,7 @@ class Script
   end
 
   def emulate_interactive_io(stdin, stdout)
+    answered={}
     out = ''
     reader_thread = Thread.new {
       begin
@@ -115,7 +116,13 @@ class Script
         if prompts_with_values.any? && prompt =~ / > $/
           key = prompt.match(/[^>]+/)[0].gsub(/\[.*\]/, '').strip
           if prompts_with_values.key?(key)
-            stdin.puts(prompts_with_values[key])
+            if prompts_with_values[key].is_a?(Array)
+              index = answered[key].to_i
+              stdin.puts(prompts_with_values[key][index])
+              answered[key] = index + 1
+            else
+              stdin.puts(prompts_with_values[key])
+            end
           else
             stdin.puts('value')
             puts "Value for prompt #{prompt.inspect} not found, using fake value instead"

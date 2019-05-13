@@ -17,7 +17,9 @@ parse_line_from_inventory_file(){
   local line="${1}"
   if [[ "$line" =~ = ]]; then
     IFS="=" read var_name value <<< "$line"
-    VARS[$var_name]=$value
-    debug "  "$var_name"=${VARS[$var_name]}" 'light.blue'
+    if [[ "$var_name" != 'db_restore_path' ]]; then
+      VARS[$var_name]=$value
+      debug "  "$var_name"=${VARS[$var_name]}" 'light.blue'
+    fi
   fi
 }

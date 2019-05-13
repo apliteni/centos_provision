@@ -110,6 +110,7 @@ else
 fi
 
 declare -A VARS
+declare -A ARGS
 
 SSL_ENABLER_ERRORS_LOG="${CONFIG_DIR}/ssl_enabler_errors.log"
 

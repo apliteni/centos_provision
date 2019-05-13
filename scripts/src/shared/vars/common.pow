@@ -43,5 +43,6 @@ else
   SCRIPT_COMMAND="curl -sSL $SCRIPT_URL > run; bash run"
 
 VARS={}
+ARGS={}
 
 SSL_ENABLER_ERRORS_LOG="${CONFIG_DIR}/ssl_enabler_errors.log"

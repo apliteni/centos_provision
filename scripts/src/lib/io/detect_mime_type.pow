@@ -2,13 +2,5 @@
 
 
 detect_mime_type(file)
-  if is_installed $file
-    file --brief --mime-type $file
-  else
-    filename=$(basename $file)
-    extension="${filename##*.}"
-    if $extension == 'gz'
-      echo 'application/x-gzip'
-    else
-      echo 'text/plain'
+  file --brief --mime-type $file
 

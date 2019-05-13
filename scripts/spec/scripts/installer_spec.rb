@@ -15,9 +15,7 @@ RSpec.describe 'install.sh' do
   let(:skip_firewall) { 'yes' }
   let(:license_ip) { '8.8.8.8' }
   let(:license_key) { 'WWWW-XXXX-YYYY-ZZZZ' }
-  let(:db_restore) { 'no' }
   let(:db_restore_path) { nil }
-  let(:db_restore_path_want_exit) { nil }
   let(:db_restore_salt) { nil }
 
   let(:prompts) do
@@ -28,16 +26,14 @@ RSpec.describe 'install.sh' do
         ssl_domains: 'Please enter domains separated by comma without spaces',
         license_ip: 'Please enter server IP',
         license_key: 'Please enter license key',
-        db_restore: 'Do you want to restore the database from SQL dump?',
-        db_restore_path: 'Please enter the path to the SQL dump file',
-        db_restore_salt: 'Please enter the value of "salt" parameter from the old config (application/config/config.ini.php)',
-        db_restore_path_want_exit: 'Do you want to exit?',
+        db_restore_path: 'Please enter the path to the SQL dump file if you want to restore database',
+        db_restore_salt: 'Please enter the value of the "salt" parameter from the old config (application/config/config.ini.php)',
       },
       ru: {
         ssl: 'Установить бесплатные SSL сертификаты (можно сделать это позже)?',
         license_ip: 'Укажите IP адрес сервера',
         license_key: 'Укажите лицензионный ключ',
-        db_restore: 'Хотите восстановить базу данных из SQL дампа?',
+        db_restore_path: 'Укажите путь к файлу c SQL дампом, если хотите восстановить базу данных из дампа'
       }
     }
   end
@@ -49,9 +45,7 @@ RSpec.describe 'install.sh' do
       ssl_domains: ssl_domains,
       license_ip: license_ip,
       license_key: license_key,
-      db_restore: db_restore,
       db_restore_path: db_restore_path,
-      db_restore_path_want_exit: db_restore_path_want_exit,
       db_restore_salt: db_restore_salt,
     }
   end
@@ -162,10 +156,6 @@ RSpec.describe 'install.sh' do
     end
 
     it_behaves_like 'field without default', :license_key, value: 'AAAA-BBBB-CCCC-DDDD'
-
-    it_behaves_like 'should show default value', :db_restore, showed_value: 'no'
-
-    it_behaves_like 'should store default value', :db_restore, readed_inventory_value: 'no'
 
     it_behaves_like 'inventory contains value', :evaluated_by_installer, 'yes'
 
@@ -315,35 +305,43 @@ RSpec.describe 'install.sh' do
 
   describe 'dump checking' do
     let(:docker_image) { 'centos' }
-    # we must not skip checks with -sp options, but we don't want to run yum upgrade in docker
-    let(:command_stubs) { {yum: '/bin/false'} }
+    let(:command_stubs) { {yum: '/bin/true', iptables: '/bin/true'} }
+    let(:commands) { [%Q{echo "echo #{mime_type}" > /bin/file}, 'chmod a+x /bin/file'] }
 
-    let(:db_restore) { 'yes' }
     let(:db_restore_salt) { 'some.salt' }
-    let(:db_restore_path_want_exit) { 'yes' }
 
     context 'valid plain text dump' do
+      let(:mime_type) { 'text/plain' }
       let(:copy_files) { ["#{ROOT_PATH}/spec/files/valid.sql"] }
       let(:db_restore_path) { 'valid.sql' }
 
-      it_behaves_like 'should print to', :stdout, 'Checking SQL dump . OK'
+      it_behaves_like 'should print to', :stderr, 'Checking SQL dump . OK'
       it_behaves_like 'should print to', :log, / grep .* valid.sql/
     end
 
     context 'valid gzipped dump' do
+      let(:mime_type) { 'application/x-gzip' }
       let(:copy_files) { ["#{ROOT_PATH}/spec/files/valid.sql.gz"] }
       let(:db_restore_path) { 'valid.sql.gz' }
 
-      it_behaves_like 'should print to', :stdout, 'Checking SQL dump . OK'
+      it_behaves_like 'should print to', :stderr, 'Checking SQL dump . OK'
       it_behaves_like 'should print to', :log, / zgrep .* valid.sql.gz/
     end
 
     context 'dump is invalid' do
+      let(:mime_type) { 'text/plain' }
       let(:copy_files) { ["#{ROOT_PATH}/spec/files/invalid.sql"] }
-      let(:db_restore_path) { 'invalid.sql' }
+      let(:db_restore_path) { ['invalid.sql', ''] }
 
-      it_behaves_like 'should print to', :stdout, 'Checking SQL dump . NOK'
-      it_behaves_like 'should exit with error', 'SQL dump is broken'
+      it_behaves_like 'should print to', :stderr, 'Checking SQL dump . NOK'
+    end
+
+    context 'dump is invalid' do
+      let(:mime_type) { 'application/x-gzip' }
+      let(:copy_files) { ["#{ROOT_PATH}/spec/files/invalid.sql.gz"] }
+      let(:db_restore_path) { ['invalid.sql.gz', ''] }
+
+      it_behaves_like 'should print to', :stderr, 'Checking SQL dump . NOK'
     end
   end
 
