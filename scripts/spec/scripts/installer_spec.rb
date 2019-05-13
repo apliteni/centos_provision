@@ -160,7 +160,7 @@ RSpec.describe 'install.sh' do
     it_behaves_like 'inventory contains value', :evaluated_by_installer, 'yes'
 
     describe 'correctly stores yes/no fields' do
-      it_behaves_like 'should print to', :log, /Write inventory file.*ssl=no/m
+      it_behaves_like 'should print to', :log, /Writing inventory file.*ssl=no/m
     end
   end
 

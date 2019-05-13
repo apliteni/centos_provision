@@ -342,6 +342,9 @@ add_indentation(){
 
 detect_mime_type(){
   local file="${1}"
+  if ! is_installed file "yes"; then
+    install_package file > /dev/stderr
+  fi
   file --brief --mime-type "$file"
 }
 
@@ -1792,7 +1795,7 @@ can_install_firewall(){
 
 
 write_inventory_file(){
-  debug "Write inventory file"
+  debug "Writing inventory file: STARTED"
   echo -n > "$INVENTORY_FILE"
   print_line_to_inventory_file "[server]"
   print_line_to_inventory_file "localhost connection=local ansible_user=root"
@@ -1825,6 +1828,7 @@ write_inventory_file(){
   if isset "$CUSTOM_PACKAGE"; then
     print_line_to_inventory_file "custom_package=$CUSTOM_PACKAGE"
   fi
+  debug "Writing inventory file: DONE"
 }
 
 
@@ -1843,14 +1847,8 @@ print_line_to_inventory_file(){
 }
 
 
-stage5(){
-  debug "Starting stage 5: upgrade current and install necessary packages"
-  upgrade_packages
-  install_packages
-}
-
-
-upgrade_packages(){
+stage51(){
+  debug "Starting stage 5.1: upgrade current packages"
   debug "Installing deltarpm"
   install_package deltarpm
   debug "Upgrading packages"
@@ -1858,7 +1856,8 @@ upgrade_packages(){
 }
 
 
-install_packages(){
+stage52(){
+  debug "Starting stage 5.2: install necessary packages"
   if ! is_installed tar; then
     install_package tar
   fi
@@ -2341,8 +2340,9 @@ install(){
     stage3                  # read previously saved vars from the inventory file
     assert_keitaro_not_installed
     stage4                  # get and save vars to the inventory file
-    stage5                  # upgrade packages and install ansible
+    stage51                 # upgrade packages
   fi
+  stage52                   # install ansible
   stage6                    # run ansible playbook
 }
 

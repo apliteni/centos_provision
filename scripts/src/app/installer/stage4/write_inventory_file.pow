@@ -2,7 +2,7 @@
 
 
 write_inventory_file()
-  debug "Write inventory file"
+  debug "Writing inventory file: STARTED"
   echo -n > $INVENTORY_FILE
   print_line_to_inventory_file "[server]"
   print_line_to_inventory_file "localhost connection=local ansible_user=root"
@@ -32,6 +32,7 @@ write_inventory_file()
     print_line_to_inventory_file "kversion=$KEITARO_RELEASE"
   if isset $CUSTOM_PACKAGE
     print_line_to_inventory_file "custom_package=$CUSTOM_PACKAGE"
+  debug "Writing inventory file: DONE"
 
 
 get_cpu_cores()

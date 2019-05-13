@@ -2,5 +2,7 @@
 
 
 detect_mime_type(file)
+  if ! is_installed file "yes"
+    install_package file > /dev/stderr
   file --brief --mime-type $file
 

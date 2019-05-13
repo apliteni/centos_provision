@@ -6,7 +6,7 @@
 
 
 write_inventory_file(){
-  debug "Write inventory file"
+  debug "Writing inventory file: STARTED"
   echo -n > "$INVENTORY_FILE"
   print_line_to_inventory_file "[server]"
   print_line_to_inventory_file "localhost connection=local ansible_user=root"
@@ -39,6 +39,7 @@ write_inventory_file(){
   if isset "$CUSTOM_PACKAGE"; then
     print_line_to_inventory_file "custom_package=$CUSTOM_PACKAGE"
   fi
+  debug "Writing inventory file: DONE"
 }
 
 
