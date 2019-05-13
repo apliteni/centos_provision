@@ -1,13 +1,52 @@
+# rpc bus allows php application and external clients to talk to rr services.
+rpc:
+  # enable rpc server
+  enable: true
+
+  # rpc connection DSN. Supported TCP and Unix sockets.
+  listen: tcp://127.0.0.1:6001
+
+# http service configuration.
 http:
+  # http host to listen.
   address: {{ php_rr_bind_address }}
+
+  # http worker pool configuration.
   workers:
+    # php worker command.
     command: "{{ php_path }} {{ keitaro_root }}/server.php"
+
+    # worker pool configuration.
     pool:
+      # number of workers to be serving.
       numWorkers: {{ php_tracker_workers_count }}
+
+      # maximum jobs per worker, 0 - unlimited.
       maxJobs: {{ php_tracker_worker_max_requests }}
+
+      # for how long worker is allowed to be bootstrapped.
       allocateTimeout: 60
+
+      # amount of time given to worker to gracefully destruct itself.
       destroyTimeout:  60
 
-rpc:
-  enabled: true
+# monitors rr server(s)
+limit:
+  # check worker state each second
+  interval: 1
 
+  # custom watch configuration for each service
+  services:
+    # monitor http workers
+    http:
+      # maximum allowed memory consumption per worker (soft)
+      maxMemory: 100
+
+      # maximum time to live for the worker (soft)
+      TTL: 10
+
+      # maximum allowed amount of time worker can spend in idle before being removed (for weak db connections, soft)
+      idleTTL: 10
+
+      # max_execution_time (brutal)
+      execTTL: 20
