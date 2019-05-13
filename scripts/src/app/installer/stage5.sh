@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
-stage51(){
-  debug "Starting stage 5.1: upgrade current packages"
+stage5(){
+  debug "Starting stage 5: upgrade current and install necessary packages"
+  upgrade_packages
+  install_packages
+}
+
+
+upgrade_packages(){
   debug "Installing deltarpm"
   install_package deltarpm
   debug "Upgrading packages"
@@ -8,8 +14,7 @@ stage51(){
 }
 
 
-stage52(){
-  debug "Starting stage 5.2: install necessary packages"
+install_packages(){
   if ! is_installed tar; then
     install_package tar
   fi

@@ -1406,8 +1406,8 @@ get_var_from_keitaro_app_config(){
 
 stage1(){
   debug "Starting stage 1: initial script setup"
-  setup_vars
   parse_options "$@"
+  setup_vars
   set_ui_lang
 }
 
@@ -1426,11 +1426,11 @@ parse_options(){
     case $option in
       A)
         VARS['license_ip']=$argument
+        AUTO_INSTALL="true"
         ensure_valid A license_ip validate_ip
         ;;
       K)
         VARS['license_key']=$argument
-        RECONFIGURE="true"
         ensure_valid K license_key validate_license_key
         ;;
       U)
@@ -1503,9 +1503,9 @@ help_ru(){
   print_err "Пример: "$SCRIPT_NAME" -L ru -A a.b.c.d -K AAAA-BBBB-CCCC-DDDD -U some_username -P some_password"
   print_err
   print_err "Автоматизация:"
-  print_err "  -A LICENSE_IP            задать IP адрес лицензии (обязательно наличие -K, включает -r)"
+  print_err "  -A LICENSE_IP            задать IP адрес лицензии (обязательно наличие -K, выключает интерактивный режим)"
   print_err
-  print_err "  -K LICENSE_KEY           задать ключ лицензии (обязательно наличие -A, включает -r)"
+  print_err "  -K LICENSE_KEY           задать ключ лицензии (обязательно наличие -A)"
   print_err
   print_err "  -F DUMP_FILEPATH         задать путь к дампу базы (обязательно наличие -S, -A и -K)"
   print_err
@@ -1515,7 +1515,7 @@ help_ru(){
   print_err
   print_err "  -P ADMIN_PASSWORD        задать пароль администратора (обязательно наличие -A и -K)"
   print_err
-  print_err "  -r                       отключить интерактивный режим"
+  print_err "  -r                       включить режим переконфигурации (несовместимо с -A)"
   print_err
   print_err "Настройка:"
   print_err "  -a PATH_TO_PACKAGE       задать путь к установочному пакету с архивом Keitaro"
@@ -1534,9 +1534,9 @@ help_en(){
   print_err "Example: "$SCRIPT_NAME" -L en -A a.b.c.d -K AAAA-BBBB-CCCC-DDDD -U some_username -P some_password"
   print_err
   print_err "Script automation:"
-  print_err "  -A LICENSE_IP            set license IP (-K should be specified, enables -r)"
+  print_err "  -A LICENSE_IP            set license IP (-K should be specified, disables interactive mode)"
   print_err
-  print_err "  -K LICENSE_KEY           set license key (-A should be specified, enables -r)"
+  print_err "  -K LICENSE_KEY           set license key (-A should be specified)"
   print_err
   print_err "  -F DUMP_FILEPATH         set filepath to dump (-S, -A and -K should be specified)"
   print_err
@@ -1546,7 +1546,7 @@ help_en(){
   print_err
   print_err "  -P ADMIN_PASSWORD        set admin password (-A and -K should be specified)"
   print_err
-  print_err "  -r                       disable interactive mode"
+  print_err "  -r                       enables reconfiguration mode (incompatible with -A)"
   print_err
   print_err "Customization:"
   print_err "  -a PATH_TO_PACKAGE       set path to Keitaro installation package"
@@ -1560,22 +1560,35 @@ help_en(){
 }
 
 
+#
+
+
+
+
 
 setup_vars(){
-  VARS['skip_firewall']='no'
-  VARS['ssl']='no'
-  VARS['ssl_certificate']='self-signed'
-  VARS['db_root_password']=$(generate_password)
-  VARS['db_name']='keitaro'
-  VARS['db_user']='keitaro'
-  VARS['db_password']=$(generate_password)
-  VARS['db_restore']='no'
-  VARS['db_restore_path_want_exit']='no'
-  VARS['db_engine']='tokudb'
-  VARS['admin_login']='admin'
-  VARS['admin_password']=$(generate_password)
-  VARS['php_engine']='roadrunner'
-  VARS['language']='en'
+  setup_default_value skip_firewall no
+  setup_default_value ssl_certificate 'self-signed'
+  setup_default_value admin_login 'admin'
+  setup_default_value admin_password "$(generate_password)"
+  setup_default_value db_name 'keitaro'
+  setup_default_value db_user 'keitaro'
+  setup_default_value db_password "$(generate_password)"
+  setup_default_value db_root_password "$(generate_password)"
+  setup_default_value db_engine 'tokudb'
+  setup_default_value php_engine 'roadrunner'
+}
+
+
+setup_default_value(){
+  local var_name="${1}"
+  local default_value="${2}"
+  if empty "${VARS[${var_name}]}"; then
+    debug "VARS['${var_name}'] is empty, set to '${default_value}'"
+    VARS[${var_name}]=$default_value
+  else
+    debug "VARS['${var_name}'] is set to '${VARS[$var_name]}'"
+  fi
 }
 
 
@@ -1724,10 +1737,19 @@ parse_line_from_inventory_file(){
 }
 
 
+#
+
+
+
+
 
 stage4(){
   debug "Starting stage 4: generate inventory file"
-  get_user_vars
+  if isset "$AUTO_INSTALL"; then
+    debug "Skip reading vars from stdin"
+  else
+    get_user_vars
+  fi
   write_inventory_file
 }
 
@@ -1847,8 +1869,14 @@ print_line_to_inventory_file(){
 }
 
 
-stage51(){
-  debug "Starting stage 5.1: upgrade current packages"
+stage5(){
+  debug "Starting stage 5: upgrade current and install necessary packages"
+  upgrade_packages
+  install_packages
+}
+
+
+upgrade_packages(){
   debug "Installing deltarpm"
   install_package deltarpm
   debug "Upgrading packages"
@@ -1856,8 +1884,7 @@ stage51(){
 }
 
 
-stage52(){
-  debug "Starting stage 5.2: install necessary packages"
+install_packages(){
   if ! is_installed tar; then
     install_package tar
   fi
@@ -2340,9 +2367,8 @@ install(){
     stage3                  # read previously saved vars from the inventory file
     assert_keitaro_not_installed
     stage4                  # get and save vars to the inventory file
-    stage51                 # upgrade packages
+    stage5                  # upgrade packages and install ansible
   fi
-  stage52                   # install ansible
   stage6                    # run ansible playbook
 }
 

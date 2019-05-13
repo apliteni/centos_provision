@@ -1,20 +1,33 @@
 #!/usr/bin/env bash
+#
+
+
+
+
 
 setup_vars(){
-  VARS['skip_firewall']='no'
-  VARS['ssl']='no'
-  VARS['ssl_certificate']='self-signed'
-  VARS['db_root_password']=$(generate_password)
-  VARS['db_name']='keitaro'
-  VARS['db_user']='keitaro'
-  VARS['db_password']=$(generate_password)
-  VARS['db_restore']='no'
-  VARS['db_restore_path_want_exit']='no'
-  VARS['db_engine']='tokudb'
-  VARS['admin_login']='admin'
-  VARS['admin_password']=$(generate_password)
-  VARS['php_engine']='roadrunner'
-  VARS['language']='en'
+  setup_default_value skip_firewall no
+  setup_default_value ssl_certificate 'self-signed'
+  setup_default_value admin_login 'admin'
+  setup_default_value admin_password "$(generate_password)"
+  setup_default_value db_name 'keitaro'
+  setup_default_value db_user 'keitaro'
+  setup_default_value db_password "$(generate_password)"
+  setup_default_value db_root_password "$(generate_password)"
+  setup_default_value db_engine 'tokudb'
+  setup_default_value php_engine 'roadrunner'
+}
+
+
+setup_default_value(){
+  local var_name="${1}"
+  local default_value="${2}"
+  if empty "${VARS[${var_name}]}"; then
+    debug "VARS['${var_name}'] is empty, set to '${default_value}'"
+    VARS[${var_name}]=$default_value
+  else
+    debug "VARS['${var_name}'] is set to '${VARS[$var_name]}'"
+  fi
 }
 
 

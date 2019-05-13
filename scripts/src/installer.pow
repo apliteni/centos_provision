@@ -100,8 +100,7 @@ install()
     stage3                  # read previously saved vars from the inventory file
     assert_keitaro_not_installed
     stage4                  # get and save vars to the inventory file
-    stage51                 # upgrade packages
-  stage52                   # install ansible
+    stage5                  # upgrade packages and install ansible
   stage6                    # run ansible playbook
 
 

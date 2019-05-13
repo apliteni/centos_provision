@@ -13,11 +13,11 @@ parse_options(){
     case $option in
       A)
         VARS['license_ip']=$argument
+        AUTO_INSTALL="true"
         ensure_valid A license_ip validate_ip
         ;;
       K)
         VARS['license_key']=$argument
-        RECONFIGURE="true"
         ensure_valid K license_key validate_license_key
         ;;
       U)
@@ -90,9 +90,9 @@ help_ru(){
   print_err "Пример: "$SCRIPT_NAME" -L ru -A a.b.c.d -K AAAA-BBBB-CCCC-DDDD -U some_username -P some_password"
   print_err
   print_err "Автоматизация:"
-  print_err "  -A LICENSE_IP            задать IP адрес лицензии (обязательно наличие -K, включает -r)"
+  print_err "  -A LICENSE_IP            задать IP адрес лицензии (обязательно наличие -K, выключает интерактивный режим)"
   print_err
-  print_err "  -K LICENSE_KEY           задать ключ лицензии (обязательно наличие -A, включает -r)"
+  print_err "  -K LICENSE_KEY           задать ключ лицензии (обязательно наличие -A)"
   print_err
   print_err "  -F DUMP_FILEPATH         задать путь к дампу базы (обязательно наличие -S, -A и -K)"
   print_err
@@ -102,7 +102,7 @@ help_ru(){
   print_err
   print_err "  -P ADMIN_PASSWORD        задать пароль администратора (обязательно наличие -A и -K)"
   print_err
-  print_err "  -r                       отключить интерактивный режим"
+  print_err "  -r                       включить режим переконфигурации (несовместимо с -A)"
   print_err
   print_err "Настройка:"
   print_err "  -a PATH_TO_PACKAGE       задать путь к установочному пакету с архивом Keitaro"
@@ -121,9 +121,9 @@ help_en(){
   print_err "Example: "$SCRIPT_NAME" -L en -A a.b.c.d -K AAAA-BBBB-CCCC-DDDD -U some_username -P some_password"
   print_err
   print_err "Script automation:"
-  print_err "  -A LICENSE_IP            set license IP (-K should be specified, enables -r)"
+  print_err "  -A LICENSE_IP            set license IP (-K should be specified, disables interactive mode)"
   print_err
-  print_err "  -K LICENSE_KEY           set license key (-A should be specified, enables -r)"
+  print_err "  -K LICENSE_KEY           set license key (-A should be specified)"
   print_err
   print_err "  -F DUMP_FILEPATH         set filepath to dump (-S, -A and -K should be specified)"
   print_err
@@ -133,7 +133,7 @@ help_en(){
   print_err
   print_err "  -P ADMIN_PASSWORD        set admin password (-A and -K should be specified)"
   print_err
-  print_err "  -r                       disable interactive mode"
+  print_err "  -r                       enables reconfiguration mode (incompatible with -A)"
   print_err
   print_err "Customization:"
   print_err "  -a PATH_TO_PACKAGE       set path to Keitaro installation package"
