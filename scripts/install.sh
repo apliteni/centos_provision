@@ -2156,7 +2156,7 @@ extract_domains_from_enable_ssl_log(){
 show_credentials(){
   if [[ "${VARS['ssl_certificate']}" == 'letsencrypt' ]] && isset "${SSL_SUCCESSFUL_DOMAINS}" ]]; then
     protocol='https'
-    domain=$(expr match "${SSL_SUCCESSFUL_DOMAINS}" '\([^ ]*\)')
+    domain=$(expr match "${SSL_SUCCESSFUL_DOMAINS}" '\([^,]*\)')
   else
     protocol='http'
     domain="${VARS['license_ip']}"
