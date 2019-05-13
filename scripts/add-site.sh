@@ -110,6 +110,7 @@ else
 fi
 
 declare -A VARS
+declare -A ARGS
 
 SSL_ENABLER_ERRORS_LOG="${CONFIG_DIR}/ssl_enabler_errors.log"
 
@@ -1379,7 +1380,7 @@ help_en(){
   print_err "Example: "$SCRIPT_NAME" -L en -D domain1.tld,domain2.tld -R /var/www/domain1.tld"
   print_err
   print_err "Script automation:"
-  print_err "  -D DOMAIN_LIST           set list of domains, DOMAINS=domain1.tld[,domain2.tld...]"
+  print_err "  -D DOMAINS               set list of domains, DOMAINS=domain1.tld[,domain2.tld...]"
   print_err
   print_err "  -R PATH                  set existent path to the site root"
   print_err

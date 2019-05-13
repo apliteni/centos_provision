@@ -1,2 +1,2 @@
-CREATE TABLE `keitaro_clicks`;
+CREATE TABLE `keitaro_acl`;
 CREATE TABLE IF NOT EXISTS `schema_version`;

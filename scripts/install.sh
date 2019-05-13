@@ -120,6 +120,7 @@ else
 fi
 
 declare -A VARS
+declare -A ARGS
 
 SSL_ENABLER_ERRORS_LOG="${CONFIG_DIR}/ssl_enabler_errors.log"
 
@@ -341,17 +342,7 @@ add_indentation(){
 
 detect_mime_type(){
   local file="${1}"
-  if is_installed "$file"; then
-    file --brief --mime-type "$file"
-  else
-    filename=$(basename "$file")
-    extension="${filename##*.}"
-    if [[ "$extension" == 'gz' ]]; then
-      echo 'application/x-gzip'
-    else
-      echo 'text/plain'
-    fi
-  fi
+  file --brief --mime-type "$file"
 }
 
 
@@ -1009,6 +1000,24 @@ get_error(){
 }
 
 
+#
+
+
+
+
+
+ensure_valid(){
+  local option="${1}"
+  local var_name="${2}"
+  local validation_methods="${3}"
+  error="$(get_error "${var_name}" "${validation_methods}")"
+  if isset "$error"; then
+    print_err "-${option}: $(translate "prompt_errors.${error}" "value=${VARS[$var_name]}")"
+    exit ${FAILURE_RESULT}
+  fi
+}
+
+
 SUBDOMAIN_REGEXP="[[:alnum:]-]+"
 DOMAIN_REGEXP="(${SUBDOMAIN_REGEXP}\.)+[[:alpha:]]${SUBDOMAIN_REGEXP}"
 
@@ -1057,6 +1066,51 @@ valid_ip_segment(){
 }
 
 
+#
+
+
+
+
+
+validate_keitaro_dump(){
+  local file="${1}"
+  if empty "$file"; then
+    return ${SUCCESS_RESULT}
+  fi
+  local cat_command=''
+  local mime_type="$(detect_mime_type ${file})"
+  debug "Detected mime type: ${mime_type}"
+  if [[ "$mime_type" == 'application/x-gzip' ]]; then
+    grep_command='zgrep'
+    check_table_2="$(ensure_table_dumped "${grep_command}" "schema_version") ${file}"
+  else
+    if [[ "$mime_type" == 'text/plain' ]]; then
+      grep_command='grep'
+      check_table_2="tail -n 100 ${file} | $(ensure_table_dumped "${grep_command}" "schema_version")"
+    else
+      return ${FAILURE_RESULT}
+    fi
+  fi
+  check_table_1="$(ensure_table_dumped "${grep_command}" "keitaro_acl") ${file}"
+  ensure_tables_dumped="${check_table_1} && ${check_table_2}"
+  message="$(translate 'messages.check_keitaro_dump_validity')"
+  run_command "${ensure_tables_dumped}" "${message}" 'hide_output' 'allow_errors' > /dev/stderr
+}
+
+
+ensure_table_dumped(){
+  local grep_command="${1}"
+  local table="${2}"
+  echo "${grep_command} -qP $(build_check_table_exists_expression "$table")"
+}
+
+
+build_check_table_exists_expression(){
+  local table="${1}"
+  echo "'^CREATE TABLE( IF NOT EXISTS)? \`${table}\`'"
+}
+
+
 
 validate_license_key(){
   local value="${1}"
@@ -1090,9 +1144,17 @@ validate_presence(){
 }
 
 
+#
+
+
+
+
 
 validate_file_existence(){
   local value="${1}"
+  if empty "$value"; then
+    return ${SUCCESS_RESULT}
+  fi
   [[ -f "$value" ]]
 }
 
@@ -1181,10 +1243,8 @@ DICT['en.prompts.admin_password']='Please enter Keitaro admin password'
 DICT['en.prompts.db_name']='Please enter database name'
 DICT['en.prompts.db_password']='Please enter database user password'
 DICT['en.prompts.db_user']='Please enter database user name'
-DICT['en.prompts.db_restore']='Do you want to restore the database from SQL dump?'
-DICT['en.prompts.db_restore_path']='Please enter the path to the SQL dump file'
-DICT['en.prompts.db_restore_path_want_exit']='Do you want to exit?'
-DICT['en.prompts.db_restore_salt']='Please enter the value of "salt" parameter from the old config (application/config/config.ini.php)'
+DICT['en.prompts.db_restore_path']='Please enter the path to the SQL dump file if you want to restore database'
+DICT['en.prompts.db_restore_salt']='Please enter the value of the "salt" parameter from the old config (application/config/config.ini.php)'
 DICT['en.prompts.license_ip']='Please enter server IP'
 DICT['en.prompts.license_key']='Please enter license key'
 DICT['en.prompts.ssl']="Do you want to install Free SSL certificates (you can do it later)?"
@@ -1199,8 +1259,7 @@ DICT['en.prompt_errors.validate_alnumdashdot']='Only Latin letters, numbers, das
 DICT['en.prompt_errors.validate_starts_with_latin_letter']='The value must begin with a Latin letter'
 DICT['en.prompt_errors.validate_file_existence']='The file was not found by the specified path, please enter the correct path to the file'
 DICT['en.prompt_errors.validate_keitaro_dump']='The SQL dump is broken, please specify path to correct SQL dump of Keitaro'
-DICT['en.prompt_errors.validate_not_root']='You are not allowed to use root as database user'
-DICT['en.prompt_errors.validate_not_reserved_word']='You are not allowed to use yes/no/true/false for this field'
+DICT['en.prompt_errors.validate_not_reserved_word']='You are not allowed to use yes/no/true/false as value'
 
 DICT['ru.messages.keitaro_already_installed']='Keitaro трекер уже установлен.'
 DICT['ru.messages.check_ability_firewall_installing']="Проверяем возможность установки фаервола"
@@ -1231,9 +1290,7 @@ DICT['ru.prompts.admin_password']='Укажите пароль админист�
 DICT['ru.prompts.db_name']='Укажите имя базы данных'
 DICT['ru.prompts.db_password']='Укажите пароль пользователя базы данных'
 DICT['ru.prompts.db_user']='Укажите пользователя базы данных'
-DICT['ru.prompts.db_restore']='Хотите восстановить базу данных из SQL дампа?'
-DICT['ru.prompts.db_restore_path']='Укажите путь к файлу c SQL дампом'
-DICT['ru.prompts.db_restore_path_want_exit']='Хотите выйти из программы?'
+DICT['ru.prompts.db_restore_path']='Укажите путь к файлу c SQL дампом, если хотите восстановить базу данных из дампа'
 DICT['ru.prompts.db_restore_salt']='Укажите значение параметра salt из старой конфигурации (application/config/config.ini.php)'
 DICT['ru.prompts.license_ip']='Укажите IP адрес сервера'
 DICT['ru.prompts.license_key']='Укажите лицензионный ключ'
@@ -1249,10 +1306,7 @@ DICT['ru.prompt_errors.validate_alnumdashdot']='Можно использова�
 DICT['ru.prompt_errors.validate_starts_with_latin_letter']='Значение должно начинаться с латинской буквы'
 DICT['ru.prompt_errors.validate_file_existence']='Файл по заданному пути не обнаружен, введите правильный путь к файлу'
 DICT['ru.prompt_errors.validate_keitaro_dump']='Указанный файл не является дампом Keitaro или загружен не полностью. Укажите путь до корректного SQL дампа'
-DICT['ru.prompt_errors.validate_not_root']="Запрещено использовать root в качестве пользователя базы данных"
-DICT['ru.prompt_errors.validate_not_reserved_word']='Запрещено использовать yes/no/true/false для этого поля'
-
-COMMENT_ME_IF_POWSCRIPT_WANNT_COMPILE_PROJECT="'"
+DICT['ru.prompt_errors.validate_not_reserved_word']='Запрещено использовать yes/no/true/false в качестве значения'
 
 
 
@@ -1363,8 +1417,9 @@ stage1(){
 
 
 parse_options(){
-  while getopts ":A:K:ra:t:i:k:L:l:hvps" option; do
+  while getopts ":A:K:U:P:F:S:ra:t:i:k:L:l:hvps" option; do
     argument=$OPTARG
+    ARGS["${option}"]="${argument}"
     case $option in
       A)
         VARS['license_ip']=$argument
@@ -1372,15 +1427,24 @@ parse_options(){
         ;;
       K)
         VARS['license_key']=$argument
+        RECONFIGURE="true"
         ensure_valid K license_key validate_license_key
         ;;
       U)
         VARS['admin_login']=$argument
-        ensure_valid U admin_login "validate_not_root validate_alnumdashdot"
+        ensure_valid U admin_login "validate_alnumdashdot validate_not_reserved_word validate_starts_with_latin_letter"
         ;;
       P)
         VARS['admin_password']=$argument
-        ensure_valid P admin_password validate_alnumdashdot
+        ensure_valid P admin_password "validate_alnumdashdot validate_not_reserved_word"
+        ;;
+      F)
+        VARS['db_restore_path']=$argument
+        ensure_valid F db_restore_path "validate_file_existence validate_keitaro_dump"
+        ;;
+      S)
+        VARS['db_restore_salt']=$argument
+        ensure_valid S db_restore_salt "validate_alnumdashdot"
         ;;
       r)
         RECONFIGURE="true"
@@ -1410,10 +1474,24 @@ parse_options(){
         ;;
     esac
   done
-  if isset "${VARS['license_ip']}" && isset "${VARS['license_key']}"; then
-    RECONFIGURE="true"
+  if isset "${ARGS['A']}" || isset "${ARGS['K']}"; then
+    ensure_license_is_set
+  fi
+  if isset "${ARGS['U']}" || isset "${ARGS['P']}"; then
+    ensure_license_is_set
+  fi
+  if isset "${ARGS['F']}" || isset "${ARGS['S']}"; then
+    ensure_valid F db_restore_path validate_presence
+    ensure_valid S db_restore_salt validate_presence
+    ensure_license_is_set
   fi
   ensure_options_correct
+}
+
+
+ensure_license_is_set(){
+  ensure_valid A license_ip validate_presence
+  ensure_valid K license_key validate_presence
 }
 
 
@@ -1422,18 +1500,22 @@ help_ru(){
   print_err "Пример: "$SCRIPT_NAME" -L ru -A a.b.c.d -K AAAA-BBBB-CCCC-DDDD -U some_username -P some_password"
   print_err
   print_err "Автоматизация:"
-  print_err "  -A IP_ADDRESS            задать IP адрес лицензии Keitaro"
+  print_err "  -A LICENSE_IP            задать IP адрес лицензии (обязательно наличие -K, включает -r)"
   print_err
-  print_err "  -K LICENSE_KEY           задать ключ лицензии Keitaro"
+  print_err "  -K LICENSE_KEY           задать ключ лицензии (обязательно наличие -A, включает -r)"
   print_err
-  print_err "  -U ADMIN_USER            задать имя пользователя администратора Keitaro (admin по умолчанию)"
+  print_err "  -U ADMIN_USER            задать имя администратора (обязательно наличие -A и -K)"
   print_err
-  print_err "  -P ADMIN_PASSWORD        задать пароль администратора Keitaro (по умолчанию будет сгенерирован случайный)"
+  print_err "  -P ADMIN_PASSWORD        задать пароль администратора (обязательно наличие -A и -K)"
   print_err
-  print_err "  -r                       отключить интерактивный режим (-A совместно с -K подразумевает -r)"
+  print_err "  -F DUMP_FILEPATH         задать путь к дампу базы (обязательно наличие -S, -A и -K)"
+  print_err
+  print_err "  -S SALT                  задать salt при восстановлении из дампа (обязательно наличие -F, -A и -K)"
+  print_err
+  print_err "  -r                       отключить интерактивный режим"
   print_err
   print_err "Настройка:"
-  print_err "  -a PATH_TO_PACKAGE       устанавить Keitaro из пакета"
+  print_err "  -a PATH_TO_PACKAGE       задать путь к установочному пакету с архивом Keitaro"
   print_err
   print_err "  -t TAGS                  задать список ansible-playbook тегов, TAGS=tag1[,tag2...]"
   print_err
@@ -1449,18 +1531,22 @@ help_en(){
   print_err "Example: "$SCRIPT_NAME" -L en -A a.b.c.d -K AAAA-BBBB-CCCC-DDDD -U some_username -P some_password"
   print_err
   print_err "Script automation:"
-  print_err "  -A IP_ADDRESS            set Keitaro license IP"
+  print_err "  -A LICENSE_IP            set license IP (-K should be specified, enables -r)"
   print_err
-  print_err "  -K LICENSE_KEY           set Keitaro license key"
+  print_err "  -K LICENSE_KEY           set license key (-A should be specified, enables -r)"
   print_err
-  print_err "  -U ADMIN_USER            set Keitaro admin user name (admin by default)"
+  print_err "  -U ADMIN_USER            set admin user name (-A and -K should be specified)"
   print_err
-  print_err "  -P ADMIN_PASSWORD        set Keitaro admin password (a random password will be generated by default) "
+  print_err "  -P ADMIN_PASSWORD        set admin password (-A and -K should be specified)"
   print_err
-  print_err "  -r                       disable interactive mode (setting -A among with -K implies -r)"
+  print_err "  -F DUMP_FILEPATH         set filepath to dump (-S, -A and -K should be specified)"
+  print_err
+  print_err "  -S SALT                  set salt for dump restoring (-F, -A and -K should be specified)"
+  print_err
+  print_err "  -r                       disable interactive mode"
   print_err
   print_err "Customization:"
-  print_err "  -a PATH_TO_PACKAGE       use Keitaro package for installation"
+  print_err "  -a PATH_TO_PACKAGE       set path to Keitaro installation package"
   print_err
   print_err "  -t TAGS                  set ansible-playbook tags, TAGS=tag1[,tag2...]"
   print_err
@@ -1627,8 +1713,10 @@ parse_line_from_inventory_file(){
   local line="${1}"
   if [[ "$line" =~ = ]]; then
     IFS="=" read var_name value <<< "$line"
-    VARS[$var_name]=$value
-    debug "  "$var_name"=${VARS[$var_name]}" 'light.blue'
+    if [[ "$var_name" != 'db_restore_path' ]]; then
+      VARS[$var_name]=$value
+      debug "  "$var_name"=${VARS[$var_name]}" 'light.blue'
+    fi
   fi
 }
 
@@ -1647,6 +1735,7 @@ stage4(){
 
 
 
+
 get_user_vars(){
   debug 'Read vars from user input'
   hack_stdin_if_pipe_mode
@@ -1657,13 +1746,13 @@ get_user_vars(){
       fail "$(translate 'errors.cant_install_firewall')"
     fi
   fi
+  get_user_license_vars
   get_user_ssl_vars
-  get_user_var 'db_restore' 'validate_presence validate_yes_no'
-  if is_yes "${VARS['db_restore']}"; then
-    get_user_var_db_restore_path
-    get_user_var 'db_restore_salt' 'validate_presence validate_alnumdashdot'
-  fi
-  common_validators="validate_presence validate_alnumdashdot validate_not_reserved_word"
+  get_user_db_restore_vars
+}
+
+
+get_user_license_vars(){
   if empty "${VARS['license_ip']}"; then
     VARS['license_ip']=$(get_host_ip)
   fi
@@ -1681,43 +1770,13 @@ get_user_ssl_vars(){
 }
 
 
-get_user_var_db_restore_path(){
-  get_user_var 'db_restore_path' 'validate_presence validate_file_existence'
-  if ! is_keitaro_dump_valid ${VARS['db_restore_path']}; then
-    print_prompt_error 'validate_keitaro_dump'
-    get_user_var 'db_restore_path_want_exit' 'validate_yes_no'
-    if is_yes "${VARS['db_restore_path_want_exit']}"; then
-      fail "$(translate 'errors.keitaro_dump_invalid')"
-    else
-      get_user_var_db_restore_path
-    fi
+get_user_db_restore_vars(){
+  get_user_var 'db_restore_path' 'validate_file_existence validate_keitaro_dump'
+  if isset "${VARS['db_restore_path']}"; then
+    get_user_var 'db_restore_salt' 'validate_presence validate_alnumdashdot'
   fi
 }
 
-
-is_keitaro_dump_valid(){
-  local file="${1}"
-  local cat_command=''
-  local mime_type="$(detect_mime_type ${file})"
-  debug "Detected mime type: ${mime_type}"
-  if [[ "$mime_type" == 'application/x-gzip' ]]; then
-    grep_command='zgrep'
-  else
-    grep_command='grep'
-  fi
-  check_table_1="$(ensure_table_dumped "${grep_command}" "keitaro_clicks" "${file}")"
-  check_table_2="$(ensure_table_dumped "${grep_command}" "schema_version" "${file}")"
-  ensure_tables_dumped="${check_table_1} && ${check_table_2}"
-  message="$(translate 'messages.check_keitaro_dump_validity')"
-  run_command "${ensure_tables_dumped}" "${message}" 'hide_output' 'allow_errors'
-}
-
-ensure_table_dumped(){
-  local grep_command="${1}"
-  local table="${2}"
-  local file="${3}"
-  echo "${grep_command} -qP '^CREATE TABLE( IF NOT EXISTS)? \`${table}\`' ${file}"
-}
 
 can_install_firewall(){
   command='iptables -t nat -L'
@@ -1742,14 +1801,12 @@ write_inventory_file(){
   print_line_to_inventory_file "skip_firewall=${VARS['skip_firewall']}"
   print_line_to_inventory_file "ssl="${VARS['ssl']}""
   print_line_to_inventory_file "ssl_domains="${VARS['ssl_domains']}""
-  print_line_to_inventory_file "ssl_email="${VARS['ssl_email']}""
   print_line_to_inventory_file "license_ip="${VARS['license_ip']}""
   print_line_to_inventory_file "license_key="${VARS['license_key']}""
   print_line_to_inventory_file "db_root_password="${VARS['db_root_password']}""
   print_line_to_inventory_file "db_name="${VARS['db_name']}""
   print_line_to_inventory_file "db_user="${VARS['db_user']}""
   print_line_to_inventory_file "db_password="${VARS['db_password']}""
-  print_line_to_inventory_file "db_restore="${VARS['db_restore']}""
   print_line_to_inventory_file "db_restore_path="${VARS['db_restore_path']}""
   print_line_to_inventory_file "db_restore_salt="${VARS['db_restore_salt']}""
   print_line_to_inventory_file "admin_login="${VARS['admin_login']}""
