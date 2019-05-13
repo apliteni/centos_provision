@@ -67,13 +67,13 @@ help_ru()
   print_err
   print_err "  -K LICENSE_KEY           задать ключ лицензии (обязательно наличие -A, включает -r)"
   print_err
-  print_err "  -U ADMIN_USER            задать имя администратора (обязательно наличие -A и -K)"
-  print_err
-  print_err "  -P ADMIN_PASSWORD        задать пароль администратора (обязательно наличие -A и -K)"
-  print_err
   print_err "  -F DUMP_FILEPATH         задать путь к дампу базы (обязательно наличие -S, -A и -K)"
   print_err
   print_err "  -S SALT                  задать salt при восстановлении из дампа (обязательно наличие -F, -A и -K)"
+  print_err
+  print_err "  -U ADMIN_USER            задать имя администратора (обязательно наличие -A и -K)"
+  print_err
+  print_err "  -P ADMIN_PASSWORD        задать пароль администратора (обязательно наличие -A и -K)"
   print_err
   print_err "  -r                       отключить интерактивный режим"
   print_err
@@ -97,13 +97,13 @@ help_en()
   print_err
   print_err "  -K LICENSE_KEY           set license key (-A should be specified, enables -r)"
   print_err
-  print_err "  -U ADMIN_USER            set admin user name (-A and -K should be specified)"
-  print_err
-  print_err "  -P ADMIN_PASSWORD        set admin password (-A and -K should be specified)"
-  print_err
   print_err "  -F DUMP_FILEPATH         set filepath to dump (-S, -A and -K should be specified)"
   print_err
   print_err "  -S SALT                  set salt for dump restoring (-F, -A and -K should be specified)"
+  print_err
+  print_err "  -U ADMIN_USER            set admin user name (-A and -K should be specified)"
+  print_err
+  print_err "  -P ADMIN_PASSWORD        set admin password (-A and -K should be specified)"
   print_err
   print_err "  -r                       disable interactive mode"
   print_err
