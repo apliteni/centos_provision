@@ -2,11 +2,11 @@ class Inventory
   attr_reader :values
 
   SERVER_CONFIGURATION_VERSION=1.0
-  INVENTORY_FILE = ".keitaro/installer_config"
+  INVENTORY_FILE = '.keitaro/installer_config'
   LINES_DIVIDER = "\n"
   VALUES_DIVIDER = '='
-  LOG_PRE_INVENTORY_LINE = 'Write inventory file'
-  LOG_POST_INVENTORY_LINE = 'Starting stage 5:'
+  LOG_PRE_INVENTORY_LINE = 'Writing inventory file: STARTED'
+  LOG_POST_INVENTORY_LINE = 'Writing inventory file: DONE'
 
   def initialize(values: {})
     self.values = values
