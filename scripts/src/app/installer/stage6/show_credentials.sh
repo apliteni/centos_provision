@@ -14,7 +14,7 @@ show_credentials(){
     domain="${VARS['license_ip']}"
   fi
   print_with_color "${protocol}://${domain}/admin" 'light.green'
-  if is_yes "${VARS['db_restore']}"; then
+  if isset "${VARS['db_restore_path']}"; then
     echo "$(translate 'messages.successful.use_old_credentials')"
   else
     colored_login=$(print_with_color "${VARS['admin_login']}" 'light.green')
