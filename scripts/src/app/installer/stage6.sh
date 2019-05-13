@@ -17,5 +17,4 @@ stage6(){
   else
     show_credentials
   fi
-  remove_log_files
 }

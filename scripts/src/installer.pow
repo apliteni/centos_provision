@@ -79,7 +79,6 @@ _require 'app/installer/stage4/write_inventory_file.sh'
 _require 'app/installer/stage5.sh'
 _require 'app/installer/stage6.sh'
 _require 'app/installer/stage6/download_provision.sh'
-_require 'app/installer/stage6/remove_log_files.sh'
 _require 'app/installer/stage6/run_ansible_playbook.sh'
 _require 'app/installer/stage6/run_ssl_enabler.sh'
 _require 'app/installer/stage6/show_credentials.sh'
@@ -94,10 +93,10 @@ install()
   init $@
   stage1 $@                 # initial script setup
   stage2                    # make some asserts
+  stage3                    # read vars from the inventory file
   if isset $RECONFIGURE
     write_inventory_on_reconfiguration
   else
-    stage3                  # read previously saved vars from the inventory file
     assert_keitaro_not_installed
     stage4                  # get and save vars to the inventory file
     stage5                  # upgrade packages and install ansible

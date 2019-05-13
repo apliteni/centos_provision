@@ -18,7 +18,12 @@ parse_line_from_inventory_file(){
   if [[ "$line" =~ = ]]; then
     IFS="=" read var_name value <<< "$line"
     if [[ "$var_name" != 'db_restore_path' ]]; then
-      VARS[$var_name]=$value
+      if empty "${VARS[$var_name]}"; then
+        VARS[$var_name]=$value
+        debug "# set $var_name from inventory"
+      else
+        debug "# $var_name is set from options, skip inventory value"
+      fi
       debug "  "$var_name"=${VARS[$var_name]}" 'light.blue'
     fi
   fi

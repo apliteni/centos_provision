@@ -8,9 +8,7 @@
 
 write_inventory_on_reconfiguration(){
   debug "Stages 3-5: write inventory on reconfiguration"
-  if is_file_exist "${HOME}/${INVENTORY_FILE}" "no" || is_file_exist "${INVENTORY_FILE}"; then
-    read_inventory
-  else
+  if ! is_file_exist "${HOME}/${INVENTORY_FILE}" "no" && ! is_file_exist "${INVENTORY_FILE}" "no"; then
     reset_vars_on_reconfiguration
     collect_inventory_variables
   fi

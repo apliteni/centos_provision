@@ -1346,9 +1346,7 @@ get_var_from_config(){
 
 write_inventory_on_reconfiguration(){
   debug "Stages 3-5: write inventory on reconfiguration"
-  if is_file_exist "${HOME}/${INVENTORY_FILE}" "no" || is_file_exist "${INVENTORY_FILE}"; then
-    read_inventory
-  else
+  if ! is_file_exist "${HOME}/${INVENTORY_FILE}" "no" && ! is_file_exist "${INVENTORY_FILE}" "no"; then
     reset_vars_on_reconfiguration
     collect_inventory_variables
   fi
@@ -1407,7 +1405,6 @@ get_var_from_keitaro_app_config(){
 stage1(){
   debug "Starting stage 1: initial script setup"
   parse_options "$@"
-  setup_vars
   set_ui_lang
 }
 
@@ -1697,6 +1694,7 @@ databases_exist(){
 stage3(){
   debug "Starting stage 3: read values from inventory file"
   read_inventory
+  setup_vars
 }
 
 
@@ -1704,9 +1702,10 @@ stage3(){
 read_inventory(){
   if is_file_exist "${HOME}/${INVENTORY_FILE}" "no"; then
     read_inventory_file "${HOME}/${INVENTORY_FILE}"
-  fi
-  if is_file_exist "${INVENTORY_FILE}"; then
-    read_inventory_file "${INVENTORY_FILE}"
+  else
+    if is_file_exist "${INVENTORY_FILE}"; then
+      read_inventory_file "${INVENTORY_FILE}"
+    fi
   fi
 }
 
@@ -1730,7 +1729,12 @@ parse_line_from_inventory_file(){
   if [[ "$line" =~ = ]]; then
     IFS="=" read var_name value <<< "$line"
     if [[ "$var_name" != 'db_restore_path' ]]; then
-      VARS[$var_name]=$value
+      if empty "${VARS[$var_name]}"; then
+        VARS[$var_name]=$value
+        debug "# set $var_name from inventory"
+      else
+        debug "# $var_name is set from options, skip inventory value"
+      fi
       debug "  "$var_name"=${VARS[$var_name]}" 'light.blue'
     fi
   fi
@@ -1914,7 +1918,6 @@ stage6(){
   else
     show_credentials
   fi
-  remove_log_files
 }
 
 
@@ -1923,14 +1926,6 @@ download_provision(){
   debug "Download provision"
   release_url="https://github.com/apliteni/centos_provision/archive/${RELEASE_BRANCH}.tar.gz"
   run_command "curl -sSL ${release_url} | tar xz"
-}
-
-
-
-remove_log_files(){
-  if [[ ! "$PRESERVE_RUNNING" ]]; then
-    rm -f "${SCRIPT_LOG}" "${SCRIPT_LOG}.*"
-  fi
 }
 
 
@@ -2361,10 +2356,10 @@ install(){
   init "$@"
   stage1 "$@"                 # initial script setup
   stage2                    # make some asserts
+  stage3                    # read vars from the inventory file
   if isset "$RECONFIGURE"; then
     write_inventory_on_reconfiguration
   else
-    stage3                  # read previously saved vars from the inventory file
     assert_keitaro_not_installed
     stage4                  # get and save vars to the inventory file
     stage5                  # upgrade packages and install ansible

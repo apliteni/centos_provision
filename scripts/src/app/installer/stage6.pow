@@ -12,4 +12,3 @@ stage6()
     debug 'ansible tags is set to ${ANSIBLE_TAGS} - skip printing credentials'
   else
     show_credentials
-  remove_log_files

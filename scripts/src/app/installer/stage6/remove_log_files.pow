@@ -1,6 +1,0 @@
-#!/usr/bin/env powscript
-
-
-remove_log_files()
-  if ! $PRESERVE_RUNNING
-    rm -f "${SCRIPT_LOG}" "${SCRIPT_LOG}.*"
