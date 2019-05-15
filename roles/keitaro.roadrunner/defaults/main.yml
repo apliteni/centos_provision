@@ -1,2 +1,2 @@
-rr_version: 1.4.0
+rr_version: 1.4.1
 rr_release_name: "roadrunner-{{ rr_version }}-linux-amd64"
