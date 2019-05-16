@@ -1,9 +1,6 @@
 - name: Tune logroatate
   include: tune-logrotate.yml
 
-- name: Tune php
-  include: tune-php.yml
-
 - name: Tune systemd
   include: tune-systemd.yml
 
