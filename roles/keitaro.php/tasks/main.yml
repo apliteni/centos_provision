@@ -2,7 +2,6 @@
   yum:
     name:
       - "{{php_version}}"
-      - "{{php_version}}-php-fpm"
       - "{{php_version}}-php-bcmath"
       - "{{php_version}}-php-devel"
       - "{{php_version}}-php-mysqlnd"
@@ -15,7 +14,7 @@
       - "{{php_version}}-php-ioncube-loader"
     state: installed
 
-- name: Link php directories and binary
+- name: Link php directories and php binary
   file:
     src: "{{item.from}}"
     dest: "{{item.to}}"
@@ -25,3 +24,7 @@
     - {from: "/opt/remi/{{php_version}}/root/bin/php-config", to: '/usr/bin/php-config'}
     - {from: "/etc/opt/remi/{{php_version}}", to: '/etc/php'}
     - {from: "/var/opt/remi/{{php_version}}/log/php-fpm", to: '/var/log/php-fpm'}
+
+
+- name: Tune php
+  include: tune-php.yml
