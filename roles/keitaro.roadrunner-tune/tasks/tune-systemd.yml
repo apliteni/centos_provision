@@ -1,20 +1,26 @@
-- name: Generate roadrunner systemd unit file into place.
+- name: Generate roadrunner related systemd units
   template:
-    src: systemd/roadrunner.service.j2
-    dest: /etc/systemd/system/roadrunner.service
+    src: "systemd/{{ item }}.j2"
+    dest: "/etc/systemd/system/{{ item }}"
+  with_items: "{{ roadrunner_services }}"
 
-- name: Enable and start roadrunner service if engine is roadrunner
+- name: Regenerate SystemD .path unit
+  include: tune-systemd-regenerate-path-unit.yml
+
+- name: Enable roadrunner and related services if engine is roadrunner
   systemd:
+    name: "{{ item }}"
     daemon-reload: true
-    name: roadrunner
     state: restarted
     enabled: yes
+  with_items: "{{ roadrunner_services }}"
   when: "php_engine == 'roadrunner'"
 
-- name: Disable and stop roadrunner service if engine is not roadrunner
+- name: Disable roadrunner and related services if engine is not roadrunner
   systemd:
-    daemon-reload: true
-    name: roadrunner
+    name: "{{ item }}"
     state: stopped
     enabled: no
+  with_items: "{{ roadrunner_services }}"
   when: "php_engine != 'roadrunner'"
+

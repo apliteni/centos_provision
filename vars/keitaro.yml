@@ -5,6 +5,7 @@ keitaro_root: /var/www/keitaro
 keitaro_config_dir: /etc/keitaro
 keitaro_config_backups_dir: "{{ keitaro_config_dir }}/backups"
 keitaro_stats_json_path: "{{ keitaro_root }}/var/stats.json"
+keitaro_watch_list: "{{ keitaro_root }}/application/data/watch_list.txt"
 keitaro_logrotate_common_period: 5
 keitaro_logrotate_nginx_period: 28
 keitaro_installer_version: 1.4

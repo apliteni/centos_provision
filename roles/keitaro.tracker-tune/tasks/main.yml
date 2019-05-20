@@ -12,3 +12,13 @@
     hour: "{{ 23 | random }}"
     minute: "{{ 59 | random }}"
     job: "{{ php_path }} {{ keitaro_root }}/bin/cli.php geodbs:update_all"
+
+- name: Generate watch list if it isn't exist.
+  copy:
+    dest: "{{ keitaro_watch_list }}"
+    content: >
+      application/redirects/
+      application/macros/
+      application/filters/
+      application/config/config.ini.php
+    force: no
