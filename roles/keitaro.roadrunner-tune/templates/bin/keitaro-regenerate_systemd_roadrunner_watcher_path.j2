@@ -1,0 +1,33 @@
+#!/bin/bash
+
+WATCH_LIST="{{ keitaro_watch_list }}"
+UNIT_PATH=/etc/systemd/system/roadrunner-watcher.path
+
+refresh() {
+  local content="$(echo "${1}" | grep -v '^PathModified=')"
+  for dir in $(cat "${WATCH_LIST}" | grep -v '^#' | grep -v '^$'); do
+    content=$(echo "${content}" | sed -r "s|^(# (PathModified=.*))|\\2/${dir}\n\\1|g")
+  done
+  echo "${content}"
+}
+
+read_unit() {
+  cat ${UNIT_PATH}
+}
+
+if [[ ! -f "${WATCH_LIST}" ]]; then
+  echo "ERR: watch list ${WATCH} is missing" > /dev/stderr
+  exit 1
+fi
+if [[ ! -f "${UNIT_PATH}" ]]; then
+  echo "ERR: SystemD unit ${UNIT_PATH} is missing" > /dev/stderr
+  exit 1
+fi
+
+OLD_CONTENT=$(read_unit)
+NEW_CONTENT=$(refresh "${OLD_CONTENT}")
+
+if [[ "${NEW_CONTENT}" != "${OLD_CONTENT}" ]]; then
+  echo "${NEW_CONTENT}" > "${UNIT_PATH}"
+  /usr/bin/systemctl daemon-reload
+fi
