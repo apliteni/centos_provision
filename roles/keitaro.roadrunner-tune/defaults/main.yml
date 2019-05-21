@@ -4,3 +4,7 @@ roadrunner_services:
   - roadrunner-watcher.service
   - roadrunner-watcher-generator.path
   - roadrunner-watcher-generator.service
+
+roadrunner_inactive_services:
+  - roadrunner-watcher.service
+  - roadrunner-watcher-generator.service
