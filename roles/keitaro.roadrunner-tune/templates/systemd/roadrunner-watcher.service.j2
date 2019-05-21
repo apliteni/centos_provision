@@ -1,10 +1,10 @@
 [Unit]
-Description=RoadRunner restarter
+Description=RoadRunner reloader
 After=network.target
 
 [Service]
 Type=idle
-ExecStart=/usr/bin/flock -w 1 /var/run/roadrunner-watcher.lock /usr/bin/systemctl reload roadrunner
+ExecStart=/usr/local/bin/keitaro-safe_reload_roadrunner
 
 [Install]
 WantedBy=multi-user.target
