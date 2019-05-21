@@ -4,9 +4,9 @@ WATCH_LIST="{{ keitaro_watch_list }}"
 UNIT_PATH=/etc/systemd/system/roadrunner-watcher.path
 
 refresh() {
-  local content="$(echo "${1}" | grep -v '^PathModified=')"
+  local content="$(echo "${1}" | grep -v '^Path')"
   for dir in $(cat "${WATCH_LIST}" | grep -v '^#' | grep -v '^$'); do
-    content=$(echo "${content}" | sed -r "s|^(# (PathModified=.*))|\\2/${dir}\n\\1|g")
+    content=$(echo "${content}" | sed -r "s|^(# (Path.*))|\\2/${dir}\n\\1|g")
   done
   echo "${content}"
 }
