@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 Type=idle
-ExecStart=/usr/bin/systemctl restart roadrunner.service
+ExecStart=/usr/bin/flock -w 1 /var/run/roadrunner-watcher.lock /usr/bin/systemctl reload roadrunner
 
 [Install]
 WantedBy=multi-user.target

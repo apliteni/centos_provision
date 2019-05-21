@@ -4,10 +4,11 @@ After=syslog.target network.target
 
 [Service]
 ExecStart=/usr/local/bin/roadrunner serve -v -c /etc/php/roadrunner.yml
+ExecReload=/usr/local/bin/roadrunner http:reset -v -c /etc/php/roadrunner.yml
 WorkingDirectory={{ keitaro_home }}
 
 Restart=always
-RestartSec=5s
+RestartSec=30s
 
 User={{ keitaro_user }}
 Group={{ keitaro_group }}
