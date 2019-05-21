@@ -3,6 +3,3 @@
 
 - name: Tune systemd
   include: tune-systemd.yml
-
-- name: Tune RR autoreloading
-  include: tune-roadrunner-watcher.yml

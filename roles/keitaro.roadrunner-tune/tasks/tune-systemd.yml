@@ -1,16 +1,21 @@
-- name: Generate roadrunner related systemd units
+- name: Generate roadrunner related systemd units except roadrunner-watcher.path
   template:
     src: "systemd/{{ item }}.j2"
     dest: "/etc/systemd/system/{{ item }}"
-  with_items: "{{ roadrunner_services }}"
+  with_items: "{{ roadrunner_services | difference(['roadrunner-watcher.path']) }}"
+  register: roadrunner_systemd_units
 
 - name: Regenerate SystemD .path unit
   include: tune-systemd-regenerate-path-unit.yml
 
+- name: Do daemon-reload to update SystemD services
+  systemd:
+    daemon-reload: true
+  when: roadrunner_systemd_units.changed
+
 - name: Enable roadrunner and related services if engine is roadrunner
   systemd:
     name: "{{ item }}"
-    daemon-reload: true
     state: restarted
     enabled: yes
   with_items: "{{ roadrunner_services }}"
