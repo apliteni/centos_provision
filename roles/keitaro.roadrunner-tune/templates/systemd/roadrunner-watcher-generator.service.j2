@@ -3,10 +3,9 @@ Description=RoadRunner watcher generator
 After=network.target
 
 [Service]
-Type=idle
-ExecStart=/usr/bin/flock -w 1 \
-                         /var/run/roadrunner-watch_list-watcher.lock \
-                         /usr/local/bin/keitaro-regenerate_systemd_roadrunner_watcher_path
+Type=oneshot
+ExecStartPre=/usr/bin/sleep 1
+ExecStart=/usr/local/bin/keitaro-regenerate_systemd_roadrunner_watcher_path
 
 [Install]
 WantedBy=multi-user.target
