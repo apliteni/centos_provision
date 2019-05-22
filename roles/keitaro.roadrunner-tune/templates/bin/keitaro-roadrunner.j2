@@ -5,8 +5,8 @@ RR_PIDFILE={{ rr_pidfile }}
 RR_CONFIG={{ rr_config }}
 RR_BIN={{ rr_bin }}
 JID_LENGTH=5
-WATCHDOG_USEC="${WATCHDOG_USEC:60000000}" # Set default watchdog interval to 60 secs
-WATCH_INTERVAL=$((${WATCHDOG_USEC} / 1000000 / 2)) # We will send keep-alive packet every half interval
+WATCHDOG_USEC="${WATCHDOG_USEC:-60000000}" # Set default watchdog interval to 60 secs
+WATCH_INTERVAL=$((${WATCHDOG_USEC} / 1000000 / 2)) # We will notify watchdog every half of WATCHDOG_USEC
 
 print_err() {
   local err="${1}"
@@ -15,20 +15,19 @@ print_err() {
 
 keitaro_log() {
   local level="${1}"
-  local jid="${2}"
-  local message="${3}"
-  date="$(date +"%F" -u)"
-  time="$(date +"%T" -u)"
+  local message="${2}"
+  local jid="$(generate_jid)"
+  local date="$(date +"%F" -u)"
+  local time="$(date +"%T" -u)"
   log_line="[${date} ${time}] [${level}] (jid:${jid}) [\"systemd\"] : RoadRunner: ${message}"
-  sudo -u keitaro bash -c "echo '${log_line}' >> /var/www/keitaro/log/production-${date}.log"
+  sudo -u keitaro bash -c "echo '${log_line}' >> {{ keitaro_root }}/var/log/production-${date}.log"
 }
 
 log_and_print_err() {
   local level="${1}"
-  local jid="${2}"
-  local message="${3}"
+  local message="${2}"
   print_err "${level} ${message}"
-  keitaro_log "${level}" "${jid}" "${message}"
+  keitaro_log "${level}" "${message}"
 }
 
 usage() {
@@ -51,8 +50,18 @@ init_watchdog() {
 }
 
 notify_watchdog() {
-  echo "[INFO] Notify SystemD watchdog that we are still alive"
+  echo "[INFO] Notify SystemD watchdog that RoadRunner is alive"
   /bin/systemd-notify WATCHDOG=1
+}
+
+is_alive() {
+  local pid="${1}"
+  kill -0 ${pid} 2>/dev/null
+}
+
+wait_for_next_tick() {
+  echo "[INFO] Sleeping for ${WATCH_INTERVAL} sec"
+  sleep ${WATCH_INTERVAL}
 }
 
 watch_daemon() {
@@ -62,24 +71,16 @@ watch_daemon() {
   init_watchdog
 
   while(true); do
-    error=""
-    jid="$(generate_jid)"
-    if kill -0 ${daemon_pid} 2>/dev/null; then
-      log_and_print_err WARNING ${jid} "Process ${daemon_pid} gone."
-      error="process gone"
-    fi
 
-    if ! workers | grep -q '.'; then
-      log_and_print_err WARNING ${jid} "There are no php workers found."
-      error="no workers found"
-    fi
-
-    if [[ "${error}" == "" ]]; then
+    if ! is_alive ${daemon_pid}; then
+      log_and_print_err "WARNING" "Process ${daemon_pid} gone."
+    elif ! workers | grep -q '.'; then
+      log_and_print_err "WARNING" "There are no php workers found."
+    else
       notify_watchdog
     fi
 
-    echo "[INFO] Sleeping for ${WATCH_INTERVAL}"
-    sleep ${WATCH_INTERVAL}
+    wait_for_next_tick
   done
 }
 
@@ -104,7 +105,7 @@ workers() {
   rr_cmd http:workers | tail -n +4 | head -n -1
 }
 
-if [[ "${#}" != "1" ]]; then
+if [[ "$#" != "1" ]]; then
   usage
   exit 1
 fi
