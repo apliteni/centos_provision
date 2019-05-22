@@ -1,0 +1,129 @@
+#!/bin/bash
+
+COMMAND=${1}
+RR_PIDFILE={{ rr_pidfile }}
+RR_CONFIG={{ rr_config }}
+RR_BIN={{ rr_bin }}
+JID_LENGTH=5
+WATCHDOG_USEC="${WATCHDOG_USEC:60000000}" # Set default watchdog interval to 60 secs
+WATCH_INTERVAL=$((${WATCHDOG_USEC} / 1000000 / 2)) # We will send keep-alive packet every half interval
+
+print_err() {
+  local err="${1}"
+  (>&2 echo "${err}")
+}
+
+keitaro_log() {
+  local level="${1}"
+  local jid="${2}"
+  local message="${3}"
+  date="$(date +"%F" -u)"
+  time="$(date +"%T" -u)"
+  log_line="[${date} ${time}] [${level}] (jid:${jid}) [\"systemd\"] : RoadRunner: ${message}"
+  sudo -u keitaro bash -c "echo '${log_line}' >> /var/www/keitaro/log/production-${date}.log"
+}
+
+log_and_print_err() {
+  local level="${1}"
+  local jid="${2}"
+  local message="${3}"
+  print_err "${level} ${message}"
+  keitaro_log "${level}" "${jid}" "${message}"
+}
+
+usage() {
+  print_err "Usage: keitaro-roadrunner COMMAND"
+}
+
+rr_cmd() {
+  local cmd=${1}
+  echo "[INFO] Run command ${RR_BIN} ${cmd} -v -d -c ${RR_CONFIG}"
+  ${RR_BIN} ${cmd} -v -d -l plain -c ${RR_CONFIG}
+}
+
+generate_jid() {
+  LC_ALL=C tr -cd '[:alnum:]' < /dev/urandom | head -c${JID_LENGTH}
+}
+
+init_watchdog() {
+  echo "[INFO] Initializing SystemD watchdog"
+  /bin/systemd-notify --ready
+}
+
+notify_watchdog() {
+  echo "[INFO] Notify SystemD watchdog that we are still alive"
+  /bin/systemd-notify WATCHDOG=1
+}
+
+watch_daemon() {
+  local daemon_pid="${1}"
+  local error=""
+
+  init_watchdog
+
+  while(true); do
+    error=""
+    jid="$(generate_jid)"
+    if kill -0 ${daemon_pid} 2>/dev/null; then
+      log_and_print_err WARNING ${jid} "Process ${daemon_pid} gone."
+      error="process gone"
+    fi
+
+    if ! workers | grep -q '.'; then
+      log_and_print_err WARNING ${jid} "There are no php workers found."
+      error="no workers found"
+    fi
+
+    if [[ "${error}" == "" ]]; then
+      notify_watchdog
+    fi
+
+    echo "[INFO] Sleeping for ${WATCH_INTERVAL}"
+    sleep ${WATCH_INTERVAL}
+  done
+}
+
+start() {
+    trap 'kill $(jobs -p) 2>/dev/null' EXIT
+
+    rr_cmd serve &
+    local daemon_pid=$!
+
+    watch_daemon ${daemon_pid}
+}
+
+stop() {
+  rr_cmd stop
+}
+
+reload() {
+  rr_cmd http:reset
+}
+
+workers() {
+  rr_cmd http:workers | tail -n +4 | head -n -1
+}
+
+if [[ "${#}" != "1" ]]; then
+  usage
+  exit 1
+fi
+
+case ${1} in
+  start)
+    start
+    ;;
+  stop)
+    stop
+    ;;
+  reload)
+    reload
+    ;;
+  workers)
+    workers
+    ;;
+  *)
+    usage
+    exit 1
+    ;;
+esac
