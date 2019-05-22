@@ -3,8 +3,8 @@ Description=Keitaro RoadRunner service
 After=syslog.target network.target
 
 [Service]
-ExecStart=/usr/local/bin/roadrunner serve -v -c /etc/php/roadrunner.yml
-ExecReload=/usr/local/bin/roadrunner http:reset -v -c /etc/php/roadrunner.yml
+ExecStart={{ rr_bin }} serve -v -c {{ rr_config }}
+ExecReload={{ rr_bin }} http:reset -v -c {{ rr_config }}
 WorkingDirectory={{ keitaro_home }}
 
 Restart=always
