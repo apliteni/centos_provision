@@ -1,7 +1,5 @@
 #!/bin/bash
 
-COMMAND=${1}
-RR_PIDFILE={{ rr_pidfile }}
 RR_CONFIG={{ rr_config }}
 RR_BIN={{ rr_bin }}
 JID_LENGTH=5
@@ -16,17 +14,17 @@ print_err() {
 keitaro_log() {
   local level="${1}"
   local message="${2}"
-  local jid="$(generate_jid)"
   local date="$(date +"%F" -u)"
   local time="$(date +"%T" -u)"
+  local jid="$(echo ${date} ${time} | md5sum | head -c ${JID_LENGTH})"
   log_line="[${date} ${time}] [${level}] (jid:${jid}) [\"systemd\"] : RoadRunner: ${message}"
-  sudo -u keitaro bash -c "echo '${log_line}' >> {{ keitaro_root }}/var/log/production-${date}.log"
+  echo "${log_line}" >> {{ keitaro_root }}/var/log/production-${date}.log
 }
 
 log_and_print_err() {
   local level="${1}"
   local message="${2}"
-  print_err "${level} ${message}"
+  print_err "[${level}] ${message}"
   keitaro_log "${level}" "${message}"
 }
 
@@ -40,18 +38,22 @@ rr_cmd() {
   ${RR_BIN} ${cmd} -v -d -l plain -c ${RR_CONFIG}
 }
 
-generate_jid() {
-  LC_ALL=C tr -cd '[:alnum:]' < /dev/urandom | head -c${JID_LENGTH}
+notify_systemd_watchdog() {
+  local packet="${1}"
+  local state="${2}"
+  echo "[INFO] Notify SystemD watchdog that RoadRunner is ${state}"
+  # Sadly we can't use systemd-notify because it is broken for non-root users, see
+  #     https://github.com/rabbitmq/rabbitmq-server/issues/664#issuecomment-195282865
+  #     https://github.com/systemd/systemd/issues/2739
+  echo -en "MAINPID=$WATCHDOG_PID\n${packet}\n" | socat unix-sendto:$NOTIFY_SOCKET STDIO
 }
 
-init_watchdog() {
-  echo "[INFO] Initializing SystemD watchdog"
-  /bin/systemd-notify --ready
+notify_systemd_watchdog_rr_is_started() {
+  notify_systemd_watchdog "READY=1" "started"
 }
 
-notify_watchdog() {
-  echo "[INFO] Notify SystemD watchdog that RoadRunner is alive"
-  /bin/systemd-notify WATCHDOG=1
+notify_systemd_watchdog_rr_is_alive() {
+  notify_systemd_watchdog "WATCHDOG=1" "alive"
 }
 
 is_alive() {
@@ -68,16 +70,16 @@ watch_daemon() {
   local daemon_pid="${1}"
   local error=""
 
-  init_watchdog
+  notify_systemd_watchdog_rr_is_started
 
   while(true); do
 
     if ! is_alive ${daemon_pid}; then
       log_and_print_err "WARNING" "Process ${daemon_pid} gone."
-    elif ! workers | grep -q '.'; then
-      log_and_print_err "WARNING" "There are no php workers found."
+    elif ! workers > /dev/null; then
+      log_and_print_err "WARNING" "There was error while getting workers list."
     else
-      notify_watchdog
+      notify_systemd_watchdog_rr_is_alive
     fi
 
     wait_for_next_tick
@@ -102,7 +104,7 @@ reload() {
 }
 
 workers() {
-  rr_cmd http:workers | tail -n +4 | head -n -1
+  rr_cmd http:workers
 }
 
 if [[ "$#" != "1" ]]; then

@@ -1,8 +1,5 @@
-- name: Install roadrunner wrapper
-  template:
-    src: bin/keitaro-roadrunner.j2
-    dest: /usr/local/bin/keitaro-roadrunner
-    mode: 0755
+- name: Install helper tools
+  include: install-tools.yml
 
 - name: Tune roadrunner
   include: tune-roadrunner.yml

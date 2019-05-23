@@ -1,8 +1,0 @@
-- name: Install SystemD roadrunner-watcher.path unit generator
-  template:
-    src: bin/keitaro-regenerate_systemd_roadrunner_watcher_path.j2
-    dest: /usr/local/bin/keitaro-regenerate_systemd_roadrunner_watcher_path
-    mode: 0755
-
-- name: Run SystemD roadrunner-watcher.path unit generator
-  shell: /usr/local/bin/keitaro-regenerate_systemd_roadrunner_watcher_path
