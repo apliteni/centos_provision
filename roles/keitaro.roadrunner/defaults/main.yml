@@ -1,5 +1,5 @@
 rr_version: 1.4.2
 rr_release_name: "roadrunner-{{ rr_version }}-linux-amd64"
 rr_bin: /usr/local/bin/roadrunner
+rr_wrapper: /usr/local/bin/keitaro-roadrunner
 rr_config: /etc/php/roadrunner.yml
-rr_pidfile: /var/run/roadrunner.pid
