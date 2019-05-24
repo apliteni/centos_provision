@@ -34,18 +34,23 @@ usage() {
 
 rr_cmd() {
   local cmd=${1}
-  echo "[INFO] Run command ${RR_BIN} ${cmd} -v -d -c ${RR_CONFIG}"
-  ${RR_BIN} ${cmd} -v -d -l plain -c ${RR_CONFIG}
+  shift
+  echo "[INFO] Run command ${RR_BIN} ${cmd} -l plain -c ${RR_CONFIG} $@"
+  ${RR_BIN} ${cmd} -l plain -c ${RR_CONFIG} "$@"
 }
 
 notify_systemd_watchdog() {
   local packet="${1}"
   local state="${2}"
-  echo "[INFO] Notify SystemD watchdog that RoadRunner is ${state}"
-  # Sadly we can't use systemd-notify because it is broken for non-root users, see
-  #     https://github.com/rabbitmq/rabbitmq-server/issues/664#issuecomment-195282865
-  #     https://github.com/systemd/systemd/issues/2739
-  echo -en "MAINPID=$WATCHDOG_PID\n${packet}\n" | socat unix-sendto:$NOTIFY_SOCKET STDIO
+  if [ -S $NOTIFY_SOCKET ]; then
+    echo "[INFO] Notify SystemD watchdog that RoadRunner is ${state}"
+    # Sadly we can't use systemd-notify because it is broken for non-root users, see
+    #     https://github.com/rabbitmq/rabbitmq-server/issues/664#issuecomment-195282865
+    #     https://github.com/systemd/systemd/issues/2739
+    echo -en "MAINPID=$WATCHDOG_PID\n${packet}\n" | socat unix-sendto:$NOTIFY_SOCKET STDIO
+  else
+    echo "[INFO] Can't find SystemD watchdog context, skip notifying."
+  fi
 }
 
 notify_systemd_watchdog_rr_is_started() {
