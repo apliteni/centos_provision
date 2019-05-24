@@ -1,29 +1,10 @@
-- name: Generate roadrunner related systemd units except roadrunner-watcher.path
-  template:
-    src: "systemd/{{ item }}.j2"
-    dest: "/etc/systemd/system/{{ item }}"
-  with_items: "{{ roadrunner_services }}"
-
-- name: Run SystemD roadrunner-watcher.path unit generator
-  command: /usr/local/bin/keitaro-regenerate_systemd_roadrunner_watcher_path
-
-- name: Do daemon-reload to update SystemD services
-  systemd:
-    daemon-reload: true
+- name: Install systemd units
+  include: tune-systemd-install-units.yml
 
 - name: Enable roadrunner and related services if engine is roadrunner
-  systemd:
-    name: "{{ item }}"
-    state: restarted
-    enabled: yes
-  with_items: "{{ roadrunner_services | difference(roadrunner_inactive_services) }}"
+  include: tune-systemd-enable-roadrunner.yml
   when: "php_engine == 'roadrunner'"
 
 - name: Disable roadrunner and related services if engine is not roadrunner
-  systemd:
-    name: "{{ item }}"
-    state: stopped
-    enabled: no
-  with_items: "{{ roadrunner_services | difference(roadrunner_inactive_services) }}"
+  include: tune-systemd-enable-roadrunner.yml
   when: "php_engine != 'roadrunner'"
-

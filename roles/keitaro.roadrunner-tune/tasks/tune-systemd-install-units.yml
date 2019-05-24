@@ -1,0 +1,11 @@
+- name: Install roadrunner systemd units
+  template:
+    src: "systemd/{{ item }}.j2"
+    dest: "/etc/systemd/system/{{ item }}"
+  with_items: "{{ roadrunner_services }}"
+  register: systemd_units
+
+- name: Do daemon-reload to update SystemD services
+  systemd:
+    daemon-reload: true
+  when: systemd_units.changed
