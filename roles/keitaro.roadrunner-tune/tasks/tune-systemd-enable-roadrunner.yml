@@ -1,0 +1,15 @@
+- name: Enable roadrunner and related services
+  systemd:
+    name: "{{ item }}"
+    state: started
+    enabled: yes
+  with_items: "{{ roadrunner_services | difference(roadrunner_inactive_services) }}"
+
+- name: Reload roadrunner and related services
+  systemd:
+    name: "{{ item }}"
+    state: restarted
+  with_items: "{{ roadrunner_services | difference(roadrunner_inactive_services) }}"
+
+- name: Run SystemD roadrunner-watcher.path unit generator
+  command: /usr/local/bin/keitaro-regenerate_systemd_roadrunner_watcher_path
