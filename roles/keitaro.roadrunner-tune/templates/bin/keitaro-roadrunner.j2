@@ -42,15 +42,11 @@ rr_cmd() {
 notify_systemd_watchdog() {
   local packet="${1}"
   local state="${2}"
-  if [ -S $NOTIFY_SOCKET ]; then
-    echo "[INFO] Notify SystemD watchdog that RoadRunner is ${state}"
-    # Sadly we can't use systemd-notify because it is broken for non-root users, see
-    #     https://github.com/rabbitmq/rabbitmq-server/issues/664#issuecomment-195282865
-    #     https://github.com/systemd/systemd/issues/2739
-    echo -en "MAINPID=$WATCHDOG_PID\n${packet}\n" | socat unix-sendto:$NOTIFY_SOCKET STDIO
-  else
-    echo "[INFO] Can't find SystemD watchdog context, skip notifying."
-  fi
+  echo "[INFO] Notify SystemD watchdog that RoadRunner is ${state}"
+  # Sadly we can't use systemd-notify because it is broken for non-root users, see
+  #     https://github.com/rabbitmq/rabbitmq-server/issues/664#issuecomment-195282865
+  #     https://github.com/systemd/systemd/issues/2739
+  echo -en "MAINPID=$WATCHDOG_PID\n${packet}\n" | socat unix-sendto:$NOTIFY_SOCKET STDIO
 }
 
 notify_systemd_watchdog_rr_is_started() {
@@ -91,21 +87,35 @@ watch_daemon() {
   done
 }
 
+start_with_watchdog_notifying() {
+  echo "[INFO] Starting RoadRunner with watchdog notifying"
+  trap 'kill $(jobs -p) 2>/dev/null' EXIT
+
+  rr_cmd serve -v -d &
+  local daemon_pid=$!
+
+  watch_daemon ${daemon_pid}
+}
+
+start_without_watchdog_notifying() {
+  echo "[INFO] Starting RoadRunner without watchdog notifying"
+  rr_cmd serve -v -d
+}
+
 start() {
-    trap 'kill $(jobs -p) 2>/dev/null' EXIT
-
-    rr_cmd serve &
-    local daemon_pid=$!
-
-    watch_daemon ${daemon_pid}
+  if [ -S "${NOTIFY_SOCKET}" ]; then
+    start_with_watchdog_notifying
+  else
+    start_without_watchdog_notifying
+  fi
 }
 
 stop() {
-  rr_cmd stop
+  rr_cmd stop -v -d
 }
 
 reload() {
-  rr_cmd http:reset
+  rr_cmd http:reset -v -d
 }
 
 workers() {
