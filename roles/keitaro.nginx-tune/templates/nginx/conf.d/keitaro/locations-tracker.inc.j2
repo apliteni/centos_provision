@@ -7,11 +7,26 @@ location = /status {
   include {{ nginx_conf_path }}/keitaro/tracker.php-fpm.inc;
 }
 
+
 # Hide tracker files
 location ~ ^/(application|bin|lib|var|vendor)/.* {
   access_log off;
   return 404;
 }
+
+location = /cron.php {
+  return 404;
+}
+
+location = /server.php {
+  return 404;
+}
+
+location = /version.php {
+  return 404;
+}
+
+
 
 # Admin locations
 location = /admin {
@@ -34,6 +49,7 @@ location /admin_api/ {
   include {{ nginx_conf_path }}/keitaro/admin.inc;
   fastcgi_param SCRIPT_FILENAME $document_root/index.php;
 }
+
 
 # Tracker locations
 location / {
