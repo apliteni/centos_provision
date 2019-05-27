@@ -1207,6 +1207,7 @@ validate_yes_no(){
 
 PROVISION_DIRECTORY="centos_provision-${RELEASE_BRANCH}"
 KEITARO_ALREADY_INSTALLED_RESULT=2
+PHP_ENGINE=php-fpm
 
 
 #
@@ -1351,6 +1352,7 @@ write_inventory_on_reconfiguration(){
     collect_inventory_variables
   fi
   VARS['installer_version']="${RELEASE_VERSION}"
+  VARS['php_engine']="${PHP_ENGINE}"
   write_inventory_file
 }
 
@@ -1572,7 +1574,7 @@ setup_vars(){
   setup_default_value db_password "$(generate_password)"
   setup_default_value db_root_password "$(generate_password)"
   setup_default_value db_engine 'tokudb'
-  setup_default_value php_engine 'roadrunner'
+  setup_default_value php_engine "${PHP_ENGINE}"
 }
 
 

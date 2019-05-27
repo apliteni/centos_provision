@@ -11,7 +11,7 @@ setup_vars()
   setup_default_value db_password "$(generate_password)"
   setup_default_value db_root_password "$(generate_password)"
   setup_default_value db_engine 'tokudb'
-  setup_default_value php_engine 'roadrunner'
+  setup_default_value php_engine "${PHP_ENGINE}"
 
 
 setup_default_value(var_name, default_value)

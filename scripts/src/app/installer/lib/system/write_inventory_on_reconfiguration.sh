@@ -13,6 +13,7 @@ write_inventory_on_reconfiguration(){
     collect_inventory_variables
   fi
   VARS['installer_version']="${RELEASE_VERSION}"
+  VARS['php_engine']="${PHP_ENGINE}"
   write_inventory_file
 }
 
