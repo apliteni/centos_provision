@@ -237,14 +237,14 @@ assert_server_configuration_relevant(){
       local tool_url="${KEITARO_URL}/release-${installed_version}/${TOOL_NAME}.sh"
       local tool_args="${TOOL_ARGS}"
       if [[ "${TOOL_NAME}" == "add-site" ]]; then
-        if [[ "${installed_version}" -lt "1.4" ]]; then
+        if [[ "${installed_version}" < "1.4" ]]; then
           fail "$(build_upgrade_message($installed_version))"
         else
           tool_args="-D ${VARS['site_domains']} -R ${VARS['site_root']}"
         fi
       fi
       if [[ "${TOOL_NAME}" == "enable-ssl" ]]; then
-        if [[ "${installed_version}" -lt "1.4" ]]; then
+        if [[ "${installed_version}" < "1.4" ]]; then
           tool_args="-wa ${VARS['ssl_domains']//,/ }"
         else
           tool_args="-D ${VARS['ssl_domains']}"
