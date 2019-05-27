@@ -18,6 +18,7 @@ run_ansible_playbook(){
   env="${env} ANSIBLE_FORCE_COLOR=true"
   env="${env} ANSIBLE_CONFIG=${PROVISION_DIRECTORY}/ansible.cfg"
   env="${env} ANSIBLE_GATHER_TIMEOUT=30"
+  env="${env} TABLES_PREFIX='${TABLES_PREFIX}'"
   local command="${env} ansible-playbook -vvv -i ${INVENTORY_FILE} ${PROVISION_DIRECTORY}/playbook.yml"
   if isset "$ANSIBLE_TAGS"; then
     command="${command} --tags ${ANSIBLE_TAGS}"
