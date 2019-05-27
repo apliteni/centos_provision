@@ -9,6 +9,7 @@ SSL_ENABLER_COMMAND_RU="curl -sSL ${KEITARO_URL}/enable-ssl.sh | bash -s -- -l r
 
 DICT['en.messages.keitaro_already_installed']='Keitaro is already installed'
 DICT['en.messages.check_ability_firewall_installing']="Checking the ability of installing a firewall"
+DICT['en.messages.check_keitaro_dump_get_tables_prefix']="Getting tables prefix from dump"
 DICT['en.messages.check_keitaro_dump_validity']="Checking SQL dump"
 DICT['en.messages.enabling_ssl']="Enabling SSL"
 DICT["en.messages.successful.rerun_ssl_enabler"]="After troubleshooting, run ssl-enabler again"
@@ -56,6 +57,7 @@ DICT['en.prompt_errors.validate_not_reserved_word']='You are not allowed to use 
 
 DICT['ru.messages.keitaro_already_installed']='Keitaro трекер уже установлен.'
 DICT['ru.messages.check_ability_firewall_installing']="Проверяем возможность установки фаервола"
+DICT['ru.messages.check_keitaro_dump_get_tables_prefix']="Получаем префикс таблиц из SQL дампа"
 DICT['ru.messages.check_keitaro_dump_validity']="Проверяем SQL дамп"
 DICT['ru.messages.enabling_ssl']="Подключаем SSL"
 DICT["ru.messages.successful.use_old_credentials"]="База данных успешно восстановлена из архива. Используйте старые данные для входа в систему"
