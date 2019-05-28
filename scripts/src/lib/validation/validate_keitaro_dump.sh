@@ -19,7 +19,7 @@ validate_keitaro_dump(){
   if [[ "$TABLES_PREFIX" == "" ]]; then
     return ${FAILURE_RESULT}
   fi
-  if [[ "schema_version" -lt "${TABLES_PREFIX}acl" ]]; then
+  if [[ "schema_version" < "${TABLES_PREFIX}acl" ]]; then
     ensure_table_dumped "$get_head_chunk" "schema_version"
   else
     local get_tail_chunk="$(build_get_chunk_command "${mime_type}" "${file}" "tail" "50")"
@@ -67,7 +67,7 @@ build_get_chunk_command(){
     echo "${head_or_tail} -n ${chunk_size} '${file}'"
   fi
   if [[ "$mime_type" == 'application/x-gzip' ]]; then
-    echo "zcat '${file}' | ${head_or_tail} -n ${chunk_size}"
+    echo "(zcat '${file}'; true) | ${head_or_tail} -n ${chunk_size}"
   fi
 }
 
