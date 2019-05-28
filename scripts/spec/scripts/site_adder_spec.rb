@@ -127,7 +127,7 @@ RSpec.describe 'add-site.sh' do
     let(:remove_inventory) { ['rm -rf .keitaro'] }
     let(:commands) { make_proper_nginx_conf + make_site_root_dir + remove_inventory }
 
-    it_behaves_like 'should print to', :stdout, 'Run obsolete add-site (v0.9)'
+    it_behaves_like 'should print to', :stderr, 'You should upgrade the server configuration'
   end
 
   describe 'add-site result' do
