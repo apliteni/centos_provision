@@ -4,12 +4,16 @@
 
 - name: Get latest stable tracker version
   shell: >
-    curl -sf 'keitaro.io/license/api/checkUpdate?version={{ keitaro_release }}&stability=stable' | \
+    PHP_VERSION="$({{ php_path }} -v | head -n1 | awk '{print $2}')" && \
+      UA="Keitaro Installer v{{ keitaro_installer_version }} PHP/${PHP_VERSION}" && \
+      curl -sf 'keitaro.io/license/api/checkUpdate?version={{ keitaro_release }}&stability=stable' -A "${UA}" | \
       awk -F '::' '{print $2}'
   register: get_stable_tracker_version
 
 - name: Reinstall Keitaro
-  shell: "curl -sf https://keitaro.io/releases/{{ get_stable_tracker_version.stdout }}/package8.tar.gz | tar -xz --strip=1"
+  shell: >
+    curl -sf https://keitaro.io/releases/{{ get_stable_tracker_version.stdout }}/package8.tar.gz | \
+      tar -xz --strip=1
   args:
     chdir: "{{ keitaro_root }}"
   become_user: "{{ keitaro_user }}"
