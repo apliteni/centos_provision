@@ -1,4 +1,4 @@
-- name: Install php extensions
+- name: Install php-fpm
   yum:
     name:
       - "{{php_version}}-php-fpm"
