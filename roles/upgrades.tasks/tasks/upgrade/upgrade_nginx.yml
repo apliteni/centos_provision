@@ -10,7 +10,11 @@
   check_mode: no
 
 - name: Detect configs genereated by enable-ssl
-  shell: "grep -l /etc/letsencrypt/live/ $(grep -l 'root /var/www/keitaro' *.conf) | sed 's/.conf$//g' | tr '\n' ','"
+  shell: >
+    grep -l /etc/letsencrypt/live/ $(grep -l 'root /var/www/keitaro' *.conf) | \
+      sed 's/.conf$//g' | \
+      tr '\n' ',' | \
+      sed 's/,$//g'
   args:
     chdir: /etc/nginx/conf.d/
   register: enable_ssl_domains
