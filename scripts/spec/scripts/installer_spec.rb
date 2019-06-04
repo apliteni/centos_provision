@@ -17,6 +17,16 @@ RSpec.describe 'install.sh' do
   let(:license_key) { 'WWWW-XXXX-YYYY-ZZZZ' }
   let(:db_restore_path) { nil }
   let(:db_restore_salt) { nil }
+  let(:default_command_stubs) do
+      {
+        'ansible-playbook': '/bin/true',
+        ansible: '/bin/true',
+        curl: '/bin/true',
+        iptables: '/bin/true',
+        tar: '/bin/true',
+        yum: '/bin/true',
+      }
+  end
 
   let(:prompts) do
     {
@@ -218,14 +228,14 @@ RSpec.describe 'install.sh' do
 
     context 'yum presented' do
       describe 'should upgrade system' do
-        let(:command_stubs) { {yum: '/bin/true'} }
+        let(:command_stubs) { default_command_stubs }
 
         it_behaves_like 'should print to', :stdout, 'yum update -y'
       end
     end
 
     context 'yum presented, ansible presented' do
-      let(:command_stubs) { {yum: '/bin/true', ansible: '/bin/true'} }
+      let(:command_stubs) { default_command_stubs }
 
       it_behaves_like 'should print to', :log, "Try to found yum\nFOUND"
       it_behaves_like 'should print to', :log, "Try to found ansible\nFOUND"
@@ -256,14 +266,14 @@ RSpec.describe 'install.sh' do
     let(:docker_image) { 'centos' }
 
     context 'successful installation' do
-      let(:command_stubs) { {yum: '/bin/true', ansible: '/bin/true', curl: '/bin/true', tar: '/bin/true', 'ansible-playbook': '/bin/true'} }
+      let(:command_stubs) { default_command_stubs }
 
       it_behaves_like 'should print to', :stdout,
                       %r{Everything is done!\nhttp://8.8.8.8/admin\nlogin: admin\npassword: \w+}
     end
 
     context 'unsuccessful installation' do
-      let(:command_stubs) { {yum: '/bin/true', ansible: '/bin/true', curl: '/bin/true', tar: '/bin/true', 'ansible-playbook': '/bin/false'} }
+      let(:command_stubs) { default_command_stubs.merge('ansible-playbook': '/bin/false') }
 
       it_behaves_like 'should exit with error', [
         %r{There was an error evaluating current command\n(.*\n){3}.* ansible-playbook},
@@ -278,8 +288,8 @@ RSpec.describe 'install.sh' do
 
     let(:docker_image) { 'centos' }
 
-    context 'nat is unsupported' do
-      let(:command_stubs) { {yum: '/bin/true', ansible: '/bin/true', iptables: '/bin/false', curl: '/bin/false'} }
+    context 'nat is not supported' do
+      let(:command_stubs) { default_command_stubs.merge(iptables: '/bin/false') }
 
       it_behaves_like 'should print to', :stdout,
                       'It looks that your system does not support firewall'
@@ -294,7 +304,7 @@ RSpec.describe 'install.sh' do
     end
 
     context 'nat is supported' do
-      let(:command_stubs) { {yum: '/bin/true', ansible: '/bin/true', iptables: '/bin/true', curl: '/bin/false'} }
+      let(:command_stubs) { default_command_stubs }
 
       it_behaves_like 'should not print to', :stdout,
                       'It looks that your system does not support firewall'
@@ -305,7 +315,7 @@ RSpec.describe 'install.sh' do
 
   describe 'dump checking' do
     let(:docker_image) { 'centos' }
-    let(:command_stubs) { {yum: '/bin/true', iptables: '/bin/true'} }
+    let(:command_stubs) { default_command_stubs }
     let(:commands) { [%Q{echo "echo #{mime_type}" > /bin/file}, 'chmod a+x /bin/file'] }
 
     let(:db_restore_salt) { 'some.salt' }
@@ -330,6 +340,8 @@ RSpec.describe 'install.sh' do
       it_behaves_like 'should print to', :log,
                       /zcat 'valid.sql.gz' | head -n \d+/,
                       /zcat 'valid.sql.gz' | tail -n \d+/
+      it_behaves_like 'should print to', :log,
+                      "TABLES_PREFIX='keitaro_' ansible-playbook "
     end
 
     context 'dump is invalid' do
@@ -357,13 +369,13 @@ RSpec.describe 'install.sh' do
   end
 
   describe 'ssl enabled' do
-    let(:options) { '-spl en' }
+    let(:options) { '-spL en' }
 
     let(:ssl) { 'yes' }
     let(:ssl_domains) { 'd1.com,d2.com' }
 
     it_behaves_like 'should print to', :stdout, 'Enabling SSL . SKIPPED'
     it_behaves_like 'should print to', :log,
-                    %r{curl .*/enable-ssl.sh | bash -s -- -k -a -e some@mail.com d1.com d2.com}
+                    %r{curl -fsSL https://keitaro.io/.*/enable-ssl.sh \| bash -s -- -L en -D d1.com,d2.com}
   end
 end
