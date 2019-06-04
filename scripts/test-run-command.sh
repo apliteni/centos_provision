@@ -655,8 +655,9 @@ run_ansible_playbook(){
   local env="ANSIBLE_FORCE_COLOR=true"
   env="${env} ANSIBLE_CONFIG=${PROVISION_DIRECTORY}/ansible.cfg"
   env="${env} ANSIBLE_GATHER_TIMEOUT=30"
-  if isset "$TABLES_PREFIX"; then
-    env="${env} TABLES_PREFIX='${TABLES_PREFIX}'"
+  if is_file_exist "$DETECTED_PREFIX_PATH" "no"; then
+    env="${env} TABLES_PREFIX='$(cat "${DETECTED_PREFIX_PATH}")'"
+    rm -f "${DETECTED_PREFIX_PATH}"
   fi
   local command="${env} ansible-playbook -vvv -i ${INVENTORY_FILE} ${PROVISION_DIRECTORY}/playbook.yml"
   if isset "$ANSIBLE_TAGS"; then

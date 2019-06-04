@@ -2,24 +2,26 @@
 #
 
 
-
+FIRST_KEITARO_TABLE_NAME="acl"
 
 validate_keitaro_dump(){
   local file="${1}"
   if empty "$file"; then
     return ${SUCCESS_RESULT}
   fi
-  local mime_type="$(detect_mime_type ${file})"
+  local mime_type="$(detect_mime_type "${file}")"
   debug "Detected mime type: ${mime_type}"
   local get_head_chunk="$(build_get_chunk_command "${mime_type}" "${file}" "head" "100")"
-  if [[ "$get_head_chunk" == "" ]]; then
+  if empty "${get_head_chunk}"; then
     return ${FAILURE_RESULT}
   fi
-  detect_tables_prefix "$get_head_chunk"
-  if [[ "$TABLES_PREFIX" == "" ]]; then
+  local tables_prefix="$(detect_tables_prefix "${get_head_chunk}")"
+  if empty "${tables_prefix}"; then
     return ${FAILURE_RESULT}
+  else
+    debug "Detected tables prefix: ${tables_prefix}"
   fi
-  if [[ "schema_version" < "${TABLES_PREFIX}acl" ]]; then
+  if [[ "schema_version" < "${tables_prefix}${FIRST_KEITARO_TABLE_NAME}" ]]; then
     ensure_table_dumped "$get_head_chunk" "schema_version"
   else
     local get_tail_chunk="$(build_get_chunk_command "${mime_type}" "${file}" "tail" "50")"
@@ -39,16 +41,14 @@ ensure_table_dumped(){
 detect_tables_prefix(){
   local get_head_chunk="${1}"
   local command=$get_head_chunk
-  command="${command} | grep -P $(build_check_table_exists_expression ".*acl")"
+  command="${command} | grep -P $(build_check_table_exists_expression ".*${FIRST_KEITARO_TABLE_NAME}")"
   command="${command} | head -n 1"
   command="${command} | grep -oP '\`.*\`'"
-  command="${command} | sed -e 's/\`//g' -e 's/acl\$//'"
+  command="${command} | sed -e 's/\`//g' -e 's/${FIRST_KEITARO_TABLE_NAME}\$//'"
   message="$(translate 'messages.check_keitaro_dump_get_tables_prefix')"
   if run_command "$command" "$message" 'hide_output' 'allow_errors' '' '' "$DETECTED_PREFIX_PATH" > /dev/stderr; then
-    TABLES_PREFIX="$(cat "$DETECTED_PREFIX_PATH")"
-    debug "Detected tables prefix: ${TABLES_PREFIX}"
+    cat "$DETECTED_PREFIX_PATH"
   fi
-  rm -f "$DETECTED_PREFIX_PATH"
 }
 
 
