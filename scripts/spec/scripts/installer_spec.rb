@@ -196,7 +196,7 @@ RSpec.describe 'install.sh' do
 
     shared_examples_for 'should install keitaro' do
       it_behaves_like 'should print to', :stdout,
-                      "curl -sSL https://github.com/apliteni/centos_provision/archive/#{RELEASE_BRANCH}.tar.gz | tar xz"
+                      %r{curl -fsSL https://github.com/.*/#{RELEASE_BRANCH}.tar.gz | tar xz}
 
       it_behaves_like 'should print to', :stdout,
                       "ansible-playbook -vvv -i #{Inventory::INVENTORY_FILE} #{PLAYBOOK_PATH}"
@@ -269,7 +269,7 @@ RSpec.describe 'install.sh' do
         %r{There was an error evaluating current command\n(.*\n){3}.* ansible-playbook},
         'Installation log saved to install.log',
         'Configuration settings saved to .keitaro/installer_config',
-        'You can rerun `curl -sSL https://keitaro.io/install.sh > run; bash run`'
+        'You can rerun `curl -fsSL https://keitaro.io/install.sh > run; bash run`'
       ]
     end
   end
@@ -316,7 +316,9 @@ RSpec.describe 'install.sh' do
       let(:db_restore_path) { 'valid.sql' }
 
       it_behaves_like 'should print to', :stderr, 'Checking SQL dump . OK'
-      it_behaves_like 'should print to', :log, / grep .* valid.sql/
+      it_behaves_like 'should print to', :log,
+                      /head -n \d+ 'valid.sql'/,
+                      /tail -n \d+ 'valid.sql'/
     end
 
     context 'valid gzipped dump' do
@@ -325,7 +327,9 @@ RSpec.describe 'install.sh' do
       let(:db_restore_path) { 'valid.sql.gz' }
 
       it_behaves_like 'should print to', :stderr, 'Checking SQL dump . OK'
-      it_behaves_like 'should print to', :log, / zgrep .* valid.sql.gz/
+      it_behaves_like 'should print to', :log,
+                      /zcat 'valid.sql.gz' | head -n \d+/,
+                      /zcat 'valid.sql.gz' | tail -n \d+/
     end
 
     context 'dump is invalid' do

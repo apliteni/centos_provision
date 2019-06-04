@@ -103,10 +103,10 @@ INDENTATION_LENGTH=2
 INDENTATION_SPACES=$(printf "%${INDENTATION_LENGTH}s")
 
 if ! empty ${@}; then
-  SCRIPT_COMMAND="curl -sSL "$SCRIPT_URL" > run; bash run ${@}"
+  SCRIPT_COMMAND="curl -fsSL "$SCRIPT_URL" > run; bash run ${@}"
   TOOL_ARGS="${@}"
 else
-  SCRIPT_COMMAND="curl -sSL "$SCRIPT_URL" > run; bash run"
+  SCRIPT_COMMAND="curl -fsSL "$SCRIPT_URL" > run; bash run"
 fi
 
 declare -A VARS

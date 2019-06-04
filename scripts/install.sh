@@ -113,10 +113,10 @@ INDENTATION_LENGTH=2
 INDENTATION_SPACES=$(printf "%${INDENTATION_LENGTH}s")
 
 if ! empty ${@}; then
-  SCRIPT_COMMAND="curl -sSL "$SCRIPT_URL" > run; bash run ${@}"
+  SCRIPT_COMMAND="curl -fsSL "$SCRIPT_URL" > run; bash run ${@}"
   TOOL_ARGS="${@}"
 else
-  SCRIPT_COMMAND="curl -sSL "$SCRIPT_URL" > run; bash run"
+  SCRIPT_COMMAND="curl -fsSL "$SCRIPT_URL" > run; bash run"
 fi
 
 declare -A VARS
@@ -1252,8 +1252,8 @@ TABLES_PREFIX=""
 
 
 
-SSL_ENABLER_COMMAND_EN="curl -sSL ${KEITARO_URL}/enable-ssl.sh | bash -s -- domain1.tld [domain2.tld...]"
-SSL_ENABLER_COMMAND_RU="curl -sSL ${KEITARO_URL}/enable-ssl.sh | bash -s -- -l ru domain1.tld [domain2.tld...]"
+SSL_ENABLER_COMMAND_EN="curl -fsSL ${KEITARO_URL}/enable-ssl.sh > run; bash run -L en -D domain1.tld,domain2.tld"
+SSL_ENABLER_COMMAND_RU="curl -fsSL ${KEITARO_URL}/enable-ssl.sh > run; bash run -L ru -D domain1.tld,domain2.tld"
 
 DICT['en.messages.keitaro_already_installed']='Keitaro is already installed'
 DICT['en.messages.check_ability_firewall_installing']="Checking the ability of installing a firewall"
@@ -1965,7 +1965,7 @@ stage6(){
 download_provision(){
   debug "Download provision"
   release_url="https://github.com/apliteni/centos_provision/archive/${RELEASE_BRANCH}.tar.gz"
-  run_command "curl -sSL ${release_url} | tar xz"
+  run_command "curl -fsSL ${release_url} | tar xz"
 }
 
 
