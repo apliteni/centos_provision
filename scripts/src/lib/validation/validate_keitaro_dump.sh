@@ -47,8 +47,8 @@ detect_tables_prefix(){
   if run_command "$command" "$message" 'hide_output' 'allow_errors' '' '' "$DETECTED_PREFIX_PATH" > /dev/stderr; then
     TABLES_PREFIX="$(cat "$DETECTED_PREFIX_PATH")"
     debug "Detected tables prefix: ${TABLES_PREFIX}"
-    rm -f "$DETECTED_PREFIX_PATH"
   fi
+  rm -f "$DETECTED_PREFIX_PATH"
 }
 
 

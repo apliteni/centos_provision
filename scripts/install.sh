@@ -1984,8 +1984,7 @@ ANSIBLE_LAST_TASK_LOG="${CONFIG_DIR}/ansible_last_task.log"
 
 
 run_ansible_playbook(){
-  local env=""
-  env="${env} ANSIBLE_FORCE_COLOR=true"
+  local env="ANSIBLE_FORCE_COLOR=true"
   env="${env} ANSIBLE_CONFIG=${PROVISION_DIRECTORY}/ansible.cfg"
   env="${env} ANSIBLE_GATHER_TIMEOUT=30"
   if isset "$TABLES_PREFIX"; then
