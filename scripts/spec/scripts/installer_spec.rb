@@ -329,6 +329,8 @@ RSpec.describe 'install.sh' do
       it_behaves_like 'should print to', :log,
                       /head -n \d+ 'valid.sql'/,
                       /tail -n \d+ 'valid.sql'/
+      it_behaves_like 'should print to', :log,
+                      "TABLES_PREFIX='keitaro_' ansible-playbook "
     end
 
     context 'valid gzipped dump' do
