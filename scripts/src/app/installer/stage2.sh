@@ -5,4 +5,5 @@ stage2(){
   assert_centos_distro
   assert_pannels_not_installed
   assert_apache_not_installed
+  assert_has_enough_ram
 }

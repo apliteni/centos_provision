@@ -1,0 +1,8 @@
+#!/usr/bin/env powscript
+
+
+assert_has_enough_ram()
+  if is_file_exist /proc/meminfo no
+    memsize_kb=$(cat /proc/meminfo | head -n1 | awk '{print $2}')
+    if (( memsize_kb < 2000000 ))
+      fail "$(translate errors.not_enough_ram)"
