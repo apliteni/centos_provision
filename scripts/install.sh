@@ -1727,7 +1727,7 @@ databases_exist(){
 }
 
 
-MIN_SIZE_KB=2000000
+MIN_SIZE_KB=1500000
 
 assert_has_enough_ram(){
   debug "Checking RAM size"
