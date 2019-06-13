@@ -1267,6 +1267,7 @@ DICT['en.errors.see_logs']=$(cat <<- END
 END
 )
 DICT['en.errors.wrong_distro']='This installer works only on CentOS 7.x. Please run this program on clean CentOS server'
+DICT['en.errors.not_enough_ram']='The size of RAM on your server should be at least 2 GB'
 DICT['en.errors.cant_install_firewall']='Please run this program in system with firewall support'
 DICT['en.errors.cant_create_keitaro_config_dir']="Can not create Keitaro config directory ${CONFIG_DIR}"
 DICT['en.errors.keitaro_dump_invalid']='SQL dump is broken'
@@ -1315,6 +1316,7 @@ DICT['ru.errors.see_logs']=$(cat <<- END
 END
 )
 DICT['ru.errors.wrong_distro']='Установщик Keitaro работает только в CentOS 7.x. Пожалуйста, запустите эту программу в CentOS дистрибутиве'
+DICT['ru.errors.not_enough_ram']='Размер оперативной памяти на вашем сервере должен быть не менее 2 ГБ'
 DICT['ru.errors.cant_create_keitaro_config_dir']="Невозможно создать директорию для конфигурационных файлов Keitaro ${CONFIG_DIR}"
 DICT['ru.errors.cant_install_firewall']='Пожалуйста, запустите эту программу на системе с поддержкой фаервола'
 DICT['ru.errors.keitaro_dump_invalid']='Указанный файл не является дампом Keitaro или загружен не полностью.'
@@ -1640,6 +1642,7 @@ stage2(){
   assert_centos_distro
   assert_pannels_not_installed
   assert_apache_not_installed
+  assert_has_enough_ram
 }
 
 
@@ -1721,6 +1724,17 @@ databases_exist(){
   local db2="${2}"
   debug "Detect exist databases ${db1} ${db2}"
   mysql -Nse 'show databases' | tr '\n' ' ' | grep -Pq "${db1}.*${db2}"
+}
+
+
+
+assert_has_enough_ram(){
+  if is_file_exist /proc/meminfo no; then
+    memsize_kb=$(cat /proc/meminfo | head -n1 | awk '{print $2}')
+    if (( memsize_kb -lt 2000000 )); then
+      fail "$(translate errors.not_enough_ram)"
+    fi
+  fi
 }
 
 
