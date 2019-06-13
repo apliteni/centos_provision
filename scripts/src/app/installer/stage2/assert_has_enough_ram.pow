@@ -2,7 +2,11 @@
 
 
 assert_has_enough_ram()
+  debug "Checking RAM size"
   if is_file_exist /proc/meminfo no
     memsize_kb=$(cat /proc/meminfo | head -n1 | awk '{print $2}')
     if (( memsize_kb < 2000000 ))
+      debug "RAM size ${memsize_kb}kb is less than 2000000kb, raising error"
       fail "$(translate errors.not_enough_ram)"
+    else
+      debug "RAM size ${memsize_kb}kb is greater than 2000000kb, continuing"
