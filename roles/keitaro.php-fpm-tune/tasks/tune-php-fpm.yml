@@ -23,7 +23,7 @@
 - name: Tune php-fpm master
   lineinfile:
     path: /etc/php/php-fpm.conf
-    regex: "^;?{{ item.key }} ="
+    regexp: "^;?{{ item.key }} ="
     line: "{{ item.key }} = {{ item.value }}"
   with_dict:
     emergency_restart_threshold: "{{ php_nontracker_workers_count }}"
