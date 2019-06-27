@@ -1,3 +1,5 @@
+RELEASE_VERSION ?= $(shell cat ../RELEASE_VERSION)
+
 all: clean compile test
 
 installer: compile_installer test_installer
@@ -26,7 +28,7 @@ test_run_command_tester:
 clean:
 	rm -f *.log*
 
-compile: compile_site_adder compile_installer compile_ssl_enabler compile_run_command_tester
+compile: inject_release_version compile_site_adder compile_installer compile_ssl_enabler compile_run_command_tester
 
 define compile_powscript
 	bin/powscript --compile src/$(1) > $(2) || true
@@ -53,6 +55,10 @@ compile_chunks:
 	  fi \
 	done
 	@echo
+
+inject_release_version:
+	@echo "Setting current release to $(RELEASE_VERSION)"
+	@sed -i "s/^RELEASE_VERSION=.*/RELEASE_VERSION='$(RELEASE_VERSION)'/g" src/shared/vars/common.pow
 
 compile_installer: compile_chunks
 	$(call compile_powscript,installer.pow,install.sh)
