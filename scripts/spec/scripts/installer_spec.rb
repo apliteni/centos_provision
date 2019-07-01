@@ -4,8 +4,8 @@ RSpec.describe 'install.sh' do
   include_context 'run script in tmp dir'
   include_context 'build subject'
 
-  RELEASE_BRANCH="release-#{Script::INSTALLER_RELEASE}"
-  PLAYBOOK_PATH="centos_provision-release-#{Script::INSTALLER_RELEASE}/playbook.yml"
+  BRANCH='master'
+  PLAYBOOK_PATH="centos_provision-#{BRANCH}/playbook.yml"
 
   let(:stored_values) { {} }
   let(:script_name) { 'install.sh' }
@@ -206,7 +206,7 @@ RSpec.describe 'install.sh' do
 
     shared_examples_for 'should install keitaro' do
       it_behaves_like 'should print to', :stdout,
-                      %r{curl -fsSL https://github.com/.*/#{RELEASE_BRANCH}.tar.gz | tar xz}
+                      %r{curl -fsSL https://github.com/.*/#{BRANCH}.tar.gz | tar xz}
 
       it_behaves_like 'should print to', :stdout,
                       "ansible-playbook -vvv -i #{Inventory::INVENTORY_FILE} #{PLAYBOOK_PATH}"
@@ -378,6 +378,6 @@ RSpec.describe 'install.sh' do
 
     it_behaves_like 'should print to', :stdout, 'Enabling SSL . SKIPPED'
     it_behaves_like 'should print to', :log,
-                    %r{curl -fsSL https://keitaro.io/.*/enable-ssl.sh \| bash -s -- -L en -D d1.com,d2.com}
+                    %r{curl -fsSL https://keitaro.io/enable-ssl.sh \| bash -s -- -L en -D d1.com,d2.com}
   end
 end
