@@ -8,7 +8,7 @@ RSpec.shared_context 'run script in tmp dir', run_script_in_tmp_dir: :yes do
   after { Dir.chdir(@old_current_dir) }
   after { FileUtils.rm_rf(@current_dir) }
 
-  def run_script(inventory_values: {installer_version: Script::INSTALLER_RELEASE})
+  def run_script(inventory_values: {installer_version: Script::INSTALLER_RELEASE_VERSION})
     if defined?(copy_files)
       copy_files.each do |path_to_file|
         FileUtils.copy(path_to_file, @current_dir)

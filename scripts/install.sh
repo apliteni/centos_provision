@@ -87,8 +87,8 @@ ROOT_UID=0
 KEITARO_URL="https://keitaro.io"
 
 RELEASE_VERSION='1.4'
-DEFAULT_RELEASE_BRANCH="release-${RELEASE_VERSION}"
-RELEASE_BRANCH="${RELEASE_BRANCH:-${DEFAULT_RELEASE_BRANCH}}"
+DEFAULT_BRANCH="master"
+BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
 
 WEBROOT_PATH="/var/www/keitaro"
 
@@ -1240,7 +1240,7 @@ validate_yes_no(){
 
 
 
-PROVISION_DIRECTORY="centos_provision-${RELEASE_BRANCH}"
+PROVISION_DIRECTORY="centos_provision-${BRANCH}"
 KEITARO_ALREADY_INSTALLED_RESULT=2
 PHP_ENGINE=${PHP_ENGINE:-roadrunner}
 DETECTED_PREFIX_PATH=".keitaro_detected_prefix"
@@ -1982,7 +1982,7 @@ stage6(){
 
 download_provision(){
   debug "Download provision"
-  release_url="https://github.com/apliteni/centos_provision/archive/${RELEASE_BRANCH}.tar.gz"
+  release_url="https://github.com/apliteni/centos_provision/archive/${BRANCH}.tar.gz"
   run_command "curl -fsSL ${release_url} | tar xz"
 }
 
@@ -2164,7 +2164,7 @@ SSL_SUCCESSFUL_DOMAINS=""
 SSL_FAILED_MESSAGE=""
 SSL_RERUN_COMMAND=""
 SSL_OUTPUT_LOG="${CONFIG_DIR}/enable-ssl.output.log"
-SSL_SCRIPT_URL="https://keitaro.io/${DEFAULT_RELEASE_BRANCH}/enable-ssl.sh"
+SSL_SCRIPT_URL="${KEITARO_URL}/enable-ssl.sh"
 
 run_ssl_enabler(){
   if isset "$ANSIBLE_TAGS"; then
