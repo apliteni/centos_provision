@@ -22,12 +22,12 @@ installing Keitaro you may want to install they later.
 
 Connect to your CentOS server and run as root
 
-    curl keitaro.io/enable-ssl.sh > run; bash run domain.ru domain2.ru domain3.ru
+    curl keitaro.io/enable-ssl.sh > run; bash run -D domain1.com,domain2.com
 
 SSL certificates installer supports two locales: English (default) and Russian. In order to use Russian locale
 run as root
 
-    curl -sSL https://keitaro.io/enable-ssl.sh | bash -s -- -l ru domain1.tld [domain2.tld...]
+    curl keitaro.io/enable-ssl.sh > run; bash run -L ru -D domain1.com,domain2.com
 
 ## Add custom php site (optional)
 
@@ -36,11 +36,11 @@ generates config file for Nginx.
 
 Connect to your CentOS server and run as root
 
-    curl -sSL https://keitaro.io/add-site.sh | bash
+    curl keitaro.io/add-site.sh > run; bash run -D domain.com -R /var/www/domain.com
 
 In order to use Russian locale run as root
 
-    curl -sSL https://keitaro.io/add-site.sh | bash -s -- -l ru
+    curl keitaro.io/add-site.sh > run; bash run -L ru -D domain.com -R /var/www/domain.com
 
 
 ## Development
