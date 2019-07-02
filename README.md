@@ -42,6 +42,14 @@ In order to use Russian locale run as root
 
     curl keitaro.io/add-site.sh > run; bash run -L ru -D domain.com -R /var/www/domain.com
 
+## Releasing 
+
+After making changes ans pushing them into the master branch you should update release tags
+   
+    make release
+
+This command reads current release from RELEASE_VERSION file (eg. X.Y) and associate vX.Y tag with current commit
+
 ## FAQ
 
 ### How to specify installation package
