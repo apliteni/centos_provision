@@ -1,3 +1,15 @@
-- include: upgrade/main.yml
-  tags: 'upgrade'
+- include: upgrade/upgrade_php.yml
+  notify:
+    - reload nginx
+  tags: 'upgrade, upgrade-php'
 
+- include: upgrade/upgrade_nginx.yml
+  notify:
+    - reload nginx
+  tags: 'upgrade, upgrade-nginx'
+
+- include: upgrade/upgrade_tracker.yml
+  tags: 'upgrade, upgrade-tracker'
+
+- include: upgrade/cleanup.yml
+  tags: 'upgrade'
