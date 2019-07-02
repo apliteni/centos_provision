@@ -17,7 +17,7 @@
   args:
     chdir: "{{ keitaro_root }}"
   become_user: "{{ keitaro_user }}"
-  when: "get_stable_tracker_version.stdout  > get_current_tracker_version.stdout "
+  when: "get_stable_tracker_version.stdout | version_compare(get_current_tracker_version.stdout, '>')"
   notify:
     - restart php-fpm
     - restart roadrunner
@@ -27,7 +27,7 @@
   args:
     chdir: "{{ keitaro_root }}"
   become_user: "{{ keitaro_user }}"
-  when: "get_stable_tracker_version.stdout  > get_current_tracker_version.stdout "
+  when: "get_stable_tracker_version.stdout | version_compare(get_current_tracker_version.stdout, '>')"
   notify:
     - restart php-fpm
     - restart roadrunner
