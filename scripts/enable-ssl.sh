@@ -23,7 +23,6 @@ fi
 
 
 
-
 empty()
 {
     [[ "${#1}" == 0 ]] && return 0 || return 1
@@ -56,11 +55,7 @@ last ()
 }
 
 
-
-
 PROGRAM_NAME='enable-ssl'
-
-
 #
 
 
@@ -111,12 +106,7 @@ fi
 
 declare -A VARS
 
-RECONFIGURE_KEITARO_COMMAND_EN="curl -sSL ${KEITARO_URL}/install.sh | bash"
-RECONFIGURE_KEITARO_COMMAND_RU="curl -sSL ${KEITARO_URL}/install.sh | bash -s -- -l ru"
-
 SSL_ENABLER_ERRORS_LOG="${HOME}/.ssl_enabler_errors.log"
-
-
 declare -A DICT
 
 DICT['en.errors.program_failed']='PROGRAM FAILED'
@@ -145,8 +135,6 @@ DICT['ru.prompt_errors.validate_domains_list']='Укажите список до
 DICT['ru.prompt_errors.validate_presence']='Введите значение'
 DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
 
-
-
 declare -a DOMAINS
 declare -a SUCCESSFUL_DOMAINS
 declare -a FAILED_DOMAINS
@@ -155,8 +143,6 @@ NGINX_SSL_CERT_PATH="${NGINX_SSL_PATH}/cert.pem"
 NGINX_SSL_PRIVKEY_PATH="${NGINX_SSL_PATH}/privkey.pem"
 CERT_DOMAINS_PATH="/${HOME}/.ssl_enabler_cert_domains"
 CERTBOT_LOG="/${HOME}/.ssl_enabler_cerbot.log"
-
-
 #
 
 
@@ -220,8 +206,6 @@ END
 DICT['ru.prompts.ssl_email']='Укажите email (можно не указывать)'
 DICT['ru.prompts.ssl_email.help']='Вы можете получить SSL сертификат без указания email адреса. Однако LetsEncrypt настоятельно рекомендует указать его, так как в случае потери ключа или компрометации LetsEncrypt аккаунта вы полностью потеряете доступ к своему LetsEncrypt аккаунту. Без email вы также не сможете получить уведомление о предстоящем истечении срока действия или отзыве сертификата'
 
-
-
 #
 
 
@@ -242,8 +226,6 @@ assert_caller_root(){
   fi
 }
 
-
-
 assert_installed(){
   local program="${1}"
   local error="${2}"
@@ -251,8 +233,6 @@ assert_installed(){
     fail "$(translate ${error})" "see_logs"
   fi
 }
-
-
 #
 
 
@@ -280,8 +260,6 @@ is_exists_file(){
     return ${FAILURE_RESULT}
   fi
 }
-
-
 #
 
 
@@ -309,8 +287,6 @@ is_exists_directory(){
     return ${FAILURE_RESULT}
   fi
 }
-
-
 #
 
 
@@ -346,8 +322,6 @@ detect_language_from_var(){
     echo en
   fi
 }
-
-
 #
 
 
@@ -373,8 +347,6 @@ interpolate(){
   string="${string//:${name}:/${value}}"
   echo "${string}"
 }
-
-
 #
 
 
@@ -396,13 +368,9 @@ is_installed(){
   fi
 }
 
-
-
 add_indentation(){
   sed -r "s/^/$INDENTATION_SPACES/g"
 }
-
-
 
 force_utf8_input(){
   LC_CTYPE=en_US.UTF-8
@@ -410,8 +378,6 @@ force_utf8_input(){
     stty -F /proc/$$/fd/1 iutf8
   fi
 }
-
-
 #
 
 
@@ -444,8 +410,6 @@ get_user_var(){
     fi
   done
 }
-
-
 hack_stdin_if_pipe_mode(){
   if is_pipe_mode; then
     debug 'Detected pipe bash mode. Stdin hack enabled'
@@ -460,13 +424,9 @@ hack_stdin(){
   exec 3<&1
 }
 
-
-
 is_pipe_mode(){
   [ "${SHELL_NAME}" == 'bash' ]
 }
-
-
 #
 
 
@@ -482,22 +442,16 @@ print_prompt(){
   fi
   echo -en "$prompt > "
 }
-
-
 print_prompt_error(){
   local error_key="${1}"
   error=$(translate "prompt_errors.$error_key")
   print_with_color "*** ${error}" 'red'
 }
 
-
-
 print_prompt_help(){
   local var_name="${1}"
   print_translated "prompts.$var_name.help"
 }
-
-
 
 read_stdin(){
   if is_pipe_mode; then
@@ -508,13 +462,9 @@ read_stdin(){
   echo "$variable"
 }
 
-
-
 clean_up(){
   debug 'called clean_up()'
 }
-
-
 #
 
 
@@ -529,8 +479,6 @@ debug(){
   fi
   print_with_color "$message" "$color" >> "$SCRIPT_LOG"
 }
-
-
 #
 
 
@@ -550,8 +498,6 @@ fail(){
   exit ${FAILURE_RESULT}
 }
 
-
-
 init(){
   init_log
   force_utf8_input
@@ -563,13 +509,9 @@ init(){
   trap on_exit SIGHUP SIGINT SIGTERM
 }
 
-
-
 init_log(){
   > ${SCRIPT_LOG}
 }
-
-
 
 log_and_print_err(){
   local message="${1}"
@@ -577,16 +519,12 @@ log_and_print_err(){
   debug "$message" 'red'
 }
 
-
-
 on_exit(){
   debug "Terminated by user"
   echo
   clean_up
   fail "$(translate 'errors.terminated')"
 }
-
-
 #
 
 
@@ -606,15 +544,11 @@ print_content_of(){
   fi
 }
 
-
-
 print_err(){
   local message="${1}"
   local color="${2}"
   print_with_color "$message" "$color" >&2
 }
-
-
 #
 
 
@@ -628,8 +562,6 @@ print_translated(){
     echo "$message"
   fi
 }
-
-
 #
 
 
@@ -670,14 +602,10 @@ print_with_color(){
   fi
 }
 
-
-
 reload_nginx(){
   debug "Reload nginx"
   run_command "nginx -s reload" "$(translate 'messages.reload_nginx')" 'hide_output'
 }
-
-
 #
 
 
@@ -872,8 +800,6 @@ remove_current_command(){
   rmdir $(dirname "$current_command_script")
 }
 
-
-
 get_host_ip(){
   hostname -I 2>/dev/null | tr ' ' "\n" | grep -oP '(\d+\.){3}\d+' \
     | grep -v '^10\.' | grep -vP '172\.(1[6-9]|2[0-9]|3[1-2])' | grep -v '192\.168\.' \
@@ -881,8 +807,6 @@ get_host_ip(){
     | head -n 1 \
     || true
   }
-
-
 
 join_by(){
   local delimiter=$1
@@ -892,14 +816,10 @@ join_by(){
   printf "%s" "${@/#/${delimiter}}"
 }
 
-
-
 to_lower(){
   local string="${1}"
   echo "${string,,}"
 }
-
-
 
 get_error(){
   local var_name="${1}"
@@ -918,8 +838,6 @@ get_error(){
   done
   echo "${error}"
 }
-
-
 SUBDOMAIN_REGEXP="[[:alnum:]-]+"
 DOMAIN_REGEXP="(${SUBDOMAIN_REGEXP}\.)+[[:alpha:]]${SUBDOMAIN_REGEXP}"
 
@@ -927,8 +845,6 @@ validate_domain(){
   local value="${1}"
   [[ "$value" =~ ^${DOMAIN_REGEXP}$ ]]
 }
-
-
 #
 
 
@@ -940,23 +856,17 @@ validate_presence(){
   isset "$value"
 }
 
-
-
 is_no(){
   local answer="${1}"
   shopt -s nocasematch
   [[ "$answer" =~ ^(no|n|нет|н)$ ]]
 }
 
-
-
 is_yes(){
   local answer="${1}"
   shopt -s nocasematch
   [[ "$answer" =~ ^(yes|y|да|д)$ ]]
 }
-
-
 
 transform_to_yes_no(){
   local var_name="${1}"
@@ -968,29 +878,21 @@ transform_to_yes_no(){
     VARS[$var_name]='no'
   fi
 }
-
-
 validate_yes_no(){
   local value="${1}"
   (is_yes "$value" || is_no "$value")
 }
 
 
-
-
 get_domains(){
   (cat "${CERT_DOMAINS_PATH}" 2>/dev/null; join_by " " "${DOMAINS[@]}")
 }
-
-
 
 stage1(){
   debug "Starting stage 1: initial script setup"
   parse_options "$@"
   set_ui_lang
 }
-
-
 #
 
 
@@ -1128,8 +1030,6 @@ en_usage(){
   print_err
 }
 
-
-
 stage2(){
   debug "Starting stage 2: make some asserts"
   assert_caller_root
@@ -1138,8 +1038,6 @@ stage2(){
   assert_installed 'certbot' 'errors.reinstall_keitaro_ssl'
   assert_nginx_configured
 }
-
-
 #
 
 
@@ -1186,14 +1084,10 @@ is_ssl_configured(){
   fi
 }
 
-
-
 stage3(){
   debug "Starting stage 3: get user vars"
   get_user_vars
 }
-
-
 #
 
 
@@ -1234,8 +1128,6 @@ get_user_email(){
     fi
   fi
 }
-
-
 #
 
 
@@ -1252,8 +1144,6 @@ stage4(){
   fi
   show_finishing_message
 }
-
-
 
 add_renewal_job(){
   debug "Add renewal certificates cron job"
@@ -1281,8 +1171,6 @@ renewal_job_installed(){
   local command="crontab  -l | grep -q 'certbot renew'"
   run_command "${command}" "$(translate 'messages.check_renewal_job_scheduled')" "hide_output uncolored_yes_no" "allow_errors"
 }
-
-
 
 regenerate_self_signed_cert(){
   if [ -L ${NGINX_SSL_CERT_PATH} ]; then
@@ -1328,8 +1216,6 @@ generate_self_signed_certificate(){
   command="${command} -subj '/CN=$(get_host_ip)'"
   run_command "${command}" 'Generating self-signed certificate' 'hide_output'
 }
-
-
 #
 
 
@@ -1421,8 +1307,6 @@ generate_nginx_config_for(){
   generating_message=$(translate "messages.generating_nginx_config_for")
   run_command "${command}" "${generating_message} ${domain}" "hide_output"
 }
-
-
 #
 
 
@@ -1461,8 +1345,6 @@ print_not_enabled_domains(){
   print_with_color "$(cat "$SSL_ENABLER_ERRORS_LOG")" "${color}"
 }
 
-
-
 recognize_error() {
   local certbot_log="${1}"
   local key="unknown_error"
@@ -1483,7 +1365,6 @@ recognize_error() {
   debug "The error key is ${key}"
   print_translated "certbot_errors.${key}"
 }
-
 
 
 enable_ssl(){
