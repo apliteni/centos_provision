@@ -22,7 +22,6 @@ fi
 
 
 
-
 empty()
 {
     [[ "${#1}" == 0 ]] && return 0 || return 1
@@ -56,11 +55,7 @@ last ()
 
 
 
-
-
 TOOL_NAME='test-run-command'
-
-
 #
 
 
@@ -111,12 +106,7 @@ fi
 
 declare -A VARS
 
-RECONFIGURE_KEITARO_COMMAND_EN="curl -sSL ${KEITARO_URL}/install.sh > run; bash run"
-RECONFIGURE_KEITARO_COMMAND_RU="curl -sSL ${KEITARO_URL}/install.sh > run; bash run -l ru"
-
 SSL_ENABLER_ERRORS_LOG="${CONFIG_DIR}/ssl_enabler_errors.log"
-
-
 declare -A DICT
 
 DICT['en.errors.program_failed']='PROGRAM FAILED'
@@ -157,8 +147,6 @@ DICT['ru.prompt_errors.validate_domains_list']='Укажите список до
 DICT['ru.prompt_errors.validate_presence']='Введите значение'
 DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
 
-
-
 #
 
 
@@ -194,8 +182,6 @@ detect_language_from_var(){
     echo en
   fi
 }
-
-
 #
 
 
@@ -222,13 +208,9 @@ interpolate(){
   echo "${string}"
 }
 
-
-
 add_indentation(){
   sed -r "s/^/$INDENTATION_SPACES/g"
 }
-
-
 
 force_utf8_input(){
   LC_CTYPE=en_US.UTF-8
@@ -236,8 +218,6 @@ force_utf8_input(){
     stty -F /proc/$$/fd/1 iutf8
   fi
 }
-
-
 
 read_stdin(){
   if is_pipe_mode; then
@@ -248,13 +228,9 @@ read_stdin(){
   echo "$variable"
 }
 
-
-
 clean_up(){
   debug 'called clean_up()'
 }
-
-
 #
 
 
@@ -269,8 +245,6 @@ debug(){
   fi
   print_with_color "$message" "$color" >> "$SCRIPT_LOG"
 }
-
-
 #
 
 
@@ -290,8 +264,6 @@ fail(){
   exit ${FAILURE_RESULT}
 }
 
-
-
 init(){
   init_log
   force_utf8_input
@@ -303,8 +275,6 @@ init(){
   trap on_exit SIGHUP SIGINT SIGTERM
 }
 
-
-
 init_log(){
   if mkdir -p ${CONFIG_DIR} &> /dev/null; then
     > ${SCRIPT_LOG}
@@ -314,15 +284,11 @@ init_log(){
   fi
 }
 
-
-
 log_and_print_err(){
   local message="${1}"
   print_err "$message" 'red'
   debug "$message" 'red'
 }
-
-
 
 on_exit(){
   debug "Terminated by user"
@@ -330,8 +296,6 @@ on_exit(){
   clean_up
   fail "$(translate 'errors.terminated')"
 }
-
-
 #
 
 
@@ -351,15 +315,11 @@ print_content_of(){
   fi
 }
 
-
-
 print_err(){
   local message="${1}"
   local color="${2}"
   print_with_color "$message" "$color" >&2
 }
-
-
 #
 
 
@@ -373,8 +333,6 @@ print_translated(){
     echo "$message"
   fi
 }
-
-
 #
 
 
@@ -414,8 +372,6 @@ print_with_color(){
     echo "$message"
   fi
 }
-
-
 #
 
 
@@ -610,8 +566,6 @@ remove_current_command(){
   rmdir $(dirname "$current_command_script")
 }
 
-
-
 #
 
 
@@ -775,7 +729,6 @@ get_printable_fields(){
   local fields="${2}"
   echo "$fields"
 }
-
 json2dict() {
 
   throw() {
@@ -942,7 +895,6 @@ json2dict() {
 
   echo "("; (tokenize | json_parse); echo ")"
 }
-
 
 
 test_run_command(){
