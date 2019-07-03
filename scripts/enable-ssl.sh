@@ -23,7 +23,6 @@ fi
 
 
 
-
 empty()
 {
     [[ "${#1}" == 0 ]] && return 0 || return 1
@@ -56,11 +55,7 @@ last ()
 }
 
 
-
-
 TOOL_NAME='enable-ssl'
-
-
 #
 
 
@@ -113,8 +108,6 @@ declare -A VARS
 declare -A ARGS
 
 SSL_ENABLER_ERRORS_LOG="${CONFIG_DIR}/ssl_enabler_errors.log"
-
-
 declare -A DICT
 
 DICT['en.errors.program_failed']='PROGRAM FAILED'
@@ -167,8 +160,6 @@ END
 DICT['ru.prompt_errors.validate_presence']='Введите значение'
 DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
 
-
-
 declare -a DOMAINS
 declare -a SUCCESSFUL_DOMAINS
 declare -a FAILED_DOMAINS
@@ -177,8 +168,6 @@ SSL_CERT_PATH="${SSL_ROOT}/cert.pem"
 SSL_PRIVKEY_PATH="${SSL_ROOT}/privkey.pem"
 CERT_DOMAINS_PATH="${CONFIG_DIR}/ssl_enabler_cert_domains"
 CERTBOT_LOG="${CONFIG_DIR}/ssl_enabler_cerbot.log"
-
-
 DICT['en.errors.see_logs']="Evaluating log saved to ${SCRIPT_LOG}. Please rerun \`${SCRIPT_COMMAND}\` after resolving problems."
 DICT['en.errors.domain_invalid']=":domain: doesn't look as valid domain"
 DICT['en.certbot_errors.wrong_a_entry']="Please make sure that your domain name was entered correctly and the DNS A record for that domain contains the right IP address. You need to wait a little if the DNS A record was updated recently."
@@ -209,8 +198,6 @@ DICT['ru.warnings.nginx_config_exists_for_domain']="nginx конфигураци
 DICT['ru.warnings.certificate_exists_for_domain']="сертификат уже существует"
 DICT['ru.warnings.skip_nginx_config_generation']="пропускаем генерацию конфигурации nginx"
 
-
-
 #
 
 
@@ -231,8 +218,6 @@ assert_caller_root(){
   fi
 }
 
-
-
 assert_installed(){
   local program="${1}"
   local error="${2}"
@@ -240,8 +225,6 @@ assert_installed(){
     fail "$(translate ${error})" "see_logs"
   fi
 }
-
-
 
 
 assert_server_configuration_relevant(){
@@ -293,8 +276,6 @@ build_upgrade_message(){
   local installed_version="${1}"
   translate 'errors.upgrade_server' "installed_version=${installed_version}"
 }
-
-
 #
 
 
@@ -322,8 +303,6 @@ is_file_exist(){
     return ${FAILURE_RESULT}
   fi
 }
-
-
 #
 
 
@@ -352,8 +331,6 @@ is_file_matches(){
     return ${FAILURE_RESULT}
   fi
 }
-
-
 #
 
 
@@ -381,8 +358,6 @@ is_directory_exist(){
     return ${FAILURE_RESULT}
   fi
 }
-
-
 #
 
 
@@ -433,8 +408,6 @@ get_ui_lang(){
   fi
   echo "$UI_LANG"
 }
-
-
 #
 
 
@@ -460,8 +433,6 @@ interpolate(){
   string="${string//:${name}:/${value}}"
   echo "${string}"
 }
-
-
 #
 
 
@@ -483,13 +454,9 @@ is_installed(){
   fi
 }
 
-
-
 add_indentation(){
   sed -r "s/^/$INDENTATION_SPACES/g"
 }
-
-
 
 force_utf8_input(){
   LC_CTYPE=en_US.UTF-8
@@ -497,8 +464,6 @@ force_utf8_input(){
     stty -F /proc/$$/fd/1 iutf8
   fi
 }
-
-
 #
 
 
@@ -531,8 +496,6 @@ get_user_var(){
     fi
   done
 }
-
-
 hack_stdin_if_pipe_mode(){
   if is_pipe_mode; then
     debug 'Detected pipe bash mode. Stdin hack enabled'
@@ -547,13 +510,9 @@ hack_stdin(){
   exec 3<&1
 }
 
-
-
 is_pipe_mode(){
   [ "${SHELL_NAME}" == 'bash' ]
 }
-
-
 #
 
 
@@ -569,22 +528,16 @@ print_prompt(){
   fi
   echo -en "$prompt > "
 }
-
-
 print_prompt_error(){
   local error_key="${1}"
   error=$(translate "prompt_errors.$error_key")
   print_with_color "*** ${error}" 'red'
 }
 
-
-
 print_prompt_help(){
   local var_name="${1}"
   print_translated "prompts.$var_name.help"
 }
-
-
 
 read_stdin(){
   if is_pipe_mode; then
@@ -594,8 +547,6 @@ read_stdin(){
   fi
   echo "$variable"
 }
-
-
 #
 
 
@@ -689,13 +640,9 @@ nginx_vhost_already_processed(){
   is_file_matches "$vhost_path" "# Post-processed by Keitaro ${TOOL_NAME} tool v${RELEASE_VERSION}" "no"
 }
 
-
-
 clean_up(){
   debug 'called clean_up()'
 }
-
-
 #
 
 
@@ -710,8 +657,6 @@ debug(){
   fi
   print_with_color "$message" "$color" >> "$SCRIPT_LOG"
 }
-
-
 #
 
 
@@ -731,8 +676,6 @@ fail(){
   exit ${FAILURE_RESULT}
 }
 
-
-
 init(){
   init_log
   force_utf8_input
@@ -744,8 +687,6 @@ init(){
   trap on_exit SIGHUP SIGINT SIGTERM
 }
 
-
-
 init_log(){
   if mkdir -p ${CONFIG_DIR} &> /dev/null; then
     > ${SCRIPT_LOG}
@@ -755,15 +696,11 @@ init_log(){
   fi
 }
 
-
-
 log_and_print_err(){
   local message="${1}"
   print_err "$message" 'red'
   debug "$message" 'red'
 }
-
-
 
 on_exit(){
   debug "Terminated by user"
@@ -771,8 +708,6 @@ on_exit(){
   clean_up
   fail "$(translate 'errors.terminated')"
 }
-
-
 #
 
 
@@ -792,15 +727,11 @@ print_content_of(){
   fi
 }
 
-
-
 print_err(){
   local message="${1}"
   local color="${2}"
   print_with_color "$message" "$color" >&2
 }
-
-
 #
 
 
@@ -814,8 +745,6 @@ print_translated(){
     echo "$message"
   fi
 }
-
-
 #
 
 
@@ -856,14 +785,10 @@ print_with_color(){
   fi
 }
 
-
-
 reload_nginx(){
   debug "Reload nginx"
   run_command "nginx -s reload" "$(translate 'messages.reload_nginx')" 'hide_output'
 }
-
-
 #
 
 
@@ -1057,8 +982,6 @@ remove_current_command(){
   rm -f "$CURRENT_COMMAND_OUTPUT_LOG" "$CURRENT_COMMAND_ERROR_LOG" "$current_command_script"
   rmdir $(dirname "$current_command_script")
 }
-
-
 #
 
 
@@ -1190,8 +1113,6 @@ help_en_common(){
   print_err
 }
 
-
-
 get_host_ip(){
   hostname -I 2>/dev/null | tr ' ' "\n" | grep -oP '(\d+\.){3}\d+' \
     | grep -v '^10\.' | grep -vP '172\.(1[6-9]|2[0-9]|3[1-2])' | grep -v '192\.168\.' \
@@ -1199,8 +1120,6 @@ get_host_ip(){
     | head -n 1 \
     || true
   }
-
-
 
 join_by(){
   local delimiter=$1
@@ -1210,14 +1129,10 @@ join_by(){
   printf "%s" "${@/#/${delimiter}}"
 }
 
-
-
 to_lower(){
   local string="${1}"
   echo "${string,,}"
 }
-
-
 #
 
 
@@ -1234,8 +1149,6 @@ ensure_valid(){
     exit ${FAILURE_RESULT}
   fi
 }
-
-
 
 get_error(){
   local var_name="${1}"
@@ -1254,8 +1167,6 @@ get_error(){
   done
   echo "${error}"
 }
-
-
 SUBDOMAIN_REGEXP="[[:alnum:]-]+"
 DOMAIN_REGEXP="(${SUBDOMAIN_REGEXP}\.)+[[:alpha:]]${SUBDOMAIN_REGEXP}"
 
@@ -1263,16 +1174,12 @@ validate_domain(){
   local value="${1}"
   [[ "$value" =~ ^${DOMAIN_REGEXP}$ ]]
 }
-
-
 DOMAIN_LIST_REGEXP="${DOMAIN_REGEXP}(,${DOMAIN_REGEXP})*"
 
 validate_domains_list(){
   local value="${1}"
   [[ "$value" =~ ^${DOMAIN_LIST_REGEXP}$ ]]
 }
-
-
 #
 
 
@@ -1284,23 +1191,17 @@ validate_presence(){
   isset "$value"
 }
 
-
-
 is_no(){
   local answer="${1}"
   shopt -s nocasematch
   [[ "$answer" =~ ^(no|n|нет|н)$ ]]
 }
 
-
-
 is_yes(){
   local answer="${1}"
   shopt -s nocasematch
   [[ "$answer" =~ ^(yes|y|да|д)$ ]]
 }
-
-
 
 transform_to_yes_no(){
   local var_name="${1}"
@@ -1312,14 +1213,10 @@ transform_to_yes_no(){
     VARS[$var_name]='no'
   fi
 }
-
-
 validate_yes_no(){
   local value="${1}"
   (is_yes "$value" || is_no "$value")
 }
-
-
 
 
 stage1(){
@@ -1327,8 +1224,6 @@ stage1(){
   parse_options "$@"
   set_ui_lang
 }
-
-
 #
 
 
@@ -1396,22 +1291,16 @@ help_en(){
   print_err
 }
 
-
-
 stage2(){
   debug "Starting stage 2: make some asserts"
   assert_caller_root
   assert_server_configuration_relevant
 }
 
-
-
 stage3(){
   debug "Starting stage 3: get user vars"
   get_user_vars
 }
-
-
 
 get_user_vars() {
   debug 'Read vars from user input'
@@ -1420,8 +1309,6 @@ get_user_vars() {
     get_user_var 'ssl_domains' 'validate_presence validate_domains_list'
   fi
 }
-
-
 #
 
 
@@ -1437,8 +1324,6 @@ stage4(){
   fi
   show_finishing_message
 }
-
-
 
 add_renewal_job(){
   debug "Add renewal certificates cron job"
@@ -1466,8 +1351,6 @@ renewal_job_installed(){
   local command="crontab  -l | grep -q 'certbot renew'"
   run_command "${command}" "$(translate 'messages.check_renewal_job_scheduled')" "hide_output uncolored_yes_no" "allow_errors"
 }
-
-
 #
 
 
@@ -1534,8 +1417,6 @@ request_certificate_for(){
   run_command "${certbot_command}" "${requesting_message}" "hide_output" "allow_errors" "" "" "$CERTBOT_LOG"
 }
 
-
-
 generate_vhost_ssl_enabler(){
   local domain="${1}"
   local certs_root_path="/etc/letsencrypt/live/${domain}"
@@ -1543,8 +1424,6 @@ generate_vhost_ssl_enabler(){
       "s|ssl_certificate .*|ssl_certificate ${certs_root_path}/fullchain.pem;|" \
       "s|ssl_certificate_key .*|ssl_certificate_key ${certs_root_path}/privkey.pem;|"
     }
-
-
 #
 
 
@@ -1583,8 +1462,6 @@ print_not_enabled_domains(){
   print_with_color "$(cat "$SSL_ENABLER_ERRORS_LOG")" "${color}"
 }
 
-
-
 recognize_error() {
   local certbot_log="${1}"
   local key="unknown_error"
@@ -1605,7 +1482,6 @@ recognize_error() {
   debug "The error key is ${key}"
   print_translated "certbot_errors.${key}"
 }
-
 
 
 enable_ssl(){
