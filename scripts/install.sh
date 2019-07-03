@@ -905,12 +905,18 @@ remove_current_command(){
   rmdir $(dirname "$current_command_script")
 }
 
-get_host_ip(){
-  hostname -I 2>/dev/null | tr ' ' "\n" | grep -oP '(\d+\.){3}\d+' \
-    | grep -v '^10\.' | grep -vP '172\.(1[6-9]|2[0-9]|3[1-2])' | grep -v '192\.168\.' \
-    | grep -v '127\.' \
-    | head -n 1 \
-    || true
+detect_license_ip(){
+  get_host_ips | head -n1
+}
+
+get_host_ips(){
+  hostname -I 2>/dev/null \
+    | tr ' ' "\n" \
+    | grep -P '^(\d+\.){3}\d+$' \
+    | grep -vP '^10\.' \
+    | grep -vP '^172\.(1[6-9]|2[0-9]|3[1-2])\.' \
+    | grep -vP '^192\.168\.' \
+    | grep -vP '^127\.'
   }
 
 get_error(){
@@ -1703,9 +1709,8 @@ get_user_vars(){
 
 get_user_license_vars(){
   if empty "${VARS['license_ip']}"; then
-    VARS['license_ip']=$(get_host_ip)
+    VARS['license_ip']=$(detect_license_ip)
   fi
-  get_user_var 'license_ip' 'validate_presence validate_ip'
   get_user_var 'license_key' 'validate_presence validate_license_key'
 }
 

@@ -24,9 +24,8 @@ get_user_vars(){
 
 get_user_license_vars(){
   if empty "${VARS['license_ip']}"; then
-    VARS['license_ip']=$(get_host_ip)
+    VARS['license_ip']=$(detect_license_ip)
   fi
-  get_user_var 'license_ip' 'validate_presence validate_ip'
   get_user_var 'license_key' 'validate_presence validate_license_key'
 }
 

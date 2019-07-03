@@ -34,14 +34,12 @@ RSpec.describe 'install.sh' do
         skip_firewall: 'Do you want to skip installing firewall?',
         ssl: 'Do you want to install Free SSL certificates (you can do it later)?',
         ssl_domains: 'Please enter domains separated by comma without spaces',
-        license_ip: 'Please enter server IP',
         license_key: 'Please enter license key',
         db_restore_path: 'Please enter the path to the SQL dump file if you want to restore database',
         db_restore_salt: 'Please enter the value of the "salt" parameter from the old config (application/config/config.ini.php)',
       },
       ru: {
         ssl: 'Установить бесплатные SSL сертификаты (можно сделать это позже)?',
-        license_ip: 'Укажите IP адрес сервера',
         license_key: 'Укажите лицензионный ключ',
         db_restore_path: 'Укажите путь к файлу c SQL дампом, если хотите восстановить базу данных из дампа'
       }
@@ -53,7 +51,6 @@ RSpec.describe 'install.sh' do
       skip_firewall: skip_firewall,
       ssl: ssl,
       ssl_domains: ssl_domains,
-      license_ip: license_ip,
       license_key: license_key,
       db_restore_path: db_restore_path,
       db_restore_salt: db_restore_salt,
@@ -156,13 +153,7 @@ RSpec.describe 'install.sh' do
         'chmod a+x /bin/hostname'
       ] }
 
-      it_behaves_like 'should show default value', :license_ip, showed_value: '1.1.1.1'
-
       it_behaves_like 'should store default value', :license_ip, readed_inventory_value: '1.1.1.1'
-
-      it_behaves_like 'should store user value', :license_ip, readed_inventory_value: '1.1.1.1'
-
-      it_behaves_like 'should take value from previously saved inventory', :license_ip, value: '1.1.1.1'
     end
 
     it_behaves_like 'field without default', :license_key, value: 'AAAA-BBBB-CCCC-DDDD'
@@ -263,6 +254,11 @@ RSpec.describe 'install.sh' do
   end
 
   describe 'installation result' do
+    let(:commands) { [
+      'echo "echo 127.0.0.1; echo 8.8.8.8" > /bin/hostname',
+      'chmod a+x /bin/hostname'
+    ] }
+
     let(:docker_image) { 'centos' }
 
     context 'successful installation' do
