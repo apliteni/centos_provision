@@ -33,7 +33,7 @@ define compile_powscript
 	sed -i 's|#!/bin/bash|#!/usr/bin/env bash|g' $(2)         # portable shebang line
 	sed -i '/# cleanup tmp files/,+4d' $(2)                   # remove unportable cleaning
 	sed -i 's/#$$//g' $(2)                                    # remove trailing #
-	bin/postprocess_requires.rb $(2)
+	bin/postprocess_requires $(2)
 	chmod a+x $(2)
 endef
 
