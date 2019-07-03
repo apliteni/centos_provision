@@ -1116,8 +1116,9 @@ detect_tables_prefix(){
   command="${command} | grep -oP '\`.*\`'"
   command="${command} | sed -e 's/\`//g' -e 's/${FIRST_KEITARO_TABLE_NAME}\$//'"
   message="$(translate 'messages.check_keitaro_dump_get_tables_prefix')"
+  rm -f "${DETECTED_PREFIX_PATH}"
   if run_command "$command" "$message" 'hide_output' 'allow_errors' '' '' "$DETECTED_PREFIX_PATH" > /dev/stderr; then
-    cat "$DETECTED_PREFIX_PATH"
+    cat "$DETECTED_PREFIX_PATH" | head -n1
   fi
 }
 
@@ -1243,7 +1244,7 @@ validate_yes_no(){
 PROVISION_DIRECTORY="centos_provision-${BRANCH}"
 KEITARO_ALREADY_INSTALLED_RESULT=2
 PHP_ENGINE=${PHP_ENGINE:-roadrunner}
-DETECTED_PREFIX_PATH=".keitaro_detected_prefix"
+DETECTED_PREFIX_PATH=".keitaro/detected_prefix"
 
 
 #
@@ -2005,8 +2006,8 @@ run_ansible_playbook(){
   local env="ANSIBLE_FORCE_COLOR=true"
   env="${env} ANSIBLE_CONFIG=${PROVISION_DIRECTORY}/ansible.cfg"
   env="${env} ANSIBLE_GATHER_TIMEOUT=30"
-  if is_file_exist "$DETECTED_PREFIX_PATH" "no"; then
-    env="${env} TABLES_PREFIX='$(cat "${DETECTED_PREFIX_PATH}")'"
+  if [ -f "$DETECTED_PREFIX_PATH" ]; then
+    env="${env} TABLES_PREFIX='$(cat "${DETECTED_PREFIX_PATH}" | head -n1)'"
     rm -f "${DETECTED_PREFIX_PATH}"
   fi
   local command="${env} ansible-playbook -vvv -i ${INVENTORY_FILE} ${PROVISION_DIRECTORY}/playbook.yml"
