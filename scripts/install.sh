@@ -119,9 +119,6 @@ fi
 
 declare -A VARS
 
-RECONFIGURE_KEITARO_COMMAND_EN="curl -sSL ${KEITARO_URL}/install.sh > run; bash run"
-RECONFIGURE_KEITARO_COMMAND_RU="curl -sSL ${KEITARO_URL}/install.sh > run; bash run -l ru"
-
 SSL_ENABLER_ERRORS_LOG="${CONFIG_DIR}/ssl_enabler_errors.log"
 
 
@@ -981,9 +978,6 @@ KEITARO_ALREADY_INSTALLED_RESULT=2
 
 
 
-
-SSL_ENABLER_COMMAND_EN="curl -sSL ${KEITARO_URL}/enable-ssl.sh | bash -s -- domain1.tld [domain2.tld...]"
-SSL_ENABLER_COMMAND_RU="curl -sSL ${KEITARO_URL}/enable-ssl.sh | bash -s -- -l ru domain1.tld [domain2.tld...]"
 
 DICT['en.messages.keitaro_already_installed']='Keitaro is already installed'
 DICT['en.messages.check_ability_firewall_installing']="Checking the ability of installing a firewall"

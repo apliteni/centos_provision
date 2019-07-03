@@ -5,9 +5,6 @@
 
 
 
-SSL_ENABLER_COMMAND_EN="curl -sSL ${KEITARO_URL}/enable-ssl.sh | bash -s -- domain1.tld [domain2.tld...]"
-SSL_ENABLER_COMMAND_RU="curl -sSL ${KEITARO_URL}/enable-ssl.sh | bash -s -- -l ru domain1.tld [domain2.tld...]"
-
 DICT['en.messages.keitaro_already_installed']='Keitaro is already installed'
 DICT['en.messages.check_ability_firewall_installing']="Checking the ability of installing a firewall"
 DICT['en.messages.check_keitaro_dump_validity']="Checking SQL dump"
