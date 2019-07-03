@@ -15,6 +15,8 @@ recognize_error() {
       key="wrong_a_entry"
     elif [[ $error_detail =~ "Invalid response from" ]]; then
       key="wrong_a_entry"
+    elif [[ $error_detail =~ "Fetching" ]]; then
+      key="fetching"
     fi
   fi
   debug "The error key is ${key}"
