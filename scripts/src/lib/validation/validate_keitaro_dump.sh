@@ -46,8 +46,9 @@ detect_tables_prefix(){
   command="${command} | grep -oP '\`.*\`'"
   command="${command} | sed -e 's/\`//g' -e 's/${FIRST_KEITARO_TABLE_NAME}\$//'"
   message="$(translate 'messages.check_keitaro_dump_get_tables_prefix')"
+  rm -f "${DETECTED_PREFIX_PATH}"
   if run_command "$command" "$message" 'hide_output' 'allow_errors' '' '' "$DETECTED_PREFIX_PATH" > /dev/stderr; then
-    cat "$DETECTED_PREFIX_PATH"
+    cat "$DETECTED_PREFIX_PATH" | head -n1
   fi
 }
 
