@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+FILEPATH="${1}"
+TMP_FILEPATH="$(mktemp)"
+
+process() {
+  local filepath="${1}"
+  while IFS= read -r line; do
+    if [[ "${line}" =~ ^_require ]]; then
+      read -a line_parts <<<"$(echo "${line}")"
+      quoted_required_file=${line_parts[1]}
+      quoted_required_file="${quoted_required_file//\'}"
+      required_file="${quoted_required_file//\"}"
+      cat "src/${required_file}" | sed '/^#!/d'
+    else
+      echo "${line}"
+    fi
+  done < "${filepath}"
+}
+
+process "${FILEPATH}" > "${TMP_FILEPATH}"
+mv "${TMP_FILEPATH}" "${FILEPATH}"
