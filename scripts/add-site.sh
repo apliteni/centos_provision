@@ -23,7 +23,6 @@ fi
 
 
 
-
 empty()
 {
     [[ "${#1}" == 0 ]] && return 0 || return 1
@@ -56,11 +55,7 @@ last ()
 }
 
 
-
-
 TOOL_NAME='add-site'
-
-
 #
 
 
@@ -113,8 +108,6 @@ declare -A VARS
 declare -A ARGS
 
 SSL_ENABLER_ERRORS_LOG="${CONFIG_DIR}/ssl_enabler_errors.log"
-
-
 declare -A DICT
 
 DICT['en.errors.program_failed']='PROGRAM FAILED'
@@ -167,10 +160,6 @@ END
 DICT['ru.prompt_errors.validate_presence']='Введите значение'
 DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
 
-
-
-
-
 DICT['en.errors.see_logs']="Evaluating log saved to ${SCRIPT_LOG}. Please rerun \`${SCRIPT_COMMAND}\` after resolving problems."
 DICT['en.errors.vhost_already_exists']="Can not save site configuration - :vhost_filepath: already exists"
 DICT['en.errors.site_root_not_exists']="Can not save site configuration - :site_root: directory does not exist"
@@ -184,8 +173,6 @@ DICT['ru.errors.site_root_not_exists']="Невозможно сохранить 
 DICT['ru.prompts.site_domains']="${DICT['ru.prompts.ssl_domains']}"
 DICT['ru.prompts.site_root']='Укажите корневую директорию сайта'
 DICT['ru.prompt_errors.validate_directory_existence']="Директория :value: не существует"
-
-
 
 #
 
@@ -207,8 +194,6 @@ assert_caller_root(){
   fi
 }
 
-
-
 assert_installed(){
   local program="${1}"
   local error="${2}"
@@ -216,8 +201,6 @@ assert_installed(){
     fail "$(translate ${error})" "see_logs"
   fi
 }
-
-
 
 
 assert_server_configuration_relevant(){
@@ -269,8 +252,6 @@ build_upgrade_message(){
   local installed_version="${1}"
   translate 'errors.upgrade_server' "installed_version=${installed_version}"
 }
-
-
 #
 
 
@@ -298,8 +279,6 @@ is_directory_exist(){
     return ${FAILURE_RESULT}
   fi
 }
-
-
 #
 
 
@@ -327,8 +306,6 @@ is_path_exist(){
     return ${FAILURE_RESULT}
   fi
 }
-
-
 #
 
 
@@ -356,8 +333,6 @@ is_file_exist(){
     return ${FAILURE_RESULT}
   fi
 }
-
-
 #
 
 
@@ -386,8 +361,6 @@ is_file_matches(){
     return ${FAILURE_RESULT}
   fi
 }
-
-
 #
 
 
@@ -438,8 +411,6 @@ get_ui_lang(){
   fi
   echo "$UI_LANG"
 }
-
-
 #
 
 
@@ -465,8 +436,6 @@ interpolate(){
   string="${string//:${name}:/${value}}"
   echo "${string}"
 }
-
-
 #
 
 
@@ -488,13 +457,9 @@ is_installed(){
   fi
 }
 
-
-
 add_indentation(){
   sed -r "s/^/$INDENTATION_SPACES/g"
 }
-
-
 
 force_utf8_input(){
   LC_CTYPE=en_US.UTF-8
@@ -502,8 +467,6 @@ force_utf8_input(){
     stty -F /proc/$$/fd/1 iutf8
   fi
 }
-
-
 #
 
 
@@ -536,8 +499,6 @@ get_user_var(){
     fi
   done
 }
-
-
 hack_stdin_if_pipe_mode(){
   if is_pipe_mode; then
     debug 'Detected pipe bash mode. Stdin hack enabled'
@@ -552,13 +513,9 @@ hack_stdin(){
   exec 3<&1
 }
 
-
-
 is_pipe_mode(){
   [ "${SHELL_NAME}" == 'bash' ]
 }
-
-
 #
 
 
@@ -574,22 +531,16 @@ print_prompt(){
   fi
   echo -en "$prompt > "
 }
-
-
 print_prompt_error(){
   local error_key="${1}"
   error=$(translate "prompt_errors.$error_key")
   print_with_color "*** ${error}" 'red'
 }
 
-
-
 print_prompt_help(){
   local var_name="${1}"
   print_translated "prompts.$var_name.help"
 }
-
-
 
 read_stdin(){
   if is_pipe_mode; then
@@ -599,8 +550,6 @@ read_stdin(){
   fi
   echo "$variable"
 }
-
-
 #
 
 
@@ -694,13 +643,9 @@ nginx_vhost_already_processed(){
   is_file_matches "$vhost_path" "# Post-processed by Keitaro ${TOOL_NAME} tool v${RELEASE_VERSION}" "no"
 }
 
-
-
 clean_up(){
   debug 'called clean_up()'
 }
-
-
 #
 
 
@@ -715,8 +660,6 @@ debug(){
   fi
   print_with_color "$message" "$color" >> "$SCRIPT_LOG"
 }
-
-
 #
 
 
@@ -736,8 +679,6 @@ fail(){
   exit ${FAILURE_RESULT}
 }
 
-
-
 init(){
   init_log
   force_utf8_input
@@ -749,8 +690,6 @@ init(){
   trap on_exit SIGHUP SIGINT SIGTERM
 }
 
-
-
 init_log(){
   if mkdir -p ${CONFIG_DIR} &> /dev/null; then
     > ${SCRIPT_LOG}
@@ -760,15 +699,11 @@ init_log(){
   fi
 }
 
-
-
 log_and_print_err(){
   local message="${1}"
   print_err "$message" 'red'
   debug "$message" 'red'
 }
-
-
 
 on_exit(){
   debug "Terminated by user"
@@ -776,8 +711,6 @@ on_exit(){
   clean_up
   fail "$(translate 'errors.terminated')"
 }
-
-
 #
 
 
@@ -797,15 +730,11 @@ print_content_of(){
   fi
 }
 
-
-
 print_err(){
   local message="${1}"
   local color="${2}"
   print_with_color "$message" "$color" >&2
 }
-
-
 #
 
 
@@ -819,8 +748,6 @@ print_translated(){
     echo "$message"
   fi
 }
-
-
 #
 
 
@@ -861,14 +788,10 @@ print_with_color(){
   fi
 }
 
-
-
 reload_nginx(){
   debug "Reload nginx"
   run_command "nginx -s reload" "$(translate 'messages.reload_nginx')" 'hide_output'
 }
-
-
 #
 
 
@@ -1062,8 +985,6 @@ remove_current_command(){
   rm -f "$CURRENT_COMMAND_OUTPUT_LOG" "$CURRENT_COMMAND_ERROR_LOG" "$current_command_script"
   rmdir $(dirname "$current_command_script")
 }
-
-
 #
 
 
@@ -1194,8 +1115,6 @@ help_en_common(){
   print_err "  -v                       display version information and exit"
   print_err
 }
-
-
 #
 
 
@@ -1212,8 +1131,6 @@ ensure_valid(){
     exit ${FAILURE_RESULT}
   fi
 }
-
-
 
 get_error(){
   local var_name="${1}"
@@ -1232,8 +1149,6 @@ get_error(){
   done
   echo "${error}"
 }
-
-
 #
 
 
@@ -1244,8 +1159,6 @@ validate_presence(){
   local value="${1}"
   isset "$value"
 }
-
-
 SUBDOMAIN_REGEXP="[[:alnum:]-]+"
 DOMAIN_REGEXP="(${SUBDOMAIN_REGEXP}\.)+[[:alpha:]]${SUBDOMAIN_REGEXP}"
 
@@ -1253,8 +1166,6 @@ validate_domain(){
   local value="${1}"
   [[ "$value" =~ ^${DOMAIN_REGEXP}$ ]]
 }
-
-
 DOMAIN_LIST_REGEXP="${DOMAIN_REGEXP}(,${DOMAIN_REGEXP})*"
 
 validate_domains_list(){
@@ -1262,14 +1173,10 @@ validate_domains_list(){
   [[ "$value" =~ ^${DOMAIN_LIST_REGEXP}$ ]]
 }
 
-
-
 validate_directory_existence(){
   local value="${1}"
   [[ -d "$value" ]]
 }
-
-
 
 is_no(){
   local answer="${1}"
@@ -1277,15 +1184,11 @@ is_no(){
   [[ "$answer" =~ ^(no|n|нет|н)$ ]]
 }
 
-
-
 is_yes(){
   local answer="${1}"
   shopt -s nocasematch
   [[ "$answer" =~ ^(yes|y|да|д)$ ]]
 }
-
-
 
 transform_to_yes_no(){
   local var_name="${1}"
@@ -1297,14 +1200,10 @@ transform_to_yes_no(){
     VARS[$var_name]='no'
   fi
 }
-
-
 validate_yes_no(){
   local value="${1}"
   (is_yes "$value" || is_no "$value")
 }
-
-
 
 join_by(){
   local delimiter=$1
@@ -1315,27 +1214,19 @@ join_by(){
 }
 
 
-
-
 first_domain(){
   echo "${VARS['site_domains']%%,*}"
 }
 
-
-
 vhost_filepath(){
   echo "${NGINX_VHOSTS_DIR}/$(first_domain).conf"
 }
-
-
 
 stage1(){
   debug "Starting stage 1: initial script setup"
   parse_options "$@"
   set_ui_lang
 }
-
-
 
 parse_options(){
   while getopts ":D:R:L:l:vhsp" option; do
@@ -1381,22 +1272,16 @@ help_en(){
   print_err
 }
 
-
-
 stage2(){
   debug "Starting stage 2: make some asserts"
   assert_caller_root
   assert_server_configuration_relevant
 }
 
-
-
 stage3(){
   debug "Starting stage 3: get user vars"
   get_user_vars
 }
-
-
 #
 
 
@@ -1415,8 +1300,6 @@ get_user_vars(){
   fi
 }
 
-
-
 stage4(){
   debug "Starting stage 4: add vhost"
   ensure_can_add_vhost
@@ -1427,16 +1310,12 @@ stage4(){
   show_successful_message
 }
 
-
-
 ensure_can_add_vhost(){
   debug "Ensure can add vhost"
   if ! is_directory_exist "${VARS['site_root']}"; then
     fail "$(translate 'errors.site_root_not_exists' "site_root=${VARS['site_root']}")"
   fi
 }
-
-
 
 generate_vhost_site_adder(){
   local domain="${1}"
@@ -1445,12 +1324,9 @@ generate_vhost_site_adder(){
     "/locations-tracker.inc/d"
   }
 
-
-
 show_successful_message(){
   print_with_color "$(translate 'messages.successful')" 'green'
 }
-
 
 
 add_site(){
