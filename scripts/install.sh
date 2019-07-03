@@ -32,7 +32,6 @@ isset ()
 
 
 
-
 empty()
 {
     [[ "${#1}" == 0 ]] && return 0 || return 1
@@ -66,11 +65,7 @@ last ()
 
 
 
-
-
 TOOL_NAME='install'
-
-
 #
 
 
@@ -121,12 +116,7 @@ fi
 
 declare -A VARS
 
-RECONFIGURE_KEITARO_COMMAND_EN="curl -sSL ${KEITARO_URL}/install.sh > run; bash run"
-RECONFIGURE_KEITARO_COMMAND_RU="curl -sSL ${KEITARO_URL}/install.sh > run; bash run -l ru"
-
 SSL_ENABLER_ERRORS_LOG="${CONFIG_DIR}/ssl_enabler_errors.log"
-
-
 declare -A DICT
 
 DICT['en.errors.program_failed']='PROGRAM FAILED'
@@ -164,8 +154,6 @@ DICT['ru.prompt_errors.validate_domains_list']='Укажите список до
 DICT['ru.prompt_errors.validate_presence']='Введите значение'
 DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
 
-
-
 #
 
 
@@ -186,8 +174,6 @@ assert_caller_root(){
   fi
 }
 
-
-
 assert_installed(){
   local program="${1}"
   local error="${2}"
@@ -195,8 +181,6 @@ assert_installed(){
     fail "$(translate ${error})" "see_logs"
   fi
 }
-
-
 
 assert_keitaro_not_installed(){
   debug 'Ensure keitaro is not installed yet'
@@ -210,8 +194,6 @@ assert_keitaro_not_installed(){
     debug 'OK: keitaro is not installed yet'
   fi
 }
-
-
 #
 
 
@@ -239,8 +221,6 @@ is_file_exist(){
     return ${FAILURE_RESULT}
   fi
 }
-
-
 #
 
 
@@ -276,8 +256,6 @@ detect_language_from_var(){
     echo en
   fi
 }
-
-
 #
 
 
@@ -304,13 +282,9 @@ interpolate(){
   echo "${string}"
 }
 
-
-
 add_indentation(){
   sed -r "s/^/$INDENTATION_SPACES/g"
 }
-
-
 
 detect_mime_type(){
   local file="${1}"
@@ -326,8 +300,6 @@ detect_mime_type(){
     fi
   fi
 }
-
-
 #
 
 
@@ -361,16 +333,12 @@ get_user_var(){
   done
 }
 
-
-
 force_utf8_input(){
   LC_CTYPE=en_US.UTF-8
   if [ -f /proc/$$/fd/1 ]; then
     stty -F /proc/$$/fd/1 iutf8
   fi
 }
-
-
 hack_stdin_if_pipe_mode(){
   if is_pipe_mode; then
     debug 'Detected pipe bash mode. Stdin hack enabled'
@@ -385,13 +353,9 @@ hack_stdin(){
   exec 3<&1
 }
 
-
-
 is_pipe_mode(){
   [ "${SHELL_NAME}" == 'bash' ]
 }
-
-
 #
 
 
@@ -407,22 +371,16 @@ print_prompt(){
   fi
   echo -en "$prompt > "
 }
-
-
 print_prompt_error(){
   local error_key="${1}"
   error=$(translate "prompt_errors.$error_key")
   print_with_color "*** ${error}" 'red'
 }
 
-
-
 print_prompt_help(){
   local var_name="${1}"
   print_translated "prompts.$var_name.help"
 }
-
-
 
 read_stdin(){
   if is_pipe_mode; then
@@ -433,15 +391,11 @@ read_stdin(){
   echo "$variable"
 }
 
-
-
 install_package(){
   local package="${1}"
   debug "Installing ${package}"
   run_command "yum install -y ${package}"
 }
-
-
 #
 
 
@@ -462,8 +416,6 @@ is_installed(){
     fi
   fi
 }
-
-
 #
 
 
@@ -478,8 +430,6 @@ debug(){
   fi
   print_with_color "$message" "$color" >> "$SCRIPT_LOG"
 }
-
-
 #
 
 
@@ -499,8 +449,6 @@ fail(){
   exit ${FAILURE_RESULT}
 }
 
-
-
 init(){
   init_log
   force_utf8_input
@@ -512,8 +460,6 @@ init(){
   trap on_exit SIGHUP SIGINT SIGTERM
 }
 
-
-
 init_log(){
   if mkdir -p ${CONFIG_DIR} &> /dev/null; then
     > ${SCRIPT_LOG}
@@ -523,15 +469,11 @@ init_log(){
   fi
 }
 
-
-
 log_and_print_err(){
   local message="${1}"
   print_err "$message" 'red'
   debug "$message" 'red'
 }
-
-
 
 on_exit(){
   debug "Terminated by user"
@@ -539,8 +481,6 @@ on_exit(){
   clean_up
   fail "$(translate 'errors.terminated')"
 }
-
-
 #
 
 
@@ -560,15 +500,11 @@ print_content_of(){
   fi
 }
 
-
-
 print_err(){
   local message="${1}"
   local color="${2}"
   print_with_color "$message" "$color" >&2
 }
-
-
 #
 
 
@@ -582,8 +518,6 @@ print_translated(){
     echo "$message"
   fi
 }
-
-
 #
 
 
@@ -623,8 +557,6 @@ print_with_color(){
     echo "$message"
   fi
 }
-
-
 #
 
 
@@ -819,8 +751,6 @@ remove_current_command(){
   rmdir $(dirname "$current_command_script")
 }
 
-
-
 get_host_ip(){
   hostname -I 2>/dev/null | tr ' ' "\n" | grep -oP '(\d+\.){3}\d+' \
     | grep -v '^10\.' | grep -vP '172\.(1[6-9]|2[0-9]|3[1-2])' | grep -v '192\.168\.' \
@@ -828,8 +758,6 @@ get_host_ip(){
     | head -n 1 \
     || true
   }
-
-
 
 get_error(){
   local var_name="${1}"
@@ -848,8 +776,6 @@ get_error(){
   done
   echo "${error}"
 }
-
-
 SUBDOMAIN_REGEXP="[[:alnum:]-]+"
 DOMAIN_REGEXP="(${SUBDOMAIN_REGEXP}\.)+[[:alpha:]]${SUBDOMAIN_REGEXP}"
 
@@ -857,8 +783,6 @@ validate_domain(){
   local value="${1}"
   [[ "$value" =~ ^${DOMAIN_REGEXP}$ ]]
 }
-
-
 DOMAIN_LIST_REGEXP="${DOMAIN_REGEXP}(,${DOMAIN_REGEXP})*"
 
 validate_domains_list(){
@@ -866,14 +790,10 @@ validate_domains_list(){
   [[ "$value" =~ ^${DOMAIN_LIST_REGEXP}$ ]]
 }
 
-
-
 validate_alnumdashdot(){
   local value="${1}"
   [[ "$value" =~  ^([0-9A-Za-z_\.\-]+)$ ]]
 }
-
-
 
 
 validate_ip(){
@@ -897,28 +817,20 @@ valid_ip_segment(){
   [ $ip_segment -ge 0 ] && [ $ip_segment -le 255 ]
 }
 
-
-
 validate_license_key(){
   local value="${1}"
   [[ "$value" =~  ^[0-9A-Z]{4}(-[0-9A-Z]{4}){3}$ ]]
 }
-
-
 
 validate_not_root(){
   local value="${1}"
   [[ "$value" !=  'root' ]]
 }
 
-
-
 validate_not_reserved_word(){
   local value="${1}"
   [[ "$value" !=  'yes' ]] && [[ "$value" != 'no' ]] && [[ "$value" != 'true' ]] && [[ "$value" != 'false' ]]
 }
-
-
 #
 
 
@@ -930,21 +842,15 @@ validate_presence(){
   isset "$value"
 }
 
-
-
 validate_file_existence(){
   local value="${1}"
   [[ -f "$value" ]]
 }
 
-
-
 validate_starts_with_latin_letter(){
   local value="${1}"
   [[ "$value" =~  ^[A-Za-z] ]]
 }
-
-
 
 is_no(){
   local answer="${1}"
@@ -952,15 +858,11 @@ is_no(){
   [[ "$answer" =~ ^(no|n|нет|н)$ ]]
 }
 
-
-
 is_yes(){
   local answer="${1}"
   shopt -s nocasematch
   [[ "$answer" =~ ^(yes|y|да|д)$ ]]
 }
-
-
 
 transform_to_yes_no(){
   local var_name="${1}"
@@ -972,19 +874,13 @@ transform_to_yes_no(){
     VARS[$var_name]='no'
   fi
 }
-
-
 validate_yes_no(){
   local value="${1}"
   (is_yes "$value" || is_no "$value")
 }
 
-
-
 PROVISION_DIRECTORY="centos_provision-${RELEASE_BRANCH}"
 KEITARO_ALREADY_INSTALLED_RESULT=2
-
-
 #
 
 
@@ -1103,16 +999,12 @@ DICT['ru.prompt_errors.validate_not_reserved_word']='Запрещено испо
 COMMENT_ME_IF_POWSCRIPT_WANNT_COMPILE_PROJECT="'"
 
 
-
-
 clean_up(){
   if [ -d "$PROVISION_DIRECTORY" ]; then
     debug "Remove ${PROVISION_DIRECTORY}"
     rm -rf "$PROVISION_DIRECTORY"
   fi
 }
-
-
 
 get_var_from_config(){
   local var="${1}"
@@ -1126,8 +1018,6 @@ get_var_from_config(){
     awk '{$1=$1; print}' | \
     sed -r -e "s/^'(.*)'\$/\\1/g" -e 's/^"(.*)"$/\1/g'
   }
-
-
 #
 
 
@@ -1194,15 +1084,11 @@ get_var_from_keitaro_app_config(){
 }
 
 
-
-
 stage1(){
   debug "Starting stage 1: initial script setup"
   parse_options "$@"
   set_ui_lang
 }
-
-
 #
 
 
@@ -1342,8 +1228,6 @@ en_usage(){
   print_err "    Only 6, 7 and 8 values are supported now."
   print_err
 }
-
-
 stage2(){
   debug "Starting stage 2: make some asserts"
   assert_caller_root
@@ -1351,8 +1235,6 @@ stage2(){
   assert_pannels_not_installed
   assert_apache_not_installed
 }
-
-
 #
 
 
@@ -1369,8 +1251,6 @@ assert_apache_not_installed(){
   fi
 }
 
-
-
 assert_centos_distro(){
   assert_installed 'yum' 'errors.wrong_distro'
   if ! is_file_exist /etc/centos-release; then
@@ -1380,8 +1260,6 @@ assert_centos_distro(){
     fi
   fi
 }
-
-
 #
 
 
@@ -1432,8 +1310,6 @@ databases_exist(){
   debug "Detect exist databases ${db1} ${db2}"
   mysql -Nse 'show databases' | tr '\n' ' ' | grep -Pq "${db1}.*${db2}"
 }
-
-
 #
 
 
@@ -1446,8 +1322,6 @@ stage3(){
   read_inventory
 }
 
-
-
 read_inventory(){
   if is_file_exist "${HOME}/${INVENTORY_FILE}" "no"; then
     read_inventory_file "${HOME}/${INVENTORY_FILE}"
@@ -1456,8 +1330,6 @@ read_inventory(){
     read_inventory_file "${INVENTORY_FILE}"
   fi
 }
-
-
 
 read_inventory_file(){
   local file="${1}"
@@ -1481,8 +1353,6 @@ parse_line_from_inventory_file(){
   fi
 }
 
-
-
 setup_vars(){
   VARS['skip_firewall']='no'
   VARS['ssl']='no'
@@ -1504,15 +1374,11 @@ generate_password(){
   LC_ALL=C tr -cd '[:alnum:]' < /dev/urandom | head -c${PASSWORD_LENGTH}
 }
 
-
-
 stage4(){
   debug "Starting stage 4: generate inventory file"
   get_user_vars
   write_inventory_file
 }
-
-
 #
 
 
@@ -1598,8 +1464,6 @@ can_install_firewall(){
   message="$(translate 'messages.check_ability_firewall_installing')"
   run_command "$command" "$message" 'hide_output' 'allow_errors'
 }
-
-
 #
 
 
@@ -1658,8 +1522,6 @@ print_line_to_inventory_file(){
   debug "  "$line"" 'light.blue'
   echo "$line" >> "$INVENTORY_FILE"
 }
-
-
 stage5(){
   debug "Starting stage 5: upgrade current and install necessary packages"
   upgrade_packages
@@ -1685,8 +1547,6 @@ install_packages(){
     install_package libselinux-python
   fi
 }
-
-
 #
 
 
@@ -1708,23 +1568,17 @@ stage6(){
   remove_log_files
 }
 
-
-
 download_provision(){
   debug "Download provision"
   release_url="https://github.com/apliteni/centos_provision/archive/${RELEASE_BRANCH}.tar.gz"
   run_command "curl -sSL ${release_url} | tar xz"
 }
 
-
-
 remove_log_files(){
   if [[ ! "$PRESERVE_RUNNING" ]]; then
     rm -f "${SCRIPT_LOG}" "${SCRIPT_LOG}.*"
   fi
 }
-
-
 #
 
 
@@ -1888,8 +1742,6 @@ get_printable_fields(){
   local fields="${2}"
   echo "$fields"
 }
-
-
 #
 
 
@@ -1949,8 +1801,6 @@ extract_domains_from_enable_ssl_log(){
   get_message_from_enable_ssl_log "$prefix" \
     | sed -e 's/.*: //g' -e 's/,//'     # extract domains list from message
   }
-
-
 #
 
 
@@ -1982,12 +1832,9 @@ show_credentials(){
   fi
 }
 
-
-
 show_successful_message(){
   print_with_color "$(translate 'messages.successful')" 'green'
 }
-
 json2dict() {
 
   throw() {
@@ -2154,7 +2001,6 @@ json2dict() {
 
   echo "("; (tokenize | json_parse); echo ")"
 }
-
 
 install(){
   init "$@"
