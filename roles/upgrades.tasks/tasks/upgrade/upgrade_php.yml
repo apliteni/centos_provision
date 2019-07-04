@@ -13,4 +13,5 @@
     - php56
     - php70
     - php71
-  when: get_php_version.stdout < 'php71'
+    - php72
+  when: get_php_version.stdout < 'php72'
