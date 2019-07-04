@@ -1,4 +1,4 @@
-php_version: php72
+php_version: php73
 php_memory_limit: 500M
 php_max_upload_size: "{{ max_upload_size }}"
 php_path: "/usr/bin/{{ php_version }}"
