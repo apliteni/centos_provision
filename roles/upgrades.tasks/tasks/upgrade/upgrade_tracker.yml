@@ -9,7 +9,7 @@
 
 - name: Get latest tracker version
   shell: >
-      curl -sf  -A "{{ user_agent }}" "{{ keitaro_url }}/license/api/checkUpdate?{{ request_params }}" | \
+      curl -fsSL  -A "{{ user_agent }}" "{{ keitaro_url }}/license/api/checkUpdate?{{ request_params }}" | \
         awk -F '::' '{print $2}'
   vars:
     user_agent: "Keitaro Installer v{{ keitaro_installer_version }} PHP/{{ php_release }}"
@@ -18,7 +18,7 @@
 
 - name: Upgrade Keitaro to the latest version if need
   shell: >
-    curl -sf {{ keitaro_url }}/releases/{{ get_stable_tracker_version.stdout }}/package8.tar.gz | \
+    curl -fsSL {{ keitaro_url }}/releases/{{ get_stable_tracker_version.stdout }}/package8.tar.gz | \
       tar -xz --strip=1
   args:
     chdir: "{{ keitaro_root }}"

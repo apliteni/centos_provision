@@ -131,7 +131,7 @@ statuses_php_fpm_json() {
   local pool_config="/etc/php/php-fpm.d/keitaro-${pool}.conf"
   local status_page="$(grep ^pm.status_path "${pool_config}" | awk -F'= *' '{print $2}')"
   if [ "${status_page}" != "" ]; then
-    curl_output="$(curl -sf "http://localhost${status_page}")"
+    curl_output="$(curl -fsSL "http://localhost${status_page}")"
     if [[ "${curl_output}" == '' ]]; then
       print_json state inactive
     else
