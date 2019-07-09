@@ -1,6 +1,6 @@
 max_upload_size: 100M
 timezone: Europe/Moscow
-swap_size: "{{ [[ansible_memtotal_mb, 1024] | max, 16384] | min }}"
+swap_size: "{{ [([ansible_memtotal_mb, 1024] | max), 16384] | min }}"
 
 # Firewall
 firewall_allowed_tcp_ports:
