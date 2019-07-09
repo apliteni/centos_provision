@@ -2,22 +2,28 @@
   command: "grep -oP '\\d+(\\.\\d+)+' /var/www/keitaro/version.php"
   register: get_current_tracker_version
 
-- name: Get latest stable tracker version
-  shell: >
-    PHP_VERSION="$({{ php_path }} -v | head -n1 | awk '{print $2}')" && \
-      UA="Keitaro Installer v{{ keitaro_installer_version }} PHP/${PHP_VERSION}" && \
-      curl -sf 'keitaro.io/license/api/checkUpdate?version={{ keitaro_release }}&stability=stable' -A "${UA}" | \
-      awk -F '::' '{print $2}'
-  register: get_stable_tracker_version
+- name: Get stability of tracker version
+  command:
+       curl -fsSL keitaro.io/external_api/updates/stability?version={{ get_current_tracker_version.stdout }}
+  register: get_tracker_stability
 
-- name: Reinstall Keitaro
+- name: Get latest tracker version
+  shell: >
+      curl -sf  -A "{{ user_agent }}" "keitaro.io/license/api/checkUpdate?{{ request_params }}" | \
+        awk -F '::' '{print $2}'
+  vars:
+    user_agent: "Keitaro Installer v{{ keitaro_installer_version }} PHP/{{ php_release }}"
+    request_params: "version={{ keitaro_release }}&stability={{ get_tracker_stability.stdout }}"
+  register: get_latest_tracker_version
+
+- name: Upgrade Keitaro to the latest version if need
   shell: >
     curl -sf https://keitaro.io/releases/{{ get_stable_tracker_version.stdout }}/package8.tar.gz | \
       tar -xz --strip=1
   args:
     chdir: "{{ keitaro_root }}"
   become_user: "{{ keitaro_user }}"
-  when: "get_stable_tracker_version.stdout | version_compare(get_current_tracker_version.stdout, '>')"
+  when: "get_latest_tracker_version.stdout | version_compare(get_current_tracker_version.stdout, '>')"
   notify:
     - restart php-fpm
     - restart roadrunner
@@ -27,7 +33,4 @@
   args:
     chdir: "{{ keitaro_root }}"
   become_user: "{{ keitaro_user }}"
-  when: "get_stable_tracker_version.stdout | version_compare(get_current_tracker_version.stdout, '>')"
-  notify:
-    - restart php-fpm
-    - restart roadrunner
+  when: "get_latest_tracker_version.stdout | version_compare(get_current_tracker_version.stdout, '>')"
