@@ -1,5 +1,5 @@
 - name: Install by YUM | Add Altinity repo
-  shell: "curl -s https://packagecloud.io/install/repositories/altinity/clickhouse/script.rpm.sh | sudo bash"
+  shell: "curl -fsSL https://packagecloud.io/install/repositories/altinity/clickhouse/script.rpm.sh | sudo bash"
   become: true
 
 - name: Install by YUM | Install Clickhouse
