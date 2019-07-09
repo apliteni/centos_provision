@@ -1,4 +1,5 @@
-php_version: php73
+php_release: 7.3
+php_version: "php{{ php_release | replace('.', '')}}"
 php_memory_limit: 500M
 php_max_upload_size: "{{ max_upload_size }}"
 php_path: "/usr/bin/{{ php_version }}"
