@@ -1,17 +1,14 @@
-- name: Get current php version
-  shell: head -n2 /var/www/keitaro/index.php | tail -n1 | cut -f 5 -d ' '
-  register: get_php_version
+- name: Get php-fpm SystemD units
+  shell: >
+    systemctl list-unit-files | \
+      grep -P 'php\d+-php-fpm\.service' | \
+      grep -v '{{ php_version }}-php-fpm.service' | \
+      awk -F. '{print $1}'
+  register: get_unneeded_php_fpm_services
 
 - name: Stop and disable old php-fpm
   service:
-    name: "{{ item }}-php-fpm"
+    name: "{{ item }}"
     state: stopped
     enabled: false
-  ignore_errors: true
-  with_items:
-    - php54
-    - php56
-    - php70
-    - php71
-    - php72
-  when: get_php_version.stdout < 'php72'
+  with_items: "{{ get_unneeded_php_fpm_services.stdout_lines }}"
