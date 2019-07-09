@@ -11,3 +11,4 @@ keitaro_logrotate_nginx_period: 28
 keitaro_installer_version: "{{ lookup('file', 'RELEASE_VERSION') }}"
 keitaro_tools_url: https://github.com/apliteni/centos_provision/raw/v{{ keitaro_installer_version }}/scripts
 keitaro_release: 9
+keitaro_url: https://keitaro.io
