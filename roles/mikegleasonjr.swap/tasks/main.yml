@@ -1,25 +1,10 @@
-- name: Disable swap
-  shell: "grep -q '^{{ swap_location }} ' /proc/swaps && swapoff {{ swap_location }} || true"
+- name: Get current swap size
+  shell: "free -m | grep '^Swap:' | awk '{print $2+1}'"
+  register: get_current_swap_size
 
-- name: Remove swap
-  file:
-    path: "{{ swap_location }}"
-    state: absent
-
-- name: Create swap space
-  command: dd if=/dev/zero of={{ swap_location }} count={{ swap_size }} bs=1MiB
-
-- name: Make swap file
-  command: mkswap {{ swap_location }}
-
-- name: Set swap file permissions
-  file: path={{ swap_location }} owner=root group=root mode=0600
-
-- name: Mount swap on boot
-  mount: name=none src={{ swap_location }} fstype=swap opts=sw passno=0 dump=0 state=present
-
-- name: Turn swap on
-  command: swapon -a
+- name: Really [re]create swap
+  include: create_swap.yml
+  when: "(get_current_swap_size.stdout | int) < (swap_size | int)"
 
 - name: Tweak swap sysctl variables
   sysctl:
