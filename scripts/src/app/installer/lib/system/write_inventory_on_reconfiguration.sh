@@ -51,7 +51,7 @@ collect_inventory_variables(){
     VARS['db_password']="$(get_var_from_keitaro_app_config password)"
   fi
   if empty "${VARS['db_root_password']}"; then
-    VARS['db_root_password']="$(get_var_from_config ~/.my.cnf password '=')"
+    VARS['db_root_password']="$(get_var_from_config password ~/.my.cnf '=')"
   fi
 }
 
