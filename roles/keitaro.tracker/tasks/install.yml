@@ -18,10 +18,13 @@
                                  --draft-storage=redis \
                                  --cache-storage=files \
                                  --force-tokudb \
-                                 {% if language is defined %}--language={{ language }}{% endif %} \
-                                 {% if kversion is defined %}--kversion={{ kversion }}{% endif %} \
-                                 {% if custom_package is defined %}--custom-package={{ custom_package }}{% endif %} \
-
+                                 {{ language_option }} \
+                                 {{ kversion_option }} \
+                                 {{ custom_package_option }}
+  variables:
+    language_option: "{% if language is defined %}--language={{ language }}{% endif %}"
+    language_option: "{% if kversion is defined %}--kversion={{ kversion }}{% endif %}"
+    custom_package_option: "{% if custom_package is defined %}--custom-package={{ custom_package }}{% endif %}"
   args:
     chdir: "{{ keitaro_root }}"
   become_user: "{{ keitaro_user }}"
