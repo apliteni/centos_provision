@@ -1788,6 +1788,10 @@ get_user_ssl_vars(){
 
 
 get_user_db_restore_vars(){
+  if [[ "$DETECTED_LICENSE_EDITION_TYPE" == "${LICENSE_EDITION_TYPE_TRIAL}" ]]; then
+    debug "Do not ask for DB restoring due trial license"
+    return
+  fi
   get_user_var 'db_restore_path' 'validate_file_existence validate_keitaro_dump'
   if isset "${VARS['db_restore_path']}"; then
     get_user_var 'db_restore_salt' 'validate_presence validate_alnumdashdot'
