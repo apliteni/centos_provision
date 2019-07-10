@@ -35,3 +35,9 @@
   file:
     path: "{{ keitaro_root }}/install.php"
     state: absent
+
+- name: Run cron.php to supress warnings in admin panel
+  command: "{{ php_path }} cron.php"
+  args:
+    chdir: "{{ keitaro_root }}"
+  become_user: "{{ keitaro_user }}"
