@@ -23,7 +23,7 @@
                                  {{ custom_package_option }}
   vars:
     language_option: "{% if language is defined %}--language={{ language }}{% endif %}"
-    language_option: "{% if kversion is defined %}--kversion={{ kversion }}{% endif %}"
+    kversion_option: "{% if kversion is defined %}--kversion={{ kversion }}{% endif %}"
     custom_package_option: "{% if custom_package is defined %}--custom-package={{ custom_package }}{% endif %}"
   args:
     chdir: "{{ keitaro_root }}"
