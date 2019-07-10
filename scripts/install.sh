@@ -904,9 +904,54 @@ remove_current_command(){
   rm -f "$CURRENT_COMMAND_OUTPUT_LOG" "$CURRENT_COMMAND_ERROR_LOG" "$current_command_script"
   rmdir $(dirname "$current_command_script")
 }
+#
+
+
+
+
 
 detect_license_ip(){
-  get_host_ips | head -n1
+  debug "Detecting license IP"
+  if isset "$SKIP_CHECKS"; then
+    debug "SKIP: аctual detecting of license IP skipped, used first available IP"
+    DETECTED_LICENSE_EDITION_TYPE=$LICENSE_EDITION_TYPE_TRIAL
+    VARS['license_ip']="$(get_host_ips | head -n1)"
+  else
+    for ip in $(get_host_ips); do
+      local license_edition_type="$(get_license_edition_type "${VARS['license_key']}" "${ip}")"
+      if wrong_license_edition_type $license_edition_type; then
+        debug "Got wrong license edition type: ${license_edition_type}"
+        fail "$(translate 'errors.cant_detect_server_ip')" "see_logs"
+      fi
+      if [[ "${license_edition_type}" == "${LICENSE_EDITION_TYPE_INVALID}" ]]; then
+        debug "Valid license for IP ${ip} and key ${VARS['license_key']} not found"
+      else
+        debug "Found $license_edition_type license for IP ${ip} and key ${VARS['license_key']}"
+        DETECTED_LICENSE_EDITION_TYPE="${license_edition_type}"
+        VARS['license_ip']=$ip
+        return
+      fi
+    done
+    debug "No valid license found for key ${VARS['license_key']} and IPs $(get_host_ips)"
+    fail "$(translate 'errors.cant_detect_server_ip')" "see_logs"
+  fi
+}
+
+
+get_license_edition_type(){
+  local key="${1}"
+  local ip="${2}"
+  debug "Detecting license edition type for ip ${ip}"
+  local url="${KEITARO_URL}/external_api/licenses/edition_type?key=${key}&ip=${ip}"
+  debug "Getting url '${url}'"
+  local result="$(curl -fsSL "${url}" 2>&1)"
+  debug "Done, result is '$result'"
+  echo $result
+}
+
+wrong_license_edition_type(){
+  local license_edition_type="${1}"
+  [[ ! $license_edition_type =~ ^($(join_by "|" "${LICENSE_EDITION_TYPES[@]}"))$ ]]
 }
 
 get_host_ips(){
@@ -918,6 +963,14 @@ get_host_ips(){
     | grep -vP '^192\.168\.' \
     | grep -vP '^127\.'
   }
+
+join_by(){
+  local delimiter=$1
+  shift
+  echo -n "$1"
+  shift
+  printf "%s" "${@/#/${delimiter}}"
+}
 
 get_error(){
   local var_name="${1}"
@@ -1146,6 +1199,13 @@ PROVISION_DIRECTORY="centos_provision-${BRANCH}"
 KEITARO_ALREADY_INSTALLED_RESULT=2
 PHP_ENGINE=${PHP_ENGINE:-roadrunner}
 DETECTED_PREFIX_PATH=".keitaro/detected_prefix"
+
+LICENSE_EDITION_TYPE_TRIAL="trial"
+LICENSE_EDITION_TYPE_COMMERCIAL="commercial"
+LICENSE_EDITION_TYPE_INVALID="INVALID"
+LICENSE_EDITION_TYPES=("$LICENSE_EDITION_TYPE_TRIAL" "$LICENSE_EDITION_TYPE_COMMERCIAL" "$LICENSE_EDITION_TYPE_INVALID")
+
+DETECTED_LICENSE_EDITION_TYPE=""
 #
 
 
@@ -1166,7 +1226,7 @@ DICT['en.errors.see_logs']=$(cat <<- END
 	You can rerun \`${SCRIPT_COMMAND}\` with saved settings after resolving installation problems.
 END
 )
-DICT['en.errors.wrong_distro']='This installer works only on CentOS 7.x. Please run this program on clean CentOS server'
+DICT['en.errors.wrong_distro']='This installer works only on CentOS 7.x. Please run this program on the clean CentOS server'
 DICT['en.errors.not_enough_ram']='The size of RAM on your server should be at least 2 GB'
 DICT['en.errors.cant_install_firewall']='Please run this program in system with firewall support'
 DICT['en.errors.cant_create_keitaro_config_dir']="Can not create Keitaro config directory ${CONFIG_DIR}"
@@ -1174,6 +1234,7 @@ DICT['en.errors.keitaro_dump_invalid']='SQL dump is broken'
 DICT['en.errors.isp_manager_installed']='You can not install Keitaro on the server with ISP Manager installed. Please run this program on a clean CentOS server.'
 DICT['en.errors.vesta_cp_installed']='You can not install Keitaro on the server with Vesta CP installed. Please run this program on a clean CentOS server.'
 DICT['en.errors.apache_installed']='You can not install Keitaro on the server with Apache HTTP server installed. Please run this program on a clean CentOS server.'
+DICT['en.errors.cant_detect_server_ip']="The installer couldn't detect the server IP address, please contact Keitaro support team"
 DICT['en.prompts.skip_firewall']='Do you want to skip installing firewall?'
 DICT['en.prompts.skip_firewall.help']=$(cat <<- END
 	It looks that your system does not support firewall. This can be happen, for example, if you are using a virtual machine based on OpenVZ and the hosting provider has disabled conntrack support (see http://forum.firstvds.ru/viewtopic.php?f=3&t=10759).
@@ -1223,6 +1284,8 @@ DICT['ru.errors.keitaro_dump_invalid']='Указанный файл не явл�
 DICT['ru.errors.isp_manager_installed']="Программа установки не может быть запущена на серверах с установленным ISP Manager. Пожалуйста, запустите эту программу на чистом CentOS сервере."
 DICT['ru.errors.vesta_cp_installed']="Программа установки не может быть запущена на серверах с установленной Vesta CP. Пожалуйста, запустите эту программу на чистом CentOS сервере."
 DICT['ru.errors.apache_installed']="Программа установки не может быть запущена на серверах с установленным Apache HTTP server. Пожалуйста, запустите эту программу на чистом CentOS сервере."
+DICT['en.errors.cant_detect_server_ip']='Программа установки не смогла определить IP адрес сервера. Пожалуйста,
+обратитесь в службу технической поддержки Keitaro'
 DICT['ru.prompts.skip_firewall']='Продолжить установку системы без фаервола?'
 DICT['ru.prompts.skip_firewall.help']=$(cat <<- END
 	Похоже, что на этот сервер невозможно установить фаервол. Такое может произойти, например если вы используете виртуальную машину на базе OpenVZ и хостинг провайдер отключил поддержку модуля conntrack (см. http://forum.firstvds.ru/viewtopic.php?f=3&t=10759).
@@ -1708,10 +1771,10 @@ get_user_vars(){
 
 
 get_user_license_vars(){
-  if empty "${VARS['license_ip']}"; then
-    VARS['license_ip']=$(detect_license_ip)
-  fi
   get_user_var 'license_key' 'validate_presence validate_license_key'
+  if empty "${VARS['license_ip']}" || empty "$DETECTED_LICENSE_EDITION_TYPE"; then
+    detect_license_ip
+  fi
 }
 
 
