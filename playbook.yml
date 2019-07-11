@@ -30,7 +30,7 @@
     - {role: 'keitaro.mariadb-tune', tags: 'mariadb, tokudb, tune, mariadb-tune, upgrade'}
     - {role: 'keitaro.nginx', tags: 'nginx'}
     - {role: 'keitaro.nginx-tune', tags: 'nginx, tune, nginx-tune, upgrade'}
-    - {role: 'keitaro.php', tags: 'php'}
+    - {role: 'keitaro.php', tags: 'php, upgrade'}
     - {role: 'keitaro.tracker', tags: 'tracker'}
     - {role: 'keitaro.tracker-tune', tags: 'tracker, tune, tracker-tune, upgrade'}
     - {role: 'keitaro.php-fpm', tags: 'php, php-fpm, upgrade'}
