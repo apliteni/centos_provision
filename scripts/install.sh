@@ -98,8 +98,6 @@ SCRIPT_NAME="${TOOL_NAME}.sh"
 SCRIPT_URL="${KEITARO_URL}/${TOOL_NAME}.sh"
 SCRIPT_LOG="${TOOL_NAME}.log"
 
-REPO_URL="https://raw.githubusercontent.com/apliteni/centos_provision"
-
 CURRENT_COMMAND_OUTPUT_LOG="current_command.output.log"
 CURRENT_COMMAND_ERROR_LOG="current_command.error.log"
 CURRENT_COMMAND_SCRIPT_NAME="current_command.sh"
@@ -116,8 +114,6 @@ fi
 
 declare -A VARS
 declare -A ARGS
-
-SSL_ENABLER_ERRORS_LOG="${CONFIG_DIR}/ssl_enabler_errors.log"
 declare -A DICT
 
 DICT['en.errors.program_failed']='PROGRAM FAILED'
@@ -135,8 +131,6 @@ DICT['en.messages.skip_nginx_conf_generation']="Skip nginx config generation"
 DICT['en.messages.run_command']='Evaluating command'
 DICT['en.messages.successful']='Everything is done!'
 DICT['en.no']='no'
-DICT['en.prompts.ssl_domains']='Please enter domains separated by comma without spaces'
-DICT['en.prompts.ssl_domains.help']='Make sure all the domains are already linked to this server in the DNS'
 DICT['en.prompt_errors.validate_domains_list']=$(cat <<-END
 	Please enter domains list, separated by comma without spaces (eg domain1.tld,www.domain1.tld).
 	Each domain name should consist of only letters, numbers and hyphens and contain at least one dot.
@@ -160,8 +154,6 @@ DICT['ru.messages.skip_nginx_conf_generation']="Пропуск генераци�
 DICT['ru.messages.run_command']='Выполняется команда'
 DICT['ru.messages.successful']='Готово!'
 DICT['ru.no']='нет'
-DICT['ru.prompts.ssl_domains']='Укажите список доменов через запятую без пробелов'
-DICT['ru.prompts.ssl_domains.help']='Убедитесь, что все указанные домены привязаны к этому серверу в DNS.'
 DICT['ru.prompt_errors.validate_domains_list']=$(cat <<-END
 	Укажите список доменных имён через запятую без пробелов (например domain1.tld,www.domain1.tld).
 	Каждое доменное имя должно сстоять только из букв, цифр и тире и содержать хотя бы одну точку.
@@ -1218,8 +1210,6 @@ DICT['en.messages.keitaro_already_installed']='Keitaro is already installed'
 DICT['en.messages.check_ability_firewall_installing']="Checking the ability of installing a firewall"
 DICT['en.messages.check_keitaro_dump_get_tables_prefix']="Getting tables prefix from dump"
 DICT['en.messages.check_keitaro_dump_validity']="Checking SQL dump"
-DICT['en.messages.enabling_ssl']="Enabling SSL"
-DICT["en.messages.successful.rerun_ssl_enabler"]="After troubleshooting, run ssl-enabler again"
 DICT['en.messages.successful.use_old_credentials']="The database was successfully restored from the archive. Use old login data"
 DICT['en.errors.see_logs']=$(cat <<- END
 	Installation log saved to ${SCRIPT_LOG}. Configuration settings saved to ${INVENTORY_FILE}.
@@ -1250,7 +1240,6 @@ DICT['en.prompts.db_restore_path']='Please enter the path to the SQL dump file i
 DICT['en.prompts.db_restore_salt']='Please enter the value of the "salt" parameter from the old config (application/config/config.ini.php)'
 DICT['en.prompts.license_ip']='Please enter server IP'
 DICT['en.prompts.license_key']='Please enter license key'
-DICT['en.prompts.ssl']="Do you want to install Free SSL certificates (you can do it later)?"
 DICT['en.welcome']=$(cat <<- END
 	Welcome to Keitaro installer.
 	This installer will guide you through the steps required to install Keitaro on your server.
@@ -1268,9 +1257,7 @@ DICT['ru.messages.keitaro_already_installed']='Keitaro трекер уже ус�
 DICT['ru.messages.check_ability_firewall_installing']="Проверяем возможность установки фаервола"
 DICT['ru.messages.check_keitaro_dump_get_tables_prefix']="Получаем префикс таблиц из SQL дампа"
 DICT['ru.messages.check_keitaro_dump_validity']="Проверяем SQL дамп"
-DICT['ru.messages.enabling_ssl']="Подключаем SSL"
 DICT["ru.messages.successful.use_old_credentials"]="База данных успешно восстановлена из архива. Используйте старые данные для входа в систему"
-DICT["ru.messages.successful.rerun_ssl_enabler"]="После устранения проблем запустите программу выдачи сертификатов заново"
 DICT['ru.errors.see_logs']=$(cat <<- END
 	Журнал установки сохранён в ${SCRIPT_LOG}. Настройки сохранены в ${INVENTORY_FILE}.
 	Вы можете повторно запустить \`${SCRIPT_COMMAND}\` с этими настройками после устранения возникших проблем.
@@ -1301,7 +1288,6 @@ DICT['ru.prompts.db_restore_path']='Укажите путь к файлу c SQL 
 DICT['ru.prompts.db_restore_salt']='Укажите значение параметра salt из старой конфигурации (application/config/config.ini.php)'
 DICT['ru.prompts.license_ip']='Укажите IP адрес сервера'
 DICT['ru.prompts.license_key']='Укажите лицензионный ключ'
-DICT['ru.prompts.ssl']="Установить бесплатные SSL сертификаты (можно сделать это позже)?"
 DICT['ru.welcome']=$(cat <<- END
 	Добро пожаловать в программу установки Keitaro.
 	Эта программа поможет собрать информацию необходимую для установки Keitaro на вашем сервере.
@@ -1557,7 +1543,6 @@ help_en(){
 
 setup_vars(){
   setup_default_value skip_firewall no
-  setup_default_value ssl_certificate 'self-signed'
   setup_default_value admin_login 'admin'
   setup_default_value admin_password "$(generate_password)"
   setup_default_value db_name 'keitaro'
@@ -1765,7 +1750,6 @@ get_user_vars(){
     fi
   fi
   get_user_license_vars
-  get_user_ssl_vars
   get_user_db_restore_vars
 }
 
@@ -1774,15 +1758,6 @@ get_user_license_vars(){
   get_user_var 'license_key' 'validate_presence validate_license_key'
   if empty "${VARS['license_ip']}" || empty "$DETECTED_LICENSE_EDITION_TYPE"; then
     detect_license_ip
-  fi
-}
-
-
-get_user_ssl_vars(){
-  get_user_var 'ssl' 'validate_yes_no'
-  if is_yes ${VARS['ssl']}; then
-    VARS['ssl_certificate']='letsencrypt'
-    get_user_var 'ssl_domains' 'validate_presence validate_domains_list'
   fi
 }
 
@@ -1818,8 +1793,6 @@ write_inventory_file(){
   print_line_to_inventory_file
   print_line_to_inventory_file "[server:vars]"
   print_line_to_inventory_file "skip_firewall=${VARS['skip_firewall']}"
-  print_line_to_inventory_file "ssl="${VARS['ssl']}""
-  print_line_to_inventory_file "ssl_domains="${VARS['ssl_domains']}""
   print_line_to_inventory_file "license_ip="${VARS['license_ip']}""
   print_line_to_inventory_file "license_key="${VARS['license_key']}""
   print_line_to_inventory_file "db_root_password="${VARS['db_root_password']}""
@@ -1896,7 +1869,6 @@ stage6(){
   debug "Starting stage 6: run ansible playbook"
   download_provision
   run_ansible_playbook
-  run_ssl_enabler
   clean_up
   show_successful_message
   if isset "$ANSIBLE_TAGS"; then
@@ -2082,67 +2054,9 @@ get_printable_fields(){
 
 
 
-SSL_SUCCESSFUL_DOMAINS=""
-SSL_FAILED_MESSAGE=""
-SSL_RERUN_COMMAND=""
-SSL_OUTPUT_LOG="${CONFIG_DIR}/enable-ssl.output.log"
-SSL_SCRIPT_URL="${KEITARO_URL}/enable-ssl.sh"
-
-run_ssl_enabler(){
-  if isset "$ANSIBLE_TAGS"; then
-    debug 'ansible tags is set to ${ANSIBLE_TAGS} - skip issuing LE certs'
-    return
-  fi
-  if [[ "${VARS['ssl_certificate']}" == 'letsencrypt' ]]; then
-    local command="curl -fsSL ${SSL_SCRIPT_URL} | bash -s -- -L $(get_ui_lang) -D ${VARS['ssl_domains']}"
-    local message="$(translate 'messages.enabling_ssl')"
-    > ${SSL_OUTPUT_LOG}
-    run_command "${command}" "${message}" "hide_output" "" "" "" "${SSL_OUTPUT_LOG}"
-    SSL_SUCCESSFUL_DOMAINS="$(extract_domains_from_enable_ssl_log ^OK)"
-    local failed_domains="$(extract_domains_from_enable_ssl_log ^NOK)"
-    SSL_FAILED_MESSAGE="$(get_message_from_enable_ssl_log ^NOK)"
-    SSL_FAILED_MESSAGE="${SSL_FAILED_MESSAGE/NOK. /}"
-    SSL_RERUN_COMMAND="curl -fsSL ${SSL_SCRIPT_URL} | bash -s -- -L $(get_ui_lang) -D ${failed_domains}"
-    rm -f "${SSL_OUTPUT_LOG}"
-  fi
-}
-
-
-remove_ansi_colors(){
-  sed -r "s/\x1B\[(([0-9]+)(;[0-9]+)*)?[m,K,H,f,J]//g"
-}
-
-
-get_message_from_enable_ssl_log(){
-  local prefix="${1}"
-  if is_file_exist "${SSL_OUTPUT_LOG}" "no"; then
-    cat "${SSL_OUTPUT_LOG}" \
-      | remove_ansi_colors \
-      | grep -E "${prefix}" || :
-    fi
-  }
-
-
-extract_domains_from_enable_ssl_log(){
-  local prefix="${1}"
-  get_message_from_enable_ssl_log "$prefix" \
-    | sed -e 's/.*: //g' -e 's/ //'     # extract domains list from message
-  }
-#
-
-
-
-
 
 show_credentials(){
-  if [[ "${VARS['ssl_certificate']}" == 'letsencrypt' ]] && isset "${SSL_SUCCESSFUL_DOMAINS}" ]]; then
-    protocol='https'
-    domain=$(expr match "${SSL_SUCCESSFUL_DOMAINS}" '\([^,]*\)')
-  else
-    protocol='http'
-    domain="${VARS['license_ip']}"
-  fi
-  print_with_color "${protocol}://${domain}/admin" 'light.green'
+  print_with_color "http://${VARS['license_ip']}/admin" 'light.green'
   if isset "${VARS['db_restore_path']}"; then
     echo "$(translate 'messages.successful.use_old_credentials')"
   else
@@ -2150,12 +2064,6 @@ show_credentials(){
     colored_password=$(print_with_color "${VARS['admin_password']}" 'light.green')
     echo -e "login: ${colored_login}"
     echo -e "password: ${colored_password}"
-  fi
-  if isset "$SSL_FAILED_MESSAGE"; then
-    print_with_color "${SSL_FAILED_MESSAGE}" 'yellow'
-    print_with_color "$(cat "$SSL_ENABLER_ERRORS_LOG")" 'yellow'
-    print_with_color "$(translate messages.successful.rerun_ssl_enabler)" 'yellow'
-    print_with_color "${SSL_RERUN_COMMAND}" 'yellow'
   fi
 }
 

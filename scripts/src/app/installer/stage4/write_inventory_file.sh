@@ -13,8 +13,6 @@ write_inventory_file(){
   print_line_to_inventory_file
   print_line_to_inventory_file "[server:vars]"
   print_line_to_inventory_file "skip_firewall=${VARS['skip_firewall']}"
-  print_line_to_inventory_file "ssl="${VARS['ssl']}""
-  print_line_to_inventory_file "ssl_domains="${VARS['ssl_domains']}""
   print_line_to_inventory_file "license_ip="${VARS['license_ip']}""
   print_line_to_inventory_file "license_key="${VARS['license_key']}""
   print_line_to_inventory_file "db_root_password="${VARS['db_root_password']}""

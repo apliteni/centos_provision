@@ -6,14 +6,7 @@
 
 
 show_credentials(){
-  if [[ "${VARS['ssl_certificate']}" == 'letsencrypt' ]] && isset "${SSL_SUCCESSFUL_DOMAINS}" ]]; then
-    protocol='https'
-    domain=$(expr match "${SSL_SUCCESSFUL_DOMAINS}" '\([^,]*\)')
-  else
-    protocol='http'
-    domain="${VARS['license_ip']}"
-  fi
-  print_with_color "${protocol}://${domain}/admin" 'light.green'
+  print_with_color "http://${VARS['license_ip']}/admin" 'light.green'
   if isset "${VARS['db_restore_path']}"; then
     echo "$(translate 'messages.successful.use_old_credentials')"
   else
@@ -21,11 +14,5 @@ show_credentials(){
     colored_password=$(print_with_color "${VARS['admin_password']}" 'light.green')
     echo -e "login: ${colored_login}"
     echo -e "password: ${colored_password}"
-  fi
-  if isset "$SSL_FAILED_MESSAGE"; then
-    print_with_color "${SSL_FAILED_MESSAGE}" 'yellow'
-    print_with_color "$(cat "$SSL_ENABLER_ERRORS_LOG")" 'yellow'
-    print_with_color "$(translate messages.successful.rerun_ssl_enabler)" 'yellow'
-    print_with_color "${SSL_RERUN_COMMAND}" 'yellow'
   fi
 }

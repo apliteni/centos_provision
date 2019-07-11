@@ -88,8 +88,6 @@ SCRIPT_NAME="${TOOL_NAME}.sh"
 SCRIPT_URL="${KEITARO_URL}/${TOOL_NAME}.sh"
 SCRIPT_LOG="${TOOL_NAME}.log"
 
-REPO_URL="https://raw.githubusercontent.com/apliteni/centos_provision"
-
 CURRENT_COMMAND_OUTPUT_LOG="current_command.output.log"
 CURRENT_COMMAND_ERROR_LOG="current_command.error.log"
 CURRENT_COMMAND_SCRIPT_NAME="current_command.sh"
@@ -106,8 +104,6 @@ fi
 
 declare -A VARS
 declare -A ARGS
-
-SSL_ENABLER_ERRORS_LOG="${CONFIG_DIR}/ssl_enabler_errors.log"
 declare -A DICT
 
 DICT['en.errors.program_failed']='PROGRAM FAILED'
@@ -125,8 +121,6 @@ DICT['en.messages.skip_nginx_conf_generation']="Skip nginx config generation"
 DICT['en.messages.run_command']='Evaluating command'
 DICT['en.messages.successful']='Everything is done!'
 DICT['en.no']='no'
-DICT['en.prompts.ssl_domains']='Please enter domains separated by comma without spaces'
-DICT['en.prompts.ssl_domains.help']='Make sure all the domains are already linked to this server in the DNS'
 DICT['en.prompt_errors.validate_domains_list']=$(cat <<-END
 	Please enter domains list, separated by comma without spaces (eg domain1.tld,www.domain1.tld).
 	Each domain name should consist of only letters, numbers and hyphens and contain at least one dot.
@@ -150,8 +144,6 @@ DICT['ru.messages.skip_nginx_conf_generation']="Пропуск генераци�
 DICT['ru.messages.run_command']='Выполняется команда'
 DICT['ru.messages.successful']='Готово!'
 DICT['ru.no']='нет'
-DICT['ru.prompts.ssl_domains']='Укажите список доменов через запятую без пробелов'
-DICT['ru.prompts.ssl_domains.help']='Убедитесь, что все указанные домены привязаны к этому серверу в DNS.'
 DICT['ru.prompt_errors.validate_domains_list']=$(cat <<-END
 	Укажите список доменных имён через запятую без пробелов (например domain1.tld,www.domain1.tld).
 	Каждое доменное имя должно сстоять только из букв, цифр и тире и содержать хотя бы одну точку.
@@ -1353,7 +1345,6 @@ renewal_job_installed(){
 
 generate_certificates(){
   debug "Requesting certificates"
-  echo -n > "$SSL_ENABLER_ERRORS_LOG"
   IFS=',' read -r -a domains <<< "${VARS['ssl_domains']}"
   for domain in "${domains[@]}"; do
     certificate_generated=${FALSE}
@@ -1374,7 +1365,6 @@ generate_certificates(){
         FAILED_DOMAINS+=($domain)
         debug "There was an error while issuing certificate for domain ${domain}"
         certificate_error="$(recognize_error "$CERTBOT_LOG")"
-        echo "${domain}: ${certificate_error}" >> "$SSL_ENABLER_ERRORS_LOG"
       fi
     fi
     if [[ ${certificate_generated} == ${TRUE} ]]; then

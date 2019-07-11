@@ -17,7 +17,6 @@ get_user_vars(){
     fi
   fi
   get_user_license_vars
-  get_user_ssl_vars
   get_user_db_restore_vars
 }
 
@@ -26,15 +25,6 @@ get_user_license_vars(){
   get_user_var 'license_key' 'validate_presence validate_license_key'
   if empty "${VARS['license_ip']}" || empty "$DETECTED_LICENSE_EDITION_TYPE"; then
     detect_license_ip
-  fi
-}
-
-
-get_user_ssl_vars(){
-  get_user_var 'ssl' 'validate_yes_no'
-  if is_yes ${VARS['ssl']}; then
-    VARS['ssl_certificate']='letsencrypt'
-    get_user_var 'ssl_domains' 'validate_presence validate_domains_list'
   fi
 }
 

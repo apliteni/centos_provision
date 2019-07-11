@@ -31,8 +31,6 @@ SCRIPT_NAME="${TOOL_NAME}.sh"
 SCRIPT_URL="${KEITARO_URL}/${TOOL_NAME}.sh"
 SCRIPT_LOG="${TOOL_NAME}.log"
 
-REPO_URL="https://raw.githubusercontent.com/apliteni/centos_provision"
-
 CURRENT_COMMAND_OUTPUT_LOG="current_command.output.log"
 CURRENT_COMMAND_ERROR_LOG="current_command.error.log"
 CURRENT_COMMAND_SCRIPT_NAME="current_command.sh"
@@ -49,5 +47,3 @@ fi
 
 declare -A VARS
 declare -A ARGS
-
-SSL_ENABLER_ERRORS_LOG="${CONFIG_DIR}/ssl_enabler_errors.log"

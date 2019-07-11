@@ -3,7 +3,6 @@
 
 setup_vars()
   setup_default_value skip_firewall no
-  setup_default_value ssl_certificate 'self-signed'
   setup_default_value admin_login 'admin'
   setup_default_value admin_password "$(generate_password)"
   setup_default_value db_name 'keitaro'

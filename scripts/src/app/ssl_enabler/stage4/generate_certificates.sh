@@ -7,7 +7,6 @@
 
 generate_certificates(){
   debug "Requesting certificates"
-  echo -n > "$SSL_ENABLER_ERRORS_LOG"
   IFS=',' read -r -a domains <<< "${VARS['ssl_domains']}"
   for domain in "${domains[@]}"; do
     certificate_generated=${FALSE}
@@ -28,7 +27,6 @@ generate_certificates(){
         FAILED_DOMAINS+=($domain)
         debug "There was an error while issuing certificate for domain ${domain}"
         certificate_error="$(recognize_error "$CERTBOT_LOG")"
-        echo "${domain}: ${certificate_error}" >> "$SSL_ENABLER_ERRORS_LOG"
       fi
     fi
     if [[ ${certificate_generated} == ${TRUE} ]]; then

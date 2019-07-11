@@ -7,8 +7,6 @@ DICT['en.messages.keitaro_already_installed']='Keitaro is already installed'
 DICT['en.messages.check_ability_firewall_installing']="Checking the ability of installing a firewall"
 DICT['en.messages.check_keitaro_dump_get_tables_prefix']="Getting tables prefix from dump"
 DICT['en.messages.check_keitaro_dump_validity']="Checking SQL dump"
-DICT['en.messages.enabling_ssl']="Enabling SSL"
-DICT["en.messages.successful.rerun_ssl_enabler"]="After troubleshooting, run ssl-enabler again"
 DICT['en.messages.successful.use_old_credentials']="The database was successfully restored from the archive. Use old login data"
 DICT['en.errors.see_logs']=$(cat <<- END
 	Installation log saved to ${SCRIPT_LOG}. Configuration settings saved to ${INVENTORY_FILE}.
@@ -39,7 +37,6 @@ DICT['en.prompts.db_restore_path']='Please enter the path to the SQL dump file i
 DICT['en.prompts.db_restore_salt']='Please enter the value of the "salt" parameter from the old config (application/config/config.ini.php)'
 DICT['en.prompts.license_ip']='Please enter server IP'
 DICT['en.prompts.license_key']='Please enter license key'
-DICT['en.prompts.ssl']="Do you want to install Free SSL certificates (you can do it later)?"
 DICT['en.welcome']=$(cat <<- END
 	Welcome to Keitaro installer.
 	This installer will guide you through the steps required to install Keitaro on your server.
@@ -57,9 +54,7 @@ DICT['ru.messages.keitaro_already_installed']='Keitaro трекер уже ус�
 DICT['ru.messages.check_ability_firewall_installing']="Проверяем возможность установки фаервола"
 DICT['ru.messages.check_keitaro_dump_get_tables_prefix']="Получаем префикс таблиц из SQL дампа"
 DICT['ru.messages.check_keitaro_dump_validity']="Проверяем SQL дамп"
-DICT['ru.messages.enabling_ssl']="Подключаем SSL"
 DICT["ru.messages.successful.use_old_credentials"]="База данных успешно восстановлена из архива. Используйте старые данные для входа в систему"
-DICT["ru.messages.successful.rerun_ssl_enabler"]="После устранения проблем запустите программу выдачи сертификатов заново"
 DICT['ru.errors.see_logs']=$(cat <<- END
 	Журнал установки сохранён в ${SCRIPT_LOG}. Настройки сохранены в ${INVENTORY_FILE}.
 	Вы можете повторно запустить \`${SCRIPT_COMMAND}\` с этими настройками после устранения возникших проблем.
@@ -90,7 +85,6 @@ DICT['ru.prompts.db_restore_path']='Укажите путь к файлу c SQL 
 DICT['ru.prompts.db_restore_salt']='Укажите значение параметра salt из старой конфигурации (application/config/config.ini.php)'
 DICT['ru.prompts.license_ip']='Укажите IP адрес сервера'
 DICT['ru.prompts.license_key']='Укажите лицензионный ключ'
-DICT['ru.prompts.ssl']="Установить бесплатные SSL сертификаты (можно сделать это позже)?"
 DICT['ru.welcome']=$(cat <<- END
 	Добро пожаловать в программу установки Keitaro.
 	Эта программа поможет собрать информацию необходимую для установки Keitaro на вашем сервере.
