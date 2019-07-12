@@ -10,38 +10,32 @@ RSpec.describe 'install.sh' do
   let(:stored_values) { {} }
   let(:script_name) { 'install.sh' }
 
-  let(:ssl) { 'no' }
-  let(:ssl_domains) { nil }
   let(:skip_firewall) { 'yes' }
   let(:license_ip) { '8.8.8.8' }
   let(:license_key) { 'WWWW-XXXX-YYYY-ZZZZ' }
   let(:db_restore_path) { nil }
   let(:db_restore_salt) { nil }
   let(:default_command_stubs) do
-      {
-        'ansible-playbook': '/bin/true',
-        ansible: '/bin/true',
-        curl: '/bin/true',
-        iptables: '/bin/true',
-        tar: '/bin/true',
-        yum: '/bin/true',
-      }
+    {
+      'ansible-playbook': '/bin/true',
+      ansible: '/bin/true',
+      curl: '/bin/true',
+      iptables: '/bin/true',
+      tar: '/bin/true',
+      yum: '/bin/true',
+    }
   end
 
   let(:prompts) do
     {
       en: {
         skip_firewall: 'Do you want to skip installing firewall?',
-        ssl: 'Do you want to install Free SSL certificates (you can do it later)?',
-        ssl_domains: 'Please enter domains separated by comma without spaces',
         license_key: 'Please enter license key',
         db_restore_path: 'Please enter the path to the SQL dump file if you want to restore database',
         db_restore_salt: 'Please enter the value of the "salt" parameter from the old config (application/config/config.ini.php)',
       },
       ru: {
-        ssl: 'Установить бесплатные SSL сертификаты (можно сделать это позже)?',
         license_key: 'Укажите лицензионный ключ',
-        db_restore_path: 'Укажите путь к файлу c SQL дампом, если хотите восстановить базу данных из дампа'
       }
     }
   end
@@ -49,8 +43,6 @@ RSpec.describe 'install.sh' do
   let(:user_values) do
     {
       skip_firewall: skip_firewall,
-      ssl: ssl,
-      ssl_domains: ssl_domains,
       license_key: license_key,
       db_restore_path: db_restore_path,
       db_restore_salt: db_restore_salt,
@@ -79,6 +71,16 @@ RSpec.describe 'install.sh' do
       run_script(inventory_values: stored_values)
       expect(@inventory.values).not_to have_key(field)
     end
+  end
+
+
+  def stub_detecting_license_edition_type_answer(ip, license_type)
+    [
+      %Q{echo "echo echo #{ip}" > /bin/hostname},
+      'chmod a+x /bin/hostname',
+      %Q{echo "if [[ \\"\\$2\\" =~ edition_type ]]; then echo #{license_type}; else /bin/true; fi" > /bin/curl},
+      'chmod a+x /bin/curl'
+    ]
   end
 
   describe 'fields' do
@@ -148,10 +150,7 @@ RSpec.describe 'install.sh' do
     context 'should detect ip' do
       let(:options) { '-p' }
       let(:docker_image) { 'centos' }
-      let(:commands) { [
-        'echo "echo 127.0.0.1; echo 1.1.1.1" > /bin/hostname',
-        'chmod a+x /bin/hostname'
-      ] }
+      let(:commands) { stub_detecting_license_edition_type_answer('1.1.1.1', 'trial') }
 
       it_behaves_like 'should store default value', :license_ip, readed_inventory_value: '1.1.1.1'
     end
@@ -159,10 +158,6 @@ RSpec.describe 'install.sh' do
     it_behaves_like 'field without default', :license_key, value: 'AAAA-BBBB-CCCC-DDDD'
 
     it_behaves_like 'inventory contains value', :evaluated_by_installer, 'yes'
-
-    describe 'correctly stores yes/no fields' do
-      it_behaves_like 'should print to', :log, /Writing inventory file.*ssl=no/m
-    end
   end
 
   describe 'inventory file' do
@@ -192,6 +187,7 @@ RSpec.describe 'install.sh' do
   context 'without actual installing software' do
     let(:options) { '-p' }
     let(:docker_image) { 'centos' }
+    let(:commands) { stub_detecting_license_edition_type_answer('1.1.1.1', 'trial') }
 
     before(:all) { `docker rm keitaro_installer_test &>/dev/null` }
 
@@ -254,10 +250,7 @@ RSpec.describe 'install.sh' do
   end
 
   describe 'installation result' do
-    let(:commands) { [
-      'echo "echo 127.0.0.1; echo 8.8.8.8" > /bin/hostname',
-      'chmod a+x /bin/hostname'
-    ] }
+    let(:commands) { stub_detecting_license_edition_type_answer('8.8.8.8', 'trial') }
 
     let(:docker_image) { 'centos' }
 
@@ -281,8 +274,9 @@ RSpec.describe 'install.sh' do
   end
 
   describe 'nat support checking' do
-
     let(:docker_image) { 'centos' }
+
+    let(:commands) { stub_detecting_license_edition_type_answer('1.2.3.4', 'trial') }
 
     context 'nat is not supported' do
       let(:command_stubs) { default_command_stubs.merge(iptables: '/bin/false') }
@@ -312,7 +306,10 @@ RSpec.describe 'install.sh' do
   describe 'dump checking' do
     let(:docker_image) { 'centos' }
     let(:command_stubs) { default_command_stubs }
-    let(:commands) { [%Q{echo "echo #{mime_type}" > /bin/file}, 'chmod a+x /bin/file'] }
+    let(:commands) do
+      [%Q{echo "echo #{mime_type}" > /bin/file}, 'chmod a+x /bin/file'] +
+        stub_detecting_license_edition_type_answer('1.2.3.4', 'commercial')
+    end
 
     let(:db_restore_salt) { 'some.salt' }
 
@@ -364,16 +361,5 @@ RSpec.describe 'install.sh' do
     let(:commands) { ['mkdir -p /var/www/keitaro/var', 'touch /var/www/keitaro/var/install.lock'] }
 
     it_behaves_like 'should exit with error', 'Keitaro is already installed'
-  end
-
-  describe 'ssl enabled' do
-    let(:options) { '-spL en' }
-
-    let(:ssl) { 'yes' }
-    let(:ssl_domains) { 'd1.com,d2.com' }
-
-    it_behaves_like 'should print to', :stdout, 'Enabling SSL . SKIPPED'
-    it_behaves_like 'should print to', :log,
-                    %r{curl -fsSL https://keitaro.io/enable-ssl.sh \| bash -s -- -L en -D d1.com,d2.com}
   end
 end

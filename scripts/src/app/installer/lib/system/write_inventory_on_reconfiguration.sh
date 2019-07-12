@@ -39,7 +39,7 @@ collect_inventory_variables(){
     fi
   fi
   if empty "${VARS['license_ip']}"; then
-    VARS['license_ip']="$(get_host_ip)"
+    VARS['license_ip']="$(detect_license_ip)"
   fi
   if empty "${VARS['db_name']}"; then
     VARS['db_name']="$(get_var_from_keitaro_app_config name)"

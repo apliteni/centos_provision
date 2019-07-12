@@ -28,7 +28,7 @@ collect_inventory_variables()
     if -f ${WEBROOT_PATH}/var/license/key.lic
       VARS['license_key']="$(cat ${WEBROOT_PATH}/var/license/key.lic)"
   if empty "${VARS['license_ip']}"
-    VARS['license_ip']="$(get_host_ip)"
+    VARS['license_ip']="$(detect_license_ip)"
   if empty "${VARS['db_name']}"
     VARS['db_name']="$(get_var_from_keitaro_app_config name)"
   if empty "${VARS['db_user']}"

@@ -1,7 +1,6 @@
 class Inventory
   attr_reader :values
 
-  SERVER_CONFIGURATION_VERSION=1.0
   INVENTORY_FILE = '.keitaro/installer_config'
   LINES_DIVIDER = "\n"
   VALUES_DIVIDER = '='
