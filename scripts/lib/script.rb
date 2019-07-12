@@ -5,9 +5,11 @@ class Script
   attr_accessor :env, :args, :prompts_with_values, :stored_values, :docker_image, :command_stubs, :commands, :save_files
   attr_reader :stdout, :stderr, :log, :ret_value, :script_command
 
+  INSTALLER_RELEASE_VERSION_FILE_PATH = File.expand_path('../../RELEASE_VERSION', __dir__)
+
   DOCKER_DATA_DIR = '/data'
   DOCKER_SCRIPTS_DIR = '/scripts'
-  INSTALLER_RELEASE_VERSION='1.4'
+  INSTALLER_RELEASE_VERSION = File.read(INSTALLER_RELEASE_VERSION_FILE_PATH)
 
   def initialize(
     script_command,

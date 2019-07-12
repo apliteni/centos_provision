@@ -1203,8 +1203,8 @@ DETECTED_LICENSE_EDITION_TYPE=""
 
 
 
-SSL_ENABLER_COMMAND_EN="curl -fsSL ${KEITARO_URL}/enable-ssl.sh > run; bash run -L en -D domain1.tld,domain2.tld"
-SSL_ENABLER_COMMAND_RU="curl -fsSL ${KEITARO_URL}/enable-ssl.sh > run; bash run -L ru -D domain1.tld,domain2.tld"
+SSL_ENABLER_COMMAND="curl -fsSL ${KEITARO_URL}/enable-ssl.sh > run; bash run -L :lang: -D domain1.tld,domain2.tld"
+SITE_ADDER_COMMAND="curl -fsSL ${KEITARO_URL}/add-site.sh > run; bash run -L :lang: -D domain1.tld,domain2.tld"
 
 DICT['en.messages.keitaro_already_installed']='Keitaro is already installed'
 DICT['en.messages.check_ability_firewall_installing']="Checking the ability of installing a firewall"
@@ -1238,14 +1238,12 @@ DICT['en.prompts.db_password']='Please enter database user password'
 DICT['en.prompts.db_user']='Please enter database user name'
 DICT['en.prompts.db_restore_path']='Please enter the path to the SQL dump file if you want to restore database'
 DICT['en.prompts.db_restore_salt']='Please enter the value of the "salt" parameter from the old config (application/config/config.ini.php)'
-DICT['en.prompts.license_ip']='Please enter server IP'
 DICT['en.prompts.license_key']='Please enter license key'
 DICT['en.welcome']=$(cat <<- END
 	Welcome to Keitaro installer.
 	This installer will guide you through the steps required to install Keitaro on your server.
 END
 )
-DICT['en.prompt_errors.validate_ip']='Please enter valid IPv4 address (eg 1.2.3.4)'
 DICT['en.prompt_errors.validate_license_key']='Please enter valid license key (eg AAAA-BBBB-CCCC-DDDD)'
 DICT['en.prompt_errors.validate_alnumdashdot']='Only Latin letters, numbers, dashes, underscores and dots allowed'
 DICT['en.prompt_errors.validate_starts_with_latin_letter']='The value must begin with a Latin letter'
@@ -1286,14 +1284,12 @@ DICT['ru.prompts.db_password']='Укажите пароль пользовате
 DICT['ru.prompts.db_user']='Укажите пользователя базы данных'
 DICT['ru.prompts.db_restore_path']='Укажите путь к файлу c SQL дампом, если хотите восстановить базу данных из дампа'
 DICT['ru.prompts.db_restore_salt']='Укажите значение параметра salt из старой конфигурации (application/config/config.ini.php)'
-DICT['ru.prompts.license_ip']='Укажите IP адрес сервера'
 DICT['ru.prompts.license_key']='Укажите лицензионный ключ'
 DICT['ru.welcome']=$(cat <<- END
 	Добро пожаловать в программу установки Keitaro.
 	Эта программа поможет собрать информацию необходимую для установки Keitaro на вашем сервере.
 END
 )
-DICT['ru.prompt_errors.validate_ip']='Введите корректный IPv4 адрес (например 1.2.8.8)'
 DICT['ru.prompt_errors.validate_license_key']='Введите корректный ключ лицензии (например AAAA-BBBB-CCCC-DDDD)'
 DICT['ru.prompt_errors.validate_alnumdashdot']='Можно использовать только латинские бувы, цифры, тире, подчёркивание и точку'
 DICT['ru.prompt_errors.validate_starts_with_latin_letter']='Значение должно начинаться с латинской буквы'
@@ -1361,7 +1357,7 @@ collect_inventory_variables(){
     fi
   fi
   if empty "${VARS['license_ip']}"; then
-    VARS['license_ip']="$(get_host_ip)"
+    VARS['license_ip']="$(detect_license_ip)"
   fi
   if empty "${VARS['db_name']}"; then
     VARS['db_name']="$(get_var_from_keitaro_app_config name)"
