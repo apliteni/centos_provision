@@ -9,8 +9,10 @@
     - mysqld-set_pidfile_path.cnf
     - mysqld.cnf
 
-- name: Rename old log directory
-  shell: test -d /var/log/mariadb && mv /var/log/mariadb /var/log/mysql
+- name: Remove old log directory
+  file:
+    path: /var/log/mariadb
+    state: absent
 
 - name: Change log dir in the logrotate settings
   shell: test -f /etc/logrotate.d/mysql && sed -i "s|/var/log/mariadb/|/var/log/mysql/|g" /etc/logrotate.d/mysql
