@@ -4,14 +4,16 @@
 
 
 
-SSL_ENABLER_COMMAND="curl -fsSL ${KEITARO_URL}/enable-ssl.sh > run; bash run -L :lang: -D domain1.tld,domain2.tld"
-SITE_ADDER_COMMAND="curl -fsSL ${KEITARO_URL}/add-site.sh > run; bash run -L :lang: -D domain1.tld,domain2.tld"
-
 DICT['en.messages.keitaro_already_installed']='Keitaro is already installed'
 DICT['en.messages.check_ability_firewall_installing']="Checking the ability of installing a firewall"
 DICT['en.messages.check_keitaro_dump_get_tables_prefix']="Getting tables prefix from dump"
 DICT['en.messages.check_keitaro_dump_validity']="Checking SQL dump"
 DICT['en.messages.successful.use_old_credentials']="The database was successfully restored from the archive. Use old login data"
+DICT['en.messages.successful.how_to_enable_ssl']=$(cat <<- END
+	You can install free SSL certificates with the following command
+	curl keitaro.io/enable-ssl.sh > run; bash run -D domain1.com,domain2.com
+END
+)
 DICT['en.errors.see_logs']=$(cat <<- END
 	Installation log saved to ${SCRIPT_LOG}. Configuration settings saved to ${INVENTORY_FILE}.
 	You can rerun \`${SCRIPT_COMMAND}\` with saved settings after resolving installation problems.
@@ -57,6 +59,11 @@ DICT['ru.messages.check_ability_firewall_installing']="Проверяем воз
 DICT['ru.messages.check_keitaro_dump_get_tables_prefix']="Получаем префикс таблиц из SQL дампа"
 DICT['ru.messages.check_keitaro_dump_validity']="Проверяем SQL дамп"
 DICT["ru.messages.successful.use_old_credentials"]="База данных успешно восстановлена из архива. Используйте старые данные для входа в систему"
+DICT['ru.messages.successful.how_to_enable_ssl']=$(cat <<- END
+	Вы можете установить бесплатные SSL сертификаты, выполнив следующую команду:
+	curl keitaro.io/enable-ssl.sh > run; bash run -D domain1.com,domain2.com
+END
+)
 DICT['ru.errors.see_logs']=$(cat <<- END
 	Журнал установки сохранён в ${SCRIPT_LOG}. Настройки сохранены в ${INVENTORY_FILE}.
 	Вы можете повторно запустить \`${SCRIPT_COMMAND}\` с этими настройками после устранения возникших проблем.

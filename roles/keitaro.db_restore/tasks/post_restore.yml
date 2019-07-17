@@ -18,6 +18,3 @@
   notify:
     - restart php-fpm
     - restart roadrunner
-
-
-

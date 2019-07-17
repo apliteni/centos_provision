@@ -15,4 +15,5 @@ show_credentials(){
     echo -e "login: ${colored_login}"
     echo -e "password: ${colored_password}"
   fi
+  echo "$(translate 'messages.successful.how_to_enable_ssl')"
 }
