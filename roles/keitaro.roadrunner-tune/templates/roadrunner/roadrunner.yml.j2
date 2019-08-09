@@ -19,7 +19,7 @@ http:
     # worker pool configuration.
     pool:
       # number of workers to be serving.
-      numWorkers: {{ [php_tracker_workers_count, 300] | min }}
+      numWorkers: {{ [php_tracker_workers_count, 100] | min }}
 
       # maximum jobs per worker, 0 - unlimited.
       maxJobs: {{ php_tracker_worker_max_requests }}
