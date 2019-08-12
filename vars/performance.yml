@@ -22,7 +22,7 @@ php_opened_files: "{{ (php_tracker_opened_files|int) + (php_nontracker_opened_fi
 php_workers_count: "{{ (php_tracker_workers_count|int) + (php_nontracker_workers_count|int) }}"
 
 
-# Database settings
+# Database settings (see DEVOPS-147)
 db_memory_1pct_kb: "{{ ((db_memory_mb|int) * 1024 / 100) | int }}"
 db_max_connections: "{{ [(( (php_workers_count | int) * 1.1) | int), 4096] | min }}"
 db_key_buffer_size_kb: "{{ 2 * (db_memory_1pct_kb|int) }}"
