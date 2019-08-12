@@ -5,4 +5,5 @@ db_memory_mb: "{{ [0.2 * ansible_memtotal_mb, 8192] | min }}"
 redis_memory_mb: "{{ [0.2 * ansible_memtotal_mb, 4096] | min | round(-1, 'ceil') | int }}"
 # PHP: 70% - 90% RAM
 php_memory_mb: "{{ 0.9 * ansible_memtotal_mb - (db_memory_mb|int) - (redis_memory_mb|int) }}"
+# 70% of PHP memory will be used by tracker itself (RoadRunner), 30% will be used for other scripts (i.e. landings, admin UI) 
 php_tracker_memory_factor: 0.7
