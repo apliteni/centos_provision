@@ -33,9 +33,9 @@
     - {role: 'keitaro.php', tags: 'php, upgrade'}
     - {role: 'keitaro.tracker', tags: 'tracker'}
     - {role: 'keitaro.tracker-tune', tags: 'tracker, tune, tracker-tune, upgrade'}
+    - {role: 'keitaro.db_restore', tags: 'db_restore', when: "db_restore_path is defined and db_restore_path != ''"}
     - {role: 'keitaro.php-fpm', tags: 'php, php-fpm, upgrade'}
     - {role: 'keitaro.php-fpm-tune', tags: 'php, php-fpm, tune, php-fpm-tune, upgrade'}
     - {role: 'keitaro.roadrunner', tags: 'php, roadrunner, upgrade'}
     - {role: 'keitaro.roadrunner-tune', tags: 'php, roadrunner, tune, roadrunner-tune, upgrade'}
-    - {role: 'keitaro.db_restore', tags: 'db_restore', when: "db_restore_path is defined and db_restore_path != ''"}
     - {role: 'upgrades.tasks', tags: 'never, upgrade, upgrade-tracker, upgrade-php, upgrade-nginx' }
