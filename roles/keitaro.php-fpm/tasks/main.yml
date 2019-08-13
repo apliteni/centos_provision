@@ -1,7 +1,11 @@
 - name: Install php-fpm
   yum:
-    name:
-      - "{{php_version}}-php-fpm"
+    name: "{{php_version}}-php-fpm"
+    state: installed
+
+- name: Install fcgi
+  yum:
+    name: fcgi
     state: installed
 
 - name: Link php-fpm directories
