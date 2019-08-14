@@ -160,6 +160,7 @@ SSL_CERT_PATH="${SSL_ROOT}/cert.pem"
 SSL_PRIVKEY_PATH="${SSL_ROOT}/privkey.pem"
 CERT_DOMAINS_PATH="${CONFIG_DIR}/ssl_enabler_cert_domains"
 CERTBOT_LOG="${CONFIG_DIR}/ssl_enabler_cerbot.log"
+SSL_ENABLER_ERRORS_LOG="${CONFIG_DIR}/ssl_enabler_errors.log"
 DICT['en.prompts.ssl_domains']='Please enter domains separated by comma without spaces'
 DICT['en.prompts.ssl_domains.help']='Make sure all the domains are already linked to this server in the DNS'
 DICT['en.errors.see_logs']="Evaluating log saved to ${SCRIPT_LOG}. Please rerun \`${SCRIPT_COMMAND}\` after resolving problems."
@@ -1349,6 +1350,7 @@ renewal_job_installed(){
 
 generate_certificates(){
   debug "Requesting certificates"
+  echo -n > "$SSL_ENABLER_ERRORS_LOG"
   IFS=',' read -r -a domains <<< "${VARS['ssl_domains']}"
   for domain in "${domains[@]}"; do
     certificate_generated=${FALSE}
@@ -1369,6 +1371,7 @@ generate_certificates(){
         FAILED_DOMAINS+=($domain)
         debug "There was an error while issuing certificate for domain ${domain}"
         certificate_error="$(recognize_error "$CERTBOT_LOG")"
+        echo "${domain}: ${certificate_error}" >> "$SSL_ENABLER_ERRORS_LOG"
       fi
     fi
     if [[ ${certificate_generated} == ${TRUE} ]]; then
