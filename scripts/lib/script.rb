@@ -1,5 +1,6 @@
 require 'open3'
 require 'tmpdir'
+require 'active_support/core_ext/object/blank'
 
 class Script
   attr_accessor :env, :args, :prompts_with_values, :stored_values, :docker_image, :command_stubs, :commands, :save_files
@@ -108,15 +109,11 @@ class Script
     out = ''
     reader_thread = Thread.new {
       begin
-        stdout_chunk = without_formatting(read_stream(stdout))
-        out << stdout_chunk
+        line = without_formatting(readline_nonblock(stdout)).force_encoding('UTF-8')
+        out << line
 
-        break if stdout_chunk == ''
-
-        prompt = stdout_chunk.split("\n").last
-
-        if prompts_with_values.any? && prompt =~ / > $/
-          key = prompt.match(/[^>]+/)[0].gsub(/\[.*\]/, '').strip
+        if prompts_with_values.any? && is_prompt?(line)
+          key = line.match(/[^>]+/)[0].gsub(/\[.*\]/, '').strip
           if prompts_with_values.key?(key)
             if prompts_with_values[key].is_a?(Array)
               index = answered[key].to_i
@@ -127,28 +124,38 @@ class Script
             end
           else
             stdin.puts('value')
-            puts "Value for prompt #{prompt.inspect} not found, using fake value instead"
+            puts "Value for prompt #{line.inspect} not found, using fake value instead"
           end
         end
-      end while true
+      end while line.present?
     }
     reader_thread.value
     out
   end
 
-  def read_stream(stdout)
-    buffer = ''
-
+  def readline_nonblock(stdout)
+    line = ''
     begin
-      char = stdout.getc
-      return buffer if char.nil?
+      begin
+        line << stdout.read_nonblock(1)
+      end while !line.end_with?("\n")
 
-      buffer << char
-    end while buffer !~ / > /
-
-    buffer
+      return line
+    rescue IO::WaitReadable
+      if is_prompt?(line)
+        return line
+      else
+        IO.select([stdout])
+        retry
+      end
+    rescue EOFError
+      return line
+    end
   end
 
+  def is_prompt?(line)
+    line.end_with?(' > ')
+  end
 end
 
 begin
