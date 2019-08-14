@@ -199,7 +199,6 @@ info_json() {
 }
 
 fcgi_json() {
-  path="$(/usr/bin/which cgi-fcgi)"
   print_json installed "true" \
              socket "/var/run/{{ php_version }}-fpm-keitaro-nontracker.sock"
 }
