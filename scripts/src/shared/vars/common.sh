@@ -20,8 +20,8 @@ BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
 
 WEBROOT_PATH="/var/www/keitaro"
 
-CONFIG_DIR=".keitaro"
-INVENTORY_FILE="${CONFIG_DIR}/installer_config"
+WORKING_DIR=".keitaro"
+INVENTORY_FILE="${WORKING_DIR}/installer_config"
 
 NGINX_ROOT_PATH="/etc/nginx"
 NGINX_VHOSTS_DIR="${NGINX_ROOT_PATH}/conf.d"
