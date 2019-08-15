@@ -87,8 +87,8 @@ BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
 
 WEBROOT_PATH="/var/www/keitaro"
 
-CONFIG_DIR=".keitaro"
-INVENTORY_FILE="${CONFIG_DIR}/installer_config"
+WORKING_DIR=".keitaro"
+INVENTORY_FILE="${WORKING_DIR}/installer_config"
 
 NGINX_ROOT_PATH="/etc/nginx"
 NGINX_VHOSTS_DIR="${NGINX_ROOT_PATH}/conf.d"
@@ -607,10 +607,10 @@ init(){
 }
 
 init_log(){
-  if mkdir -p ${CONFIG_DIR} &> /dev/null; then
+  if mkdir -p ${WORKING_DIR} &> /dev/null; then
     > ${SCRIPT_LOG}
   else
-    echo "Can't create keitaro config dir ${CONFIG_DIR}" >&2
+    echo "Can't create keitaro working dir ${WORKING_DIR}" >&2
     exit 1
   fi
 }
@@ -1240,7 +1240,6 @@ END
 DICT['en.errors.wrong_distro']='This installer works only on CentOS 7.x. Please run this program on the clean CentOS server'
 DICT['en.errors.not_enough_ram']='The size of RAM on your server should be at least 2 GB'
 DICT['en.errors.cant_install_firewall']='Please run this program in system with firewall support'
-DICT['en.errors.cant_create_keitaro_config_dir']="Can not create Keitaro config directory ${CONFIG_DIR}"
 DICT['en.errors.keitaro_dump_invalid']='SQL dump is broken'
 DICT['en.errors.isp_manager_installed']='You can not install Keitaro on the server with ISP Manager installed. Please run this program on a clean CentOS server.'
 DICT['en.errors.vesta_cp_installed']='You can not install Keitaro on the server with Vesta CP installed. Please run this program on a clean CentOS server.'
@@ -1289,7 +1288,6 @@ END
 )
 DICT['ru.errors.wrong_distro']='Установщик Keitaro работает только в CentOS 7.x. Пожалуйста, запустите эту программу в CentOS дистрибутиве'
 DICT['ru.errors.not_enough_ram']='Размер оперативной памяти на вашем сервере должен быть не менее 2 ГБ'
-DICT['ru.errors.cant_create_keitaro_config_dir']="Невозможно создать директорию для конфигурационных файлов Keitaro ${CONFIG_DIR}"
 DICT['ru.errors.cant_install_firewall']='Пожалуйста, запустите эту программу на системе с поддержкой фаервола'
 DICT['ru.errors.keitaro_dump_invalid']='Указанный файл не является дампом Keitaro или загружен не полностью.'
 DICT['ru.errors.isp_manager_installed']="Программа установки не может быть запущена на серверах с установленным ISP Manager. Пожалуйста, запустите эту программу на чистом CentOS сервере."
@@ -1915,8 +1913,8 @@ download_provision(){
 
 ANSIBLE_TASK_HEADER="^TASK \[(.*)\].*"
 ANSIBLE_TASK_FAILURE_HEADER="^(fatal|failed): "
-ANSIBLE_FAILURE_JSON_FILEPATH="${CONFIG_DIR}/ansible_failure.json"
-ANSIBLE_LAST_TASK_LOG="${CONFIG_DIR}/ansible_last_task.log"
+ANSIBLE_FAILURE_JSON_FILEPATH="${WORKING_DIR}/ansible_failure.json"
+ANSIBLE_LAST_TASK_LOG="${WORKING_DIR}/ansible_last_task.log"
 
 
 run_ansible_playbook(){

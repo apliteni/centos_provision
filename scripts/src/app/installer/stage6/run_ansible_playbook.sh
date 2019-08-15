@@ -9,8 +9,8 @@
 
 ANSIBLE_TASK_HEADER="^TASK \[(.*)\].*"
 ANSIBLE_TASK_FAILURE_HEADER="^(fatal|failed): "
-ANSIBLE_FAILURE_JSON_FILEPATH="${CONFIG_DIR}/ansible_failure.json"
-ANSIBLE_LAST_TASK_LOG="${CONFIG_DIR}/ansible_last_task.log"
+ANSIBLE_FAILURE_JSON_FILEPATH="${WORKING_DIR}/ansible_failure.json"
+ANSIBLE_LAST_TASK_LOG="${WORKING_DIR}/ansible_last_task.log"
 
 
 run_ansible_playbook(){

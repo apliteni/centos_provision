@@ -77,8 +77,8 @@ BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
 
 WEBROOT_PATH="/var/www/keitaro"
 
-CONFIG_DIR=".keitaro"
-INVENTORY_FILE="${CONFIG_DIR}/installer_config"
+WORKING_DIR=".keitaro"
+INVENTORY_FILE="${WORKING_DIR}/installer_config"
 
 NGINX_ROOT_PATH="/etc/nginx"
 NGINX_VHOSTS_DIR="${NGINX_ROOT_PATH}/conf.d"
@@ -158,9 +158,9 @@ declare -a FAILED_DOMAINS
 SSL_ROOT="/etc/keitaro/ssl"
 SSL_CERT_PATH="${SSL_ROOT}/cert.pem"
 SSL_PRIVKEY_PATH="${SSL_ROOT}/privkey.pem"
-CERT_DOMAINS_PATH="${CONFIG_DIR}/ssl_enabler_cert_domains"
-CERTBOT_LOG="${CONFIG_DIR}/ssl_enabler_cerbot.log"
-SSL_ENABLER_ERRORS_LOG="${CONFIG_DIR}/ssl_enabler_errors.log"
+CERT_DOMAINS_PATH="${WORKING_DIR}/ssl_enabler_cert_domains"
+CERTBOT_LOG="${WORKING_DIR}/ssl_enabler_cerbot.log"
+SSL_ENABLER_ERRORS_LOG="${WORKING_DIR}/ssl_enabler_errors.log"
 DICT['en.prompts.ssl_domains']='Please enter domains separated by comma without spaces'
 DICT['en.prompts.ssl_domains.help']='Make sure all the domains are already linked to this server in the DNS'
 DICT['en.errors.see_logs']="Evaluating log saved to ${SCRIPT_LOG}. Please rerun \`${SCRIPT_COMMAND}\` after resolving problems."
@@ -687,10 +687,10 @@ init(){
 }
 
 init_log(){
-  if mkdir -p ${CONFIG_DIR} &> /dev/null; then
+  if mkdir -p ${WORKING_DIR} &> /dev/null; then
     > ${SCRIPT_LOG}
   else
-    echo "Can't create keitaro config dir ${CONFIG_DIR}" >&2
+    echo "Can't create keitaro working dir ${WORKING_DIR}" >&2
     exit 1
   fi
 }
