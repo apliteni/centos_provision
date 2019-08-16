@@ -8,7 +8,7 @@
 
 write_inventory_on_reconfiguration(){
   debug "Stages 3-5: write inventory on reconfiguration"
-  if ! is_file_exist "${HOME}/${INVENTORY_FILE}" "no" && ! is_file_exist "${INVENTORY_FILE}" "no"; then
+  if empty "${INVENTORY_PARSED}"; then
     reset_vars_on_reconfiguration
     collect_inventory_variables
   fi
@@ -30,9 +30,6 @@ reset_vars_on_reconfiguration(){
 
 
 collect_inventory_variables(){
-  if is_file_exist "${HOME}/hosts.txt"; then
-    read_inventory_file "${HOME}/hosts.txt"
-  fi
   if empty "${VARS['license_key']}"; then
     if [[ -f ${WEBROOT_PATH}/var/license/key.lic ]]; then
       VARS['license_key']="$(cat ${WEBROOT_PATH}/var/license/key.lic)"
