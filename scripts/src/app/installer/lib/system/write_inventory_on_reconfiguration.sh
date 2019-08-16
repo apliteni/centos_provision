@@ -1,14 +1,9 @@
 #!/usr/bin/env bash
-#
-
-
-
-
 
 
 write_inventory_on_reconfiguration(){
   debug "Stages 3-5: write inventory on reconfiguration"
-  if empty "${INVENTORY_PARSED}"; then
+  if empty "${DETECTED_INVENTORY_PATH}"; then
     reset_vars_on_reconfiguration
     collect_inventory_variables
   fi

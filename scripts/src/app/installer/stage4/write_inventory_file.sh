@@ -4,8 +4,8 @@
 write_inventory_file(){
   debug "Writing inventory file: STARTED"
   mkdir -p "${INVENTORY_DIR}" -m 0700 || fail "Cant't create keitaro inventory dir ${INVENTORY_DIR}"
-  (echo -n > "${INVENTORY_FILE}" && chmod 0600 "${INVENTORY_FILE}") || \
-    fail "Cant't create keitaro inventory file ${INVENTORY_FILE}"
+  (echo -n > "${INVENTORY_PATH}" && chmod 0600 "${INVENTORY_PATH}") || \
+    fail "Cant't create keitaro inventory file ${INVENTORY_PATH}"
   print_line_to_inventory_file "[server]"
   print_line_to_inventory_file "localhost connection=local ansible_user=root"
   print_line_to_inventory_file
@@ -50,5 +50,5 @@ get_cpu_cores(){
 print_line_to_inventory_file(){
   local line="${1}"
   debug "  "$line"" 'light.blue'
-  echo "$line" >> "$INVENTORY_FILE"
+  echo "$line" >> "$INVENTORY_PATH"
 }

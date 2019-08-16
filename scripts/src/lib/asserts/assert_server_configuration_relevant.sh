@@ -4,7 +4,7 @@
 assert_server_configuration_relevant(){
   debug 'Ensure configs has been genereated by relevant installer'
   if isset "$SKIP_CHECKS"; then
-    debug "SKIP: аctual check of installer version in ${INVENTORY_FILE} disabled"
+    debug "SKIP: аctual check of installer version in ${INVENTORY_PATH} disabled"
   else
     installed_version=$(detect_installed_version)
     if [[ "${RELEASE_VERSION}" == "${installed_version}" ]]; then
@@ -36,8 +36,9 @@ assert_server_configuration_relevant(){
 
 detect_installed_version(){
   local version=""
-  if is_file_exist ${INVENTORY_FILE}; then
-    version=$(grep "^installer_version=" ${INVENTORY_FILE} | sed s/^installer_version=//g)
+  detect_inventory_path
+  if isset "${DETECTED_INVENTORY_PATH}"; then
+    version=$(grep "^installer_version=" ${DETECTED_INVENTORY_PATH} | sed s/^installer_version=//g)
   fi
   if empty "$version"; then
     version="0.9"

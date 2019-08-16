@@ -95,8 +95,8 @@ else
   INVENTORY_DIR=".keitaro"
 fi
 
-INVENTORY_FILE="${INVENTORY_DIR}/inventory"
-INVENTORY_PARSED=""
+INVENTORY_PATH="${INVENTORY_DIR}/inventory"
+DETECTED_INVENTORY_PATH=""
 
 NGINX_ROOT_PATH="/etc/nginx"
 NGINX_VHOSTS_DIR="${NGINX_ROOT_PATH}/conf.d"
@@ -439,6 +439,17 @@ is_installed(){
       return ${FAILURE_RESULT}
     fi
   fi
+}
+
+detect_inventory_path(){
+  paths=("${INVENTORY_PATH}" /root/.keitaro/installer_config .keitaro/installer_config /root/hosts.txt hosts.txt)
+  for path in "${paths[@]}"; do
+    if [[ -f "${path}" ]]; then
+      DETECTED_INVENTORY_PATH="${path}"
+      return
+    fi
+  done
+  debug "Inventory file not found"
 }
 #
 
@@ -1241,7 +1252,7 @@ DICT['en.messages.successful.how_to_enable_ssl']=$(cat <<- END
 END
 )
 DICT['en.errors.see_logs']=$(cat <<- END
-	Installation log saved to ${SCRIPT_LOG}. Configuration settings saved to ${INVENTORY_FILE}.
+	Installation log saved to ${SCRIPT_LOG}. Configuration settings saved to ${INVENTORY_PATH}.
 	You can rerun \`${SCRIPT_COMMAND}\` with saved settings after resolving installation problems.
 END
 )
@@ -1290,7 +1301,7 @@ DICT['ru.messages.successful.how_to_enable_ssl']=$(cat <<- END
 END
 )
 DICT['ru.errors.see_logs']=$(cat <<- END
-	Журнал установки сохранён в ${SCRIPT_LOG}. Настройки сохранены в ${INVENTORY_FILE}.
+	Журнал установки сохранён в ${SCRIPT_LOG}. Настройки сохранены в ${INVENTORY_PATH}.
 	Вы можете повторно запустить \`${SCRIPT_COMMAND}\` с этими настройками после устранения возникших проблем.
 END
 )
@@ -1349,16 +1360,11 @@ get_var_from_config(){
     awk '{$1=$1; print}' | \
     sed -r -e "s/^'(.*)'\$/\\1/g" -e 's/^"(.*)"$/\1/g'
   }
-#
-
-
-
-
 
 
 write_inventory_on_reconfiguration(){
   debug "Stages 3-5: write inventory on reconfiguration"
-  if empty "${INVENTORY_PARSED}"; then
+  if empty "${DETECTED_INVENTORY_PATH}"; then
     reset_vars_on_reconfiguration
     collect_inventory_variables
   fi
@@ -1705,19 +1711,14 @@ stage3(){
 }
 
 read_inventory(){
-  paths=("${INVENTORY_FILE}" /root/.keitaro/installer_config .keitaro/installer_config /root/hosts.txt hosts.txt)
-  for inventory_path in "${paths[@]}"; do
-    if [[ -f "${inventory_path}" ]]; then
-      parse_inventory_file "${inventory_path}"
-      return
-    fi
-  done
-  debug "Inventory file not found"
+  detect_inventory_path
+  if isset "${DETECTED_INVENTORY_PATH}"; then
+    parse_inventory "${DETECTED_INVENTORY_PATH}"
+  fi
 }
 
-parse_inventory_file(){
+parse_inventory(){
   local file="${1}"
-  INVENTORY_PARSED="${file}"
   debug "Found inventory file ${file}, read defaults from it"
   while IFS="" read -r line; do
     if [[ "$line" =~ = ]]; then
@@ -1807,8 +1808,8 @@ can_install_firewall(){
 write_inventory_file(){
   debug "Writing inventory file: STARTED"
   mkdir -p "${INVENTORY_DIR}" -m 0700 || fail "Cant't create keitaro inventory dir ${INVENTORY_DIR}"
-  (echo -n > "${INVENTORY_FILE}" && chmod 0600 "${INVENTORY_FILE}") || \
-    fail "Cant't create keitaro inventory file ${INVENTORY_FILE}"
+  (echo -n > "${INVENTORY_PATH}" && chmod 0600 "${INVENTORY_PATH}") || \
+    fail "Cant't create keitaro inventory file ${INVENTORY_PATH}"
   print_line_to_inventory_file "[server]"
   print_line_to_inventory_file "localhost connection=local ansible_user=root"
   print_line_to_inventory_file
@@ -1853,7 +1854,7 @@ get_cpu_cores(){
 print_line_to_inventory_file(){
   local line="${1}"
   debug "  "$line"" 'light.blue'
-  echo "$line" >> "$INVENTORY_FILE"
+  echo "$line" >> "$INVENTORY_PATH"
 }
 stage5(){
   debug "Starting stage 5: upgrade current and install necessary packages"
@@ -1925,7 +1926,7 @@ run_ansible_playbook(){
     env="${env} TABLES_PREFIX='$(cat "${DETECTED_PREFIX_PATH}" | head -n1)'"
     rm -f "${DETECTED_PREFIX_PATH}"
   fi
-  local command="${env} ansible-playbook -vvv -i ${INVENTORY_FILE} ${PROVISION_DIRECTORY}/playbook.yml"
+  local command="${env} ansible-playbook -vvv -i ${INVENTORY_PATH} ${PROVISION_DIRECTORY}/playbook.yml"
   if isset "$ANSIBLE_TAGS"; then
     command="${command} --tags ${ANSIBLE_TAGS}"
   fi
