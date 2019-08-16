@@ -152,7 +152,7 @@ RSpec.describe 'install.sh' do
       let(:docker_image) { 'centos' }
       let(:commands) { stub_detecting_license_edition_type_answer('1.1.1.1', 'trial') }
 
-      it_behaves_like 'should store default value', :license_ip, readed_inventory_value: '1.1.1.1'
+      it_behaves_like 'inventory contains value', :license_ip, '1.1.1.1'
     end
 
     it_behaves_like 'field without default', :license_key, value: 'AAAA-BBBB-CCCC-DDDD'
@@ -196,20 +196,20 @@ RSpec.describe 'install.sh' do
                       %r{curl -fsSL https://github.com/.*/#{BRANCH}.tar.gz | tar xz}
 
       it_behaves_like 'should print to', :stdout,
-                      "ansible-playbook -vvv -i #{Inventory::INVENTORY_FILE} #{PLAYBOOK_PATH}"
+                      "ansible-playbook -vvv -i /etc/keitaro/config/inventory #{PLAYBOOK_PATH}"
 
       context '-t specified' do
         let(:options) { '-p -t tag1,tag2' }
 
         it_behaves_like 'should print to', :stdout,
-                        "ansible-playbook -vvv -i #{Inventory::INVENTORY_FILE} #{PLAYBOOK_PATH} --tags tag1,tag2"
+                        "ansible-playbook -vvv -i /etc/keitaro/config/inventory #{PLAYBOOK_PATH} --tags tag1,tag2"
       end
 
       context '-i specified' do
         let(:options) { '-p -i tag1,tag2' }
 
         it_behaves_like 'should print to', :stdout,
-                        "ansible-playbook -vvv -i #{Inventory::INVENTORY_FILE} #{PLAYBOOK_PATH} --skip-tags tag1,tag2"
+                        "ansible-playbook -vvv -i /etc/keitaro/config/inventory #{PLAYBOOK_PATH} --skip-tags tag1,tag2"
       end
     end
 
@@ -267,7 +267,7 @@ RSpec.describe 'install.sh' do
       it_behaves_like 'should exit with error', [
         %r{There was an error evaluating current command\n(.*\n){3}.* ansible-playbook},
         'Installation log saved to install.log',
-        'Configuration settings saved to .keitaro/installer_config',
+        'Configuration settings saved to /etc/keitaro/config/inventory',
         'You can rerun `curl -fsSL https://keitaro.io/install.sh > run; bash run`'
       ]
     end

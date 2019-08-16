@@ -87,8 +87,16 @@ BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
 
 WEBROOT_PATH="/var/www/keitaro"
 
-WORKING_DIR=".keitaro"
-INVENTORY_FILE="${WORKING_DIR}/installer_config"
+if [[ "$EUID" == "$ROOT_UID" ]]; then
+  WORKING_DIR="${HOME}/.keitaro"
+  INVENTORY_DIR="/etc/keitaro/config"
+else
+  WORKING_DIR=".keitaro"
+  INVENTORY_DIR=".keitaro"
+fi
+
+INVENTORY_FILE="${INVENTORY_DIR}/inventory"
+INVENTORY_PARSED=""
 
 NGINX_ROOT_PATH="/etc/nginx"
 NGINX_VHOSTS_DIR="${NGINX_ROOT_PATH}/conf.d"
@@ -905,9 +913,9 @@ remove_current_command(){
 detect_license_ip(){
   debug "Detecting license IP"
   if isset "$SKIP_CHECKS"; then
-    debug "SKIP: аctual detecting of license IP skipped, used first available IP"
     DETECTED_LICENSE_EDITION_TYPE=$LICENSE_EDITION_TYPE_TRIAL
     VARS['license_ip']="$(get_host_ips | head -n1)"
+    debug "SKIP: аctual detecting of license IP skipped, used first available IP ${VARS['license_ip']}"
   else
     for ip in $(get_host_ips); do
       local license_edition_type="$(get_license_edition_type "${VARS['license_key']}" "${ip}")"
@@ -1350,7 +1358,7 @@ get_var_from_config(){
 
 write_inventory_on_reconfiguration(){
   debug "Stages 3-5: write inventory on reconfiguration"
-  if ! is_file_exist "${HOME}/${INVENTORY_FILE}" "no" && ! is_file_exist "${INVENTORY_FILE}" "no"; then
+  if empty "${INVENTORY_PARSED}"; then
     reset_vars_on_reconfiguration
     collect_inventory_variables
   fi
@@ -1372,9 +1380,6 @@ reset_vars_on_reconfiguration(){
 
 
 collect_inventory_variables(){
-  if is_file_exist "${HOME}/hosts.txt"; then
-    read_inventory_file "${HOME}/hosts.txt"
-  fi
   if empty "${VARS['license_key']}"; then
     if [[ -f ${WEBROOT_PATH}/var/license/key.lic ]]; then
       VARS['license_key']="$(cat ${WEBROOT_PATH}/var/license/key.lic)"
@@ -1700,41 +1705,39 @@ stage3(){
 }
 
 read_inventory(){
-  if is_file_exist "${HOME}/${INVENTORY_FILE}" "no"; then
-    read_inventory_file "${HOME}/${INVENTORY_FILE}"
-  else
-    if is_file_exist "${INVENTORY_FILE}"; then
-      read_inventory_file "${INVENTORY_FILE}"
+  paths=("${INVENTORY_FILE}" /root/.keitaro/installer_config .keitaro/installer_config /root/hosts.txt hosts.txt)
+  for inventory_path in "${paths[@]}"; do
+    if [[ -f "${inventory_path}" ]]; then
+      parse_inventory_file "${inventory_path}"
+      return
     fi
-  fi
+  done
+  debug "Inventory file not found"
 }
 
-read_inventory_file(){
+parse_inventory_file(){
   local file="${1}"
-  if [ -f "${file}" ]; then
-    debug "Inventory file found, read defaults from it"
-    while IFS="" read -r line; do
+  INVENTORY_PARSED="${file}"
+  debug "Found inventory file ${file}, read defaults from it"
+  while IFS="" read -r line; do
+    if [[ "$line" =~ = ]]; then
       parse_line_from_inventory_file "$line"
-    done < "${file}"
-  else
-    debug "Inventory file not found"
-  fi
+    fi
+  done < "${file}"
 }
 
 
 parse_line_from_inventory_file(){
   local line="${1}"
-  if [[ "$line" =~ = ]]; then
-    IFS="=" read var_name value <<< "$line"
-    if [[ "$var_name" != 'db_restore_path' ]]; then
-      if empty "${VARS[$var_name]}"; then
-        VARS[$var_name]=$value
-        debug "# set $var_name from inventory"
-      else
-        debug "# $var_name is set from options, skip inventory value"
-      fi
-      debug "  "$var_name"=${VARS[$var_name]}" 'light.blue'
+  IFS="=" read var_name value <<< "$line"
+  if [[ "$var_name" != 'db_restore_path' ]]; then
+    if empty "${VARS[$var_name]}"; then
+      VARS[$var_name]=$value
+      debug "# read $var_name from inventory"
+    else
+      debug "# $var_name is set from options, skip inventory value"
     fi
+    debug "  "$var_name"=${VARS[$var_name]}" 'light.blue'
   fi
 }
 #
@@ -1799,15 +1802,13 @@ can_install_firewall(){
   message="$(translate 'messages.check_ability_firewall_installing')"
   run_command "$command" "$message" 'hide_output' 'allow_errors'
 }
-#
-
-
-
 
 
 write_inventory_file(){
   debug "Writing inventory file: STARTED"
-  echo -n > "$INVENTORY_FILE"
+  mkdir -p "${INVENTORY_DIR}" -m 0700 || fail "Cant't create keitaro inventory dir ${INVENTORY_DIR}"
+  (echo -n > "${INVENTORY_FILE}" && chmod 0600 "${INVENTORY_FILE}") || \
+    fail "Cant't create keitaro inventory file ${INVENTORY_FILE}"
   print_line_to_inventory_file "[server]"
   print_line_to_inventory_file "localhost connection=local ansible_user=root"
   print_line_to_inventory_file
@@ -1862,7 +1863,6 @@ stage5(){
 
 
 upgrade_packages(){
-  debug "Installing deltarpm"
   install_package deltarpm
   debug "Upgrading packages"
   run_command "yum update -y"
