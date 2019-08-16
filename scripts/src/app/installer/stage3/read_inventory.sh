@@ -1,19 +1,14 @@
 #!/usr/bin/env bash
 
 read_inventory(){
-  paths=("${INVENTORY_FILE}" /root/.keitaro/installer_config .keitaro/installer_config /root/hosts.txt hosts.txt)
-  for inventory_path in "${paths[@]}"; do
-    if [[ -f "${inventory_path}" ]]; then
-      parse_inventory_file "${inventory_path}"
-      return
-    fi
-  done
-  debug "Inventory file not found"
+  detect_inventory_path
+  if isset "${DETECTED_INVENTORY_PATH}"; then
+    parse_inventory "${DETECTED_INVENTORY_PATH}"
+  fi
 }
 
-parse_inventory_file(){
+parse_inventory(){
   local file="${1}"
-  INVENTORY_PARSED="${file}"
   debug "Found inventory file ${file}, read defaults from it"
   while IFS="" read -r line; do
     if [[ "$line" =~ = ]]; then
