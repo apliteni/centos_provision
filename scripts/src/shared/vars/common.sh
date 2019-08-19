@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
-#
-
-
-
 
 SHELL_NAME=$(basename "$0")
 

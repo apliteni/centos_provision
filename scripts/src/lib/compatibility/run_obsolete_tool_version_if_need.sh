@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 
-assert_server_configuration_relevant(){
+run_obsolete_tool_version_if_need(){
   debug 'Ensure configs has been genereated by relevant installer'
   if isset "$SKIP_CHECKS"; then
     debug "SKIP: аctual check of installer version in ${INVENTORY_PATH} disabled"
@@ -14,7 +14,7 @@ assert_server_configuration_relevant(){
       local tool_args="${TOOL_ARGS}"
       if [[ "${TOOL_NAME}" == "add-site" ]]; then
         if [[ "${installed_version}" < "1.4" ]]; then
-          fail "$(build_upgrade_message "${installed_version}")"
+          fail "$(translate 'errors.upgrade_server')"
         else
           tool_args="-D ${VARS['site_domains']} -R ${VARS['site_root']}"
         fi
@@ -31,23 +31,4 @@ assert_server_configuration_relevant(){
       exit
     fi
   fi
-}
-
-
-detect_installed_version(){
-  local version=""
-  detect_inventory_path
-  if isset "${DETECTED_INVENTORY_PATH}"; then
-    version=$(grep "^installer_version=" ${DETECTED_INVENTORY_PATH} | sed s/^installer_version=//g)
-  fi
-  if empty "$version"; then
-    version="0.9"
-  fi
-  echo "$version"
-}
-
-
-build_upgrade_message(){
-  local installed_version="${1}"
-  translate 'errors.upgrade_server' "installed_version=${installed_version}"
 }

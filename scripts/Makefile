@@ -28,7 +28,7 @@ test_run_command_tester:
 clean:
 	rm -f *.log*
 
-compile: inject_release_version compile_site_adder compile_installer compile_ssl_enabler compile_run_command_tester
+compile: set_release_version compile_site_adder compile_installer compile_ssl_enabler compile_run_command_tester
 
 define compile_powscript
 	bin/powscript --compile src/$(1) > $(2) || true
@@ -56,9 +56,9 @@ compile_chunks:
 	done
 	@echo
 
-inject_release_version:
-	@echo "Setting current release to $(RELEASE_VERSION)"
-	@sed -i "s/^RELEASE_VERSION=.*/RELEASE_VERSION='$(RELEASE_VERSION)'/g" src/shared/vars/common.pow
+set_release_version:
+	@echo "Set current release to $(RELEASE_VERSION)"
+	@sed -i "s/^RELEASE_VERSION=.*/RELEASE_VERSION='$(RELEASE_VERSION)'/g" src/shared/vars/common.sh
 
 compile_installer: compile_chunks
 	$(call compile_powscript,installer.pow,install.sh)

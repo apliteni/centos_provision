@@ -1,7 +1,0 @@
-#!/usr/bin/env powscript
-
-
-stage2()
-  debug "Starting stage 2: make some asserts"
-  assert_caller_root
-  assert_server_configuration_relevant
