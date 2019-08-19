@@ -1,5 +1,9 @@
-#!/usr/bin/env powscript
+#!/usr/bin/env bash
 
+set -e                                # halt on error
+set +m
+shopt -s lastpipe                     # flexible while loops (maintain scope)
+shopt -s extglob                      # regular expressions
 
 _require 'lib/stdlib.sh'
 _require 'shared/vars/site_adder_program_name.sh'
@@ -74,12 +78,13 @@ _require 'app/site_adder/stage4/show_successful_message.sh'
 # protect against the possibility of the connection dying mid-script. This protects us against
 # the problem described in this blog post:
 #   http://blog.existentialize.com/dont-pipe-to-your-shell.html
-add_site()
-  init $@
-  stage1 $@
+add_site(){
+  init "$@"
+  stage1 "$@"
   stage2
   stage3
   stage4
+}
 
+add_site "$@"
 
-add_site $@

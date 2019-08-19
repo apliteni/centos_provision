@@ -1,7 +1,0 @@
-#!/usr/bin/env powscript
-
-SUBDOMAIN_REGEXP="[[:alnum:]-]+"
-DOMAIN_REGEXP="(${SUBDOMAIN_REGEXP}\.)+[[:alpha:]]${SUBDOMAIN_REGEXP}"
-
-validate_domain(value)
-  [[ $value =~ ^${DOMAIN_REGEXP}$ ]]

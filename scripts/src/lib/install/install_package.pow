@@ -1,7 +1,0 @@
-#!/usr/bin/env powscript
-
-
-install_package(package)
-  debug "Installing ${package}"
-  run_command "yum install -y ${package}"
-

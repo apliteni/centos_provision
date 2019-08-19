@@ -1,6 +1,0 @@
-#!/usr/bin/env powscript
-
-
-stage3()
-  debug "Starting stage 3: get user vars"
-  get_user_vars

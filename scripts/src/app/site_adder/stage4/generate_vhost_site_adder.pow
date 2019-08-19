@@ -1,7 +1,0 @@
-#!/usr/bin/env powscript
-
-
-generate_vhost_site_adder(domain)
-  generate_vhost $domain \
-    "s|root .*|root ${VARS['site_root']};|" \
-    "/locations-tracker.inc/d"

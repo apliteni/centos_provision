@@ -1,5 +1,0 @@
-#!/usr/bin/env powscript
-
-
-show_successful_message()
-  print_with_color "$(translate 'messages.successful')" 'green'

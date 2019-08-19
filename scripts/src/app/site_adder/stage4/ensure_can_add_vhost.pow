@@ -1,7 +1,0 @@
-#!/usr/bin/env powscript
-
-
-ensure_can_add_vhost()
-  debug "Ensure can add vhost"
-  if ! is_directory_exist "${VARS['site_root']}"
-    fail "$(translate 'errors.site_root_not_exists' "site_root=${VARS['site_root']}")"

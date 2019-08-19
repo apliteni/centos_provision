@@ -1,4 +1,9 @@
-#!/usr/bin/env powscript
+#!/usr/bin/env bash
+
+set -e                                # halt on error
+set +m
+shopt -s lastpipe                     # flexible while loops (maintain scope)
+shopt -s extglob                      # regular expressions
 
 _require 'lib/stdlib.sh'
 
@@ -32,9 +37,17 @@ _require 'app/installer/stage6/json2dict.sh'
 # protect against the possibility of the connection dying mid-script. This protects us against
 # the problem described in this blog post:
 #   http://blog.existentialize.com/dont-pipe-to-your-shell.html
-test_run_command(command, message, hide_output, allow_errors, run_as, failed_logs_filter)
+
+test_run_command(){
+  local command="${1}"
+  local message="${2}"
+  local hide_output="${3}"
+  local allow_errors="${4}"
+  local run_as="${5}"
+  local failed_logs_filter="${6}"
   UI_LANG=en
   run_command "${command}" "${message}" "${hide_output}" "${allow_errors}" "${run_as}" "${failed_logs_filter}"
+}
 
 
 test_run_command "${1}" "${2}" "${3}" "${4}" "${5}" "${6}"

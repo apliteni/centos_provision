@@ -1,6 +1,0 @@
-#!/usr/bin/env powscript
-
-
-is_no(answer)
-  shopt -s nocasematch
-  [[ $answer =~ ^(no|n|нет|н)$ ]]

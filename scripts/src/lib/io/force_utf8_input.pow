@@ -1,7 +1,0 @@
-#!/usr/bin/env powscript
-
-
-force_utf8_input()
-  LC_CTYPE=en_US.UTF-8
-  if [ -f /proc/$$/fd/1 ]
-    stty -F /proc/$$/fd/1 iutf8

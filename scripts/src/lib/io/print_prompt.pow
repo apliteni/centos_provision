@@ -1,9 +1,0 @@
-#!/usr/bin/env powscript
-
-
-print_prompt(var_name)
-  prompt=$(translate "prompts.$var_name")
-  prompt="$(print_with_color $prompt 'bold')"
-  if not empty ${VARS[$var_name]}
-    prompt="$prompt [${VARS[$var_name]}]"
-  echo -en "$prompt > "

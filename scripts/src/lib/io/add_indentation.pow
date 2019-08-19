@@ -1,5 +1,0 @@
-#!/usr/bin/env powscript
-
-
-add_indentation()
-  sed -r "s/^/$INDENTATION_SPACES/g"

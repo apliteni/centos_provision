@@ -1,7 +1,0 @@
-#!/usr/bin/env powscript
-
-
-validate_file_existence(value)
-  if empty $value
-    return ${SUCCESS_RESULT}
-  [[ -f $value ]]

@@ -1,7 +1,0 @@
-#!/usr/bin/env powscript
-
-
-debug(message, color)
-  if empty $color
-    color='light.green'
-  print_with_color $message $color >> $SCRIPT_LOG

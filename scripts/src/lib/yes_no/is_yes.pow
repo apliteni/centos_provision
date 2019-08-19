@@ -1,6 +1,0 @@
-#!/usr/bin/env powscript
-
-
-is_yes(answer)
-  shopt -s nocasematch
-  [[ $answer =~ ^(yes|y|да|д)$ ]]

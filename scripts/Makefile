@@ -30,44 +30,24 @@ clean:
 
 compile: set_release_version compile_site_adder compile_installer compile_ssl_enabler compile_run_command_tester
 
-define compile_powscript
-	bin/powscript --compile src/$(1) > $(2) || true
-	sed -i 's|#!/bin/bash|#!/usr/bin/env bash|g' $(2)         # portable shebang line
-	sed -i '/# cleanup tmp files/,+4d' $(2)                   # remove unportable cleaning
-	sed -i 's/#$$//g' $(2)                                    # remove trailing #
+define compile_template
+	cp $(1) $(2)
 	bin/postprocess_requires $(2)
 	chmod a+x $(2)
 endef
-
-compile_chunks:
-	@echo Compiling sources
-	@for pow_script in $$(find src/{app,lib,shared} -name '*.pow'); do \
-	  bash_script=$${pow_script/pow/sh}; \
-	  if [[ -f $$bash_script && "$$(stat -c %y $$pow_script)" == "$$(stat -c %y $$bash_script)" ]]; \
-	  then \
-	    printf "."; \
-	  else \
-	    printf "o"; \
-	    bin/powscript --compile --sourceable $$pow_script \
-	        | sed -r -e '2,23d' -e '/^(empty|isset|on|values|last) /,/^}/d' -e '1c#!/usr/bin/env bash' \
-	        > $$bash_script; \
-	    touch -amr $$pow_script $$bash_script; \
-	  fi \
-	done
-	@echo
 
 set_release_version:
 	@echo "Set current release to $(RELEASE_VERSION)"
 	@sed -i "s/^RELEASE_VERSION=.*/RELEASE_VERSION='$(RELEASE_VERSION)'/g" src/shared/vars/common.sh
 
-compile_installer: compile_chunks
-	$(call compile_powscript,installer.pow,install.sh)
+compile_installer:
+	$(call compile_template,src/installer.sh.tpl,install.sh)
 
-compile_ssl_enabler: compile_chunks
-	$(call compile_powscript,ssl_enabler.pow,enable-ssl.sh)
+compile_ssl_enabler:
+	$(call compile_template,src/ssl_enabler.sh.tpl,enable-ssl.sh)
 
-compile_site_adder: compile_chunks
-	$(call compile_powscript,site_adder.pow,add-site.sh)
+compile_site_adder:
+	$(call compile_template,src/site_adder.sh.tpl,add-site.sh)
 
-compile_run_command_tester: compile_chunks
-	$(call compile_powscript,run_command_tester.pow,test-run-command.sh)
+compile_run_command_tester:
+	$(call compile_template,src/run_command_tester.sh.tpl,test-run-command.sh)

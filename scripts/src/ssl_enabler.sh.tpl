@@ -1,5 +1,9 @@
-#!/usr/bin/env powscript
+#!/usr/bin/env bash
 
+set -e                                # halt on error
+set +m
+shopt -s lastpipe                     # flexible while loops (maintain scope)
+shopt -s extglob                      # regular expressions
 
 _require 'lib/stdlib.sh'
 _require 'shared/vars/ssl_enabler_program_name.sh'
@@ -73,12 +77,13 @@ _require 'app/ssl_enabler/stage4/recognize_error.sh'
 # protect against the possibility of the connection dying mid-script. This protects us against
 # the problem described in this blog post:
 #   http://blog.existentialize.com/dont-pipe-to-your-shell.html
-enable_ssl()
-  init $@
-  stage1 $@
+enable_ssl(){
+  init "$@"
+  stage1 "$@"
   stage2
   stage3
   stage4
+}
 
+enable_ssl "$@"
 
-enable_ssl $@

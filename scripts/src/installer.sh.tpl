@@ -1,5 +1,9 @@
-#!/usr/bin/env powscript
+#!/usr/bin/env bash
 
+set -e                                # halt on error
+set +m
+shopt -s lastpipe                     # flexible while loops (maintain scope)
+shopt -s extglob                      # regular expressions
 
 _require 'lib/stdlib.sh'
 
@@ -93,19 +97,21 @@ _require 'app/installer/stage6/json2dict.sh'
 # protect against the possibility of the connection dying mid-script. This protects us against
 # the problem described in this blog post:
 #   http://blog.existentialize.com/dont-pipe-to-your-shell.html
-install()
-  init $@
-  stage1 $@                 # initial script setup
+
+install(){
+  init "$@"
+  stage1 "$@"                 # initial script setup
   stage2                    # make some asserts
   stage3                    # read vars from the inventory file
-  if isset $RECONFIGURE
+  if isset "$RECONFIGURE"; then
     assert_config_relevant_or_upgrade_running
     write_inventory_on_reconfiguration
   else
     assert_keitaro_not_installed
     stage4                  # get and save vars to the inventory file
     stage5                  # upgrade packages and install ansible
+  fi
   stage6                    # run ansible playbook
+}
 
-
-install $@
+install "$@"

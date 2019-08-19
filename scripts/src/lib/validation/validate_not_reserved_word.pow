@@ -1,5 +1,0 @@
-#!/usr/bin/env powscript
-
-
-validate_not_reserved_word(value)
-  [[ $value !=  'yes' ]] && [[ $value != 'no' ]] && [[ $value != 'true' ]] && [[ $value != 'false' ]]

@@ -1,5 +1,0 @@
-#!/usr/bin/env powscript
-
-
-clean_up()
-  debug 'called clean_up()'

@@ -1,6 +1,0 @@
-#!/usr/bin/env powscript
-
-DOMAIN_LIST_REGEXP="${DOMAIN_REGEXP}(,${DOMAIN_REGEXP})*"
-
-validate_domains_list(value)
-  [[ $value =~ ^${DOMAIN_LIST_REGEXP}$ ]]

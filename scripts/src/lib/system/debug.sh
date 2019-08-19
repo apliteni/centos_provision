@@ -1,9 +1,4 @@
 #!/usr/bin/env bash
-#
-
-
-
-
 
 debug(){
   local message="${1}"
