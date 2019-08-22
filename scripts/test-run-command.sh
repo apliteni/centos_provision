@@ -236,11 +236,7 @@ clean_up(){
 
 debug(){
   local message="${1}"
-  local color="${2}"
-  if empty "$color"; then
-    color='light.green'
-  fi
-  print_with_color "$message" "$color" >> "$SCRIPT_LOG"
+  echo "$message" >> "$SCRIPT_LOG"
 }
 #
 
@@ -284,7 +280,7 @@ init_log(){
 log_and_print_err(){
   local message="${1}"
   print_err "$message" 'red'
-  debug "$message" 'red'
+  debug "$message"
 }
 
 on_exit(){
