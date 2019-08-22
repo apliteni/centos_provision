@@ -23,7 +23,7 @@ detect_license_ip(){
       else
         debug "Found $license_edition_type license for IP ${ip} and key ${VARS['license_key']}"
         DETECTED_LICENSE_EDITION_TYPE="${license_edition_type}"
-        VARS['license_ip']=$ip
+        VARS['license_ip']="$ip"
         return
       fi
     done
