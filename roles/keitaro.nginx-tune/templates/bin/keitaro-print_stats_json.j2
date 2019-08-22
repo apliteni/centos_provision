@@ -65,7 +65,8 @@ redis_version() {
 }
 
 roadrunner_version() {
-  {{ rr_bin }} --help | head -n2 | tail -n1 | awk '{print $2}' | sed s/,//
+  {{ rr_bin }} --help | head -n2 | tail -n1 | awk '{print $2}' | sed s/,// | \
+    sed -r -e 's/\x1b\[([0-9]{1,3}(;[0-9]{1,3}){,2})?[mGK]//g'
 }
 
 engines_json() {
