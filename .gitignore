@@ -1,5 +1,6 @@
 .idea
 .vagrant
+.keitaro
 doc
 hosts.txt
 hosts-gitlab
