@@ -13,7 +13,7 @@ detect_license_ip(){
     debug "SKIP: аctual detecting of license IP skipped, used 127.0.0.1"
   else
     host_ips="$(get_host_ips)"
-    debug "IPs for checking:" ${host_ips}
+    debug "$(echo 'IPs for checking:' ${host_ips})"
     for ip in ${host_ips}; do
       local license_edition_type="$(get_license_edition_type "${VARS['license_key']}" "${ip}")"
       if wrong_license_edition_type $license_edition_type; then
