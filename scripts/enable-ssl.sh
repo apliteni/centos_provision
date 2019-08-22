@@ -765,12 +765,8 @@ reload_nginx(){
   debug "Reload nginx"
   run_command "nginx -s reload" "$(translate 'messages.reload_nginx')" 'hide_output'
 }
-#
 
-
-
-
-
+REMOVE_COLORS_SED_REGEX="s/\x1b\[([0-9]{1,3}(;[0-9]{1,3}){,2})?[mGK]//g"
 
 run_command(){
   local command="${1}"
@@ -879,8 +875,9 @@ unbuffer_streams(){
 save_command_logs(){
   local evaluated_command="${1}"
   local output_log="${2}"
-  save_output_log="tee -i ${CURRENT_COMMAND_OUTPUT_LOG} | tee -ia ${SCRIPT_LOG}"
-  save_error_log="tee -i ${CURRENT_COMMAND_ERROR_LOG} | tee -ia ${SCRIPT_LOG}"
+  local remove_colors="sed -r -e '${REMOVE_COLORS_SED_REGEX}'"
+  save_output_log="tee -i ${CURRENT_COMMAND_OUTPUT_LOG} | tee -ia >(${remove_colors} >> ${SCRIPT_LOG})"
+  save_error_log="tee -i ${CURRENT_COMMAND_ERROR_LOG} | tee -ia >(${remove_colors} >> ${SCRIPT_LOG})"
   if isset "${output_log}"; then
     save_output_log="${save_output_log} | tee -ia ${output_log}"
     save_error_log="${save_error_log} | tee -ia ${output_log}"
@@ -892,7 +889,7 @@ save_command_logs(){
 remove_colors_from_file(){
   local file="${1}"
   debug "Removing colors from file ${file}"
-  sed -r -e 's/\x1b\[([0-9]{1,3}(;[0-9]{1,3}){,2})?[mGK]//g' -i "$file"
+  sed -r -e "${REMOVE_COLORS_SED_REGEX}" -i "$file"
 }
 
 
