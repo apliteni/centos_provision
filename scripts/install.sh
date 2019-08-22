@@ -344,7 +344,7 @@ get_user_var(){
       if [[ "$validation_methods" =~ 'validate_yes_no' ]]; then
         transform_to_yes_no "$var_name"
       fi
-      debug "  ${var_name}=${value}" 'light.blue'
+      debug "  ${var_name}=${value}"
       break
     fi
   done
@@ -447,11 +447,7 @@ detect_inventory_path(){
 
 debug(){
   local message="${1}"
-  local color="${2}"
-  if empty "$color"; then
-    color='light.green'
-  fi
-  print_with_color "$message" "$color" >> "$SCRIPT_LOG"
+  echo "$message" >> "$SCRIPT_LOG"
 }
 #
 
@@ -625,7 +621,7 @@ init_log(){
 log_and_print_err(){
   local message="${1}"
   print_err "$message" 'red'
-  debug "$message" 'red'
+  debug "$message"
 }
 
 on_exit(){
@@ -1726,7 +1722,7 @@ parse_line_from_inventory_file(){
     else
       debug "# $var_name is set from options, skip inventory value"
     fi
-    debug "  "$var_name"=${VARS[$var_name]}" 'light.blue'
+    debug "  "$var_name"=${VARS[$var_name]}"
   fi
 }
 #
@@ -1841,7 +1837,7 @@ get_cpu_cores(){
 
 print_line_to_inventory_file(){
   local line="${1}"
-  debug "  "$line"" 'light.blue'
+  debug "  "$line""
   echo "$line" >> "$INVENTORY_PATH"
 }
 stage5(){

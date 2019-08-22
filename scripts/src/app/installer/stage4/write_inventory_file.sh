@@ -49,6 +49,6 @@ get_cpu_cores(){
 
 print_line_to_inventory_file(){
   local line="${1}"
-  debug "  "$line"" 'light.blue'
+  debug "  "$line""
   echo "$line" >> "$INVENTORY_PATH"
 }

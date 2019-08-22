@@ -28,6 +28,6 @@ parse_line_from_inventory_file(){
     else
       debug "# $var_name is set from options, skip inventory value"
     fi
-    debug "  "$var_name"=${VARS[$var_name]}" 'light.blue'
+    debug "  "$var_name"=${VARS[$var_name]}"
   fi
 }

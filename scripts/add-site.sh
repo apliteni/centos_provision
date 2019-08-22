@@ -473,7 +473,7 @@ get_user_var(){
       if [[ "$validation_methods" =~ 'validate_yes_no' ]]; then
         transform_to_yes_no "$var_name"
       fi
-      debug "  ${var_name}=${value}" 'light.blue'
+      debug "  ${var_name}=${value}"
       break
     fi
   done
@@ -628,11 +628,7 @@ clean_up(){
 
 debug(){
   local message="${1}"
-  local color="${2}"
-  if empty "$color"; then
-    color='light.green'
-  fi
-  print_with_color "$message" "$color" >> "$SCRIPT_LOG"
+  echo "$message" >> "$SCRIPT_LOG"
 }
 #
 
@@ -676,7 +672,7 @@ init_log(){
 log_and_print_err(){
   local message="${1}"
   print_err "$message" 'red'
-  debug "$message" 'red'
+  debug "$message"
 }
 
 on_exit(){

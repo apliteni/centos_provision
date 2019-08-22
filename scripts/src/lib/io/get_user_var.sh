@@ -26,7 +26,7 @@ get_user_var(){
       if [[ "$validation_methods" =~ 'validate_yes_no' ]]; then
         transform_to_yes_no "$var_name"
       fi
-      debug "  ${var_name}=${value}" 'light.blue'
+      debug "  ${var_name}=${value}"
       break
     fi
   done
