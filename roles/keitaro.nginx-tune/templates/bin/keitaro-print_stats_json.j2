@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+set -e
+set -o pipefail
+
 NGINX_KEITARO_STATUS_LOG_SNAPSHOT="{{ nginx_access_log_keitaro_tracker_status }}.snapshot"
 KEITARO_CONFIG="/etc/keitaro/config/inventory"
 GITHUB_RAWCONTENT="https://raw.githubusercontent.com"
