@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
-#
-
-
-
 
 
 get_host_ips(){

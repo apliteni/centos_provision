@@ -8,12 +8,6 @@ write_inventory_on_reconfiguration(){
     reset_vars_on_reconfiguration
     detect_inventory_variables
   fi
-  if empty "${VARS['license_ip']}"; then
-    fail "Cant't detect license ip, please contact Keitaro support team"
-  fi
-  if empty "${VARS['license_key']}"; then
-    fail "Cant't detect license ip, please contact Keitaro support team"
-  fi
   VARS['installer_version']="${RELEASE_VERSION}"
   VARS['php_engine']="${PHP_ENGINE}"
   write_inventory_file
@@ -39,8 +33,7 @@ detect_inventory_variables(){
     fi
   fi
   if empty "${VARS['license_ip']}"; then
-    VARS['license_ip']="$(detect_license_ip)"
-    debug "Detected license ip: ${VARS['license_ip']}"
+    detect_license_ip
   fi
   if empty "${VARS['db_name']}"; then
     VARS['db_name']="$(get_var_from_keitaro_app_config name)"
