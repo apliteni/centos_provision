@@ -211,10 +211,21 @@ fcgi_json() {
              socket "/var/run/{{ php_version }}-fpm-keitaro-nontracker.sock"
 }
 
-print_json versions "$(versions_json)" \
-           engines "$(engines_json)" \
-           responses "$(responses_json)" \
-           statuses "$(statuses_json)" \
-           cpu "$(cpu_json)" \
-           info "$(info_json)" \
-           fcgi "$(fcgi_json)"
+main() {
+  print_json versions "$(versions_json)" \
+             engines "$(engines_json)" \
+             responses "$(responses_json)" \
+             statuses "$(statuses_json)" \
+             cpu "$(cpu_json)" \
+             info "$(info_json)" \
+             fcgi "$(fcgi_json)"
+}
+
+# Save stderr the $stderr variable (see https://stackoverflow.com/a/13806684/612799)
+{ stderr=$(main 2>&1 1>&3-) ;} 3>&1
+
+if [[ "${stderr}" != "" ]]; then
+  echo "There was errors while generating stats.json:" >&2
+  echo "${stderr}" >&2
+  exit 1
+fi
