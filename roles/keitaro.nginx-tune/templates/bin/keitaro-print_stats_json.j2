@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 NGINX_KEITARO_STATUS_LOG_SNAPSHOT="{{ nginx_access_log_keitaro_tracker_status }}.snapshot"
-KEITARO_CONFIG="${HOME}/.keitaro/installer_config"
+KEITARO_CONFIG="/etc/keitaro/config/inventory"
 
 escape() {
   local value="$1"
