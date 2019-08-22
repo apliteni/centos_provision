@@ -182,9 +182,10 @@ memory_json() {
   # Mem:           1838         495         135          57        1207        1081
   # Swap:          1837           0        1837
   # --------------------------------------------
-  ram=($(free -m | head -n -1 | tail -n 1))
-  swap=($(free -m | tail -n 1))
-  ram_json="$(print_json total "${ram[1]}" used "${ram[2]}" free "${ram[3]}")"
+  ram=($(free -m | grep 'Mem:'))
+  swap=($(free -m | grep 'Swap:'))
+  initial_ram="$(get_config_var 'ram')"
+  ram_json="$(print_json total "${ram[1]}" used "${ram[2]}" free "${ram[3]}" initial "${initial_ram}")"
   swap_json="$(print_json total "${swap[1]}" used "${swap[2]}" free "${swap[3]}")"
   print_json ram "${ram_json}" swap "${swap_json}"
 }
