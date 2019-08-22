@@ -9,8 +9,8 @@ detect_license_ip(){
   debug "Detecting license IP"
   if isset "$SKIP_CHECKS"; then
     DETECTED_LICENSE_EDITION_TYPE=$LICENSE_EDITION_TYPE_TRIAL
-    VARS['license_ip']="$(get_host_ips | head -n1)"
-    debug "SKIP: аctual detecting of license IP skipped, used first available IP ${VARS['license_ip']}"
+    VARS['license_ip']="127.0.0.1"
+    debug "SKIP: аctual detecting of license IP skipped, used 127.0.0.1"
   else
     for ip in $(get_host_ips); do
       local license_edition_type="$(get_license_edition_type "${VARS['license_key']}" "${ip}")"
