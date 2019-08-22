@@ -923,7 +923,7 @@ detect_license_ip(){
       else
         debug "Found $license_edition_type license for IP ${ip} and key ${VARS['license_key']}"
         DETECTED_LICENSE_EDITION_TYPE="${license_edition_type}"
-        VARS['license_ip']=$ip
+        VARS['license_ip']="$ip"
         return
       fi
     done
@@ -1349,8 +1349,15 @@ get_var_from_config(){
 write_inventory_on_reconfiguration(){
   debug "Stages 3-5: write inventory on reconfiguration"
   if empty "${DETECTED_INVENTORY_PATH}"; then
+    debug "Detecting inventory variables"
     reset_vars_on_reconfiguration
-    collect_inventory_variables
+    detect_inventory_variables
+  fi
+  if empty "${VARS['license_ip']}"; then
+    fail "Cant't detect license ip, please contact Keitaro support team"
+  fi
+  if empty "${VARS['license_key']}"; then
+    fail "Cant't detect license ip, please contact Keitaro support team"
   fi
   VARS['installer_version']="${RELEASE_VERSION}"
   VARS['php_engine']="${PHP_ENGINE}"
@@ -1369,26 +1376,32 @@ reset_vars_on_reconfiguration(){
 }
 
 
-collect_inventory_variables(){
+detect_inventory_variables(){
   if empty "${VARS['license_key']}"; then
     if [[ -f ${WEBROOT_PATH}/var/license/key.lic ]]; then
       VARS['license_key']="$(cat ${WEBROOT_PATH}/var/license/key.lic)"
+      debug "Detected license key: ${VARS['license_key']}"
     fi
   fi
   if empty "${VARS['license_ip']}"; then
     VARS['license_ip']="$(detect_license_ip)"
+    debug "Detected license ip: ${VARS['license_ip']}"
   fi
   if empty "${VARS['db_name']}"; then
     VARS['db_name']="$(get_var_from_keitaro_app_config name)"
+    debug "Detected db name: ${VARS['db_name']}"
   fi
   if empty "${VARS['db_user']}"; then
     VARS['db_user']="$(get_var_from_keitaro_app_config user)"
+    debug "Detected db user: ${VARS['db_user']}"
   fi
   if empty "${VARS['db_password']}"; then
     VARS['db_password']="$(get_var_from_keitaro_app_config password)"
+    debug "Detected db password: ${VARS['db_password']}"
   fi
   if empty "${VARS['db_root_password']}"; then
     VARS['db_root_password']="$(get_var_from_config password ~/.my.cnf '=')"
+    debug "Detected db root password: ${VARS['db_root_password']}"
   fi
 }
 
