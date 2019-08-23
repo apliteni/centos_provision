@@ -108,6 +108,7 @@ DICT['en.no']='no'
 DICT['en.prompt_errors.validate_domains_list']=$(cat <<-END
 	Please enter domains list, separated by comma without spaces (eg domain1.tld,www.domain1.tld).
 	Each domain name should consist of only letters, numbers and hyphens and contain at least one dot.
+	Domains longer than 64 characters are not supported.
 END
 )
 DICT['en.prompt_errors.validate_presence']='Please enter value'
@@ -128,6 +129,7 @@ DICT['ru.no']='нет'
 DICT['ru.prompt_errors.validate_domains_list']=$(cat <<-END
 	Укажите список доменных имён через запятую без пробелов (например domain1.tld,www.domain1.tld).
 	Каждое доменное имя должно сстоять только из букв, цифр и тире и содержать хотя бы одну точку.
+	Домены длиной более 64 символов не поддерживаются.
 END
 )
 DICT['ru.prompt_errors.validate_presence']='Введите значение'
@@ -1129,16 +1131,20 @@ get_error(){
 }
 SUBDOMAIN_REGEXP="[[:alnum:]-]+"
 DOMAIN_REGEXP="(${SUBDOMAIN_REGEXP}\.)+[[:alpha:]]${SUBDOMAIN_REGEXP}"
+MAX_DOMAIN_LENGTH=64
+DOMAIN_LENGTH_REGEXP="[^,]{1,${MAX_DOMAIN_LENGTH}}"
 
 validate_domain(){
   local value="${1}"
-  [[ "$value" =~ ^${DOMAIN_REGEXP}$ ]]
+  [[ "$value" =~ ^${DOMAIN_REGEXP}$ ]] && [[ "$value" =~ ^${DOMAIN_LENGTH_REGEXP}$ ]]
 }
 DOMAIN_LIST_REGEXP="${DOMAIN_REGEXP}(,${DOMAIN_REGEXP})*"
+DOMAIN_LIST_LENGTH_REGEXP="${DOMAIN_LENGTH_REGEXP}(,${DOMAIN_LENGTH_REGEXP})*"
+
 
 validate_domains_list(){
   local value="${1}"
-  [[ "$value" =~ ^${DOMAIN_LIST_REGEXP}$ ]]
+  [[ "$value" =~ ^${DOMAIN_LIST_REGEXP}$ ]] && [[ "${value}" =~ ^${DOMAIN_LIST_LENGTH_REGEXP}$ ]]
 }
 #
 

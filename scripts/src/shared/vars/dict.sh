@@ -16,6 +16,7 @@ DICT['en.no']='no'
 DICT['en.prompt_errors.validate_domains_list']=$(cat <<-END
 	Please enter domains list, separated by comma without spaces (eg domain1.tld,www.domain1.tld).
 	Each domain name should consist of only letters, numbers and hyphens and contain at least one dot.
+	Domains longer than 64 characters are not supported.
 END
 )
 DICT['en.prompt_errors.validate_presence']='Please enter value'
@@ -36,6 +37,7 @@ DICT['ru.no']='нет'
 DICT['ru.prompt_errors.validate_domains_list']=$(cat <<-END
 	Укажите список доменных имён через запятую без пробелов (например domain1.tld,www.domain1.tld).
 	Каждое доменное имя должно сстоять только из букв, цифр и тире и содержать хотя бы одну точку.
+	Домены длиной более 64 символов не поддерживаются.
 END
 )
 DICT['ru.prompt_errors.validate_presence']='Введите значение'
