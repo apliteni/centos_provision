@@ -446,11 +446,6 @@ force_utf8_input(){
     stty -F /proc/$$/fd/1 iutf8
   fi
 }
-#
-
-
-
-
 
 
 get_user_var(){
@@ -1180,6 +1175,11 @@ join_by(){
   printf "%s" "${@/#/${delimiter}}"
 }
 
+to_lower(){
+  local string="${1}"
+  echo "${string,,}"
+}
+
 
 first_domain(){
   echo "${VARS['site_domains']%%,*}"
@@ -1261,6 +1261,7 @@ get_user_vars(){
   if empty "${VARS['site_domains']}"; then
     get_user_var 'site_domains' 'validate_presence validate_domains_list'
   fi
+  VARS['site_domains']="$(to_lower "${VARS['site_domains']}")"
   if empty "${VARS['site_root']}"; then
     VARS['site_root']="/var/www/$(first_domain)"
     get_user_var 'site_root' 'validate_presence'

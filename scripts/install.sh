@@ -317,11 +317,6 @@ detect_mime_type(){
   fi
   file --brief --mime-type "$file"
 }
-#
-
-
-
-
 
 
 get_user_var(){
@@ -1216,9 +1211,6 @@ LICENSE_EDITION_TYPE_INVALID="INVALID"
 LICENSE_EDITION_TYPES=("$LICENSE_EDITION_TYPE_TRIAL" "$LICENSE_EDITION_TYPE_COMMERCIAL" "$LICENSE_EDITION_TYPE_INVALID")
 
 DETECTED_LICENSE_EDITION_TYPE=""
-#
-
-
 
 
 DICT['en.messages.keitaro_already_installed']='Keitaro is already installed'
