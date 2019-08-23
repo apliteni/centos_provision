@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
-#
-
-
-
 
 
 parse_options(){

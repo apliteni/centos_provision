@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-#
-
-
 
 
 DICT['en.messages.keitaro_already_installed']='Keitaro is already installed'

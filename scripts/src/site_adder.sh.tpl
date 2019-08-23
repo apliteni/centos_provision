@@ -60,6 +60,7 @@ _require 'lib/yes_no/is_yes.sh'
 _require 'lib/yes_no/transform_to_yes_no.sh'
 _require 'lib/yes_no/validate_yes_no.sh'
 _require 'lib/util/join_by.sh'
+_require 'lib/util/to_lower.sh'
 
 _require 'app/site_adder/lib/first_domain.sh'
 _require 'app/site_adder/lib/vhost_filepath.sh'
