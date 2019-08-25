@@ -159,7 +159,6 @@ need_print_full_json(){
   [[ ${need_print_output_fields} != ${SUCCESS_RESULT} && ${is_msg_set} != ${SUCCESS_RESULT}  ]]
 }
 
-
 get_printable_fields(){
   local ansible_module="${1}"
   local fields="${2}"
