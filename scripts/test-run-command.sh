@@ -51,7 +51,7 @@ ROOT_UID=0
 
 KEITARO_URL="https://keitaro.io"
 
-RELEASE_VERSION='1.8'
+RELEASE_VERSION='1.9'
 DEFAULT_BRANCH="master"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
 
@@ -717,7 +717,6 @@ need_print_full_json(){
   is_msg_set=$?
   [[ ${need_print_output_fields} != ${SUCCESS_RESULT} && ${is_msg_set} != ${SUCCESS_RESULT}  ]]
 }
-
 
 get_printable_fields(){
   local ansible_module="${1}"
