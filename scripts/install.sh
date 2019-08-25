@@ -51,7 +51,7 @@ ROOT_UID=0
 
 KEITARO_URL="https://keitaro.io"
 
-RELEASE_VERSION='1.8'
+RELEASE_VERSION='1.9'
 DEFAULT_BRANCH="master"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
 
@@ -1566,8 +1566,15 @@ setup_vars(){
   setup_default_value db_root_password "$(generate_password)"
   setup_default_value db_engine 'tokudb'
   setup_default_value php_engine "${PHP_ENGINE}"
+  setup_default_value ssh_port "$(get_firewall_ssh_port)"
 }
 
+get_firewall_ssh_port(){
+  sshport=`echo $SSH_CLIENT | cut -d' ' -f 3`
+  if [ "$sshport" != "22" ]; then
+    echo "$sshport"
+  fi
+}
 
 setup_default_value(){
   local var_name="${1}"
@@ -1815,6 +1822,7 @@ write_inventory_file(){
   print_line_to_inventory_file "php_engine=${VARS['php_engine']}"
   print_line_to_inventory_file "cpu_cores=$(get_cpu_cores)"
   print_line_to_inventory_file "ram=$(get_ram)"
+  print_line_to_inventory_file "ssh_port=${VARS['ssh_port']}"
   if isset "${VARS['db_engine']}"; then
     print_line_to_inventory_file "db_engine=${VARS['db_engine']}"
   fi
@@ -2052,7 +2060,6 @@ need_print_full_json(){
   is_msg_set=$?
   [[ ${need_print_output_fields} != ${SUCCESS_RESULT} && ${is_msg_set} != ${SUCCESS_RESULT}  ]]
 }
-
 
 get_printable_fields(){
   local ansible_module="${1}"
