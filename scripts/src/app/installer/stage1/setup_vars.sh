@@ -28,7 +28,6 @@ get_firewall_ssh_port(){
     else
       echo "22"
     fi
-  fi
 }
 
 setup_default_value(){

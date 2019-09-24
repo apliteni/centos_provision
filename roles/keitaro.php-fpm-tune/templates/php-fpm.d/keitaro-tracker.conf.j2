@@ -5,7 +5,7 @@ group = keitaro
 listen = '/var/run/{{ php_version }}-fpm-keitaro-tracker.sock'
 listen.owner = {{ nginx_user }}
 listen.group = {{ nginx_group }}
-listen.mode = 0660
+listen.mode = 0666
 
 pm = dynamic
 pm.max_children = {{ php_tracker_workers_count }}
