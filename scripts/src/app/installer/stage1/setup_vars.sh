@@ -19,10 +19,15 @@ setup_vars(){
 }
 
 get_firewall_ssh_port(){
-  sshport=`echo $SSH_CLIENT | cut -d' ' -f 3`
-  if [ "$sshport" != "22" ]; then
-    echo "$sshport"
-  fi
+  local sshport=`echo $SSH_CLIENT | cut -d' ' -f 3`
+  if [ -z "$sshport" ]; then
+    echo "22"
+  else
+    if [ "$sshport" != "22" ]; then
+      echo "$sshport"
+    else
+      echo "22"
+    fi
 }
 
 setup_default_value(){
