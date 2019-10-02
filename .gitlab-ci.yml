@@ -37,9 +37,4 @@ run_rspec:
   extends: .docker
   stage: quality_checks
   script:
-    - ruby -v
-    - which ruby
-    - gem install bundler --no-document
-    - cd scripts/
-    - bundle install --jobs $(nproc)  "${FLAGS[@]}"
     - bundle exec rake rspec
