@@ -1,21 +1,25 @@
+# Mixins
+.docker
+  tags: [docker]
+
 # Shared
 image: "ruby:2.3.5"
+
 services:
   - postgres
 
+variables:
+  RAILS_ENV: test
+  POSTGRES_DB: test
+  POSTGRES_USER: postgres
+  POSTGRES_PASSWORD: ""
+  DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/database_name"
+
 default:
-  tags: [docker]
   cache:
     key: "$CI_BUILD_REF_NAME"
     paths:
       - /cache
-
-  variables:
-    RAILS_ENV: test
-    POSTGRES_DB: test
-    POSTGRES_USER: postgres
-    POSTGRES_PASSWORD: ""
-    DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/database_name"
 
   before_script:
     - ruby -v
@@ -31,6 +35,13 @@ stages:
 
 # Jobs
 run_rspec:
+  extends: .docker
   stage: quality_checks
   script:
+    - ruby -v
+    - which ruby
+    - gem install bundler --no-document
+    - cd scripts/
+    - bundle install --jobs $(nproc)  "${FLAGS[@]}"
+    - bin/rails db:setup
     - bundle exec rake rspec
