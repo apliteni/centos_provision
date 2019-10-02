@@ -27,7 +27,6 @@ default:
     - gem install bundler --no-document
     - cd scripts/
     - bundle install --jobs $(nproc)  "${FLAGS[@]}"
-    - bin/rails db:setup
 
 # Stages
 stages:
@@ -43,5 +42,4 @@ run_rspec:
     - gem install bundler --no-document
     - cd scripts/
     - bundle install --jobs $(nproc)  "${FLAGS[@]}"
-    - bin/rails db:setup
     - bundle exec rake rspec
