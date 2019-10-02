@@ -1,5 +1,5 @@
 # Mixins
-.docker
+.docker:
   tags: [docker]
 
 # Shared
