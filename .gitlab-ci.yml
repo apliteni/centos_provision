@@ -1,0 +1,36 @@
+# Shared
+image: "ruby:2.3.5"
+services:
+  - postgres
+
+default:
+  tags: [docker]
+  cache:
+    key: "$CI_BUILD_REF_NAME"
+    paths:
+      - /cache
+
+  variables:
+    RAILS_ENV: test
+    POSTGRES_DB: test
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: ""
+    DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/database_name"
+
+  before_script:
+    - ruby -v
+    - which ruby
+    - gem install bundler --no-document
+    - cd scripts/
+    - bundle install --jobs $(nproc)  "${FLAGS[@]}"
+    - bin/rails db:setup
+
+# Stages
+stages:
+  - quality_checks
+
+# Jobs
+run_rspec:
+  stage: quality_checks
+  script:
+    - bundle exec rake rspec
