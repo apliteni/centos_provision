@@ -37,4 +37,4 @@ run_rspec:
   extends: .docker
   stage: quality_checks
   script:
-    - bundle exec rake rspec
+    - bundle exec rspec
