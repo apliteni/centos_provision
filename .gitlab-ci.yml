@@ -3,11 +3,10 @@
   tags: [docker]
 
 # Shared
-image: "ruby:2.3.5"
+image: apliteni/ruby-docker
 
 services:
   - postgres
-  - docker:dind
 
 variables:
   RAILS_ENV: test
@@ -15,7 +14,6 @@ variables:
   POSTGRES_USER: postgres
   POSTGRES_PASSWORD: ""
   DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/database_name"
-  DOCKER_TLS_CERTDIR: "/certs"
 
 default:
   cache:
