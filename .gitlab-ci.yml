@@ -7,7 +7,7 @@ image: "ruby:2.3.5"
 
 services:
   - postgres
-  - docker:19.03.1-dind
+  - docker:dind
 
 variables:
   RAILS_ENV: test
@@ -15,6 +15,7 @@ variables:
   POSTGRES_USER: postgres
   POSTGRES_PASSWORD: ""
   DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/database_name"
+  DOCKER_TLS_CERTDIR: "/certs"
 
 default:
   cache:
