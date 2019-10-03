@@ -10,6 +10,7 @@ services:
   - docker:19.03.1-dind
 
 variables:
+  DOCKER_HOST: tcp://localhost:2375
   RAILS_ENV: test
   POSTGRES_DB: test
   POSTGRES_USER: postgres
