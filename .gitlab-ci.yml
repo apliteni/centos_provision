@@ -10,7 +10,7 @@ services:
   - docker:dind
 
 variables:
-  DOCKER_TLS_CERTDIR: ""
+  #DOCKER_TLS_CERTDIR: ""
   DOCKER_HOST: tcp://docker:2376
   RAILS_ENV: test
   POSTGRES_DB: test
