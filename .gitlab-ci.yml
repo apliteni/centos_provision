@@ -29,9 +29,9 @@ default:
     - ruby -v
     - docker info
     - which ruby
-    - gem install bundler --no-document
+    #- gem install bundler --no-document
     - cd scripts/
-    - bundle install --jobs $(nproc)  "${FLAGS[@]}"
+    - bundle install
 
 # Stages
 stages:
