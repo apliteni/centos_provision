@@ -3,7 +3,7 @@
   tags: [docker]
 
 # Shared
-image: apliteni/ruby-docker
+image: apliteni/ruby-docker:latest
 
 services:
   - postgres
