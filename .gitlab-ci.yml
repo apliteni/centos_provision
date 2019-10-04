@@ -10,8 +10,8 @@ services:
   - docker:18.09-dind
 
 variables:
-  DOCKER_TLS_CERTDIR: "/certs"
-  DOCKER_HOST: https://docker:2376
+  #DOCKER_TLS_CERTDIR: "/certs"
+  DOCKER_HOST: tcp://docker:2376
 
   RAILS_ENV: test
   POSTGRES_DB: test
