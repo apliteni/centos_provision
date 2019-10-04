@@ -11,7 +11,7 @@ services:
 
 variables:
   DOCKER_DRIVER: overlay2
-  DOCKER_HOST: tcp://docker:2375
+  DOCKER_HOST: tcp://docker:2376
   RAILS_ENV: test
   POSTGRES_DB: test
   POSTGRES_USER: postgres
