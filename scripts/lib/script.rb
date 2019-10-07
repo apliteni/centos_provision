@@ -123,9 +123,11 @@ class Script
               stdin.puts(prompts_with_values[key])
             end
           else
-            #puts prompts_with_values.inspect
+            puts out
+            puts key
+            puts prompts_with_values.inspect
             stdin.puts('value')
-            puts "Value for prompt #{line.inspect} not found, using fake value instead. These prompts exists: ${prompts_with_values.inspect}"
+            puts "Value for prompt #{line.inspect} not found, using fake value instead. "
           end
         end
       end while line.present?
