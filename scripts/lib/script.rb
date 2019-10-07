@@ -42,8 +42,8 @@ class Script
   private
 
   def invoke_script_cmd(current_dir)
-    # puts [*make_cmd(current_dir)].to_a.last.sub(' -i ', ' -it ').gsub(%r{(\./#{script_command}.*)}, "bash #\\1")
-    # byebug
+     puts [*make_cmd(current_dir)].to_a.last.sub(' -i ', ' -it ').gsub(%r{(\./#{script_command}.*)}, "bash #\\1")
+     byebug
     Open3.popen3(*make_cmd(current_dir)) do |stdin, stdout, stderr, wait_thr|
       stdout.sync = true
       stdin.sync = true
@@ -66,7 +66,6 @@ class Script
       docker_run += " -v #{current_dir}:#{DOCKER_DATA_DIR}"
       docker_run += " -w #{DOCKER_DATA_DIR}"
       docker_run += " #{docker_image}"
-      puts docker_run.inspect
       evaluated_commands = make_command_stubs + commands + [command_with_args("./#{@script_command}", args)]
       %Q{#{docker_run} sh -c '#{evaluated_commands.join(' && ')}'}
     else
