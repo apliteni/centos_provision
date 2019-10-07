@@ -44,8 +44,8 @@ run_rspec:
   extends: .docker
   stage: quality_checks
   script:
-    - cd scripts/
-    - bundle install
+    #- cd scripts/
+    #- bundle install
     - bundle exec rspec
   cache:
     paths:
