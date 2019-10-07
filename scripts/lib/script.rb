@@ -66,6 +66,7 @@ class Script
       docker_run += " -v #{current_dir}:#{DOCKER_DATA_DIR}"
       docker_run += " -w #{DOCKER_DATA_DIR}"
       docker_run += " #{docker_image}"
+      puts docker_run.inspect
       evaluated_commands = make_command_stubs + commands + [command_with_args("./#{@script_command}", args)]
       %Q{#{docker_run} sh -c '#{evaluated_commands.join(' && ')}'}
     else
