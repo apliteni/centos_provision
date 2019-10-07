@@ -39,7 +39,14 @@ stages:
 
 # Jobs
 run_rspec:
+  image: apliteni/ruby-docker:latest
+
   extends: .docker
   stage: quality_checks
   script:
+    - cd scripts/
+    - bundle install
     - bundle exec rspec
+  cache:
+    paths:
+      - /cache
