@@ -9,6 +9,7 @@ run_rspec:
   tags: [shell, ruby]
   stage: quality_checks
   script:
+    - ruby -v
     - ci/bin/compile.sh
     - ci/bin/validate.sh
     - cd scripts/
