@@ -13,6 +13,8 @@ run_rspec:
   extends: .shell
   stage: quality_checks
   script:
+    - ci/bin/compile.sh
+    - ci/bin/validate.sh
     - cd scripts/
     - bundle install --path vendor/
     - bundle exec rspec
