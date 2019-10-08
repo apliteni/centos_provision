@@ -1,37 +1,8 @@
 # Mixins
-.docker:
-  tags: [docker]
+.shell:
+  tags: [shell]
 
 # Shared
-image: apliteni/ruby-docker:latest
-
-services:
-  - postgres
-  - docker:18.09-dind
-
-variables:
-  #DOCKER_TLS_CERTDIR: "/certs"
-  #DOCKER_HOST: tcp://docker:2376
-
-  RAILS_ENV: test
-  POSTGRES_DB: test
-  POSTGRES_USER: postgres
-  POSTGRES_PASSWORD: ""
-  DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/database_name"
-
-default:
-  cache:
-    key: "$CI_BUILD_REF_NAME"
-    paths:
-      - /cache
-
-  before_script:
-    - ruby -v
-    - docker info
-    - which ruby
-    #- gem install bundler --no-document
-    - cd scripts/
-    - bundle install
 
 # Stages
 stages:
@@ -39,14 +10,13 @@ stages:
 
 # Jobs
 run_rspec:
-  image: apliteni/ruby-docker:latest
-
-  extends: .docker
+  extends: .shell
   stage: quality_checks
   script:
     - cd scripts/
-    - bundle install
+    - bundle install --path vendor/
     - bundle exec rspec
   cache:
+    key: vendor
     paths:
-      - /cache
+      - vendor/
