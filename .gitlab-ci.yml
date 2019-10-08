@@ -1,7 +1,3 @@
-# Mixins
-.shell:
-  tags: [shell]
-
 # Shared
 
 # Stages
@@ -10,7 +6,7 @@ stages:
 
 # Jobs
 run_rspec:
-  extends: .shell
+  tags: [shell, ruby]
   stage: quality_checks
   script:
     - ci/bin/compile.sh
