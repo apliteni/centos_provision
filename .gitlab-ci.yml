@@ -34,7 +34,7 @@ add_tags:
     - /^(production)$/
 
 deploy_release_branch:
-  extends: [.git_init]
+
   tags:
     - shell
   stage: make_release
@@ -53,7 +53,7 @@ deploy_release_branch:
     - /^(production)$/
 
 deploy_to_current:
-  extends: [.git_init]
+
   tags:
     - shell
   stage: make_release
