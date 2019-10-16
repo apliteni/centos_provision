@@ -34,7 +34,6 @@ add_tags:
     - /^(production)$/
 
 deploy_release_branch:
-
   tags:
     - shell
   stage: make_release
@@ -53,7 +52,6 @@ deploy_release_branch:
     - /^(production)$/
 
 deploy_to_current:
-
   tags:
     - shell
   stage: make_release
