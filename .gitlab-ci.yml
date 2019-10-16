@@ -9,7 +9,7 @@
       - chmod 600 ~/.ssh/config && chown $USER ~/.ssh/config
       # Config git to avoid first usage questions. Set the identity
       - git config --global user.email "bot@apliteni.com" && git config --global user.name "Gitlab CI"
-      - git checkout $CI_COMMIT_REF_NAME
+      #- git checkout $CI_COMMIT_REF_NAME
       - echo "$CI_COMMIT_REF_NAME"
 # Stages
 stages:
@@ -59,6 +59,6 @@ deploy_to_current:
     - shell
   stage: make_release
   script:
-    - git push -f -u git@gitlab.x.apli.tech:apliteni/keitaro/installer.git current
+    - git push -f -u git@gitlab.x.apli.tech:apliteni/keitaro/installer.git $CI_COMMIT_REF_NAME:current
   only:
     - /^(production)$/
