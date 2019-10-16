@@ -49,7 +49,7 @@ deploy_to_current:
     - git config --global user.email "bot@apliteni.com" && git config --global user.name "Gitlab CI"
     - git checkout $CI_COMMIT_REF_NAME
     #- git push -f -u git@gitlab.x.apli.tech:apliteni/keitaro/installer.git $CI_COMMIT_REF_NAME:release-$RELEASE_VERSION
-    - git push -u git@gitlab.x.apli.tech:apliteni/keitaro/installer.git $CI_COMMIT_REF_NAME:current
+    - git push -f -u git@gitlab.x.apli.tech:apliteni/keitaro/installer.git $CI_COMMIT_REF_NAME:current
   only:
     - /^(production)$/
 
