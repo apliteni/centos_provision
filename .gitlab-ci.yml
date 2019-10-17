@@ -2,6 +2,7 @@
 .git_init:
    before_script:
       - export RELEASE_VERSION=`cat RELEASE_VERSION`
+      - export GIT_URL=git@gitlab.x.apli.tech:apliteni/keitaro/installer.git
       # Add the private key to bot
       - eval $(ssh-agent -s) && ssh-add <(echo "$SSH_PRIVATE_KEY") && mkdir -p ~/.ssh
       # Docker specific settings
@@ -10,6 +11,8 @@
       # Config git to avoid first usage questions. Set the identity
       - git config --global user.email "bot@apliteni.com" && git config --global user.name "Gitlab CI"
       - git checkout $CI_COMMIT_REF_NAME
+      - echo $GIT_URL
+
 # Stages
 stages:
   - quality_checks
@@ -48,7 +51,7 @@ deploy_release_branch:
     - shell
   stage: make_release
   script:
-    - git push -u git@gitlab.x.apli.tech:apliteni/keitaro/installer.git $CI_COMMIT_REF_NAME:release-$RELEASE_VERSION
+    - git push -u $GIT_URL $CI_COMMIT_REF_NAME:release-$RELEASE_VERSION
   only:
     - /^(production)$/
 
@@ -58,6 +61,6 @@ deploy_to_current:
     - shell
   stage: make_release
   script:
-    - git push -u git@gitlab.x.apli.tech:apliteni/keitaro/installer.git $CI_COMMIT_REF_NAME:current
+    - git push -u $GIT_URL $CI_COMMIT_REF_NAME:current
   only:
     - /^(production)$/
