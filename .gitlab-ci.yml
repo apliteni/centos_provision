@@ -3,7 +3,6 @@
    before_script:
       - export RELEASE_VERSION=`cat RELEASE_VERSION`
       - export GIT_URL=git@gitlab.x.apli.tech:apliteni/keitaro/installer.git
-      - export TARGET_BRANCH=current
       # Add the private key to bot
       - eval $(ssh-agent -s) && ssh-add <(echo "$SSH_PRIVATE_KEY") && mkdir -p ~/.ssh
       # Docker specific settings
@@ -58,6 +57,8 @@ deploy_release_branch:
 
 deploy_to_current:
   extends: [.git_init]
+  variables:
+    TARGET_BRANCH: current
   tags:
     - shell
   stage: release
