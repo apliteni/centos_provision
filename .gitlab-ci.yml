@@ -17,6 +17,7 @@ stages:
   - quality_checks
   - before_release
   - release
+  - current
 
 # Jobs
 run_rspec:
@@ -61,7 +62,7 @@ deploy_to_current:
     TARGET_BRANCH: current
   tags:
     - shell
-  stage: release
+  stage: current
   script:
     - git push -f -u $GIT_URL $CI_COMMIT_REF_NAME:$TARGET_BRANCH
   only:
