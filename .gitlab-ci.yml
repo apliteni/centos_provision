@@ -52,7 +52,7 @@ deploy_release_branch:
     - shell
   stage: release
   script:
-    - git push -f -u $GIT_URL $CI_COMMIT_REF_NAME:release-$RELEASE_VERSION
+    - git push -f -u $GIT_URL HEAD:release-$RELEASE_VERSION
   only:
     - /^(production)$/
 
@@ -64,6 +64,6 @@ deploy_to_current:
     - shell
   stage: current
   script:
-    - git push -f -u $GIT_URL $CI_COMMIT_REF_NAME:$TARGET_BRANCH
+    - git push -f -u $GIT_URL HEAD:$TARGET_BRANCH
   only:
     - /^(production)$/
