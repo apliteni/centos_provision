@@ -48,7 +48,7 @@ deploy_release_branch:
     - shell
   stage: make_release
   script:
-    - git push -f -u git@gitlab.x.apli.tech:apliteni/keitaro/installer.git $CI_COMMIT_REF_NAME:release-$RELEASE_VERSION
+    - git push -u git@gitlab.x.apli.tech:apliteni/keitaro/installer.git $CI_COMMIT_REF_NAME:release-$RELEASE_VERSION
   only:
     - /^(production)$/
 
@@ -58,6 +58,6 @@ deploy_to_current:
     - shell
   stage: make_release
   script:
-    - git push -f -u git@gitlab.x.apli.tech:apliteni/keitaro/installer.git $CI_COMMIT_REF_NAME:current
+    - git push -u git@gitlab.x.apli.tech:apliteni/keitaro/installer.git $CI_COMMIT_REF_NAME:current
   only:
     - /^(production)$/
