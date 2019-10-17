@@ -11,9 +11,6 @@
       # Config git to avoid first usage questions. Set the identity
       - git config --global user.email "bot@apliteni.com" && git config --global user.name "Gitlab CI"
       - git checkout $CI_COMMIT_REF_NAME
-      - git pull
-      - echo $CI_COMMIT_REF_NAME
-      - echo $GIT_URL
 
 # Stages
 stages:
