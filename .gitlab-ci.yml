@@ -52,7 +52,7 @@ deploy_release_branch:
     - shell
   stage: release
   script:
-    - git push -f -u $GIT_URL `git rev-parse HEAD`:release-$RELEASE_VERSION
+    - git push -f -u $GIT_URL `git rev-parse HEAD`:refs/heads/release-$RELEASE_VERSION
   only:
     - /^(production)$/
 
@@ -64,6 +64,6 @@ deploy_to_current:
     - shell
   stage: current
   script:
-    - git push -f -u $GIT_URL `git rev-parse HEAD`:$TARGET_BRANCH
+    - git push -f -u $GIT_URL `git rev-parse HEAD`:refs/heads/$TARGET_BRANCH
   only:
     - /^(production)$/
