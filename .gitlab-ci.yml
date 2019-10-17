@@ -10,12 +10,13 @@
       - chmod 600 ~/.ssh/config && chown $USER ~/.ssh/config
       # Config git to avoid first usage questions. Set the identity
       - git config --global user.email "bot@apliteni.com" && git config --global user.name "Gitlab CI"
-      - git checkout $CI_COMMIT_REF_NAME
 
 # Stages
 stages:
   - quality_checks
-  - make_release
+  - before_release
+  - release
+  - current
 
 # Jobs
 run_rspec:
@@ -38,7 +39,7 @@ run_rspec:
 add_tags:
   tags:
     - shell
-  stage: make_release
+  stage: before_release
   script:
     - bash ci/bin/create_git_tag.sh
   only:
@@ -48,18 +49,20 @@ deploy_release_branch:
   extends: [.git_init]
   tags:
     - shell
-  stage: make_release
+  stage: release
   script:
-    - git push -f -u $GIT_URL $CI_COMMIT_REF_NAME:release-$RELEASE_VERSION
+    - git push -f -u $GIT_URL `git rev-parse HEAD`:refs/heads/release-$RELEASE_VERSION
   only:
     - /^(production)$/
 
 deploy_to_current:
   extends: [.git_init]
+  variables:
+    TARGET_BRANCH: current
   tags:
     - shell
-  stage: make_release
+  stage: current
   script:
-    - git push -f -u $GIT_URL $CI_COMMIT_REF_NAME:current
+    - git push -f -u $GIT_URL `git rev-parse HEAD`:refs/heads/$TARGET_BRANCH
   only:
     - /^(production)$/
