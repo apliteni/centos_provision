@@ -1,8 +1,22 @@
-# Shared
+#Share
+.git_init:
+   before_script:
+      - export RELEASE_VERSION=`cat RELEASE_VERSION`
+      - export GIT_URL=git@gitlab.x.apli.tech:apliteni/keitaro/installer.git
+      # Add the private key to bot
+      - eval $(ssh-agent -s) && ssh-add <(echo "$SSH_PRIVATE_KEY") && mkdir -p ~/.ssh
+      # Docker specific settings
+      - 'echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
+      - chmod 600 ~/.ssh/config && chown $USER ~/.ssh/config
+      # Config git to avoid first usage questions. Set the identity
+      - git config --global user.email "bot@apliteni.com" && git config --global user.name "Gitlab CI"
 
 # Stages
 stages:
   - quality_checks
+  - before_release
+  - release
+  - current
 
 # Jobs
 run_rspec:
@@ -19,3 +33,36 @@ run_rspec:
     key: vendor
     paths:
       - vendor/
+  only:
+    - /^(production)$/
+
+add_tags:
+  tags:
+    - shell
+  stage: before_release
+  script:
+    - bash ci/bin/create_git_tag.sh
+  only:
+    - /^(production)$/
+
+deploy_release_branch:
+  extends: [.git_init]
+  tags:
+    - shell
+  stage: release
+  script:
+    - git push -f -u $GIT_URL `git rev-parse HEAD`:refs/heads/release-$RELEASE_VERSION
+  only:
+    - /^(production)$/
+
+deploy_to_current:
+  extends: [.git_init]
+  variables:
+    TARGET_BRANCH: current
+  tags:
+    - shell
+  stage: current
+  script:
+    - git push -f -u $GIT_URL `git rev-parse HEAD`:refs/heads/$TARGET_BRANCH
+  only:
+    - /^(production)$/
