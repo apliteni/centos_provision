@@ -59,6 +59,7 @@ deploy:
   tags: [shell]
   stage: release
   script: ci/bin/deploy.sh
+  when: manual
   only:
     - /^master$/
   except:
