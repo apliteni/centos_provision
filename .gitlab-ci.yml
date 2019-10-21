@@ -15,9 +15,7 @@
 stages:
   - build
   - quality_checks
-  - before_release
   - release
-  - current
 
 
 
@@ -55,13 +53,5 @@ deploy:
   tags: [shell]
   stage: release
   script: ci/bin/deploy.sh
-  only:
-    - /^master$/
-
-push_tag:
-  tags: [shell]
-  stage: after_release
-  script:
-    - bash ci/bin/create_git_tag.sh
   only:
     - /^master$/
