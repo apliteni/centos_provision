@@ -17,8 +17,6 @@ stages:
   - quality_checks
   - release
 
-
-
 # Jobs
 build_scripts:
   tags: [shell]
@@ -34,6 +32,9 @@ build_scripts:
       - scripts/enable-ssl.sh
       - scripts/fix-renewal-certs-cron-job.sh
       - scripts/test-run-command.sh
+  except:
+    - /^release-/
+    - /^current$/
 
 run_rspec:
   tags: [shell, ruby]
@@ -49,6 +50,9 @@ run_rspec:
     key: vendor
     paths:
       - vendor/
+  except:
+    - /^release-/
+    - /^current$/
 
 deploy:
   extends: [.git_init]
@@ -57,3 +61,6 @@ deploy:
   script: ci/bin/deploy.sh
   only:
     - /^master$/
+  except:
+    - /^release-/
+    - /^current$/
