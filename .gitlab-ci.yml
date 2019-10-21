@@ -17,8 +17,6 @@ stages:
   - quality_checks
   - release
 
-
-
 # Jobs
 build_scripts:
   tags: [shell]
@@ -36,6 +34,7 @@ build_scripts:
       - scripts/test-run-command.sh
   except:
     - /^release-/
+    - /^current$/
 
 run_rspec:
   tags: [shell, ruby]
@@ -53,6 +52,7 @@ run_rspec:
       - vendor/
   except:
     - /^release-/
+    - /^current$/
 
 deploy:
   extends: [.git_init]
@@ -63,3 +63,4 @@ deploy:
     - /^master$/
   except:
     - /^release-/
+    - /^current$/
