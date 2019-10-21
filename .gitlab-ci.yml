@@ -13,19 +13,35 @@
 
 # Stages
 stages:
+  - build
   - quality_checks
   - before_release
   - release
   - current
 
+
+
 # Jobs
+build_scripts:
+  tags: [shell]
+  stage: build
+  script:
+    - ci/bin/compile.sh
+    - ci/bin/validate.sh
+  artifacts:
+    expire_in: 30 days
+    paths:
+      - scripts/install.sh
+      - scripts/add-site.sh
+      - scripts/enable-ssl.sh
+      - scripts/fix-renewal-certs-cron-job.sh
+
 run_rspec:
   tags: [shell, ruby]
   stage: quality_checks
+  dependencies:
+    - build_scripts
   script:
-    - ruby -v
-    - ci/bin/compile.sh
-    - ci/bin/validate.sh
     - cd scripts/
     - bundle install --path vendor/
     - bundle exec rspec
@@ -33,39 +49,19 @@ run_rspec:
     key: vendor
     paths:
       - vendor/
+
+deploy:
+  extends: [.git_init]
+  tags: [shell]
+  stage: release
+  script: ci/bin/deploy.sh
   only:
     - /^master$/
 
-add_tags:
-  tags:
-    - shell
+push_tag:
+  tags: [shell]
   stage: before_releasee
-  when: manual
   script:
     - bash ci/bin/create_git_tag.sh
   only:
     - /^master$/
-
-deploy_release_branch:
-  extends: [.git_init]
-  tags:
-    - shell
-  stage: release
-  allow_failure: false
-  script:
-    - git push -f -u $GIT_URL `git rev-parse HEAD`:refs/heads/release-$RELEASE_VERSION
-  only:
-    - /^(production)$/
-
-deploy_to_current:
-  extends: [.git_init]
-  variables:
-    TARGET_BRANCH: current
-  tags:
-    - shell
-  allow_failure: false
-  stage: current
-  script:
-    - git push -f -u $GIT_URL `git rev-parse HEAD`:refs/heads/$TARGET_BRANCH
-  only:
-    - /master$/

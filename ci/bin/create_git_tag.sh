@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 ROOT_DIR="."
-RELEASE_VERSION="$(cat $ROOT_DIR/RELEASE_VERSION)"
+RELEASE_VERSION="$(cat RELEASE_VERSION)"
 
 set -e -x -o pipefail
 # add || true to end of the curl command for debuging that always return success in job
