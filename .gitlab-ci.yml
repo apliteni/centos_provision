@@ -33,6 +33,7 @@ build_scripts:
       - scripts/add-site.sh
       - scripts/enable-ssl.sh
       - scripts/fix-renewal-certs-cron-job.sh
+      - scripts/test-run-command.sh
 
 run_rspec:
   tags: [shell, ruby]
@@ -40,6 +41,7 @@ run_rspec:
   dependencies:
     - build_scripts
   script:
+    - ci/bin/validate.sh
     - cd scripts/
     - bundle install --path vendor/
     - bundle exec rspec
