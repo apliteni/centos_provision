@@ -34,22 +34,24 @@ run_rspec:
     paths:
       - vendor/
   only:
-    - /^(production)$/
+    - /^master$/
 
 add_tags:
   tags:
     - shell
-  stage: before_release
+  stage: before_releasee
+  when: manual
   script:
     - bash ci/bin/create_git_tag.sh
   only:
-    - /^(production)$/
+    - /^master$/
 
 deploy_release_branch:
   extends: [.git_init]
   tags:
     - shell
   stage: release
+  allow_failure: false
   script:
     - git push -f -u $GIT_URL `git rev-parse HEAD`:refs/heads/release-$RELEASE_VERSION
   only:
@@ -61,8 +63,9 @@ deploy_to_current:
     TARGET_BRANCH: current
   tags:
     - shell
+  allow_failure: false
   stage: current
   script:
     - git push -f -u $GIT_URL `git rev-parse HEAD`:refs/heads/$TARGET_BRANCH
   only:
-    - /^(production)$/
+    - /master$/
