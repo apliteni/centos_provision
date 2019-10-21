@@ -60,7 +60,7 @@ deploy:
 
 push_tag:
   tags: [shell]
-  stage: before_releasee
+  stage: after_release
   script:
     - bash ci/bin/create_git_tag.sh
   only:
