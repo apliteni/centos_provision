@@ -1,4 +1,4 @@
-# Provision CentOS for Keitaro
+# Keitaro Installer for CentOS 7+
 
 This repository contains a bash installer and an Ansible playbook to provision new bare servers.
 

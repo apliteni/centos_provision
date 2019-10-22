@@ -7,3 +7,4 @@ hosts-gitlab
 *.retry
 .DS_Store
 TODO
+builds
