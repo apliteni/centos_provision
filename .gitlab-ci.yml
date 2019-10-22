@@ -1,0 +1,67 @@
+#Share
+.git_init:
+   before_script:
+      - export RELEASE_VERSION=`cat RELEASE_VERSION`
+      - export GIT_URL=git@gitlab.x.apli.tech:apliteni/keitaro/installer.git
+      # Add the private key to bot
+      - eval $(ssh-agent -s) && ssh-add <(echo "$SSH_PRIVATE_KEY") && mkdir -p ~/.ssh
+      # Docker specific settings
+      - 'echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
+      - chmod 600 ~/.ssh/config && chown $USER ~/.ssh/config
+      # Config git to avoid first usage questions. Set the identity
+      - git config --global user.email "bot@apliteni.com" && git config --global user.name "Gitlab CI"
+
+# Stages
+stages:
+  - build
+  - quality_checks
+  - release
+
+# Jobs
+build_scripts:
+  tags: [shell]
+  stage: build
+  script:
+    - ci/bin/compile.sh
+    - ci/bin/validate.sh
+  artifacts:
+    expire_in: 30 days
+    paths:
+      - scripts/install.sh
+      - scripts/add-site.sh
+      - scripts/enable-ssl.sh
+      - scripts/fix-renewal-certs-cron-job.sh
+      - scripts/test-run-command.sh
+  except:
+    - /^release-/
+    - /^current$/
+
+run_rspec:
+  tags: [shell, ruby]
+  stage: quality_checks
+  dependencies:
+    - build_scripts
+  script:
+    - ci/bin/validate.sh
+    - cd scripts/
+    - bundle install --path vendor/
+    - bundle exec rspec
+  cache:
+    key: vendor
+    paths:
+      - vendor/
+  except:
+    - /^release-/
+    - /^current$/
+
+deploy:
+  extends: [.git_init]
+  tags: [shell]
+  stage: release
+  script: ci/bin/deploy.sh
+  when: manual
+  only:
+    - /^master$/
+  except:
+    - /^release-/
+    - /^current$/

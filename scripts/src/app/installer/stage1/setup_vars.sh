@@ -15,8 +15,22 @@ setup_vars(){
   setup_default_value db_root_password "$(generate_password)"
   setup_default_value db_engine 'tokudb'
   setup_default_value php_engine "${PHP_ENGINE}"
+  setup_default_value ssh_port "$(get_firewall_ssh_port)"
 }
 
+get_firewall_ssh_port(){
+  local sshport=`echo $SSH_CLIENT | cut -d' ' -f 3`
+  if [ -z "$sshport" ]; then
+    echo "22"
+  else
+    if [ "$sshport" != "22" ]; then
+      echo "$sshport"
+    else
+      echo "22"
+    fi
+
+  fi
+}
 
 setup_default_value(){
   local var_name="${1}"
