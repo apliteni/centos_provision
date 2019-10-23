@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+#
+
 
 check_thp(){
   echo never > /sys/kernel/mm/transparent_hugepage/enabled && echo never > /sys/kernel/mm/transparent_hugepage/defrag
@@ -8,12 +10,13 @@ check_thp(){
   thp_enabled="$(cat /sys/kernel/mm/transparent_hugepage/enabled)"
   if [ "$thp_defrag" == "$thp_enabled" ]; then
     if [ "$thp_enabled" == "always madvise [never]" ]; then
-      echo "thp disabled... OK"
+      echo "thp disabled, thats OK"
     else
       echo -e "${ERROR}Невозможно отключить thp. Установка будет прервана${NC}"
       exit 1
     fi
   else
     echo -e "${ERROR}Невозможно отключить thp. Установка будет прервана${NC}"
+    exit 1
   fi
 }
