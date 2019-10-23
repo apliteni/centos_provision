@@ -2,7 +2,7 @@
 #
 
 
-check_thp_disable_possibility(){
+check_thp(){
   echo never > /sys/kernel/mm/transparent_hugepage/enabled && echo never > /sys/kernel/mm/transparent_hugepage/defrag
   ERROR='\033[0;31m'
   NC='\033[0m' # put to end of string for remove color scheme after error
