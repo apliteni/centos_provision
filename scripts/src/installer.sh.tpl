@@ -73,6 +73,7 @@ _require 'app/installer/lib/system/get_var_from_config.sh'
 _require 'app/installer/lib/system/write_inventory_on_reconfiguration.sh'
 
 _require 'app/installer/stage1.sh'
+_require 'app/installer/stage1/check_thp_disable_possibility.sh'
 _require 'app/installer/stage1/parse_options.sh'
 _require 'app/installer/stage1/setup_vars.sh'
 _require 'app/installer/stage2.sh'
