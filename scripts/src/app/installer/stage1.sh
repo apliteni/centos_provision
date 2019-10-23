@@ -2,7 +2,7 @@
 
 stage1(){
   debug "Starting stage 1: initial script setup"
+  check_thp
   parse_options "$@"
-  check_thp_disable_possibility
   set_ui_lang
 }
