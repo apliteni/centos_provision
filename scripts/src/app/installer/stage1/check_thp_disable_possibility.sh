@@ -4,12 +4,12 @@
 
 check_thp_disable_possibility(){
   echo never > /sys/kernel/mm/transparent_hugepage/enabled && echo never > /sys/kernel/mm/transparent_hugepage/defrag
-  error_message="\e[91mНевозможно отключить thp. Установка будет прервана"
+  error_message="\e[91mНевозможно отключить thp. Установка будет прервана\033[0m"
   thp_defrag="$(cat /sys/kernel/mm/transparent_hugepage/defrag)"
   thp_enabled="$(cat /sys/kernel/mm/transparent_hugepage/enabled)"
   if [ "$thp_defrag" == "$thp_enabled" ]; then
     if [ "$thp_enabled" == "always madvise [never]" ]; then
-      echo -e "\e[32mthp disabled, thats OK"
+      echo -e "\e[32mthp disabled, thats OK\033[0m"
     else
       echo -e "${error_message}"
       exit 1
