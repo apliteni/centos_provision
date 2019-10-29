@@ -3,7 +3,7 @@
 
 
 check_thp_disable_possibility(){
-  if ! "${CI}" == "true"; then
+  if ! "${CI}"; then
     if pgrep "/sys/kernel/mm/transparent_hugepage/enabled" &>/dev/null; then
       print_with_color "thp not allowed in this system" 'grey'
     else
