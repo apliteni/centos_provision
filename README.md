@@ -9,11 +9,11 @@ This repository contains a bash installer and an Ansible playbook to provision n
 
 Connect to your CentOS server and run as root
 
-    yum update -y && curl keitaro.io/install.sh > run && bash run
+    yum update -y && curl keitaro.io/install.sh > install && bash install
 
 Installer supports two locales: English (default) and Russian. In order to use Russian locale run as root
 
-    yum update -y && curl keitaro.io/install.sh > run && bash run -L en
+    yum update -y && curl keitaro.io/install.sh > install && bash install -L en
 
 ## Install Let's Encrypt Free SSL certificates (optional)
 
@@ -22,12 +22,22 @@ installing Keitaro you may want to install they later.
 
 Connect to your CentOS server and run as root
 
-    curl keitaro.io/enable-ssl.sh > run; bash run -D domain1.com,domain2.com
+    curl keitaro.io/enable-ssl.sh > enable-ssl; bash enable-ssl -D domain1.com,domain2.com
 
 SSL certificates installer supports two locales: English (default) and Russian. In order to use Russian locale
 run as root
 
-    curl keitaro.io/enable-ssl.sh > run; bash run -L ru -D domain1.com,domain2.com
+    curl keitaro.io/enable-ssl.sh > enable-ssl; bash enable-ssl -L ru -D domain1.com,domain2.com
+
+
+# Delete SSL certificates
+
+In case, when you need to remove SSL certificate from domain of your site, you can use our special script which will delete SSL certificate and domain. Script will take domain name as parameter. To delete ssl certificate, you can use following command: 
+
+    curl https://raw.githubusercontent.com/apliteni/centos_provision/current/scripts/delete-ssl.sh > delete-ssl; bash delete-ssl domain.com
+
+Where domain.com - name of your domain, which you want to revoke and delete it's certificate. All certificates and their files, their keys, and configuration files of nginx of selected domain will be deleted (located in /etc/nginx/conf.d/). 
+
 
 ## Add custom php site (optional)
 
@@ -36,11 +46,11 @@ generates config file for Nginx.
 
 Connect to your CentOS server and run as root
 
-    curl keitaro.io/add-site.sh > run; bash run -D domain.com -R /var/www/domain.com
+    curl keitaro.io/add-site.sh > add-site; bash add-site -D domain.com -R /var/www/domain.com
 
 In order to use Russian locale run as root
 
-    curl keitaro.io/add-site.sh > run; bash run -L ru -D domain.com -R /var/www/domain.com
+    curl keitaro.io/add-site.sh > add-site; bash add-site -L ru -D domain.com -R /var/www/domain.com
 
 ## Developing
 
@@ -63,7 +73,15 @@ From the scripts/ directory use one of the following commands:
     make test_ssl_enabler       # to test enable-ssl.sh
     make test_site_adder        # to test add-site.sh
 
-## Releasing 
+## Release (through CI/CD)
+
+Change version in file `RELEASE_VERSION`, commit changes. 
+
+Create a MR or push it to master:
+    
+    git push origin master
+    
+## Release (manual)
 
 After making changes ans pushing them into the master branch you should update release tags (from the root repo dir)
    
