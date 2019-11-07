@@ -103,5 +103,3 @@ This command reads current release from RELEASE_VERSION file (eg. X.Y) and assoc
 or ignore
 
     run -i tag3,tag4
-
-
