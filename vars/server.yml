@@ -1,4 +1,4 @@
-max_upload_size: 100M
+max_upload_size: 200M
 timezone: Europe/Moscow
 swap_size: "{{ [([ansible_memtotal_mb, 1024] | max), 16384] | min }}"
 
