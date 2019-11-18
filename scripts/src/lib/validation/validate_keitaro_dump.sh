@@ -24,7 +24,7 @@ validate_keitaro_dump(){
   if [[ "schema_version" < "${tables_prefix}${FIRST_KEITARO_TABLE_NAME}" ]]; then
     ensure_table_dumped "$get_head_chunk" "schema_version"
   else
-    local get_tail_chunk="$(build_get_chunk_command "${mime_type}" "${file}" "tail" "50")"
+    local get_tail_chunk="$(build_get_chunk_command "${mime_type}" "${file}" "tail" "+1")"
     ensure_table_dumped "$get_tail_chunk" "schema_version"
   fi
 }
