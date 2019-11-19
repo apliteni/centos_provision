@@ -49,5 +49,7 @@ else
   SCRIPT_COMMAND="curl -fsSL "$SCRIPT_URL" > run; bash run"
 fi
 
+CI="${CI:-false}"
+
 declare -A VARS
 declare -A ARGS
