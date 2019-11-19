@@ -78,6 +78,8 @@ watch_daemon() {
       log_and_print_err "WARNING" "Process ${daemon_pid} gone."
     elif ! workers > /dev/null; then
       log_and_print_err "WARNING" "There was error while getting workers list."
+    else
+      notify_systemd_watchdog_rr_is_alive
     fi
 
     wait_for_next_tick
