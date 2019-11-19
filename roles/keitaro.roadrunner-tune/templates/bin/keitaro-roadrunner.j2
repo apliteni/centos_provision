@@ -63,7 +63,6 @@ is_alive() {
 }
 
 wait_for_next_tick() {
-  echo "[INFO] Sleeping for ${WATCH_INTERVAL} sec"
   sleep ${WATCH_INTERVAL}
 }
 
@@ -79,8 +78,6 @@ watch_daemon() {
       log_and_print_err "WARNING" "Process ${daemon_pid} gone."
     elif ! workers > /dev/null; then
       log_and_print_err "WARNING" "There was error while getting workers list."
-    else
-      notify_systemd_watchdog_rr_is_alive
     fi
 
     wait_for_next_tick
@@ -91,7 +88,7 @@ start_with_watchdog_notifying() {
   echo "[INFO] Starting RoadRunner with watchdog notifying"
   trap 'kill $(jobs -p) 2>/dev/null' EXIT
 
-  rr_cmd serve -v -d &
+  rr_cmd serve -v &
   local daemon_pid=$!
 
   watch_daemon ${daemon_pid}
@@ -99,7 +96,7 @@ start_with_watchdog_notifying() {
 
 start_without_watchdog_notifying() {
   echo "[INFO] Starting RoadRunner without watchdog notifying"
-  rr_cmd serve -v -d
+  rr_cmd serve -v
 }
 
 start() {
