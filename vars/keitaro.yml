@@ -7,7 +7,7 @@ keitaro_config_backups_dir: "{{ keitaro_config_dir }}/backups"
 keitaro_stats_json_path: "{{ keitaro_root }}/var/stats.json"
 keitaro_watch_list: "{{ keitaro_root }}/application/data/watch_list.txt"
 keitaro_logrotate_common_period: 5
-keitaro_logrotate_nginx_period: 28
+keitaro_logrotate_nginx_period: 14
 keitaro_installer_version: "{{ lookup('file', 'RELEASE_VERSION') }}"
 keitaro_tools_url: https://github.com/apliteni/centos_provision/raw/v{{ keitaro_installer_version }}/scripts
 keitaro_release: 9
