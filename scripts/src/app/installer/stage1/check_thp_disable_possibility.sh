@@ -1,16 +1,24 @@
 #!/usr/bin/env bash
 #
 
+check_openvz(){
+  virtualization_type="$(hostnamectl status | grep 'Virtualization')"
+  if isset "$virtualization_type" && "$virtualization_type" == "Virtualization: openvnz"; then
+    print_err "Cannot install on server with OpenVZ virtualization" 'red'
+    clean_up
+    exit 1
+  fi
+}
 
 check_thp_disable_possibility(){
-  if [[ -z "${CI}" ]]; then
+  if isset "${CI}"; then
     if pgrep "/sys/kernel/mm/transparent_hugepage/enabled" &>/dev/null; then
       print_with_color "thp not allowed in this system" 'grey'
     else
       echo never > /sys/kernel/mm/transparent_hugepage/enabled && echo never > /sys/kernel/mm/transparent_hugepage/defrag
       thp_defrag="$(cat /sys/kernel/mm/transparent_hugepage/defrag)"
       thp_enabled="$(cat /sys/kernel/mm/transparent_hugepage/enabled)"
-      if [ "$thp_enabled" == "always madvise [never]" ]; then
+      if isset "$thp_enabled" && "$thp_enabled" == "always madvise [never]"; then
         print_with_color "thp disabled" 'green'
       else
         print_err "Impossible to disable thp install will be interrupted" 'red'
