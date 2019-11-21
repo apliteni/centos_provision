@@ -17,7 +17,7 @@ check_thp_disable_possibility(){
       thp_enabled="$(cat /sys/kernel/mm/transparent_hugepage/enabled)"
       if [ "$thp_enabled" == "always madvise [never]" ]; then
         print_with_color "Before installation check possibility to disalbe THP" 'blue'
-        print_prompt ". OK" 'green'
+        echo -ne "\e[${COLOR_CODE['green']}m. OK ${RESET_FORMATTING}"
       else
         print_err "Impossible to disable thp install will be interrupted" 'red'
         clean_up
