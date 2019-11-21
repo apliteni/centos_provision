@@ -16,7 +16,7 @@ check_thp_disable_possibility(){
       echo never > /sys/kernel/mm/transparent_hugepage/enabled && echo never > /sys/kernel/mm/transparent_hugepage/defrag
       thp_defrag="$(cat /sys/kernel/mm/transparent_hugepage/defrag)"
       thp_enabled="$(cat /sys/kernel/mm/transparent_hugepage/enabled)"
-      if isset "$thp_enabled" && "$thp_enabled" == "always madvise [never]"; then
+      if [ isset "$thp_enabled" ] && [ "$thp_enabled" == "always madvise [never]" ]; then
         print_with_color "Before installation check possibility to disalbe THP" 'blue'
         print_with_color ". OK" 'green'
       else
