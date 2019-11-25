@@ -2,8 +2,8 @@
 #
 
 check_openvz(){
-  virtualization_type="$(hostnamectl status | grep 'Virtualization')"
-  if isset "$virtualization_type" && "$virtualization_type" == "Virtualization: openvnz"; then
+  virtualization_type="$(hostnamectl status | grep Virtualization | sed -n "s/\s*Virtualization:\s*//p")"
+  if isset "$virtualization_type" && [ "$virtualization_type" == "openvnz" ]; then
     print_err "Cannot install on server with OpenVZ virtualization" 'red'
     clean_up
     exit 1
