@@ -5,7 +5,8 @@
     when: "{{ ssh_port }} == '7'"
 
 - name: install tools
-  package:
-    name: [nano, htop, httpd-tools, python3-libselinux, unzip, bind-utils, git, socat, strace]
-    state: present
-    when: "{{ ssh_port }} == '8'"
+  yum:
+    package:
+      name: [nano, htop, httpd-tools, python3-libselinux, unzip, bind-utils, git, socat, strace]
+      state: present
+      when: "{{ ssh_port }} == '8'"
