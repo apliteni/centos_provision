@@ -12,7 +12,7 @@
   become: yes
   package:
     name: chrony
-  when: "rhel_version == '8'"
+  when: rhel_version == 8
 
 - name: Install the required packages in Debian derivatives
   apt: name=ntp state={{ ntp_pkg_state }}
@@ -33,4 +33,4 @@
 - name: Start/stop chrony service
   service: name={{ chrony_service_name }} state={{ ntp_service_state }} enabled={{ ntp_service_enabled }}
   tags: [ 'service', 'ntp' ]
-  when: "rhel_version == '8'"
+  when: rhel_version == 8
