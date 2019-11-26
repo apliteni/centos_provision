@@ -49,6 +49,7 @@
   pip:
     name: pymysql
     state: present
+  tags: mariadb
   when: rhel_version == 8
 
 - name: Ensure service is started
