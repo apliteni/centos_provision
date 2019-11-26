@@ -8,4 +8,4 @@
   package:
     name: [nano, htop, httpd-tools, python3-libselinux, unzip, bind-utils, git, socat, strace]
     state: present
-  when: "rhel_version == '8'"
+  when: rhel_version == 8

@@ -9,7 +9,7 @@
   yum:
     name: https://rpms.remirepo.net/enterprise/remi-release-8.rpm
     state: present
-  when: "rhel_version == '8'"
+  when: rhel_version == 8
 
 - name: Import remi GPG key.
   rpm_key:
