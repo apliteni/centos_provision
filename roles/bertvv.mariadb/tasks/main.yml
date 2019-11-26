@@ -15,13 +15,13 @@
 
 - name: Add official MariaDB repository
   yum_repository:
-    name: MariaDB
+    name: mariadb
     description: Official MariaDB repository
-    baseurl: "http://yum.mariadb.org/{{ mariadb_version }}/centos8-amd64"
+    baseurl: "http://yum.mariadb.org/{{ mariadb_version_rhel_8 }}/centos8-amd64"
     gpgkey: https://yum.mariadb.org/RPM-GPG-KEY-MariaDB
     gpgcheck: true
   when: "rhel_version == '8'"
-  
+
 - name: Install packages
   package:
     name: "{{ item }}"
