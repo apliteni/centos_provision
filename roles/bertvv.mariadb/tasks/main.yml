@@ -14,12 +14,9 @@
   when: "rhel_version == '7'"
 
 - name: Add official MariaDB repository
-  yum_repository:
-    name: MariaDB
-    description: Official MariaDB repository
-    baseurl: "http://yum.mariadb.org/10.3/centos8-amd64"
-    gpgkey: https://yum.mariadb.org/RPM-GPG-KEY-MariaDB
-    gpgcheck: true
+  template:
+    src: mariadb.repo.centos8.j2
+    dest: /etc/yum.repos.d/mariadb.repo
   when: "rhel_version == '8'"
 
 - name: Install packages
