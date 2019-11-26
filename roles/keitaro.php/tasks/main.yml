@@ -1,3 +1,10 @@
+#The php73-php-devel package contains the files needed for building PHP extensions.
+- name: Install package
+  yum:
+    name: https://centos.pkgs.org/8/remi-x86_64/php73-php-devel-7.3.11-1.el8.remi.x86_64.rpm.html
+    state: present
+  when: rhel_version == 8
+
 - name: Install php extensions
   yum:
     name:
