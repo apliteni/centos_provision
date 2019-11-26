@@ -1,8 +1,15 @@
 ---
 - name: Install remi repo.
   yum:
-    name: https://keitaro.io/mirrors/remi/enterprise/remi-release-7.rpm
+    name: "{{ remi_repo_url }}"
     state: present
+  when: "rhel_version == '7'"
+
+- name: Install remi repo.
+  yum:
+    name: https://rpms.remirepo.net/enterprise/remi-release-8.rpm
+    state: present
+  when: "rhel_version == '8'"
 
 - name: Import remi GPG key.
   rpm_key:
