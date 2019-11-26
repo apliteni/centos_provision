@@ -5,8 +5,14 @@
 
 - name: Install the required packages in Redhat derivatives
   yum: name=ntp state={{ ntp_pkg_state }}
-  when: ansible_os_family == 'RedHat'
+  when: "ansible_os_family == 'RedHat' && rhel_version == '7'"
   tags: [ 'package', 'ntp' ]
+
+- name: Install Chrony
+  become: yes
+  package:
+    name: 'chrony'
+  when: "rhel_version == '8'"  
 
 - name: Install the required packages in Debian derivatives
   apt: name=ntp state={{ ntp_pkg_state }}
