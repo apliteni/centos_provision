@@ -44,6 +44,13 @@
   tags: mariadb
   when: rhel_version == 8
 
+- name: Make sure pymysql is present
+  become: true # needed if the other tasks are not played as root
+  pip:
+    name: pymysql
+    state: present
+  when: rhel_version == 8
+
 - name: Ensure service is started
   service:
     name: "{{ mariadb_service }}"
