@@ -2,11 +2,10 @@
   package:
     name: [nano, htop, httpd-tools, libselinux-python, unzip, bind-utils, git, socat, strace]
     state: present
-  when: "{{ rhel_version }} == 7"
+  when: "rhel_version == '7'"
 
 - name: install tools
-  yum:
-    package:
-      name: [nano, htop, httpd-tools, python3-libselinux, unzip, bind-utils, git, socat, strace]
-      state: present
-  when: "{{ rhel_version }} == 8"
+  package:
+    name: [nano, htop, httpd-tools, python3-libselinux, unzip, bind-utils, git, socat, strace]
+    state: present
+  when: "rhel_version == '8'"
