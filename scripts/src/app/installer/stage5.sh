@@ -22,6 +22,10 @@ install_packages(){
   if ! is_installed ansible; then
     install_package epel-release
     install_package ansible
-    install_package libselinux-python
+    if isset "${VARS['rhel_version']}" && [ "${VARS['rhel_version']}" == "7" ]; then
+      install_package libselinux-python
+    else
+      install_package python3-libselinux
+    fi
   fi
 }
