@@ -12,4 +12,4 @@ mariadb_config: /etc/my.cnf.d/network.cnf
 mariadb_my_config: ~/.my.cnf
 
 mariadb_version: 10.2
-mariadb_version_rhel_8: 10.4
+mariadb_version_rhel_8: 10.3
