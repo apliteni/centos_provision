@@ -3,6 +3,19 @@
     name: MariaDB-tokudb-engine
     state: installed
     enablerepo: mariadb
+  when: rhel_version == 7
+
+- name: Install jemalloc repository
+  yum_repository:
+    name: jemalloc
+    description: jemalloc YUM repo
+  when: rhel_version == 8
+
+- name: Install TokuDB Engine
+  yum:
+    name: http://download-ib01.fedoraproject.org/pub/fedora/linux/releases/29/Everything/x86_64/os/Packages/m/mariadb-tokudb-engine-10.3.9-2.fc29.x86_64.rpm
+    state: installed
+  when: rhel_version == 8
 
 - name: Restart MariaDB service
   service:
