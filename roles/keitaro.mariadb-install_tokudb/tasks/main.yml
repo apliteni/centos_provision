@@ -5,9 +5,9 @@
     enablerepo: mariadb
   when: rhel_version == 7
 
-- name: Install TokuDB Engine
-  dnf:
-    name: http://download-ib01.fedoraproject.org/pub/fedora/linux/updates/30/Everything/x86_64/Packages/m/mariadb-tokudb-engine-10.3.18-1.fc30.x86_64.rpm
+- name: Install TokuDB Engine Centos 8
+  yum:
+    name: http://archive.mariadb.org/mariadb-10.3.18/yum/centos/8/x86_64/rpms/MariaDB-tokudb-engine-10.3.18-1.el8.x86_64.rpm
     state: present
   when: rhel_version == 8
 
