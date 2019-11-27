@@ -18,7 +18,7 @@
   when: rhel_version == 8
 
 - name: Install jemalloc for Centos 8
-  dnf:
+  yum:
     name: jemalloc
     state: present
     enablerepo: remi
