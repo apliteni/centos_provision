@@ -31,7 +31,6 @@
       - "{{php_version}}-php-ioncube-loader"
     enablerepo: "remi-{{php_version}},epel"
     state: installed
-    become: true
   when: rhel_version == 8
 
 - name: Link php directories and php binary
