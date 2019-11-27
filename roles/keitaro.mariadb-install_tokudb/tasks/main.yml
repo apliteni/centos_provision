@@ -6,8 +6,8 @@
   when: rhel_version == 7
 
 - name: Install TokuDB Engine
-  yum:
-    name: http://download-ib01.fedoraproject.org/pub/fedora/linux/updates/29/Everything/x86_64/Packages/m/mariadb-tokudb-engine-10.3.18-1.fc29.x86_64.rpm
+  package:
+    name: http://download-ib01.fedoraproject.org/pub/fedora/linux/updates/30/Everything/x86_64/Packages/m/mariadb-tokudb-engine-10.3.18-1.fc30.x86_64.rpm
     state: installed
   when: rhel_version == 8
 
