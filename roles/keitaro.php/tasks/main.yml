@@ -16,10 +16,10 @@
   when: rhel_version == 7
 
 - name: Install php package
-  dnf:
-    name: php73-php-devel
-    enablerepo: remi
-    state: installed
+  yum:
+    name: http://mirror.centos.org/centos/8/PowerTools/x86_64/os/Packages/libedit-devel-3.1-23.20170329cvs.el8.x86_64.rpm
+    state: present
+  when: rhel_version == 8
 
 - name: Install php extensions
   yum:
