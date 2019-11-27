@@ -43,11 +43,10 @@
   tags: mariadb
   when: rhel_version == 8
 
-- name: Make sure pymysql is present
-  become: true # needed if the other tasks are not played as root
+- name: Install packages step 3
   pip:
     name: pymysql
-    state: present
+    state: installed
   tags: mariadb
   when: rhel_version == 8
 
