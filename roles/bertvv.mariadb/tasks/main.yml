@@ -32,7 +32,6 @@
   dnf:
     name: boost-program-options
     state: installed
-    enablerepo: MariaDB
   tags: mariadb
   when: rhel_version == 8
 
