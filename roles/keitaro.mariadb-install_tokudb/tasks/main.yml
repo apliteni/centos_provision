@@ -6,9 +6,16 @@
   when: rhel_version == 7
 
 - name: Install jemalloc for Centos 8
-  yum:
+  dnf:
     name: http://rpms.remirepo.net/enterprise/8/remi/x86_64//jemalloc-5.1.0-3.el8.remi.x86_64.rpm
     state: present
+  when: rhel_version == 8
+
+- name: Install jemalloc for Centos 8
+  dnf:
+    name: jemalloc
+    state: present
+    enablerepo: remi
   when: rhel_version == 8
 
 - name: Install TokuDB Engine Centos 8
