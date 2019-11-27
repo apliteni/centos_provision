@@ -6,9 +6,9 @@
   when: rhel_version == 7
 
 - name: Install TokuDB Engine
-  package:
+  dnf:
     name: http://download-ib01.fedoraproject.org/pub/fedora/linux/updates/30/Everything/x86_64/Packages/m/mariadb-tokudb-engine-10.3.18-1.fc30.x86_64.rpm
-    state: installed
+    state: present
   when: rhel_version == 8
 
 - name: Restart MariaDB service
