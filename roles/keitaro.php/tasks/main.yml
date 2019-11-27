@@ -29,7 +29,7 @@
       - "{{php_version}}-php-xml"
       - "{{php_version}}-php-pecl-zip"
       - "{{php_version}}-php-ioncube-loader"
-      enablerepo: "remi-{{ php_version }},epel"
+      enablerepo: - "remi-{{ php_version }},epel"
     state: installed
     become: true
   when: rhel_version == 8
