@@ -24,7 +24,6 @@ install_packages(){
     install_package ansible
     if isset "${VARS['rhel_version']}" && [ "${VARS['rhel_version']}" == "7" ]; then
       install_package libselinux-python
-      setenforce enforcing
     else
       install_package python3-libselinux
     fi
