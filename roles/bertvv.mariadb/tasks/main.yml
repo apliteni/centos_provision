@@ -46,7 +46,7 @@
 - name: Install packages step 3
   pip:
     name: pymysql
-    state: installed
+    state: absent
   tags: mariadb
   when: rhel_version == 8
 
