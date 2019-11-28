@@ -9,7 +9,7 @@
   selinux:
     policy: targeted
     state: disabled
-  when: "selinux_config.stat.exists and rhel_version == 7"
+  when: "selinux_config.stat.exists and rhel_version == '7'"
 
 - name: Disable selinux Centos 8
   shell: setenforce enforcing
