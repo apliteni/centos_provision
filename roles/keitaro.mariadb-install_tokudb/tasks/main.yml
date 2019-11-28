@@ -7,9 +7,15 @@
 
 - name: Install jemalloc for Centos 8
   yum:
-    name: [jemalloc, jemalloc-devel]
+    name: https://centos.pkgs.org/8/getpagespeed-x86_64/jemalloc-5.1.0-3.el8.remi.x86_64.rpm.html
     state: installed
-    enablerepo: epel
+  when: rhel_version == 8
+
+- name: Create symbolic link
+  file:
+    src: "/usr/lib64/libjemalloc.so.2"
+    dest: "/usr/lib64/libjemalloc.so"
+    state: link
   when: rhel_version == 8
 
 - name: Install TokuDB Engine Centos 8
