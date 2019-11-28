@@ -12,27 +12,10 @@
     enablerepo: epel
   when: rhel_version == 8
 
-- name: Install Percona repository
-  yum:
-    name: https://repo.percona.com/yum/percona-release-latest.noarch.rpm
-    state: installed
-  when: rhel_version == 8
-
-- name: Install Percona Selinux policies
-  yum:
-    name: http://repo.percona.com/centos/7/RPMS/x86_64/Percona-Server-selinux-56-5.6.42-rel84.2.el7.noarch.rpm
-    state: installed
-  when: rhel_version == 8
-
 - name: Install TokuDB Engine Centos 8
   yum:
-    name: Percona-Server-server-57
+    name: http://archive.mariadb.org/mariadb-10.3.18/yum/centos/8/x86_64/rpms/MariaDB-tokudb-engine-10.3.18-1.el8.x86_64.rpm
     state: installed
-  when: rhel_version == 8
-
-- name: Disable mysql needed for Centos 8
-  shell: "dnf module disable mysql"
-  become: true
   when: rhel_version == 8
 
 - name: Restart MariaDB service
