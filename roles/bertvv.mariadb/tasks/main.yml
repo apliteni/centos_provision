@@ -11,7 +11,7 @@
   template:
     src: mariadb.repo.j2
     dest: /etc/yum.repos.d/mariadb.repo
-  when: "rhel_version == '7'"
+  when: rhel_version == 7
 
 - name: Add MariaDB repo
   template:

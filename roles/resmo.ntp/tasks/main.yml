@@ -28,7 +28,7 @@
 - name: Start/stop ntp service
   service: name={{ ntp_service_name }} state={{ ntp_service_state }} enabled={{ ntp_service_enabled }}
   tags: [ 'service', 'ntp' ]
-  when: "rhel_version == '7'"
+  when: rhel_version == 7
 
 - name: Start/stop chrony service
   service: name={{ chrony_service_name }} state={{ ntp_service_state }} enabled={{ ntp_service_enabled }}

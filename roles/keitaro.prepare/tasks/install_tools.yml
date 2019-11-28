@@ -2,7 +2,7 @@
   package:
     name: [nano, htop, httpd-tools, libselinux-python, unzip, bind-utils, git, socat, strace]
     state: present
-  when: "rhel_version == '7'"
+  when: rhel_version == 7
 
 - name: install tools
   package:

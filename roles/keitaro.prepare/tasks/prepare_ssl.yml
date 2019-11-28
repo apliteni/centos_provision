@@ -2,7 +2,7 @@
   package:
     name: certbot
     state: installed
-  when: "rhel_version == '7'"
+  when: rhel_version == 7
 
 - name: install packages
   shell: 'curl -O https://dl.eff.org/certbot-auto && mv certbot-auto /usr/local/bin/certbot-auto && chmod 0755 /usr/local/bin/certbot-auto'

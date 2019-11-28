@@ -3,7 +3,7 @@
   yum:
     name: "{{ remi_repo_url }}"
     state: present
-  when: "rhel_version == '7'"
+  when: rhel_version == 7
 
 - name: Install remi repo.
   yum:
