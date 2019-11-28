@@ -7,7 +7,7 @@
 
 - name: Install jemalloc for Centos 8
   yum:
-    name: https://centos.pkgs.org/8/getpagespeed-x86_64/jemalloc-5.1.0-3.el8.remi.x86_64.rpm.html
+    name: http://rpms.remirepo.net/enterprise/8/remi/x86_64//jemalloc-5.1.0-3.el8.remi.x86_64.rpm
     state: installed
   when: rhel_version == 8
 
