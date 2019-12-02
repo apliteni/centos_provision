@@ -21,6 +21,8 @@
   yum:
     name: http://archive.mariadb.org/mariadb-10.3.18/yum/centos/8/x86_64/rpms/MariaDB-tokudb-engine-10.3.18-1.el8.x86_64.rpm
     state: installed
+  notify:
+    - reconfigure mariadb
   when: rhel_version == 8
 
 - name: Restart MariaDB service

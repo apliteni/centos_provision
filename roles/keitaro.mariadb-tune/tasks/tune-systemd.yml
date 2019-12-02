@@ -17,5 +17,4 @@
     dest: /etc/systemd/system/mariadb.service.d/keitaro-systemd-mariadb.conf
   notify:
     - reconfigure mariadb
-    - restart mariadb
   when: rhel_version == 8
