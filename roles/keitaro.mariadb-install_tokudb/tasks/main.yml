@@ -23,11 +23,9 @@
     state: installed
   when: rhel_version == 8
 
-- name: restart service cron on centos, in all cases, also issue daemon-reload to pick up config changes
-  systemd:
-    state: restarted
-    daemon_reload: yes
-    name: daemon
+- name: restart daemon
+  shell: "system reload daemon"
+  when: rhel_version == 8
 
 - name: Restart MariaDB service
   service:
