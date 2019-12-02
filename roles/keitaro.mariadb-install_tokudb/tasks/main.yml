@@ -23,10 +23,6 @@
     state: installed
   when: rhel_version == 8
 
-- name: restart daemon
-  shell: "systemctl daemon-reload"
-  when: rhel_version == 8
-
 - name: Restart MariaDB service
   service:
     name: mariadb
