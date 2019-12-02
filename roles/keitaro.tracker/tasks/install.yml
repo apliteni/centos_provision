@@ -29,7 +29,6 @@
     chdir: "{{ keitaro_root }}"
   become_user: "{{ keitaro_user }}"
   notify:
-    - restart mariadb
     - restart roadrunner
 
 - name: Remove install.php
