@@ -27,7 +27,7 @@
   systemd:
     state: restarted
     daemon_reload: yes
-    name: crond
+    name: daemon
 
 - name: Restart MariaDB service
   service:
