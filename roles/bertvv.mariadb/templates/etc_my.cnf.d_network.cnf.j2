@@ -3,4 +3,8 @@
 # {{ ansible_managed }}
 
 [mysqld]
+
 bind_address={{ mariadb_bind_address }}
+
+[mysqld_safe]
+Environment="LD_PRELOAD=/usr/lib64/libjemalloc.so.2"
