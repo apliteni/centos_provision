@@ -1,3 +1,11 @@
+- name: Generate systemd nginx config
+  template:
+    src: systemd/keitaro-systemd-mariadb-centos8.conf.j2
+    dest: /etc/systemd/system/mariadb.service.d/keitaro-systemd-mariadb.conf
+  notify:
+    - reconfigure mariadb
+  when: rhel_version == 8
+
 - name: Install TokuDB Engine
   package:
     name: MariaDB-tokudb-engine
@@ -21,6 +29,8 @@
   yum:
     name: http://archive.mariadb.org/mariadb-10.3.18/yum/centos/8/x86_64/rpms/MariaDB-tokudb-engine-10.3.18-1.el8.x86_64.rpm
     state: installed
+  notify:
+    - reconfigure mariadb
   when: rhel_version == 8
 
 - name: Restart MariaDB service
