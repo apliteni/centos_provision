@@ -24,7 +24,7 @@
   when: rhel_version == 8
 
 - name: restart daemon
-  shell: "system reload daemon"
+  shell: "systemctl daemon-reload"
   when: rhel_version == 8
 
 - name: Restart MariaDB service
