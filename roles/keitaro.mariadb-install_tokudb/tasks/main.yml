@@ -1,11 +1,3 @@
-- name: Generate systemd nginx config
-  template:
-    src: systemd/keitaro-systemd-mariadb-centos8.conf.j2
-    dest: /etc/systemd/system/mariadb.service.d/keitaro-systemd-mariadb.conf
-  notify:
-    - reconfigure mariadb
-  when: rhel_version == 8
-
 - name: Install TokuDB Engine
   package:
     name: MariaDB-tokudb-engine
