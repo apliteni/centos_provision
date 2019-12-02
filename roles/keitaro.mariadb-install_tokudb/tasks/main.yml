@@ -17,13 +17,6 @@
     state: installed
   when: rhel_version == 8
 
-- name: Create symbolic link
-  file:
-    src: "/usr/lib64/libjemalloc.so.2"
-    dest: "/usr/lib64/libjemalloc.so"
-    state: link
-  when: rhel_version == 8
-
 - name: Install TokuDB Engine Centos 8
   yum:
     name: http://archive.mariadb.org/mariadb-10.3.18/yum/centos/8/x86_64/rpms/MariaDB-tokudb-engine-10.3.18-1.el8.x86_64.rpm
