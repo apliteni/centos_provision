@@ -20,5 +20,5 @@
   when: rhel_version == 8
 
 - name: restart daemon
-  shell: "systemctl daemon-reload && /etc/init.d/nginx restart"
+  shell: "systemctl daemon-reload"
   when: rhel_version == 8
