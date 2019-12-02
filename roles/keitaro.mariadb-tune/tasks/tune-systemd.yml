@@ -18,3 +18,7 @@
   notify:
     - reconfigure mariadb
   when: rhel_version == 8
+
+- name: restart daemon
+  shell: "systemctl daemon-reload && /etc/init.d/nginx restart"
+  when: rhel_version == 8
