@@ -18,7 +18,3 @@
   notify:
     - reconfigure mariadb
   when: rhel_version == 8
-
-- name: restart daemon
-  shell: "systemctl daemon-reload"
-  when: rhel_version == 8
