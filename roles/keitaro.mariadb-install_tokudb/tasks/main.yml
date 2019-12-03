@@ -25,9 +25,11 @@
 
 - name: Add TokuDB Engine
   shell: mysql -e 'INSTALL SONAME "ha_tokudb";'
-  pause:
-    seconds: 10
   when: rhel_version == 8
+
+tasks:
+- pause:
+    seconds: 10
 
 - name: Restart MariaDB service
   service:
