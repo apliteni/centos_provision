@@ -51,7 +51,7 @@ ROOT_UID=0
 
 KEITARO_URL="https://keitaro.io"
 
-RELEASE_VERSION='1.14'
+RELEASE_VERSION='1.19'
 DEFAULT_BRANCH="master"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
 
@@ -1081,7 +1081,7 @@ validate_keitaro_dump(){
   if [[ "schema_version" < "${tables_prefix}${FIRST_KEITARO_TABLE_NAME}" ]]; then
     ensure_table_dumped "$get_head_chunk" "schema_version"
   else
-    local get_tail_chunk="$(build_get_chunk_command "${mime_type}" "${file}" "tail" "50")"
+    local get_tail_chunk="$(build_get_chunk_command "${mime_type}" "${file}" "tail" "+1")"
     ensure_table_dumped "$get_tail_chunk" "schema_version"
   fi
 }
@@ -1401,33 +1401,33 @@ get_var_from_keitaro_app_config(){
 
 stage1(){
   debug "Starting stage 1: initial script setup"
+  check_openvz
   check_thp_disable_possibility
   parse_options "$@"
   set_ui_lang
 }
 #
 
+check_openvz(){
+  virtualization_type="$(hostnamectl status | grep Virtualization | sed -n "s/\s*Virtualization:\s*//p")"
+  if isset "$virtualization_type" && [ "$virtualization_type" == "openvnz" ]; then
+    print_err "Cannot install on server with OpenVZ virtualization" 'red'
+    clean_up
+    exit 1
+  fi
+}
 
 check_thp_disable_possibility(){
-  if ! -z "${CI}"; then
-    if pgrep "/sys/kernel/mm/transparent_hugepage/enabled" &>/dev/null; then
-      print_with_color "thp not allowed in this system" 'grey'
-    else
+  if empty "${CI}"; then
+    if is_file_exist "/sys/kernel/mm/transparent_hugepage/enabled" && is_file_exist "/sys/kernel/mm/transparent_hugepage/defrag"; then
       echo never > /sys/kernel/mm/transparent_hugepage/enabled && echo never > /sys/kernel/mm/transparent_hugepage/defrag
-      thp_defrag="$(cat /sys/kernel/mm/transparent_hugepage/defrag)"
       thp_enabled="$(cat /sys/kernel/mm/transparent_hugepage/enabled)"
-      if [   "$thp_defrag" == "$thp_enabled" ]; then
-        if [ "$thp_enabled" == "always madvise [never]" ]; then
-          print_with_color "thp disabled" 'green'
-        else
-          print_err "Impossible to disable thp install will be interrupted" 'red'
-          clean_up
-          exit 1
-        fi
+      if [ "$thp_enabled" == "always madvise [never]" ]; then
+        echo -e "\e[${COLOR_CODE['blue']}mBefore installation check possibility to disalbe THP \e[${COLOR_CODE['green']}m. OK ${RESET_FORMATTING}"
       else
-          print_err "Impossible to disable thp install will be interrupted" 'red'
-          clean_up
-          exit 1
+        print_err "Impossible to disable thp install will be interrupted" 'red'
+        clean_up
+        exit 1
       fi
     fi
   fi
@@ -1734,6 +1734,9 @@ stage3(){
   debug "Starting stage 3: read values from inventory file"
   read_inventory
   setup_vars
+  if isset "$RECONFIGURE"; then
+    upgrade_packages
+  fi
 }
 
 read_inventory(){
@@ -1766,6 +1769,11 @@ parse_line_from_inventory_file(){
     fi
     debug "  "$var_name"=${VARS[$var_name]}"
   fi
+}
+
+upgrade_packages(){
+  debug "Upgrading packages"
+  run_command "yum update -y"
 }
 #
 
