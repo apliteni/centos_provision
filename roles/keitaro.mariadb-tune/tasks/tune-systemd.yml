@@ -19,8 +19,8 @@
     - reconfigure mariadb
   when: rhel_version == 8
 
-- name: Add TokuDB Engine
-  shell: mysql -e 'INSTALL SONAME "ha_tokudb";'
-  ignore_errors: true
-  when: rhel_version == 8
+- name: restart mysql
+  service:
+    name: mysql
+    state: restarted
 
