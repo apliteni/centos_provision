@@ -25,7 +25,7 @@
 
 - name: Add TokuDB Engine
   shell: mysql -e 'INSTALL SONAME "ha_tokudb";'
-- pause:
+  pause:
     seconds: 10
   when: rhel_version == 8
 
