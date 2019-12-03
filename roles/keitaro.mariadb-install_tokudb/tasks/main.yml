@@ -23,13 +23,6 @@
     state: installed
   when: rhel_version == 8
 
-- name: Set default engine
-  copy:
-    src: keitaro-mysqld-set_default_storage_engine.cnf
-    dest: /etc/my.cnf.d/keitaro-mysqld-set_default_storage_engine.cnf
-    force: yes
-  when: rhel_version == 8
-
 - name: Restart MariaDB service
   service:
     name: mariadb
