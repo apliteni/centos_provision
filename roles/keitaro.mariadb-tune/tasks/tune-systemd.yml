@@ -17,17 +17,5 @@
     dest: /etc/systemd/system/mariadb.service.d/keitaro-systemd-mariadb.conf
   notify:
     - reconfigure mariadb
-  when: rhel_version == 8
-
-- name: reconfigure mysql
-  service:
-    daemon-reload: true
-    name: mysql
-    state: restarted
-  when: rhel_version == 8
-
-- name: restart mysql
-  service:
-    name: mysql
-    state: restarted
+    - restart mariadb
   when: rhel_version == 8
