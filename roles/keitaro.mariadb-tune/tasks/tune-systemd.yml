@@ -19,6 +19,13 @@
     - reconfigure mariadb
   when: rhel_version == 8
 
+- name: reconfigure mysql
+  service:
+    daemon-reload: true
+    name: mysql
+    state: restarted
+  when: rhel_version == 8
+
 - name: restart mysql
   service:
     name: mysql
