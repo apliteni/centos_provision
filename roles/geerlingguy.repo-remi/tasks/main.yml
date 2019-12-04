@@ -7,7 +7,7 @@
 
 - name: Install remi repo.
   yum:
-    name: https://rpms.remirepo.net/enterprise/remi-release-8.rpm
+    name: "{{ remi_repo_centos8 }}"
     state: present
   when: rhel_version == 8
 

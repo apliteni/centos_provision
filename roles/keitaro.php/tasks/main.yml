@@ -17,7 +17,7 @@
 
 - name: Install php package
   yum:
-    name: http://mirror.centos.org/centos/8/PowerTools/x86_64/os/Packages/libedit-devel-3.1-23.20170329cvs.el8.x86_64.rpm
+    name: "{{ power_tools }}"
     state: present
   when: rhel_version == 8
 
