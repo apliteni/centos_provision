@@ -1,8 +1,6 @@
 ---
 - name: restart ntp
   service: name={{ ntp_service_name }} state=restarted
-  when: rhel_version == 7
 
 - name: restart chronyd
   service: name={{ chrony_service_name }} state=restarted
-  when: rhel_version == 8
