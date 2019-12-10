@@ -5,8 +5,14 @@
 
 - name: Install the required packages in Redhat derivatives
   yum: name=ntp state={{ ntp_pkg_state }}
-  when: ansible_os_family == 'RedHat'
+  when: ansible_os_family == 'RedHat' and rhel_version == 7
   tags: [ 'package', 'ntp' ]
+
+- name: Install Chrony
+  become: yes
+  package:
+    name: chrony
+  when: rhel_version == 8
 
 - name: Install the required packages in Debian derivatives
   apt: name=ntp state={{ ntp_pkg_state }}
@@ -18,7 +24,21 @@
   notify:
   - restart ntp
   tags: [ 'configuration', 'package', 'ntp' ]
+  when: rhel_version == 7
+
+- name: Copy the ntp.conf template file
+  template: src=ntp.conf.j2 dest=/etc/ntp.conf
+  notify:
+  - restart chronyd
+  tags: [ 'configuration', 'package', 'ntp' ]
+  when: rhel_version == 8
 
 - name: Start/stop ntp service
   service: name={{ ntp_service_name }} state={{ ntp_service_state }} enabled={{ ntp_service_enabled }}
   tags: [ 'service', 'ntp' ]
+  when: rhel_version == 7
+
+- name: Start/stop chrony service
+  service: name={{ chrony_service_name }} state={{ ntp_service_state }} enabled={{ ntp_service_enabled }}
+  tags: [ 'service', 'ntp' ]
+  when: rhel_version == 8
