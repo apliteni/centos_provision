@@ -3,6 +3,13 @@
   yum:
     name: "{{ remi_repo_url }}"
     state: present
+  when: rhel_version == 7
+
+- name: Install remi repo.
+  yum:
+    name: "{{ remi_repo_centos8 }}"
+    state: present
+  when: rhel_version == 8
 
 - name: Import remi GPG key.
   rpm_key:
@@ -22,3 +29,4 @@
     replace: 'mirrorlist={{ remi_repo_base_url }}\1'
   with_items:
     - "{{ remi_repo.files }}"
+  when: rhel_version == 7

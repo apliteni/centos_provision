@@ -3,6 +3,25 @@
     name: MariaDB-tokudb-engine
     state: installed
     enablerepo: mariadb
+  when: rhel_version == 7
+
+- name: Install jemalloc rpm for Centos 8
+  yum:
+    name: "{{ jemalloc_rpm }}"
+    state: installed
+  when: rhel_version == 8
+
+- name:
+  yum:
+    name: jemalloc
+    state: installed
+  when: rhel_version == 8
+
+- name: Install TokuDB Engine Centos 8
+  yum:
+    name: "{{ tokudb_engine }}"
+    state: installed
+  when: rhel_version == 8
 
 - name: Restart MariaDB service
   service:
