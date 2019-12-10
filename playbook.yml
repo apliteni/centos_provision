@@ -25,7 +25,7 @@
     - {role: 'keitaro.disable_thp', tags: 'mariadb, tokudb, redis, upgrade'}
     - {role: 'keitaro.redis', tags: 'redis'}
     - {role: 'keitaro.redis-tune', tags: 'redis, tune, redis-tune, upgrade'}
-    - {role: 'bertvv.mariadb', tags: 'mariadb'}
+    - {role: 'bertvv.mariadb', tags: 'mariadb, upgrade'}
     - {role: 'keitaro.mariadb-install_tokudb', tags: 'mariadb, tokudb, upgrade'}
     - {role: 'keitaro.mariadb-tune', tags: 'mariadb, tokudb, tune, mariadb-tune, upgrade'}
     - {role: 'keitaro.nginx', tags: 'nginx'}
