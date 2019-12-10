@@ -15,7 +15,7 @@
     state: absent
 
 - name: Change log dir in the logrotate settings
-  shell: test -f /etc/logrotate.d/mysql && sed -i "s|/var/log/mariadb/|/var/log/mysql/|g" /etc/logrotate.d/mysql
+  shell: test -f /etc/logrotate.d/mysql && sed -i "s|/var/log/mariadb/|/var/log/mysql/|g" /etc/logrotate.d/mysql || echo 'no file'
 
 - name: Detect db engine
   shell: "mysqldump -d keitaro | grep -i 'engine=tokudb' > /dev/null  && echo tokudb || echo innodb"

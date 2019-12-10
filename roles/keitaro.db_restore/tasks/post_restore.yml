@@ -3,6 +3,7 @@
   args:
     chdir: "{{ keitaro_root }}"
   become_user: "{{ keitaro_user }}"
+  ignore_errors: yes
 
 - name: Reset Keitaro salt
   lineinfile:
