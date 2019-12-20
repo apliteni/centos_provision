@@ -3,7 +3,7 @@
     name: certbot
     state: installed
   when: rhel_version == 7
-  
+
 - name: install packages
   dnf:
     name: certbot
