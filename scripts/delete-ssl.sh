@@ -4,4 +4,4 @@ echo "Following SSL certificates and virtual hosts would be deleted & removed:" 
 export DOMAIN;
 rm -rf /etc/letsencrypt/{live,renewal,archive}/{${DOMAIN},${DOMAIN}.conf;
 rm -rf /etc/nginx/conf.d/${DOMAIN}.conf;
-certbot delete --cert-name $DOMAIN;
+certbot-auto delete --cert-name $DOMAIN;

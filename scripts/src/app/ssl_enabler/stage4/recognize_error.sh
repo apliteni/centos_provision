@@ -8,7 +8,7 @@ recognize_error() {
     key="too_many_requests"
   else
     local error_detail=$(grep '^   Detail:' "${certbot_log}" 2>/dev/null)
-    debug "certbot error detail from ${certbot_log}: ${error_detail}"
+    debug "certbot-auto error detail from ${certbot_log}: ${error_detail}"
     if [[ $error_detail =~ "NXDOMAIN looking up A" ]]; then
       key="wrong_a_entry"
     elif [[ $error_detail =~ "No valid IP addresses found" ]]; then
