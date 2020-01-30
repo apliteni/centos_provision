@@ -4,7 +4,7 @@ set -euo pipefail
 
 
 install_new_job() {
-  local renew_cmd='certbot renew --allow-subset-of-names --quiet --renew-hook "systemctl reload nginx"'
+  local renew_cmd='certbot-auto renew --allow-subset-of-names --quiet --renew-hook "systemctl reload nginx"'
   local hour="$(date +'%H')"
   local minute="$(date +'%M')"
   local renew_job="${minute} ${hour} * * * ${renew_cmd}"
@@ -14,7 +14,7 @@ install_new_job() {
 
 remove_old_job() {
   printf 'Removing old schedule . '
-  crontab -l -u nginx 2>/dev/null | sed -e '/certbot renew/d' -e '/#Ansible: Renew/d' | crontab -u nginx - && echo 'OK'
+  crontab -l -u nginx 2>/dev/null | sed -e '/certbot-auto renew/d' -e '/#Ansible: Renew/d' | crontab -u nginx - && echo 'OK'
 }
 
 ensure_caller_is_root() {
@@ -24,10 +24,10 @@ ensure_caller_is_root() {
 }
 
 fix_cron_jobs() {
-  if [[ $(crontab -l -u nginx 2>/dev/null | grep 'certbot renew') ]]; then
+  if [[ $(crontab -l -u nginx 2>/dev/null | grep 'certbot-auto renew') ]]; then
     remove_old_job
 
-    if [[ ! $(crontab -l 2>/dev/null | grep 'certbot renew') ]]; then
+    if [[ ! $(crontab -l 2>/dev/null | grep 'certbot-auto renew') ]]; then
       install_new_job
     else
       echo 'New cron job already installed'
@@ -38,7 +38,7 @@ fix_cron_jobs() {
 }
 
 renew_certs() {
-  certbot renew --allow-subset-of-names --quiet --renew-hook "systemctl reload nginx"
+  certbot-auto renew --allow-subset-of-names --quiet --renew-hook "systemctl reload nginx"
 }
 
 

@@ -8,11 +8,11 @@ RSpec.describe 'enable-ssl.sh' do
   let(:args) { options }
   let(:emulate_crontab) do
     [
-      %q(echo "if [[ \\"\\$2\\" != nginx ]]; then echo certbot renew; fi; if [[ \\${@:\\$#} == '-' ]]; then read -t 1; fi"  > /bin/crontab),
+      %q(echo "if [[ \\"\\$2\\" != nginx ]]; then echo certbot-auto renew; fi; if [[ \\${@:\\$#} == '-' ]]; then read -t 1; fi"  > /bin/crontab),
       'chmod a+x /bin/crontab'
     ]
   end
-  let(:all_command_stubs) { {nginx: '/bin/true', certbot: '/bin/true', crontab: '/bin/true', chown: '/bin/true'} }
+  let(:all_command_stubs) { {nginx: '/bin/true', certbot-auto: '/bin/true', crontab: '/bin/true', chown: '/bin/true'} }
   let(:nginx_conf) {
     <<-END
     server {
@@ -61,7 +61,7 @@ RSpec.describe 'enable-ssl.sh' do
 
   describe 'fields' do
     # `-s` option disables cerbot/nginx conf checks
-    # `-p` option disables invoking certbot command
+    # `-p` option disables invoking certbot-auto command
 
     let(:options) { '-s -p -L en' }
 
@@ -76,7 +76,7 @@ RSpec.describe 'enable-ssl.sh' do
     let(:options) { '-p' }
 
     shared_examples_for 'should enable ssl for Keitaro' do
-      it_behaves_like 'should print to', :log, 'certbot certonly --webroot'
+      it_behaves_like 'should print to', :log, 'certbot-auto certonly --webroot'
     end
   end
 
@@ -86,12 +86,12 @@ RSpec.describe 'enable-ssl.sh' do
     let(:command_stubs) { all_command_stubs }
     let(:commands) { make_proper_nginx_conf }
 
-    context 'successful running certbot' do
+    context 'successful running certbot-auto' do
       let(:commands) { make_proper_nginx_conf + emulate_crontab }
 
       it_behaves_like 'should print to', :stdout, /Everything is done!/
 
-      it_behaves_like 'should print to', :log, /certbot certonly .* --domain d1.com --register-unsafely-without-email/
+      it_behaves_like 'should print to', :log, /certbot-auto certonly .* --domain d1.com --register-unsafely-without-email/
     end
   end
 
@@ -117,16 +117,16 @@ RSpec.describe 'enable-ssl.sh' do
   end
 
 
-  describe 'run certbot for each specified doamin' do
+  describe 'run certbot-auto for each specified doamin' do
     let(:options) { '-sp' }
 
     let(:ssl_domains) { 'd1.com,d2.com' }
 
     it_behaves_like 'should print to', :log,
-                    /certbot .* --non-interactive --domain d1.com --register-unsafely-without-email/
+                    /certbot-auto .* --non-interactive --domain d1.com --register-unsafely-without-email/
 
     it_behaves_like 'should print to', :log,
-                    /certbot .* --non-interactive --domain d2.com --register-unsafely-without-email/
+                    /certbot-auto .* --non-interactive --domain d2.com --register-unsafely-without-email/
   end
 
 
@@ -183,7 +183,7 @@ RSpec.describe 'enable-ssl.sh' do
     end
 
     describe 'tries to issue certificate for all domains, even on requesting error' do
-      let(:command_stubs) { all_command_stubs.merge(certbot: '/bin/false') }
+      let(:command_stubs) { all_command_stubs.merge(certbot-auto: '/bin/false') }
 
 
       it_behaves_like 'should print to', :log, ['Requesting certificate for domain d1.com',
@@ -201,8 +201,8 @@ RSpec.describe 'enable-ssl.sh' do
     describe 'correctly recognizes errors' do
       let(:extra_commands) do
         [
-          "cp #{Script::DOCKER_SCRIPTS_DIR}/spec/files/certbot/#{error} /bin/certbot",
-          'chmod a+x /bin/certbot'
+          "cp #{Script::DOCKER_SCRIPTS_DIR}/spec/files/certbot-auto/#{error} /bin/certbot-auto",
+          'chmod a+x /bin/certbot-auto'
         ]
       end
 
