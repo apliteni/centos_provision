@@ -1,10 +1,29 @@
+- name: Install sertbot-auto
+  tasks:
+    - name: Check certbot is installed
+      package_facts:
+        manager: "auto"
+
+    - name: Download sertbot-auto
+      get_url:
+        url: https://dl.eff.org/certbot-auto
+        dest: /usr/local/bin/
+
+    - name: Execute sertbot-auto
+      shell: |
+        mv certbot-auto /usr/local/bin/certbot-auto
+        chown root /usr/local/bin/certbot-auto
+        chmod 0755 /usr/local/bin/certbot-auto
+        yes | /usr/local/bin/certbot-auto --install-only
+      when: "'certbot.noarch' not in ansible_facts.packages"
+
 - name: Install packages
   package:
     name: certbot
     state: installed
   when: rhel_version == 7
 
-- name: install packages
+- name: Install packages
   dnf:
     name: certbot
     state: installed
