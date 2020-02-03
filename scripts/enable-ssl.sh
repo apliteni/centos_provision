@@ -89,6 +89,15 @@ else
   SCRIPT_COMMAND="curl -fsSL "$SCRIPT_URL" > run; bash run"
 fi
 
+# Check if certbot-auto executed
+FILECERT=/usr/local/bin/certbot-auto
+FILECERBOT=certbot
+if test -f "$FILECERT"; then
+  FILECERBOT=$FILECERT
+  else
+    FILECERBOT=certbot
+fi
+
 declare -A VARS
 declare -A ARGS
 declare -A DICT
@@ -1370,7 +1379,7 @@ certificate_exists_for_domain(){
 request_certificate_for(){
   local domain="${1}"
   debug "Requesting certificate for domain ${domain}"
-  certbot_command="certbot certonly --webroot --webroot-path=${WEBROOT_PATH}"
+  certbot_command="${FILECERBOT} certonly --webroot --webroot-path=${WEBROOT_PATH}"
   certbot_command="${certbot_command} --agree-tos --non-interactive"
   certbot_command="${certbot_command} --domain ${domain}"
   if isset "${VARS['ssl_email']}"; then

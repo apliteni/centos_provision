@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
 #
-
 # Check if certbot-auto executed
 FILECERT=/usr/local/bin/certbot-auto
-filecertbot=certbot
+FILECERBOT=certbot
 if test -f "$FILECERT"; then
-  filecertbot=$FILECERT
+  FILECERBOT=$FILECERT
   else
-    filecertbot=certbot
+    FILECERBOT=certbot
 fi
 
 
@@ -60,7 +59,7 @@ certificate_exists_for_domain(){
 request_certificate_for(){
   local domain="${1}"
   debug "Requesting certificate for domain ${domain}"
-  certbot_command="${filecertbot} certonly --webroot --webroot-path=${WEBROOT_PATH}"
+  certbot_command="${FILECERBOT} certonly --webroot --webroot-path=${WEBROOT_PATH}"
   certbot_command="${certbot_command} --agree-tos --non-interactive"
   certbot_command="${certbot_command} --domain ${domain}"
   if isset "${VARS['ssl_email']}"; then
