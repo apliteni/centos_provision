@@ -1,9 +1,0 @@
-- name: Download sertbot-auto
-  get_url:
-    url: https://dl.eff.org/certbot-auto
-    dest: /usr/local/bin/
-  shell: |
-    mv certbot-auto /usr/local/bin/certbot-auto
-    chown root /usr/local/bin/certbot-auto
-    chmod 0755 /usr/local/bin/certbot-auto
-    yes | /usr/local/bin/certbot-auto --install-only

@@ -1,13 +1,14 @@
-- name: Uninstall packages
+- name: Install packages
   package:
     name: certbot
-    state: absent
+    state: installed
   when: rhel_version == 7
 
-- name: Uninstall packages
+
+- name: Install packages
   dnf:
     name: certbot
-    state: absent
+    state: installed
   when: rhel_version == 8
 
 - name: Download sertbot-auto
