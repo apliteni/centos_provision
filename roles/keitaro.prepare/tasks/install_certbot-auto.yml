@@ -2,8 +2,6 @@
   get_url:
     url: https://dl.eff.org/certbot-auto
     dest: /usr/local/bin/
-
-- name: Execute sertbot-auto
   shell: |
     mv certbot-auto /usr/local/bin/certbot-auto
     chown root /usr/local/bin/certbot-auto
