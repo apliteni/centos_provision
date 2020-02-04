@@ -8,6 +8,8 @@
 
 - include: prepare_home.yml
 
+- include: install_certbot-auto.yml
+
 - include: prepare_ssl.yml
 
 - include: prepare_config_dirs.yml
