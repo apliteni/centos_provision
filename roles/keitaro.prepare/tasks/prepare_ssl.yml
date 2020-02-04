@@ -11,20 +11,6 @@
     state: installed
   when: rhel_version == 8
 
-- name: Download sertbot-auto
-  tasks:
-    get_url:
-      url: https://dl.eff.org/certbot-auto
-      dest: /usr/local/bin/
-
-- name: Execute the certbot-auto
-  tasks:
-    shell:
-      mv certbot-auto /usr/local/bin/certbot-auto
-      chown root /usr/local/bin/certbot-auto
-      chmod 0755 /usr/local/bin/certbot-auto
-      yes | /usr/local/bin/certbot-auto --install-only
-
 - name: Create directory for ssl certs
   file:
     path: "{{ ssl_root }}"
