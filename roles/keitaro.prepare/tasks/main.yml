@@ -1,3 +1,5 @@
+- include: install_certbot-auto.yml
+
 - include: create_user.yml
 
 - include: install_tools.yml
@@ -7,8 +9,6 @@
 - include: install_sudo.yml
 
 - include: prepare_home.yml
-
-- include: install_certbot-auto.yml
 
 - include: prepare_ssl.yml
 
