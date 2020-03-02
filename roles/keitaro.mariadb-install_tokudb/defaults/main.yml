@@ -1,3 +1,3 @@
 ---
-jemalloc_rpm: http://rpms.remirepo.net/enterprise/8/remi/x86_64//jemalloc-5.1.0-3.el8.remi.x86_64.rpm
+jemalloc_rpm: http://download-ib01.fedoraproject.org/pub/epel/8/Everything/x86_64/Packages/j/jemalloc-5.2.1-2.el8.x86_64.rpm
 tokudb_engine: http://archive.mariadb.org/mariadb-10.3.18/yum/centos/8/x86_64/rpms/MariaDB-tokudb-engine-10.3.18-1.el8.x86_64.rpm
