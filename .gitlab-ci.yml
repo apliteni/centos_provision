@@ -9,7 +9,7 @@
       - 'echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
       - chmod 600 ~/.ssh/config && chown $USER ~/.ssh/config
       # Config git to avoid first usage questions. Set the identity
-      - git config --global user.email "bot@apliteni.com" && git config --global user.name "Gitlab CI"
+      - git config --global user.email "bot@apliteni.com" && git config --global --replace-all user.name "Gitlab CI"
 
 # Stages
 stages:
