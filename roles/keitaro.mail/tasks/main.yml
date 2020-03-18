@@ -10,10 +10,3 @@
     name: sendmail
     state: started
     enabled: yes
-
-- name: make sure sendmail is started on runlevels 3, 4 and 5
-  service:
-    name: sendmail
-    state: started
-    enabled: yes
-    runlevels: 3,4,5
