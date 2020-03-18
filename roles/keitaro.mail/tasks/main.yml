@@ -6,13 +6,13 @@
     state: present
 
 - name: make sure sendmail is started
-  sysvinit:
+  service:
     name: sendmail
     state: started
     enabled: yes
 
 - name: make sure sendmail is started on runlevels 3, 4 and 5
-  sysvinit:
+  service:
     name: sendmail
     state: started
     enabled: yes
