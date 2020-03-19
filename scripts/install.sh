@@ -51,7 +51,7 @@ ROOT_UID=0
 
 KEITARO_URL="https://keitaro.io"
 
-RELEASE_VERSION='1.14'
+RELEASE_VERSION='2.4'
 DEFAULT_BRANCH="master"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
 
@@ -1081,7 +1081,7 @@ validate_keitaro_dump(){
   if [[ "schema_version" < "${tables_prefix}${FIRST_KEITARO_TABLE_NAME}" ]]; then
     ensure_table_dumped "$get_head_chunk" "schema_version"
   else
-    local get_tail_chunk="$(build_get_chunk_command "${mime_type}" "${file}" "tail" "50")"
+    local get_tail_chunk="$(build_get_chunk_command "${mime_type}" "${file}" "tail" "+1")"
     ensure_table_dumped "$get_tail_chunk" "schema_version"
   fi
 }
@@ -1401,33 +1401,33 @@ get_var_from_keitaro_app_config(){
 
 stage1(){
   debug "Starting stage 1: initial script setup"
+  check_openvz
   check_thp_disable_possibility
   parse_options "$@"
   set_ui_lang
 }
 #
 
+check_openvz(){
+  virtualization_type="$(hostnamectl status | grep Virtualization | sed -n "s/\s*Virtualization:\s*//p")"
+  if isset "$virtualization_type" && [ "$virtualization_type" == "openvnz" ]; then
+    print_err "Cannot install on server with OpenVZ virtualization" 'red'
+    clean_up
+    exit 1
+  fi
+}
 
 check_thp_disable_possibility(){
-  if ! -z "${CI}"; then
-    if pgrep "/sys/kernel/mm/transparent_hugepage/enabled" &>/dev/null; then
-      print_with_color "thp not allowed in this system" 'grey'
-    else
+  if empty "${CI}"; then
+    if is_file_exist "/sys/kernel/mm/transparent_hugepage/enabled" && is_file_exist "/sys/kernel/mm/transparent_hugepage/defrag"; then
       echo never > /sys/kernel/mm/transparent_hugepage/enabled && echo never > /sys/kernel/mm/transparent_hugepage/defrag
-      thp_defrag="$(cat /sys/kernel/mm/transparent_hugepage/defrag)"
       thp_enabled="$(cat /sys/kernel/mm/transparent_hugepage/enabled)"
-      if [   "$thp_defrag" == "$thp_enabled" ]; then
-        if [ "$thp_enabled" == "always madvise [never]" ]; then
-          print_with_color "thp disabled" 'green'
-        else
-          print_err "Impossible to disable thp install will be interrupted" 'red'
-          clean_up
-          exit 1
-        fi
+      if [ "$thp_enabled" == "always madvise [never]" ]; then
+        echo -e "\e[${COLOR_CODE['blue']}mBefore installation check possibility to disalbe THP \e[${COLOR_CODE['green']}m. OK ${RESET_FORMATTING}"
       else
-          print_err "Impossible to disable thp install will be interrupted" 'red'
-          clean_up
-          exit 1
+        print_err "Impossible to disable thp install will be interrupted" 'red'
+        clean_up
+        exit 1
       fi
     fi
   fi
@@ -1595,6 +1595,7 @@ setup_vars(){
   setup_default_value db_engine 'tokudb'
   setup_default_value php_engine "${PHP_ENGINE}"
   setup_default_value ssh_port "$(get_firewall_ssh_port)"
+  setup_default_value rhel_version "$(get_rhel_version)"
 }
 
 get_firewall_ssh_port(){
@@ -1607,7 +1608,15 @@ get_firewall_ssh_port(){
     else
       echo "22"
     fi
+  fi
+}
 
+get_rhel_version(){
+  local version="$(cat /etc/centos-release | cut -f1 -d. | sed 's/[^0-9]*//g')"
+  if isset "$version" && [ "$version" == "8" ]; then
+    echo "8"
+  else
+    echo "7"
   fi
 }
 
@@ -1734,6 +1743,9 @@ stage3(){
   debug "Starting stage 3: read values from inventory file"
   read_inventory
   setup_vars
+  if isset "$RECONFIGURE"; then
+    upgrade_packages
+  fi
 }
 
 read_inventory(){
@@ -1767,6 +1779,11 @@ parse_line_from_inventory_file(){
     debug "  "$var_name"=${VARS[$var_name]}"
   fi
 }
+
+upgrade_packages(){
+  debug "Upgrading packages"
+  run_command "yum update -y"
+}
 #
 
 
@@ -1778,6 +1795,9 @@ stage4(){
   if isset "$AUTO_INSTALL"; then
     debug "Skip reading vars from stdin"
   else
+    if ! is_installed iptables; then
+      install_package iptables
+    fi  
     get_user_vars
   fi
   write_inventory_file
@@ -1858,6 +1878,7 @@ write_inventory_file(){
   print_line_to_inventory_file "cpu_cores=$(get_cpu_cores)"
   print_line_to_inventory_file "ram=$(get_ram)"
   print_line_to_inventory_file "ssh_port=${VARS['ssh_port']}"
+  print_line_to_inventory_file "rhel_version=${VARS['rhel_version']}"
   if isset "${VARS['db_engine']}"; then
     print_line_to_inventory_file "db_engine=${VARS['db_engine']}"
   fi
@@ -1896,7 +1917,9 @@ stage5(){
 
 
 upgrade_packages(){
-  install_package deltarpm
+  if isset "${VARS['rhel_version']}" && [ "${VARS['rhel_version']}" == "7" ]; then
+    install_package deltarpm
+  fi
   debug "Upgrading packages"
   run_command "yum update -y"
 }
@@ -1909,7 +1932,11 @@ install_packages(){
   if ! is_installed ansible; then
     install_package epel-release
     install_package ansible
-    install_package libselinux-python
+    if isset "${VARS['rhel_version']}" && [ "${VARS['rhel_version']}" == "7" ]; then
+      install_package libselinux-python
+    else
+      install_package python3-libselinux
+    fi
   fi
 }
 #
@@ -1933,7 +1960,7 @@ stage6(){
 
 download_provision(){
   debug "Download provision"
-  release_url=${RELEASE_URL:-"https://github.com/apliteni/centos_provision/archive/${BRANCH}.tar.gz"}
+  release_url="https://github.com/apliteni/centos_provision/archive/${BRANCH}.tar.gz"
   run_command "curl -fsSL ${release_url} | tar xz"
 }
 #
