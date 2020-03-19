@@ -1,0 +1,12 @@
+---
+# Variable setup.
+- name: Install mail utilites
+  package:
+    name: [mailx, sendmail, sendmail-cf]
+    state: present
+
+- name: make sure sendmail is started
+  service:
+    name: sendmail
+    state: started
+    enabled: yes
