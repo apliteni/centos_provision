@@ -12,7 +12,7 @@ worker_processes  {{ nginx_workers_count }};
 
 events {
     worker_connections  {{ nginx_worker_connections }};
-    multi_accept {{ nginx_multi_accept }};
+    multi_accept {{ nginx_multi_accept }}; # Access to Click API can be made in parrallel
     use epoll;
 }
 
