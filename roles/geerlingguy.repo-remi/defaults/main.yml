@@ -2,4 +2,4 @@
 remi_repo_base_url: "{{ keitaro_url }}/mirrors/remi"
 remi_repo_url: "{{ remi_repo_base_url }}/enterprise/remi-release-{{ ansible_distribution_major_version }}.rpm"
 remi_repo_gpg_key_url: "{{ remi_repo_base_url }}/RPM-GPG-KEY-remi"
-remi_repo_centos8: https://rpms.remirepo.net/enterprise/remi-release-8.rpm
+remi_repo_centos8: "{{ remi_repo_base_url }}/enterprise/remi-release-8.rpm"

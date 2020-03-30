@@ -1,3 +1,4 @@
 ---
-jemalloc_rpm: http://download-ib01.fedoraproject.org/pub/epel/8/Everything/x86_64/Packages/j/jemalloc-5.2.1-2.el8.x86_64.rpm
-tokudb_engine: http://archive.mariadb.org/mariadb-10.3.18/yum/centos/8/x86_64/rpms/MariaDB-tokudb-engine-10.3.18-1.el8.x86_64.rpm
+remi_repo_base_url: "{{ keitaro_url }}/mirrors/"
+jemalloc_rpm: "{{ keitaro_url }}/epel/jemalloc-5.2.1-2.el8.x86_64.rpm"
+tokudb_engine: "{{ keitaro_url }}/mariadb/MariaDB-tokudb-engine-10.3.18-1.el8.x86_64.rpm"
