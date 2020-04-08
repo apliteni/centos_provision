@@ -19,8 +19,8 @@
                                  --cache-storage=files \
                                  --force-tokudb \
                                  {{ language_option }} \
-                                 {{ kversion_option }} \
-                                 {{ custom_package_option }}
+                                 6 \
+                                 --custom-package=http://keitaro.io/releases/6.7.4/package2.zip
   vars:
     language_option: "{% if language is defined %}--language={{ language }}{% endif %}"
     kversion_option: "{% if kversion is defined %}--kversion={{ kversion }}{% endif %}"
