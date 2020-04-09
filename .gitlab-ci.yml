@@ -60,6 +60,7 @@ deploy:
   stage: release
   script: ci/bin/deploy.sh
   when: manual
+  allow_failure: false
   only:
     - /^master$/
   except:
