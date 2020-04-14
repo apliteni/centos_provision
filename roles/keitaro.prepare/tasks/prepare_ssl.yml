@@ -1,14 +1,39 @@
-- name: Install packages
+- name: remove old Certbot package
   package:
     name: certbot
-    state: installed
+    state: absent
   when: rhel_version == 7
-
-- name: install packages
+  
+- name: remove old Certbot package
   dnf:
     name: certbot
-    state: installed
+    state: absent  
   when: rhel_version == 8
+  
+- name: remove old Certbot
+  file:
+    path: "{{ certbot_dir }}/certbot"
+    state: absent
+  
+- name: download certbot-auto
+  get_url:
+    url: "{{ certbot_url }}"
+    dest: "{{ certbot_dir }}/certbot"
+    mode: '0755'
+    owner: "root"
+    force: yes
+  
+- name: install certbot-auto
+  shell: cd {{ certbot_dir }} && ./certbot --install-only --non-interactive
+  
+- name: Set Certbot script variable.
+  set_fact:
+    certbot_script: "{{ certbot_dir }}/certbot"
+
+- name: Ensure certbot-auto is executable.
+  file:
+    path: "{{ certbot_script }}"
+    mode: 0755
 
 - name: Create directory for ssl certs
   file:
