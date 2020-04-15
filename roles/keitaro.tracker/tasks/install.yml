@@ -28,7 +28,6 @@
   args:
     chdir: "{{ keitaro_root }}"
   become_user: "{{ keitaro_user }}"
-  when: "'{{ license_key }}' != '1111-1111-1111-1111'"
   notify:
     - restart roadrunner
 
