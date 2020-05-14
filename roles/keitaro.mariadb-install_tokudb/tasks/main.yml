@@ -1,3 +1,9 @@
+- name: set variable
+  shell: mysql --version
+  register: mysql_version
+- set_fact:
+    tokudb_version: "{{ mysql_version.stdout | regex_search('(?<=Distrib )(.*)(?=-MariaDB)') }}"
+
 - name: Install TokuDB Engine
   package:
     name: MariaDB-tokudb-engine
