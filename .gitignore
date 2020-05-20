@@ -8,3 +8,5 @@ hosts-gitlab
 .DS_Store
 TODO
 builds
+scripts/tmp
+.env

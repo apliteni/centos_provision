@@ -1,6 +1,19 @@
 #!/usr/bin/env bash
 
-RELEASE_VERSION="$(cat RELEASE_VERSION)"
+
+if [ -z "$RELEASE_VERSION" ]
+then
+      echo "\$RELEASE_VERSION is empty";
+      exit 1;
+fi
+
+
+if [ -z "$GIT_URL" ]
+then
+      echo "\$GIT_URL is empty";
+      exit 1;
+fi
+
 
 git commit -a -m "Inject scripts v${RELEASE_VERSION}"
 git push -f -u ${GIT_URL} `git rev-parse HEAD`:refs/heads/${CI_COMMIT_REF_NAME}

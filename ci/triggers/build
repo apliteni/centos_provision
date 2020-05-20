@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+set -e
+
+source .env
+
+if [ -z "$TRIGGER_TOKEN" ]
+then
+  echo "\$TRIGGER_TOKEN is empty";
+  exit 1;
+fi
+
+
+if [[ "$#" == "1" ]]
+then
+  echo "You must provide version. Example ./build BRANCH_NAME";
+  exit 1;
+fi
+
+
+if [[ $(git status -s) ]]; then
+  echo "Stopped. You have uncommited changes";
+  exit 1;
+fi
+
+branch=${1}
+unpushed=$(git cherry ${branch} -v)
+
+if [[ $unpushed == *"+"* ]]; then
+  echo "Stopped. You must push current branch first.";
+  exit 1;
+fi
+
+
+
+# Send trigger
+ref=$(git rev-parse HEAD)
+curl -X POST \
+     -F token="${TRIGGER_TOKEN}" \
+     -F "ref=${branch}" \
+     -F "variables[ACTION]=build" \
+     https://gitlab.x.apli.tech/api/v4/projects/54/trigger/pipeline
+
+echo "Pipeline triggered!"

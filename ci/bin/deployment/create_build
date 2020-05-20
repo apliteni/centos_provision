@@ -1,0 +1,10 @@
+#!/usr/bin/env sh
+set -e -x -o pipefail
+
+rm -rf "${LOCAL_BUILD_PATH}"
+
+mkdir -p "${LOCAL_BUILD_PATH}"
+
+cp scripts/*.sh "${LOCAL_BUILD_PATH}"
+
+zip -r "${LOCAL_BUILD_PATH}/playbook.zip" roles **/*.yml *.cfg *.txt

@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 
-ROOT_DIR="."
-SCRIPTS_DIR="$ROOT_DIR/scripts"
+root_dir="."
+scriptsDir="$root_dir/scripts"
+
 echo "Validate scripts"
-cd $SCRIPTS_DIR
+cd $scriptsDir
 
 validate_script(){
   if bash -n $1; then
