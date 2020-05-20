@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
 
 export RELEASE_VERSION=`cat RELEASE_VERSION`
-export GIT_URL=git@gitlab.x.apli.tech:apliteni/keitaro/installer.git
 
