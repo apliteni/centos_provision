@@ -1,68 +1,102 @@
-#Share
-.git_init:
-   before_script:
-      - export RELEASE_VERSION=`cat RELEASE_VERSION`
-      - export GIT_URL=git@gitlab.x.apli.tech:apliteni/keitaro/installer.git
-      # Add the private key to bot
-      - eval $(ssh-agent -s) && ssh-add <(echo "$SSH_PRIVATE_KEY") && mkdir -p ~/.ssh
-      # Docker specific settings
-      - 'echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
-      - chmod 600 ~/.ssh/config && chown $USER ~/.ssh/config
-      # Config git to avoid first usage questions. Set the identity
-      - git config --global user.email "bot@apliteni.com" && git config --global --replace-all user.name "Gitlab CI"
+# Shared
+before_script:
+  - source ci/bin/prepare_envs
+
+variables:
+  BUILDS_FOLDER: builds
+  LOCAL_BUILD_PATH: "${BUILDS_FOLDER}/${CI_COMMIT_REF_NAME}"
+  REMOTE_BUILD_PATH: "${BUILDS_FOLDER}/${CI_COMMIT_REF_NAME}"
 
 # Stages
 stages:
   - build
   - quality_checks
-  - release
+  - deployment
 
-# Jobs
+# Build jobs
 build_scripts:
   tags: [shell]
   stage: build
+  interruptible: true
   script:
-    - ci/bin/compile.sh
-    - ci/bin/validate.sh
+    - ci/bin/build/compile
+    - ci/bin/testing/validate_scripts
   artifacts:
-    expire_in: 30 days
+    expire_in: 1 hour
     paths:
       - scripts/install.sh
       - scripts/add-site.sh
       - scripts/enable-ssl.sh
       - scripts/fix-renewal-certs-cron-job.sh
       - scripts/test-run-command.sh
-  except:
-    - /^release-/
-    - /^current$/
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+      when: never
+    - when: always
+
+# Quality checks
+.quality-checks-common:
+  stage: quality_checks
+  interruptible: true
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+      when: never
+    - when: always
 
 run_rspec:
-  tags: [shell, ruby]
-  stage: quality_checks
-  dependencies:
-    - build_scripts
+  extends: [.quality-checks-common]
+  tags: [ruby]
   script:
-    - ci/bin/validate.sh
-    - cd scripts/
-    - bundle install --path vendor/
-    - bundle exec rspec
+    - ci/bin/testing/validate_scripts
+    - ci/bin/testing/install_bundle
+    - ci/bin/testing/run_rspec
   cache:
     key: vendor
     paths:
-      - vendor/
-  except:
-    - /^release-/
-    - /^current$/
+      - scripts/vendor/
+  dependencies:
+    - build_scripts
+
+
+# Deployment jobs
+.deployment-jobs-common:
+  stage: deployment
+
+legacy_deploy:
+  extends: [.deployment-jobs-common]
+  tags: [shell]
+  script:
+    - ci/bin/deployment/allow_git_push
+    - ci/bin/deployment/legacy_deploy
+  dependencies:
+    - build_scripts
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+      when: never
+    - if: '$CI_COMMIT_REF_NAME =~ /(master)/'
+      when: on_success
+    - when: never
+
 
 deploy:
-  extends: [.git_init]
-  tags: [shell]
-  stage: release
-  script: ci/bin/deploy.sh
-  when: manual
+  extends: [.deployment-jobs-common]
+  tags: [kubernetes]
+  image: apliteni/mc
+  script:
+    - ci/bin/deployment/create_build
+    - ci/bin/deployment/prepare_mc
+    - ci/bin/deployment/upload_to_s3
+    - ci/bin/deployment/notify
   allow_failure: false
-  only:
-    - /^master$/
-  except:
-    - /^release-/
-    - /^current$/
+  dependencies:
+    - build_scripts
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+      when: never
+    - if: '$CI_COMMIT_REF_NAME =~ /(master)/'
+      when: on_success
+    - if: '$CI_COMMIT_REF_NAME == "INST-126"'
+      when: always
+    - if: '$ACTION == "build"'
+      when: always
+    - when: never

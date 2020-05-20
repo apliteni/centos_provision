@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+
+if [ -z "$SSH_PRIVATE_KEY" ]
+then
+      echo "\$SSH_PRIVATE_KEY is empty";
+      exit 1;
+fi
+
+
+if [ -z "$RELEASE_VERSION" ]
+then
+      echo "\$RELEASE_VERSION is empty";
+      exit 1;
+fi
+
+
+root_dir="."
+scriptsDir="$root_dir/scripts"
+echo "Set current release to $RELEASE_VERSION"
+sed -i "s/^RELEASE_VERSION=.*/RELEASE_VERSION='$RELEASE_VERSION'/g" "$scriptsDir/src/shared/vars/common.sh"
+cd $scriptsDir
+
+compile_template(){
+  cp $1 $2
+  bin/postprocess_requires $2
+  chmod a+x $2
+}
+
+compile_template src/installer.sh.tpl install.sh
+compile_template src/ssl_enabler.sh.tpl enable-ssl.sh
+compile_template src/site_adder.sh.tpl add-site.sh
+compile_template src/run_command_tester.sh.tpl test-run-command.sh
+echo -e "\e[32mCompile $RELEASE_VERSION version complete"
