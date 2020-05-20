@@ -74,7 +74,7 @@ legacy_deploy:
     - if: $CI_MERGE_REQUEST_ID
       when: never
     - if: '$CI_COMMIT_REF_NAME =~ /(master)/'
-      when: on_success
+      when: manual
     - when: never
 
 
