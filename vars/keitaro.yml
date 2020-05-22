@@ -2,6 +2,7 @@ keitaro_user: keitaro
 keitaro_group: keitaro
 keitaro_home: /home/keitaro
 keitaro_root: /var/www/keitaro
+keitaro_install_php: https://files.keitaro.io/scripts/install-php/latest/install.php
 keitaro_config_dir: /etc/keitaro
 keitaro_config_backups_dir: "{{ keitaro_config_dir }}/backups"
 keitaro_stats_json_path: "{{ keitaro_root }}/var/stats.json"
