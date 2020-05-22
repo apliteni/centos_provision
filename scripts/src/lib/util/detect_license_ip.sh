@@ -1,9 +1,4 @@
 #!/usr/bin/env bash
-#
-
-
-
-
 
 detect_license_ip(){
   debug "Detecting license ip"
@@ -34,7 +29,6 @@ detect_license_ip(){
     fail "$(translate 'errors.cant_detect_server_ip')" "see_logs"
   fi
 }
-
 
 get_license_edition_type(){
   local key="${1}"
