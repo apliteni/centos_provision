@@ -75,8 +75,8 @@ upload_build:
   script:
     - ci/bin/deployment/create_build
     - ci/bin/deployment/prepare_mc
-    - "ci/bin/upload ${LOCAL_BUILD_PATH} ${S3_BUCKET}/${NIGHTLY_BUILD_PATH}"
-    - "ci/bin/notify \"[Installer] File https://${S3_HOST}/${S3_BUCKET}/${NIGHTLY_BUILD_PATH}/install.sh (${CI_COMMIT_SHORT_SHA}) has been uploaded.\""
+    - "ci/bin/deployment/upload ${LOCAL_BUILD_PATH} ${S3_BUCKET}/${NIGHTLY_BUILD_PATH}"
+    - "ci/bin/deployment/notify \"[Installer] File https://${S3_HOST}/${S3_BUCKET}/${NIGHTLY_BUILD_PATH}/install.sh (${CI_COMMIT_SHORT_SHA}) has been uploaded.\""
   allow_failure: false
   dependencies:
     - build_scripts
@@ -120,8 +120,8 @@ upload_as_latest:
     - ci/bin/deployment/tag_commit
     - ci/bin/deployment/create_build
     - ci/bin/deployment/prepare_mc
-    - "ci/bin/upload ${LOCAL_BUILD_PATH} ${S3_BUCKET}/${LATEST_BUILD_PATH}"
-    - "ci/bin/notify \"[Installer] File https://${S3_HOST}/${S3_BUCKET}/${LATEST_BUILD_PATH}/install.sh (${CI_COMMIT_SHORT_SHA}) has been updated.\""
+    - "ci/bin/deployment/upload ${LOCAL_BUILD_PATH} ${S3_BUCKET}/${LATEST_BUILD_PATH}"
+    - "ci/bin/deployment/notify \"[Installer] File https://${S3_HOST}/${S3_BUCKET}/${LATEST_BUILD_PATH}/install.sh (${CI_COMMIT_SHORT_SHA}) has been updated.\""
   allow_failure: false
   dependencies:
     - build_scripts
