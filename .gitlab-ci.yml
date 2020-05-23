@@ -7,8 +7,8 @@ variables:
   GIT_URL: "git@gitlab.x.apli.tech:apliteni/keitaro/installer.git"
   LOCAL_BUILD_PATH: "${BUILDS_FOLDER}/${CI_COMMIT_REF_NAME}"
   REMOTE_BUILD_PATH: "${BUILDS_FOLDER}/${CI_COMMIT_REF_NAME}"
-  NIGHTLY_BUILD_PATH: "builds/${CI_COMMIT_REF_NAME}/"
-  LATEST_BUILD_PATH: "latest/"
+  NIGHTLY_BUILD_PATH: "builds/${CI_COMMIT_REF_NAME}"
+  LATEST_BUILD_PATH: "latest"
   BUILDS_TTL: 7d
 
 # Stages
