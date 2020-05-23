@@ -49,7 +49,6 @@ build_scripts:
 run_rspec:
   stage: quality_checks
   interruptible: true
-  extends: [.quality-checks-common]
   tags: [ruby]
   script:
     - ci/bin/testing/validate_scripts
@@ -110,7 +109,6 @@ tag_commit:
     - if: '$ACTION == "build"'
       when: always
     - when: never
-
 
 # Post release jobs
 upload_as_latest:
