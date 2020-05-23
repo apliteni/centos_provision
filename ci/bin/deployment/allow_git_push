@@ -10,4 +10,4 @@ fi
 echo "${SSH_DEPLOY_KEY}" > "${HOME}/.ssh/id_rsa"
 chmod 600 "${HOME}/.ssh/id_rsa"
 
-git config --global user.email "bot@apliteni.com" && git config --global --replace-all user.name "Mr. Bot'
+git config --global user.email "bot@apliteni.com" && git config --global --replace-all user.name "Mr. Bot"
