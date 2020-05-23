@@ -1,19 +1,13 @@
 #!/usr/bin/env bash
 set -e -x -o pipefail
 
-if [ -z "$SSH_PRIVATE_KEY" ]
+if [ -z "$SSH_DEPLOY_KEY" ]
 then
-      echo "\$SSH_PRIVATE_KEY is empty";
+      echo "\$SSH_DEPLOY_KEY is empty";
       exit 1;
 fi
 
+echo "${SSH_DEPLOY_KEY}" > "${HOME}/.ssh/id_rsa"
+chmod 600 "${HOME}/.ssh/id_rsa"
 
-# Add the private key to bot
-eval $(ssh-agent -s) && ssh-add <(echo "$SSH_PRIVATE_KEY") && mkdir -p ~/.ssh
-
-# Docker specific settings
-echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
-chmod 600 ~/.ssh/config
-
-# Config git to avoid first usage questions. Set the identity
-git config --global user.email "bot@apliteni.com" && git config --global --replace-all user.name "Gitlab CI"
+git config --global user.email "bot@apliteni.com" && git config --global --replace-all user.name "Mr. Bot'
