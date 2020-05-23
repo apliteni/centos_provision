@@ -16,6 +16,7 @@ stages:
   - build
   - quality_checks
   - deployment
+  - actions
 
 # Build jobs
 build_scripts:
