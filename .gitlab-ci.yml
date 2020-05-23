@@ -15,7 +15,9 @@ variables:
 stages:
   - build
   - quality_checks
-  - deployment
+  - upload
+  - release
+  - post_release
   - actions
 
 # Build jobs
@@ -43,16 +45,10 @@ build_scripts:
 
 # Quality checks
 .quality-checks-common:
-  stage: quality_checks
-  interruptible: true
-  rules:
-    - if: $CI_MERGE_REQUEST_ID
-      when: never
-    - if: '$ACTION == "prune"'
-      when: never
-    - when: on_success
 
 run_rspec:
+  stage: quality_checks
+  interruptible: true
   extends: [.quality-checks-common]
   tags: [ruby]
   script:
@@ -65,15 +61,17 @@ run_rspec:
       - scripts/vendor/
   dependencies:
     - build_scripts
-
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+      when: never
+    - if: '$ACTION == "prune"'
+      when: never
+    - when: on_success
 
 # Deployment jobs
-.deployment-jobs-common:
-  stage: deployment
-
 upload_build:
-  extends: [.deployment-jobs-common]
-  tags: [kubernetes]
+  stage: upload
+  tags: [docker]
   image: apliteni/mc
   script:
     - ci/bin/deployment/create_build
@@ -90,27 +88,34 @@ upload_build:
       when: never
     - when: on_success
 
-
-legacy_deploy:
-  extends: [.deployment-jobs-common]
+# Release
+tag_commit:
+  stage: release
   tags: [shell]
   script:
     - ci/bin/deployment/allow_git_push
-    - ci/bin/deployment/legacy_deploy
+    - ci/bin/deployment/tag_commit
+  allow_failure: false
   dependencies:
     - build_scripts
   rules:
     - if: $CI_MERGE_REQUEST_ID
       when: never
-    - if: '$CI_COMMIT_REF_NAME =~ /(master)/'
-      when: manual
     - if: '$ACTION == "prune"'
       when: never
+    - if: '$CI_COMMIT_REF_NAME =~ /(master)/'
+      when: manual
+    - if: '$CI_COMMIT_REF_NAME == "INST-132"' # TODO!
+      when: manual
+    - if: '$ACTION == "build"'
+      when: always
     - when: never
 
+
+# Post release jobs
 upload_as_latest:
-  extends: [.deployment-jobs-common]
-  tags: [kubernetes]
+  stage: post_release
+  tags: [docker]
   image: apliteni/mc
   script:
     - ci/bin/deployment/allow_git_push
@@ -125,8 +130,10 @@ upload_as_latest:
   rules:
     - if: $CI_MERGE_REQUEST_ID
       when: never
+    - if: '$ACTION == "prune"'
+      when: never
     - if: '$CI_COMMIT_REF_NAME =~ /(master)/'
-      when: on_success
+      when: manual
     - if: '$CI_COMMIT_REF_NAME == "INST-132"' # TODO!
       when: on_success
     - if: '$ACTION == "build"'
