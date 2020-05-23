@@ -1791,7 +1791,7 @@ stage4(){
   else
     if ! is_installed iptables; then
       install_package iptables
-    fi  
+    fi
     get_user_vars
   fi
   write_inventory_file

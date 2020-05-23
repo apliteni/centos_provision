@@ -7,6 +7,9 @@ variables:
   GIT_URL: "git@gitlab.x.apli.tech:apliteni/keitaro/installer.git"
   LOCAL_BUILD_PATH: "${BUILDS_FOLDER}/${CI_COMMIT_REF_NAME}"
   REMOTE_BUILD_PATH: "${BUILDS_FOLDER}/${CI_COMMIT_REF_NAME}"
+  NIGHTLY_BUILD_PATH: "builds/${CI_COMMIT_REF_NAME}/"
+  LATEST_BUILD_PATH: "latest/"
+  BUILDS_TTL: 7d
 
 # Stages
 stages:
@@ -34,6 +37,9 @@ build_scripts:
     - if: $CI_MERGE_REQUEST_ID
       when: never
     - when: always
+  except:
+    variables:
+      - $ACTION == 'prune'
 
 # Quality checks
 .quality-checks-common:
@@ -43,6 +49,9 @@ build_scripts:
     - if: $CI_MERGE_REQUEST_ID
       when: never
     - when: always
+  except:
+    variables:
+      - $ACTION == 'prune'
 
 run_rspec:
   extends: [.quality-checks-common]
@@ -62,6 +71,26 @@ run_rspec:
 # Deployment jobs
 .deployment-jobs-common:
   stage: deployment
+  except:
+    variables:
+      - $ACTION == 'prune'
+
+upload_build:
+  extends: [.deployment-jobs-common]
+  tags: [kubernetes]
+  image: apliteni/mc
+  script:
+    - ci/bin/deployment/create_build
+    - ci/bin/deployment/prepare_mc
+    - "ci/bin/upload ${LOCAL_BUILD_PATH} ${S3_BUCKET}/${NIGHTLY_BUILD_PATH}"
+    - "ci/bin/notify \"[Installer] File https://${S3_HOST}/${S3_BUCKET}/${NIGHTLY_BUILD_PATH}/install.sh (${CI_COMMIT_SHORT_SHA}) has been uploaded.\""
+  allow_failure: false
+  dependencies:
+    - build_scripts
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+      when: never
+    - when: on_success
 
 legacy_deploy:
   extends: [.deployment-jobs-common]
@@ -78,16 +107,17 @@ legacy_deploy:
       when: manual
     - when: never
 
-
-deploy:
+upload_as_latest:
   extends: [.deployment-jobs-common]
   tags: [kubernetes]
   image: apliteni/mc
   script:
+    - ci/bin/deployment/allow_git_push
+    - ci/bin/deployment/tag_commit
     - ci/bin/deployment/create_build
     - ci/bin/deployment/prepare_mc
-    - ci/bin/deployment/upload_to_s3
-    - ci/bin/deployment/notify
+    - "ci/bin/upload ${LOCAL_BUILD_PATH} ${S3_BUCKET}/${LATEST_BUILD_PATH}"
+    - "ci/bin/notify \"[Installer] File https://${S3_HOST}/${S3_BUCKET}/${LATEST_BUILD_PATH}/install.sh (${CI_COMMIT_SHORT_SHA}) has been updated.\""
   allow_failure: false
   dependencies:
     - build_scripts
@@ -96,8 +126,22 @@ deploy:
       when: never
     - if: '$CI_COMMIT_REF_NAME =~ /(master)/'
       when: on_success
-    - if: '$CI_COMMIT_REF_NAME == "INST-126"'
-      when: always
+    - if: '$CI_COMMIT_REF_NAME == "INST-132"' # TODO!
+      when: on_success
     - if: '$ACTION == "build"'
       when: always
     - when: never
+
+prune_files:
+  stage: actions
+  tags: [docker]
+  image: apliteni/mc
+  allow_failure: false
+  dependencies:
+    - make_bundle
+  script:
+    - ci/bin/prepare_mc
+    - "ci/bin/prune ${S3_BUCKET}/${BUILDS_FOLDER} ${BUILDS_TTL}"
+  only:
+    variables:
+      - $ACTION == 'prune'

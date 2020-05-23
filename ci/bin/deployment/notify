@@ -1,17 +1,14 @@
 #!/usr/bin/env bash
 set -e -x -o pipefail
 
-if [ -z "$SLACK_WEBHOOK" ]
+if test "$#" -ne 1; then
+    echo "Usage: ./notify TEXT"
+fi
+
+if [[ -z "$SLACK_WEBHOOK" ]]
 then
       echo "\$SLACK_WEBHOOK is empty";
       exit 1;
 fi
 
-s3_url="https://${S3_HOST}/${S3_BUCKET}/${REMOTE_BUILD_PATH}"
-
-text="Installer build v${RELEASE_VERSION} (${CI_COMMIT_SHORT_SHA}) is ready!
-${s3_url}/install.sh
-${s3_url}/enable-ssl.sh
-и другие файлы"
-
-curl "${SLACK_WEBHOOK}" -X POST --data "{\"text\": \"${text}\"}" -H 'Content-type: application/json'
+curl "${SLACK_WEBHOOK}" -X POST --data "{\"text\": \"${1}\"}" -H 'Content-type: application/json'

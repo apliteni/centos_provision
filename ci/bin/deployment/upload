@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -e -x -o pipefail
+
+if test "$#" -ne 2; then
+    echo "Usage: ./upload SOURCE DESTINATION"
+fi
+
+mc mirror "${1}" "default/${2}/" --overwrite

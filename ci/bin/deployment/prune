@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -e -x -o pipefail
+
+if [[ -z "$S3_BUCKET" ]]
+then
+      echo "\$S3_BUCKET is empty";
+      exit 1;
+fi
+
+
+if test "$#" -ne 2; then
+    echo "Usage: ./prune PATH PERIOD"
+fi
+
+mc rm \
+    --recursive \
+    --force \
+    --older-than ${2} \
+    default/${1}
