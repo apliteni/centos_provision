@@ -16,5 +16,5 @@ fi
 
 git pull origin "${CI_COMMIT_REF_NAME}"
 
-git tag -a v${RELEASE_VERSION} -m "v${RELEASE_VERSION}"
+git tag -a v${RELEASE_VERSION} -m "v${RELEASE_VERSION}" --force
 git push -u ${GIT_URL} --tags --push-option=ci.skip
