@@ -14,7 +14,10 @@ then
       exit 1;
 fi
 
-git pull origin "${CI_COMMIT_REF_NAME}"
+# Sync tags with repo
+git tag -l | xargs git tag -d
+git fetch --tags
 
-git tag -a v${RELEASE_VERSION} -m "v${RELEASE_VERSION}" --force
-git push -u ${GIT_URL} --tags --push-option=ci.skip
+# Tag current commit
+git tag "${RELEASE_VERSION}"
+git push origin --push-option=ci.skip --tags
