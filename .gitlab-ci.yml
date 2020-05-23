@@ -36,10 +36,9 @@ build_scripts:
   rules:
     - if: $CI_MERGE_REQUEST_ID
       when: never
+    - if: '$ACTION == "prune"'
+      when: never
     - when: always
-  except:
-    variables:
-      - $ACTION == 'prune'
 
 # Quality checks
 .quality-checks-common:
@@ -48,10 +47,9 @@ build_scripts:
   rules:
     - if: $CI_MERGE_REQUEST_ID
       when: never
-    - when: always
-  except:
-    variables:
-      - $ACTION == 'prune'
+    - if: '$ACTION == "prune"'
+      when: never
+    - when: on_success
 
 run_rspec:
   extends: [.quality-checks-common]
