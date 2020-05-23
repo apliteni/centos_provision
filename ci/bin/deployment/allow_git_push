@@ -10,4 +10,9 @@ fi
 echo "${SSH_DEPLOY_KEY}" > "${HOME}/.ssh/id_rsa"
 chmod 600 "${HOME}/.ssh/id_rsa"
 
-#git config --global user.email "bot@apliteni.com" && git config --global --replace-all user.name "Mr. Bot"
+
+repo=$(echo "$CI_REPOSITORY_URL" | perl -pe 's#.*@(.+?(\:\d+)?)/#git@\1:#')
+
+git remote set-url origin "${repo}"
+
+git config --global user.email "bot@apliteni.com" && git config --global --replace-all user.name "Mr. Bot"
