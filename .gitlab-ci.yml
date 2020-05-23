@@ -138,8 +138,6 @@ prune_files:
   tags: [docker]
   image: apliteni/mc
   allow_failure: false
-  dependencies:
-    - make_bundle
   script:
     - ci/bin/prepare_mc
     - "ci/bin/prune ${S3_BUCKET}/${BUILDS_FOLDER} ${BUILDS_TTL}"
