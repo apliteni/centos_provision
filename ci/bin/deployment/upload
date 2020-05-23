@@ -5,4 +5,4 @@ if test "$#" -ne 2; then
     echo "Usage: ./upload SOURCE DESTINATION"
 fi
 
-mc mirror "${1}" "default/${2}" --overwrite
+mc mirror "${1}/" "default/${2}/" --overwrite
