@@ -71,9 +71,6 @@ run_rspec:
 # Deployment jobs
 .deployment-jobs-common:
   stage: deployment
-  except:
-    variables:
-      - $ACTION == 'prune'
 
 upload_build:
   extends: [.deployment-jobs-common]
@@ -90,7 +87,10 @@ upload_build:
   rules:
     - if: $CI_MERGE_REQUEST_ID
       when: never
+    - if: '$ACTION == "prune"'
+      when: never
     - when: on_success
+
 
 legacy_deploy:
   extends: [.deployment-jobs-common]
@@ -105,6 +105,8 @@ legacy_deploy:
       when: never
     - if: '$CI_COMMIT_REF_NAME =~ /(master)/'
       when: manual
+    - if: '$ACTION == "prune"'
+      when: never
     - when: never
 
 upload_as_latest:
