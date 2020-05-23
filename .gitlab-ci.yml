@@ -44,8 +44,6 @@ build_scripts:
     - when: always
 
 # Quality checks
-.quality-checks-common:
-
 run_rspec:
   stage: quality_checks
   interruptible: true
