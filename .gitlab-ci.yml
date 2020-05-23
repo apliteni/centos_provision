@@ -116,8 +116,6 @@ upload_as_latest:
   tags: [docker]
   image: apliteni/mc
   script:
-    - ci/bin/deployment/allow_git_push
-    - ci/bin/deployment/tag_commit
     - ci/bin/deployment/create_build
     - ci/bin/deployment/prepare_mc
     - "ci/bin/deployment/upload ${LOCAL_BUILD_PATH} ${S3_BUCKET}/${LATEST_BUILD_PATH}"
