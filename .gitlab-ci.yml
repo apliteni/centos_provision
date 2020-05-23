@@ -88,7 +88,7 @@ upload_build:
     - when: on_success
 
 # Release
-tag_commit:
+release!:
   stage: release
   tags: [shell]
   script:
@@ -105,7 +105,7 @@ tag_commit:
     - if: '$CI_COMMIT_REF_NAME =~ /(master)/'
       when: manual
     - if: '$CI_COMMIT_REF_NAME == "INST-132"' # TODO!
-      when: manual
+      when: always
     - if: '$ACTION == "build"'
       when: always
     - when: never

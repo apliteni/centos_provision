@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e -x -o pipefail
 
 if [ -z "$SSH_PRIVATE_KEY" ]
 then
