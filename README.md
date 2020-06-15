@@ -13,7 +13,7 @@ Connect to your CentOS server and run as root
 
 Installer supports two locales: English (default) and Russian. In order to use Russian locale run as root
 
-    yum update -y && curl keitaro.io/install.sh > install && bash install -L en
+    yum update -y && curl keitaro.io/install.sh > install && bash install -L ru
 
 ## Install Let's Encrypt Free SSL certificates (optional)
 
@@ -22,19 +22,19 @@ installing Keitaro you may want to install they later.
 
 Connect to your CentOS server and run as root
 
-    curl keitaro.io/enable-ssl.sh > enable-ssl; bash enable-ssl -D domain1.com,domain2.com
+    kctl-enable-ssl -D domain1.com,domain2.com
 
 SSL certificates installer supports two locales: English (default) and Russian. In order to use Russian locale
 run as root
 
-    curl keitaro.io/enable-ssl.sh > enable-ssl; bash enable-ssl -L ru -D domain1.com,domain2.com
+    kctl-enable-ssl -D domain1.com,domain2.com -L ru
 
 
 # Delete SSL certificates
 
 In case, when you need to remove SSL certificate from domain of your site, you can use our special script which will delete SSL certificate and domain. Script will take domain name as parameter. To delete ssl certificate, you can use following command: 
 
-    curl https://raw.githubusercontent.com/apliteni/centos_provision/current/scripts/delete-ssl.sh > delete-ssl; bash delete-ssl domain.com
+    kctl-delete-ssl domain1.com
 
 Where domain.com - name of your domain, which you want to revoke and delete it's certificate. All certificates and their files, their keys, and configuration files of nginx of selected domain will be deleted (located in /etc/nginx/conf.d/). 
 
@@ -46,11 +46,11 @@ generates config file for Nginx.
 
 Connect to your CentOS server and run as root
 
-    curl keitaro.io/add-site.sh > add-site; bash add-site -D domain.com -R /var/www/domain.com
+    kctl-add-site -D domain.com -R /var/www/domain.com
 
 In order to use Russian locale run as root
 
-    curl keitaro.io/add-site.sh > add-site; bash add-site -L ru -D domain.com -R /var/www/domain.com
+    kctl-add-site -D domain.com -R /var/www/domain.com -L ru
 
 ## Developing
 
@@ -93,13 +93,13 @@ This command reads current release from RELEASE_VERSION file (eg. X.Y) and assoc
 
 ### How to specify installation package
 
-    run -a http://keitaro.io/test.zip
+    kctl-install -a http://keitaro.io/test.zip
 
 
 ### How to specify ansible tags
 
-    run -t tag1,tag2
+    kctl-install -t tag1,tag2
 
 or ignore
 
-    run -i tag3,tag4
+    kctl-install -i tag3,tag4

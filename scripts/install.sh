@@ -6,88 +6,114 @@ shopt -s lastpipe                     # flexible while loops (maintain scope)
 shopt -s extglob                      # regular expressions
 
 
-empty()
-{
-    [[ "${#1}" == 0 ]] && return 0 || return 1
-}
-
-isset ()
-{
-    [[ ! "${#1}" == 0 ]] && return 0 || return 1
-}
-
-on ()
-{
-    func="$1";
-    shift;
-    for sig in "$@";
-    do
-        trap "$func $sig" "$sig";
-    done
-}
-
-values ()
-{
-    echo "$2"
-}
-
-last ()
-{
-    [[ ! -n $1 ]] && return 1;
-    echo "$(eval "echo \${$1[@]:(-1)}")"
-}
-
-
-
-TOOL_NAME='install'
-
-SHELL_NAME=$(basename "$0")
-
 SUCCESS_RESULT=0
 TRUE=0
 FAILURE_RESULT=1
 FALSE=1
 ROOT_UID=0
 
+
+empty() {
+  [[ "${#1}" == 0 ]] && return ${SUCCESS_RESULT} || return ${FAILURE_RESULT}
+}
+
+isset() {
+  [[ ! "${#1}" == 0 ]] && return ${SUCCESS_RESULT} || return ${FAILURE_RESULT}
+}
+
+on() {
+  func="$1";
+  shift;
+  for sig in "$@";
+  do
+      trap "$func $sig" "$sig";
+  done
+}
+
+values() {
+  echo "$2"
+}
+
+last () {
+  [[ ! -n $1 ]] && return 1;
+  echo "$(eval "echo \${$1[@]:(-1)}")"
+}
+
+is_ci_mode() {
+  [[ "$EUID" != "$ROOT_UID" || "${CI}" != "" ]]
+}
+
+is_pipe_mode(){
+  [ "${SELF_NAME}" == 'bash' ]
+}
+
+
+TOOL_NAME='install'
+
+SELF_NAME=${0}
+
 KEITARO_URL="https://keitaro.io"
 
-RELEASE_VERSION='2.8'
+RELEASE_VERSION='2.12'
 DEFAULT_BRANCH="master"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
 
-WEBROOT_PATH="/var/www/keitaro"
-
-if [[ "$EUID" == "$ROOT_UID" ]]; then
-  WORKING_DIR="${HOME}/.keitaro"
-  INVENTORY_DIR="/etc/keitaro/config"
+if is_ci_mode && is_pipe_mode; then
+  ROOT_PREFIX=".keitaro"
+elif is_ci_mode; then
+  ROOT_PREFIX="$(dirname ${SELF_NAME})/.keitaro"
 else
-  WORKING_DIR=".keitaro"
-  INVENTORY_DIR=".keitaro"
+  ROOT_PREFIX=""
 fi
 
+WEBAPP_ROOT="${ROOT_PREFIX}/var/www/keitaro"
+
+KCTL_ROOT="${ROOT_PREFIX}/opt/keitaro"
+KCTL_BIN_DIR="${KCTL_ROOT}/bin"
+KCTL_LOG_DIR="${KCTL_ROOT}/log"
+KCTL_ETC_DIR="${KCTL_ROOT}/etc"
+KCTL_WORKING_DIR="${KCTL_ROOT}/tmp"
+
+ETC_DIR="${ROOT_PREFIX}/etc/keitaro"
+
+WORKING_DIR="${ROOT_PREFIX}/var/tmp/keitaro"
+
+LOG_DIR="${ROOT_PREFIX}/var/log/keitaro"
+LOG_FILENAME="${TOOL_NAME}.log"
+LOG_PATH="${LOG_DIR}/${LOG_FILENAME}"
+
+INVENTORY_DIR="${ETC_DIR}/config"
 INVENTORY_PATH="${INVENTORY_DIR}/inventory"
 DETECTED_INVENTORY_PATH=""
 
-NGINX_ROOT_PATH="/etc/nginx"
-NGINX_VHOSTS_DIR="${NGINX_ROOT_PATH}/conf.d"
+NGINX_CONFIG_ROOT="/etc/nginx"
+NGINX_VHOSTS_DIR="${NGINX_CONFIG_ROOT}/conf.d"
 NGINX_KEITARO_CONF="${NGINX_VHOSTS_DIR}/keitaro.conf"
 
-SCRIPT_NAME="${TOOL_NAME}.sh"
-SCRIPT_URL="${KEITARO_URL}/${TOOL_NAME}.sh"
-SCRIPT_LOG="${TOOL_NAME}.log"
+SCRIPT_NAME="kctl-${TOOL_NAME}"
 
-CURRENT_COMMAND_OUTPUT_LOG="current_command.output.log"
-CURRENT_COMMAND_ERROR_LOG="current_command.error.log"
+CURRENT_COMMAND_OUTPUT_LOG="${WORKING_DIR}/current_command.output.log"
+CURRENT_COMMAND_ERROR_LOG="${WORKING_DIR}/current_command.error.log"
 CURRENT_COMMAND_SCRIPT_NAME="current_command.sh"
 
 INDENTATION_LENGTH=2
 INDENTATION_SPACES=$(printf "%${INDENTATION_LENGTH}s")
 
-if ! empty ${@}; then
-  SCRIPT_COMMAND="curl -fsSL "$SCRIPT_URL" > run; bash run ${@}"
-  TOOL_ARGS="${@}"
+if [[ "${TOOL_NAME}" == "install" ]]; then
+  SCRIPT_URL="${KEITARO_URL}/${TOOL_NAME}.sh"
+  if ! empty ${@}; then
+    SCRIPT_COMMAND="curl -fsSL "$SCRIPT_URL" > run; bash run ${@}"
+    TOOL_ARGS="${@}"
+  else
+    SCRIPT_COMMAND="curl -fsSL "$SCRIPT_URL" > run; bash run"
+  fi
 else
-  SCRIPT_COMMAND="curl -fsSL "$SCRIPT_URL" > run; bash run"
+  if ! empty ${@}; then
+    SCRIPT_COMMAND="${SCRIPT_NAME} ${@}"
+    TOOL_ARGS="${@}"
+  else
+    SCRIPT_COMMAND="${SCRIPT_NAME}"
+  fi
 fi
 
 declare -A VARS
@@ -164,9 +190,12 @@ assert_installed(){
   fi
 }
 
+USE_NEW_ALGORITHM_FOR_INSTALLATION_CHECK_SINCE="2.12"
+KEITARO_LOCK_FILEPATH="${WEBAPP_ROOT}/var/install.lock"
+
 assert_keitaro_not_installed(){
   debug 'Ensure keitaro is not installed yet'
-  if is_file_exist ${WEBROOT_PATH}/var/install.lock no; then
+  if is_keitaro_installed; then
     debug 'NOK: keitaro is already installed'
     print_err "$(translate messages.keitaro_already_installed)" 'yellow'
     show_credentials
@@ -175,6 +204,20 @@ assert_keitaro_not_installed(){
   else
     debug 'OK: keitaro is not installed yet'
   fi
+}
+
+is_keitaro_installed() {
+   if should_use_new_algorithm_for_installation_check; then
+     debug "Current version is ${RELEASE_VERSION} - using new algorithm (check 'installed' flag in the inventory file)"
+     isset "${VARS['installed']}"
+   else
+     debug "Current version is ${RELEASE_VERSION} - using old algorithm (check '${KEITARO_LOCK_FILEPATH}' file)"
+     is_file_exist "${KEITARO_LOCK_FILEPATH}" no
+   fi
+}
+
+should_use_new_algorithm_for_installation_check() {
+ [[ ! $(version_to_number ${RELEASE_VERSION}) < $(version_to_number ${USE_NEW_ALGORITHM_FOR_INSTALLATION_CHECK_SINCE}) ]]
 }
 #
 
@@ -231,6 +274,27 @@ detect_installed_version(){
     version="0.9"
   fi
   echo "$version"
+}
+
+# Based on https://stackoverflow.com/a/53400482/612799
+#
+# Use:
+#   (( $(version_to_number 1.2.3.4) >= $(version_to_number 1.2.3.3) )) && echo "yes" || echo "no"
+#
+# Version number should not contain more than 4 parts (3 dots) and each part should not contain more than 3 digits
+#
+version_to_number() {
+  local version="${1}"
+  local dots="${version//[^.]}"
+  if [[ ${#dots} > 3 ]]; then
+    debug "Version number '${version}' has more than 3 dots"
+    fail "Internal error - wrong version format"
+  fi
+  if [[ "${version}" =~ [[:digit:]]{4,} ]]; then
+    debug "Version number '${version}' some part has more than 3 digits"
+    fail "Internal error - wrong version format"
+  fi
+  printf "%03d%03d%03d%03d" ${version//./ }
 }
 #
 
@@ -366,10 +430,6 @@ hack_stdin_if_pipe_mode(){
 hack_stdin(){
   exec 3<&1
 }
-
-is_pipe_mode(){
-  [ "${SHELL_NAME}" == 'bash' ]
-}
 #
 
 
@@ -444,13 +504,8 @@ detect_inventory_path(){
 
 debug(){
   local message="${1}"
-  echo "$message" >> "$SCRIPT_LOG"
+  echo "$message" >> "${LOG_PATH}"
 }
-#
-
-
-
-
 
 fail(){
   local message="${1}"
@@ -595,8 +650,8 @@ help_en_common(){
   print_err
 }
 
-init(){
-  init_log
+init() {
+  init_kctl
   force_utf8_input
   debug "Starting init stage: log basic info"
   debug "Command: ${SCRIPT_COMMAND}"
@@ -606,13 +661,54 @@ init(){
   trap on_exit SIGHUP SIGINT SIGTERM
 }
 
-init_log(){
-  if mkdir -p ${WORKING_DIR} &> /dev/null; then
-    > ${SCRIPT_LOG}
-  else
-    echo "Can't create keitaro working dir ${WORKING_DIR}" >&2
-    exit 1
+LOGS_TO_KEEP=5
+
+init_kctl() {
+  init_kctl_dirs_and_links
+  init_log
+}
+
+init_kctl_dirs_and_links() {
+  if [[ ! -d ${KCTL_ROOT} ]]; then
+    if ! create_kctl_dirs_and_links; then
+      echo "Can't create keitaro directories" >&2
+      exit 1
+    fi
   fi
+}
+
+create_kctl_dirs_and_links() {
+  mkdir -p ${INVENTORY_DIR} ${KCTL_BIN_DIR} ${WORKING_DIR} &&
+    chmod 0700 ${ETC_DIR} &&
+    ln -s ${ETC_DIR} ${KCTL_ETC_DIR} &&
+    ln -s ${LOG_DIR} ${KCTL_LOG_DIR} &&
+    ln -s ${WORKING_DIR} ${KCTL_WORKING_DIR}
+}
+
+init_log() {
+  save_previous_log
+  create_log
+  delete_old_logs
+}
+
+save_previous_log() {
+  if [[ -f "${LOG_PATH}" ]]; then
+    local log_timestamp=$(date -r "${LOG_PATH}" +"%Y%m%d%H%M%S")
+    mv "${LOG_PATH}" "${LOG_PATH}-${log_timestamp}"
+  fi
+}
+
+create_log() {
+  mkdir -p ${LOG_DIR}
+  if [[ "${TOOL_NAME}" == "install" ]] && ! is_ci_mode; then
+    (umask 066 && touch "${LOG_PATH}")
+  else
+    touch "${LOG_PATH}"
+  fi
+}
+
+delete_old_logs() {
+  find "${LOG_DIR}" -name "${LOG_FILENAME}-*" | sort | head -n -${LOGS_TO_KEEP} | xargs rm -f
 }
 
 log_and_print_err(){
@@ -637,7 +733,8 @@ print_content_of(){
   local filepath="${1}"
   if [ -f "$filepath" ]; then
     if [ -s "$filepath" ]; then
-      echo "Content of '${filepath}':\n$(cat "$filepath" | add_indentation)"
+      echo "Content of '${filepath}':"
+      cat "$filepath" | add_indentation
     else
       debug "File '${filepath}' is empty"
     fi
@@ -664,11 +761,6 @@ print_translated(){
     echo "$message"
   fi
 }
-#
-
-
-
-
 
 declare -A COLOR_CODE
 
@@ -691,7 +783,6 @@ COLOR_CODE['light.cyan']=96
 COLOR_CODE['light.grey']=37
 
 RESET_FORMATTING='\e[0m'
-
 
 print_with_color(){
   local message="${1}"
@@ -814,8 +905,8 @@ save_command_logs(){
   local evaluated_command="${1}"
   local output_log="${2}"
   local remove_colors="sed -r -e '${REMOVE_COLORS_SED_REGEX}'"
-  save_output_log="tee -i ${CURRENT_COMMAND_OUTPUT_LOG} | tee -ia >(${remove_colors} >> ${SCRIPT_LOG})"
-  save_error_log="tee -i ${CURRENT_COMMAND_ERROR_LOG} | tee -ia >(${remove_colors} >> ${SCRIPT_LOG})"
+  save_output_log="tee -i ${CURRENT_COMMAND_OUTPUT_LOG} | tee -ia >(${remove_colors} >> ${LOG_PATH})"
+  save_error_log="tee -i ${CURRENT_COMMAND_ERROR_LOG} | tee -ia >(${remove_colors} >> ${LOG_PATH})"
   if isset "${output_log}"; then
     save_output_log="${save_output_log} | tee -ia ${output_log}"
     save_error_log="${save_error_log} | tee -ia ${output_log}"
@@ -1220,11 +1311,11 @@ DICT['en.messages.check_keitaro_dump_validity']="Checking SQL dump"
 DICT['en.messages.successful.use_old_credentials']="The database was successfully restored from the archive. Use old login data"
 DICT['en.messages.successful.how_to_enable_ssl']=$(cat <<- END
 	You can install free SSL certificates with the following command
-	curl keitaro.io/enable-ssl.sh > run; bash run -D domain1.com,domain2.com
+	kctl-enable-ssl -D domain1.com,domain2.com
 END
 )
 DICT['en.errors.see_logs']=$(cat <<- END
-	Installation log saved to ${SCRIPT_LOG}. Configuration settings saved to ${INVENTORY_PATH}.
+	Installation log saved to ${LOG_PATH}. Configuration settings saved to ${INVENTORY_PATH}.
 	You can rerun \`${SCRIPT_COMMAND}\` with saved settings after resolving installation problems.
 END
 )
@@ -1269,11 +1360,11 @@ DICT['ru.messages.check_keitaro_dump_validity']="Проверяем SQL дамп
 DICT["ru.messages.successful.use_old_credentials"]="База данных успешно восстановлена из архива. Используйте старые данные для входа в систему"
 DICT['ru.messages.successful.how_to_enable_ssl']=$(cat <<- END
 	Вы можете установить бесплатные SSL сертификаты, выполнив следующую команду:
-	curl keitaro.io/enable-ssl.sh > run; bash run -D domain1.com,domain2.com
+	kctl-enable-ssl -D domain1.com,domain2.com -L ru
 END
 )
 DICT['ru.errors.see_logs']=$(cat <<- END
-	Журнал установки сохранён в ${SCRIPT_LOG}. Настройки сохранены в ${INVENTORY_PATH}.
+	Журнал установки сохранён в ${LOG_PATH}. Настройки сохранены в ${INVENTORY_PATH}.
 	Вы можете повторно запустить \`${SCRIPT_COMMAND}\` с этими настройками после устранения возникших проблем.
 END
 )
@@ -1360,8 +1451,8 @@ reset_vars_on_reconfiguration(){
 
 detect_inventory_variables(){
   if empty "${VARS['license_key']}"; then
-    if [[ -f ${WEBROOT_PATH}/var/license/key.lic ]]; then
-      VARS['license_key']="$(cat ${WEBROOT_PATH}/var/license/key.lic)"
+    if [[ -f ${WEBAPP_ROOT}/var/license/key.lic ]]; then
+      VARS['license_key']="$(cat ${WEBAPP_ROOT}/var/license/key.lic)"
       debug "Detected license key: ${VARS['license_key']}"
     fi
   fi
@@ -1389,7 +1480,7 @@ detect_inventory_variables(){
 
 get_var_from_keitaro_app_config(){
   local var="${1}"
-  get_var_from_config "${var}" "${WEBROOT_PATH}/application/config/config.ini.php" '='
+  get_var_from_config "${var}" "${WEBAPP_ROOT}/application/config/config.ini.php" '='
 }
 
 
@@ -1412,7 +1503,7 @@ check_openvz(){
 }
 
 check_thp_disable_possibility(){
-  if empty "${CI}"; then
+  if ! is_ci_mode; then
     if is_file_exist "/sys/kernel/mm/transparent_hugepage/enabled" && is_file_exist "/sys/kernel/mm/transparent_hugepage/defrag"; then
       echo never > /sys/kernel/mm/transparent_hugepage/enabled && echo never > /sys/kernel/mm/transparent_hugepage/defrag
       thp_enabled="$(cat /sys/kernel/mm/transparent_hugepage/enabled)"
@@ -1572,11 +1663,6 @@ help_en(){
   print_err "  -k RELEASE               set Keitaro release, 8 and 9 are only valid values"
   print_err
 }
-#
-
-
-
-
 
 setup_vars(){
   setup_default_value skip_firewall no
@@ -1625,11 +1711,11 @@ setup_default_value(){
   fi
 }
 
-
 generate_password(){
   local PASSWORD_LENGTH=16
   LC_ALL=C tr -cd '[:alnum:]' < /dev/urandom | head -c${PASSWORD_LENGTH}
 }
+
 stage2(){
   debug "Starting stage 2: make some asserts"
   assert_caller_root
@@ -1727,11 +1813,6 @@ assert_has_enough_ram(){
     fi
   fi
 }
-#
-
-
-
-
 
 stage3(){
   debug "Starting stage 3: read values from inventory file"
@@ -1751,7 +1832,7 @@ read_inventory(){
 
 parse_inventory(){
   local file="${1}"
-  debug "Found inventory file ${file}, read defaults from it"
+  debug "Found inventory file ${file}, reading defaults from it"
   while IFS="" read -r line; do
     if [[ "$line" =~ = ]]; then
       parse_line_from_inventory_file "$line"
@@ -1759,14 +1840,13 @@ parse_inventory(){
   done < "${file}"
 }
 
-
 parse_line_from_inventory_file(){
   local line="${1}"
   IFS="=" read var_name value <<< "$line"
   if [[ "$var_name" != 'db_restore_path' ]]; then
     if empty "${VARS[$var_name]}"; then
       VARS[$var_name]=$value
-      debug "# read $var_name from inventory"
+      debug "# read '$var_name' from inventory"
     else
       debug "# $var_name is set from options, skip inventory value"
     fi
@@ -1778,11 +1858,6 @@ upgrade_packages(){
   debug "Upgrading packages"
   run_command "yum update -y"
 }
-#
-
-
-
-
 
 stage4(){
   debug "Starting stage 4: generate inventory file"
@@ -1882,6 +1957,9 @@ write_inventory_file(){
   if isset "$CUSTOM_PACKAGE"; then
     print_line_to_inventory_file "custom_package=$CUSTOM_PACKAGE"
   fi
+  if isset "${VARS['installed']}"; then
+    print_line_to_inventory_file "installed=${VARS['installed']}"
+  fi
   debug "Writing inventory file: DONE"
 }
 
@@ -1903,12 +1981,12 @@ print_line_to_inventory_file(){
   debug "  "$line""
   echo "$line" >> "$INVENTORY_PATH"
 }
+
 stage5(){
   debug "Starting stage 5: upgrade current and install necessary packages"
   upgrade_packages
   install_packages
 }
-
 
 upgrade_packages(){
   if isset "${VARS['rhel_version']}" && [ "${VARS['rhel_version']}" == "7" ]; then
@@ -1917,7 +1995,6 @@ upgrade_packages(){
   debug "Upgrading packages"
   run_command "yum update -y"
 }
-
 
 install_packages(){
   if ! is_installed tar; then
@@ -1933,17 +2010,13 @@ install_packages(){
     fi
   fi
 }
-#
-
-
-
-
 
 stage6(){
   debug "Starting stage 6: run ansible playbook"
   download_provision
   run_ansible_playbook
   clean_up
+  signal_successful_installation
   show_successful_message
   if isset "$ANSIBLE_TAGS"; then
     debug 'ansible tags is set to ${ANSIBLE_TAGS} - skip printing credentials'
@@ -1952,24 +2025,21 @@ stage6(){
   fi
 }
 
+signal_successful_installation() {
+  debug "Signaling successful installation by writing 'installed' flag to the inventory file"
+  VARS['installed']=true
+  write_inventory_file
+}
 download_provision(){
   debug "Download provision"
   release_url="https://github.com/apliteni/centos_provision/archive/${BRANCH}.tar.gz"
   run_command "curl -fsSL ${release_url} | tar xz"
 }
-#
-
-
-
-
-
-
 
 ANSIBLE_TASK_HEADER="^TASK \[(.*)\].*"
 ANSIBLE_TASK_FAILURE_HEADER="^(fatal|failed): "
 ANSIBLE_FAILURE_JSON_FILEPATH="${WORKING_DIR}/ansible_failure.json"
 ANSIBLE_LAST_TASK_LOG="${WORKING_DIR}/ansible_last_task.log"
-
 
 run_ansible_playbook(){
   local env="ANSIBLE_FORCE_COLOR=true"
@@ -1989,7 +2059,6 @@ run_ansible_playbook(){
   run_command "${command}" '' '' '' '' 'print_ansible_fail_message'
 }
 
-
 print_ansible_fail_message(){
   local current_command_script="${1}"
   if ansible_task_found; then
@@ -2004,17 +2073,14 @@ print_ansible_fail_message(){
   fi
 }
 
-
 ansible_task_found(){
   grep -qE "$ANSIBLE_TASK_HEADER" "$CURRENT_COMMAND_OUTPUT_LOG"
 }
-
 
 print_ansible_last_task_info(){
   echo "Task info:"
   head -n2 "$ANSIBLE_LAST_TASK_LOG" | sed -r 's/\*+$//g' | add_indentation
 }
-
 
 print_ansible_last_task_external_info(){
   if ansible_task_failure_found; then
@@ -2022,11 +2088,10 @@ print_ansible_last_task_external_info(){
     cat "$ANSIBLE_LAST_TASK_LOG" \
       | keep_json_only \
       > "$ANSIBLE_FAILURE_JSON_FILEPATH"
-    fi
-    print_ansible_task_module_info
-    rm "$ANSIBLE_FAILURE_JSON_FILEPATH"
-  }
-
+  fi
+  print_ansible_task_module_info
+  rm "$ANSIBLE_FAILURE_JSON_FILEPATH"
+}
 
 ansible_task_failure_found(){
   grep -qP "$ANSIBLE_TASK_FAILURE_HEADER" "$ANSIBLE_LAST_TASK_LOG"
@@ -2054,12 +2119,10 @@ keep_json_only(){
     | sed -e '/^}$/q'
   }
 
-
 remove_text_before_last_pattern_occurence(){
   local pattern="${1}"
   sed -n -r "H;/${pattern}/h;\${g;p;}"
 }
-
 
 print_ansible_task_module_info(){
   declare -A   json
@@ -2080,7 +2143,6 @@ print_ansible_task_module_info(){
   fi
 }
 
-
 print_field_content(){
   local field_caption="${1}"
   local field_content="${2}"
@@ -2092,7 +2154,6 @@ print_field_content(){
   fi
 }
 
-
 need_print_stdout_stderr(){
   local ansible_module="${1}"
   local stdout="${2}"
@@ -2103,7 +2164,6 @@ need_print_stdout_stderr(){
   local is_stderr_set=$?
   [[ "$ansible_module" == 'cmd' || ${is_stdout_set} == ${SUCCESS_RESULT} || ${is_stderr_set} == ${SUCCESS_RESULT} ]]
 }
-
 
 need_print_full_json(){
   local ansible_module="${1}"
@@ -2318,7 +2378,7 @@ json2dict() {
 
 install(){
   init "$@"
-  stage1 "$@"                 # initial script setup
+  stage1 "$@"               # initial script setup
   stage2                    # make some asserts
   stage3                    # read vars from the inventory file
   if isset "$RECONFIGURE"; then
