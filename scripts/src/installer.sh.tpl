@@ -17,6 +17,7 @@ _require 'lib/asserts/assert_keitaro_not_installed.sh'
 _require 'lib/asserts/is_file_exist.sh'
 _require 'lib/compatibility/assert_config_relevant_or_upgrade_running.sh'
 _require 'lib/compatibility/detect_installed_version.sh'
+_require 'lib/compatibility/version_to_number.sh'
 _require 'lib/i18n/set_ui_lang.sh'
 _require 'lib/i18n/translate.sh'
 _require 'lib/io/add_indentation.sh'
@@ -24,7 +25,6 @@ _require 'lib/io/detect_mime_type.sh'
 _require 'lib/io/get_user_var.sh'
 _require 'lib/io/force_utf8_input.sh'
 _require 'lib/io/hack_stdin.sh'
-_require 'lib/io/is_pipe_mode.sh'
 _require 'lib/io/print_prompt.sh'
 _require 'lib/io/print_prompt_error.sh'
 _require 'lib/io/print_prompt_help.sh'
@@ -36,7 +36,7 @@ _require 'lib/system/debug.sh'
 _require 'lib/system/fail.sh'
 _require 'lib/system/help_and_usage.sh'
 _require 'lib/system/init.sh'
-_require 'lib/system/init_log.sh'
+_require 'lib/system/init_kctl.sh'
 _require 'lib/system/log_and_print_err.sh'
 _require 'lib/system/on_exit.sh'
 _require 'lib/system/print_content_of.sh'
@@ -101,7 +101,7 @@ _require 'app/installer/stage6/json2dict.sh'
 
 install(){
   init "$@"
-  stage1 "$@"                 # initial script setup
+  stage1 "$@"               # initial script setup
   stage2                    # make some asserts
   stage3                    # read vars from the inventory file
   if isset "$RECONFIGURE"; then

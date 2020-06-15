@@ -1,9 +1,4 @@
 #!/usr/bin/env bash
-#
-
-
-
-
 
 declare -A COLOR_CODE
 
@@ -26,7 +21,6 @@ COLOR_CODE['light.cyan']=96
 COLOR_CODE['light.grey']=37
 
 RESET_FORMATTING='\e[0m'
-
 
 print_with_color(){
   local message="${1}"

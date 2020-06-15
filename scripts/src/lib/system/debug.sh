@@ -2,5 +2,5 @@
 
 debug(){
   local message="${1}"
-  echo "$message" >> "$SCRIPT_LOG"
+  echo "$message" >> "${LOG_PATH}"
 }

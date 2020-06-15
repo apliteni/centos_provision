@@ -20,7 +20,7 @@ _require 'lib/system/clean_up.sh'
 _require 'lib/system/debug.sh'
 _require 'lib/system/fail.sh'
 _require 'lib/system/init.sh'
-_require 'lib/system/init_log.sh'
+_require 'lib/system/init_kctl.sh'
 _require 'lib/system/log_and_print_err.sh'
 _require 'lib/system/on_exit.sh'
 _require 'lib/system/print_content_of.sh'
@@ -46,6 +46,7 @@ test_run_command(){
   local run_as="${5}"
   local failed_logs_filter="${6}"
   UI_LANG=en
+  init
   run_command "${command}" "${message}" "${hide_output}" "${allow_errors}" "${run_as}" "${failed_logs_filter}"
 }
 

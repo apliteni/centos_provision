@@ -1,9 +1,4 @@
 #!/usr/bin/env bash
-#
-
-
-
-
 
 setup_vars(){
   setup_default_value skip_firewall no
@@ -51,7 +46,6 @@ setup_default_value(){
     debug "VARS['${var_name}'] is set to '${VARS[$var_name]}'"
   fi
 }
-
 
 generate_password(){
   local PASSWORD_LENGTH=16

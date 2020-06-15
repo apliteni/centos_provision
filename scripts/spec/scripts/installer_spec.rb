@@ -6,6 +6,7 @@ RSpec.describe 'install.sh' do
 
   BRANCH='master'
   PLAYBOOK_PATH="centos_provision-#{BRANCH}/playbook.yml"
+  INVENTORY_PATH='./.keitaro/etc/keitaro/config/inventory'
 
   let(:stored_values) { {} }
   let(:script_name) { 'install.sh' }
@@ -196,20 +197,20 @@ RSpec.describe 'install.sh' do
                       %r{curl -fsSL https://github.com/.*/#{BRANCH}.tar.gz | tar xz}
 
       it_behaves_like 'should print to', :stdout,
-                      "ansible-playbook -vvv -i /etc/keitaro/config/inventory #{PLAYBOOK_PATH}"
+                      "ansible-playbook -vvv -i #{INVENTORY_PATH} #{PLAYBOOK_PATH}"
 
       context '-t specified' do
         let(:options) { '-p -t tag1,tag2' }
 
         it_behaves_like 'should print to', :stdout,
-                        "ansible-playbook -vvv -i /etc/keitaro/config/inventory #{PLAYBOOK_PATH} --tags tag1,tag2"
+                        "ansible-playbook -vvv -i #{INVENTORY_PATH} #{PLAYBOOK_PATH} --tags tag1,tag2"
       end
 
       context '-i specified' do
         let(:options) { '-p -i tag1,tag2' }
 
         it_behaves_like 'should print to', :stdout,
-                        "ansible-playbook -vvv -i /etc/keitaro/config/inventory #{PLAYBOOK_PATH} --skip-tags tag1,tag2"
+                        "ansible-playbook -vvv -i #{INVENTORY_PATH} #{PLAYBOOK_PATH} --skip-tags tag1,tag2"
       end
     end
 
@@ -266,8 +267,8 @@ RSpec.describe 'install.sh' do
 
       it_behaves_like 'should exit with error', [
         %r{There was an error evaluating current command\n(.*\n){3}.* ansible-playbook},
-        'Installation log saved to install.log',
-        'Configuration settings saved to /etc/keitaro/config/inventory',
+        'Installation log saved to ./.keitaro/var/log/keitaro/install.log',
+        'Configuration settings saved to ./.keitaro/etc/keitaro/config/inventory',
         'You can rerun `curl -fsSL https://keitaro.io/install.sh > run; bash run`'
       ]
     end
@@ -357,8 +358,13 @@ RSpec.describe 'install.sh' do
   end
 
   describe 'fails if keitaro is already installed' do
+
+    INVENTORY_DIR = File.dirname(INVENTORY_PATH)
+
     let(:docker_image) { 'centos' }
-    let(:commands) { ['mkdir -p /var/www/keitaro/var', 'touch /var/www/keitaro/var/install.lock'] }
+
+    let(:command_stubs) { default_command_stubs }
+    let(:commands) { ["mkdir -p #{INVENTORY_DIR}", %Q{echo "installed=true" > #{INVENTORY_PATH}}] }
 
     it_behaves_like 'should exit with error', 'Keitaro is already installed'
   end

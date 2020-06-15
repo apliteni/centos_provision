@@ -38,6 +38,9 @@ write_inventory_file(){
   if isset "$CUSTOM_PACKAGE"; then
     print_line_to_inventory_file "custom_package=$CUSTOM_PACKAGE"
   fi
+  if isset "${VARS['installed']}"; then
+    print_line_to_inventory_file "installed=${VARS['installed']}"
+  fi
   debug "Writing inventory file: DONE"
 }
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-init(){
-  init_log
+init() {
+  init_kctl
   force_utf8_input
   debug "Starting init stage: log basic info"
   debug "Command: ${SCRIPT_COMMAND}"

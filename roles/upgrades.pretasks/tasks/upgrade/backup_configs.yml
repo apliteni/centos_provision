@@ -1,11 +1,11 @@
 - name: Create backup dir
   file:
-    path: "{{ keitaro_backup_dir }}"
+    path: "{{ keitaro_backups_current_dir }}"
     mode: 0700
     state: directory
 
 - name: Backup configs
-  shell: cp -R /etc/{{ item }} "{{ keitaro_backup_dir }}/{{ item }}"
+  shell: test -e /etc/{{item}} && cp -R /etc/{{ item }} {{ keitaro_backups_current_dir }}/{{ item }} || true
   with_items:
     - letsencrypt
     - logrotate.d
@@ -13,3 +13,13 @@
     - nginx
     - php
     - selinux
+
+- name: Get older backups list
+  shell: "ls {{ keitaro_backups_root }} | head -n -{{ keitaro_backups_copies_to_keep }}"
+  register: keitaro_backups_list_outdated_backup_directories_result
+
+- name: Remove older backups
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items: "{{ keitaro_backups_list_outdated_backup_directories_result.stdout_lines }}"

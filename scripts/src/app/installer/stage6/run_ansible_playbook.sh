@@ -1,17 +1,9 @@
 #!/usr/bin/env bash
-#
-
-
-
-
-
-
 
 ANSIBLE_TASK_HEADER="^TASK \[(.*)\].*"
 ANSIBLE_TASK_FAILURE_HEADER="^(fatal|failed): "
 ANSIBLE_FAILURE_JSON_FILEPATH="${WORKING_DIR}/ansible_failure.json"
 ANSIBLE_LAST_TASK_LOG="${WORKING_DIR}/ansible_last_task.log"
-
 
 run_ansible_playbook(){
   local env="ANSIBLE_FORCE_COLOR=true"
@@ -31,7 +23,6 @@ run_ansible_playbook(){
   run_command "${command}" '' '' '' '' 'print_ansible_fail_message'
 }
 
-
 print_ansible_fail_message(){
   local current_command_script="${1}"
   if ansible_task_found; then
@@ -46,17 +37,14 @@ print_ansible_fail_message(){
   fi
 }
 
-
 ansible_task_found(){
   grep -qE "$ANSIBLE_TASK_HEADER" "$CURRENT_COMMAND_OUTPUT_LOG"
 }
-
 
 print_ansible_last_task_info(){
   echo "Task info:"
   head -n2 "$ANSIBLE_LAST_TASK_LOG" | sed -r 's/\*+$//g' | add_indentation
 }
-
 
 print_ansible_last_task_external_info(){
   if ansible_task_failure_found; then
@@ -64,11 +52,10 @@ print_ansible_last_task_external_info(){
     cat "$ANSIBLE_LAST_TASK_LOG" \
       | keep_json_only \
       > "$ANSIBLE_FAILURE_JSON_FILEPATH"
-    fi
-    print_ansible_task_module_info
-    rm "$ANSIBLE_FAILURE_JSON_FILEPATH"
-  }
-
+  fi
+  print_ansible_task_module_info
+  rm "$ANSIBLE_FAILURE_JSON_FILEPATH"
+}
 
 ansible_task_failure_found(){
   grep -qP "$ANSIBLE_TASK_FAILURE_HEADER" "$ANSIBLE_LAST_TASK_LOG"
@@ -96,12 +83,10 @@ keep_json_only(){
     | sed -e '/^}$/q'
   }
 
-
 remove_text_before_last_pattern_occurence(){
   local pattern="${1}"
   sed -n -r "H;/${pattern}/h;\${g;p;}"
 }
-
 
 print_ansible_task_module_info(){
   declare -A   json
@@ -122,7 +107,6 @@ print_ansible_task_module_info(){
   fi
 }
 
-
 print_field_content(){
   local field_caption="${1}"
   local field_content="${2}"
@@ -134,7 +118,6 @@ print_field_content(){
   fi
 }
 
-
 need_print_stdout_stderr(){
   local ansible_module="${1}"
   local stdout="${2}"
@@ -145,7 +128,6 @@ need_print_stdout_stderr(){
   local is_stderr_set=$?
   [[ "$ansible_module" == 'cmd' || ${is_stdout_set} == ${SUCCESS_RESULT} || ${is_stderr_set} == ${SUCCESS_RESULT} ]]
 }
-
 
 need_print_full_json(){
   local ansible_module="${1}"

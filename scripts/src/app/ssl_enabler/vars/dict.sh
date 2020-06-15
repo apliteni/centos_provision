@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 DICT['en.prompts.ssl_domains']='Please enter domains separated by comma without spaces'
 DICT['en.prompts.ssl_domains.help']='Make sure all the domains are already linked to this server in the DNS'
-DICT['en.errors.see_logs']="Evaluating log saved to ${SCRIPT_LOG}. Please rerun \`${SCRIPT_COMMAND}\` after resolving problems."
+DICT['en.errors.see_logs']="Evaluating log saved to ${LOG_PATH}. Please rerun \`${SCRIPT_COMMAND}\` after resolving problems."
 DICT['en.errors.domain_invalid']=":domain: doesn't look as valid domain"
 DICT['en.certbot_errors.wrong_a_entry']="Please make sure that your domain name was entered correctly and the DNS A record for that domain contains the right IP address. You need to wait a little if the DNS A record was updated recently."
 DICT['en.certbot_errors.too_many_requests']="There were too many requests. See https://letsencrypt.org/docs/rate-limits/."
@@ -19,7 +19,7 @@ DICT['en.warnings.skip_nginx_config_generation']="skipping nginx config generati
 
 DICT['ru.prompts.ssl_domains']='Укажите список доменов через запятую без пробелов'
 DICT['ru.prompts.ssl_domains.help']='Убедитесь, что все указанные домены привязаны к этому серверу в DNS.'
-DICT['ru.errors.see_logs']="Журнал выполнения сохранён в ${SCRIPT_LOG}. Пожалуйста запустите \`${SCRIPT_COMMAND}\` после устранения возникших проблем."
+DICT['ru.errors.see_logs']="Журнал выполнения сохранён в ${LOG_PATH}. Пожалуйста запустите \`${SCRIPT_COMMAND}\` после устранения возникших проблем."
 DICT['ru.errors.domain_invalid']=":domain: не похож на домен"
 DICT['ru.certbot_errors.wrong_a_entry']="Убедитесь что домен верный и что DNS A запись указывает на нужный IP адрес. Если A запись была обновлена недавно, то следует подождать некоторое время."
 DICT['ru.certbot_errors.too_many_requests']="Было слишком много запросов, см. https://letsencrypt.org/docs/rate-limits/"

@@ -1,20 +1,3 @@
-- name: remove old Certbot package
-  package:
-    name: certbot
-    state: absent
-  when: rhel_version == 7
-  
-- name: remove old Certbot package
-  dnf:
-    name: certbot
-    state: absent  
-  when: rhel_version == 8
-  
-- name: remove old Certbot
-  file:
-    path: "{{ certbot_dir }}/certbot"
-    state: absent
-  
 - name: download certbot-auto
   get_url:
     url: "{{ certbot_url }}"
