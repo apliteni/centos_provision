@@ -6,87 +6,113 @@ shopt -s lastpipe                     # flexible while loops (maintain scope)
 shopt -s extglob                      # regular expressions
 
 
-empty()
-{
-    [[ "${#1}" == 0 ]] && return 0 || return 1
-}
-
-isset ()
-{
-    [[ ! "${#1}" == 0 ]] && return 0 || return 1
-}
-
-on ()
-{
-    func="$1";
-    shift;
-    for sig in "$@";
-    do
-        trap "$func $sig" "$sig";
-    done
-}
-
-values ()
-{
-    echo "$2"
-}
-
-last ()
-{
-    [[ ! -n $1 ]] && return 1;
-    echo "$(eval "echo \${$1[@]:(-1)}")"
-}
-
-
-TOOL_NAME='add-site'
-
-SHELL_NAME=$(basename "$0")
-
 SUCCESS_RESULT=0
 TRUE=0
 FAILURE_RESULT=1
 FALSE=1
 ROOT_UID=0
 
+
+empty() {
+  [[ "${#1}" == 0 ]] && return ${SUCCESS_RESULT} || return ${FAILURE_RESULT}
+}
+
+isset() {
+  [[ ! "${#1}" == 0 ]] && return ${SUCCESS_RESULT} || return ${FAILURE_RESULT}
+}
+
+on() {
+  func="$1";
+  shift;
+  for sig in "$@";
+  do
+      trap "$func $sig" "$sig";
+  done
+}
+
+values() {
+  echo "$2"
+}
+
+last () {
+  [[ ! -n $1 ]] && return 1;
+  echo "$(eval "echo \${$1[@]:(-1)}")"
+}
+
+is_ci_mode() {
+  [[ "$EUID" != "$ROOT_UID" || "${CI}" != "" ]]
+}
+
+is_pipe_mode(){
+  [ "${SELF_NAME}" == 'bash' ]
+}
+
+TOOL_NAME='add-site'
+
+SELF_NAME=${0}
+
 KEITARO_URL="https://keitaro.io"
 
-RELEASE_VERSION='2.8'
+RELEASE_VERSION='2.12'
 DEFAULT_BRANCH="master"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
 
-WEBROOT_PATH="/var/www/keitaro"
-
-if [[ "$EUID" == "$ROOT_UID" ]]; then
-  WORKING_DIR="${HOME}/.keitaro"
-  INVENTORY_DIR="/etc/keitaro/config"
+if is_ci_mode && is_pipe_mode; then
+  ROOT_PREFIX=".keitaro"
+elif is_ci_mode; then
+  ROOT_PREFIX="$(dirname ${SELF_NAME})/.keitaro"
 else
-  WORKING_DIR=".keitaro"
-  INVENTORY_DIR=".keitaro"
+  ROOT_PREFIX=""
 fi
 
+WEBAPP_ROOT="${ROOT_PREFIX}/var/www/keitaro"
+
+KCTL_ROOT="${ROOT_PREFIX}/opt/keitaro"
+KCTL_BIN_DIR="${KCTL_ROOT}/bin"
+KCTL_LOG_DIR="${KCTL_ROOT}/log"
+KCTL_ETC_DIR="${KCTL_ROOT}/etc"
+KCTL_WORKING_DIR="${KCTL_ROOT}/tmp"
+
+ETC_DIR="${ROOT_PREFIX}/etc/keitaro"
+
+WORKING_DIR="${ROOT_PREFIX}/var/tmp/keitaro"
+
+LOG_DIR="${ROOT_PREFIX}/var/log/keitaro"
+LOG_FILENAME="${TOOL_NAME}.log"
+LOG_PATH="${LOG_DIR}/${LOG_FILENAME}"
+
+INVENTORY_DIR="${ETC_DIR}/config"
 INVENTORY_PATH="${INVENTORY_DIR}/inventory"
 DETECTED_INVENTORY_PATH=""
 
-NGINX_ROOT_PATH="/etc/nginx"
-NGINX_VHOSTS_DIR="${NGINX_ROOT_PATH}/conf.d"
+NGINX_CONFIG_ROOT="/etc/nginx"
+NGINX_VHOSTS_DIR="${NGINX_CONFIG_ROOT}/conf.d"
 NGINX_KEITARO_CONF="${NGINX_VHOSTS_DIR}/keitaro.conf"
 
-SCRIPT_NAME="${TOOL_NAME}.sh"
-SCRIPT_URL="${KEITARO_URL}/${TOOL_NAME}.sh"
-SCRIPT_LOG="${TOOL_NAME}.log"
+SCRIPT_NAME="kctl-${TOOL_NAME}"
 
-CURRENT_COMMAND_OUTPUT_LOG="current_command.output.log"
-CURRENT_COMMAND_ERROR_LOG="current_command.error.log"
+CURRENT_COMMAND_OUTPUT_LOG="${WORKING_DIR}/current_command.output.log"
+CURRENT_COMMAND_ERROR_LOG="${WORKING_DIR}/current_command.error.log"
 CURRENT_COMMAND_SCRIPT_NAME="current_command.sh"
 
 INDENTATION_LENGTH=2
 INDENTATION_SPACES=$(printf "%${INDENTATION_LENGTH}s")
 
-if ! empty ${@}; then
-  SCRIPT_COMMAND="curl -fsSL "$SCRIPT_URL" > run; bash run ${@}"
-  TOOL_ARGS="${@}"
+if [[ "${TOOL_NAME}" == "install" ]]; then
+  SCRIPT_URL="${KEITARO_URL}/${TOOL_NAME}.sh"
+  if ! empty ${@}; then
+    SCRIPT_COMMAND="curl -fsSL "$SCRIPT_URL" > run; bash run ${@}"
+    TOOL_ARGS="${@}"
+  else
+    SCRIPT_COMMAND="curl -fsSL "$SCRIPT_URL" > run; bash run"
+  fi
 else
-  SCRIPT_COMMAND="curl -fsSL "$SCRIPT_URL" > run; bash run"
+  if ! empty ${@}; then
+    SCRIPT_COMMAND="${SCRIPT_NAME} ${@}"
+    TOOL_ARGS="${@}"
+  else
+    SCRIPT_COMMAND="${SCRIPT_NAME}"
+  fi
 fi
 
 declare -A VARS
@@ -135,7 +161,7 @@ END
 DICT['ru.prompt_errors.validate_presence']='Введите значение'
 DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
 
-DICT['en.errors.see_logs']="Evaluating log saved to ${SCRIPT_LOG}. Please rerun \`${SCRIPT_COMMAND}\` after resolving problems."
+DICT['en.errors.see_logs']="Evaluating log saved to ${LOG_PATH}. Please rerun \`${SCRIPT_COMMAND}\` after resolving problems."
 DICT['en.errors.vhost_already_exists']="Can not save site configuration - :vhost_filepath: already exists"
 DICT['en.errors.site_root_not_exists']="Can not save site configuration - :site_root: directory does not exist"
 DICT['en.prompts.site_domains']='Please enter domains separated by comma without spaces'
@@ -143,7 +169,7 @@ DICT['en.prompts.site_root']='Please enter site root directory'
 DICT['en.prompt_errors.validate_directory_existence']="Directory :value: doesn't exist"
 
 DICT['ru.prompts.ssl_domains.help']='Убедитесь, что все указанные домены привязаны к этому серверу в DNS.'
-DICT['ru.errors.see_logs']="Журнал выполнения сохранён в ${SCRIPT_LOG}. Пожалуйста запустите \`${SCRIPT_COMMAND}\` после устранения возникших проблем."
+DICT['ru.errors.see_logs']="Журнал выполнения сохранён в ${LOG_PATH}. Пожалуйста запустите \`${SCRIPT_COMMAND}\` после устранения возникших проблем."
 DICT['ru.errors.vhost_already_exists']="Невозможно сохранить конфигурацию сайта - :vhost_filepath: уже существует"
 DICT['ru.errors.site_root_not_exists']="Невозможно сохранить конфигурацию сайта - нет директории :site_root:"
 DICT['ru.prompts.site_domains']='Укажите список доменов через запятую без пробелов'
@@ -490,10 +516,6 @@ hack_stdin_if_pipe_mode(){
 hack_stdin(){
   exec 3<&1
 }
-
-is_pipe_mode(){
-  [ "${SHELL_NAME}" == 'bash' ]
-}
 #
 
 
@@ -627,13 +649,8 @@ clean_up(){
 
 debug(){
   local message="${1}"
-  echo "$message" >> "$SCRIPT_LOG"
+  echo "$message" >> "${LOG_PATH}"
 }
-#
-
-
-
-
 
 fail(){
   local message="${1}"
@@ -648,8 +665,8 @@ fail(){
   exit ${FAILURE_RESULT}
 }
 
-init(){
-  init_log
+init() {
+  init_kctl
   force_utf8_input
   debug "Starting init stage: log basic info"
   debug "Command: ${SCRIPT_COMMAND}"
@@ -659,13 +676,54 @@ init(){
   trap on_exit SIGHUP SIGINT SIGTERM
 }
 
-init_log(){
-  if mkdir -p ${WORKING_DIR} &> /dev/null; then
-    > ${SCRIPT_LOG}
-  else
-    echo "Can't create keitaro working dir ${WORKING_DIR}" >&2
-    exit 1
+LOGS_TO_KEEP=5
+
+init_kctl() {
+  init_kctl_dirs_and_links
+  init_log
+}
+
+init_kctl_dirs_and_links() {
+  if [[ ! -d ${KCTL_ROOT} ]]; then
+    if ! create_kctl_dirs_and_links; then
+      echo "Can't create keitaro directories" >&2
+      exit 1
+    fi
   fi
+}
+
+create_kctl_dirs_and_links() {
+  mkdir -p ${INVENTORY_DIR} ${KCTL_BIN_DIR} ${WORKING_DIR} &&
+    chmod 0700 ${ETC_DIR} &&
+    ln -s ${ETC_DIR} ${KCTL_ETC_DIR} &&
+    ln -s ${LOG_DIR} ${KCTL_LOG_DIR} &&
+    ln -s ${WORKING_DIR} ${KCTL_WORKING_DIR}
+}
+
+init_log() {
+  save_previous_log
+  create_log
+  delete_old_logs
+}
+
+save_previous_log() {
+  if [[ -f "${LOG_PATH}" ]]; then
+    local log_timestamp=$(date -r "${LOG_PATH}" +"%Y%m%d%H%M%S")
+    mv "${LOG_PATH}" "${LOG_PATH}-${log_timestamp}"
+  fi
+}
+
+create_log() {
+  mkdir -p ${LOG_DIR}
+  if [[ "${TOOL_NAME}" == "install" ]] && ! is_ci_mode; then
+    (umask 066 && touch "${LOG_PATH}")
+  else
+    touch "${LOG_PATH}"
+  fi
+}
+
+delete_old_logs() {
+  find "${LOG_DIR}" -name "${LOG_FILENAME}-*" | sort | head -n -${LOGS_TO_KEEP} | xargs rm -f
 }
 
 log_and_print_err(){
@@ -690,7 +748,8 @@ print_content_of(){
   local filepath="${1}"
   if [ -f "$filepath" ]; then
     if [ -s "$filepath" ]; then
-      echo "Content of '${filepath}':\n$(cat "$filepath" | add_indentation)"
+      echo "Content of '${filepath}':"
+      cat "$filepath" | add_indentation
     else
       debug "File '${filepath}' is empty"
     fi
@@ -717,11 +776,6 @@ print_translated(){
     echo "$message"
   fi
 }
-#
-
-
-
-
 
 declare -A COLOR_CODE
 
@@ -744,7 +798,6 @@ COLOR_CODE['light.cyan']=96
 COLOR_CODE['light.grey']=37
 
 RESET_FORMATTING='\e[0m'
-
 
 print_with_color(){
   local message="${1}"
@@ -872,8 +925,8 @@ save_command_logs(){
   local evaluated_command="${1}"
   local output_log="${2}"
   local remove_colors="sed -r -e '${REMOVE_COLORS_SED_REGEX}'"
-  save_output_log="tee -i ${CURRENT_COMMAND_OUTPUT_LOG} | tee -ia >(${remove_colors} >> ${SCRIPT_LOG})"
-  save_error_log="tee -i ${CURRENT_COMMAND_ERROR_LOG} | tee -ia >(${remove_colors} >> ${SCRIPT_LOG})"
+  save_output_log="tee -i ${CURRENT_COMMAND_OUTPUT_LOG} | tee -ia >(${remove_colors} >> ${LOG_PATH})"
+  save_error_log="tee -i ${CURRENT_COMMAND_ERROR_LOG} | tee -ia >(${remove_colors} >> ${LOG_PATH})"
   if isset "${output_log}"; then
     save_output_log="${save_output_log} | tee -ia ${output_log}"
     save_error_log="${save_error_log} | tee -ia ${output_log}"

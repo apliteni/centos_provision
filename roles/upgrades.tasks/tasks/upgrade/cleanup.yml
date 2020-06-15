@@ -1,4 +1,4 @@
-- name: Remove old ssl certs
+- name: Remove old files
   file:
     path: "{{ item }}"
     state: absent
@@ -6,16 +6,14 @@
     - /etc/nginx/ssl/cert.pem
     - /etc/nginx/ssl/privkey.pem
     - /etc/ssl/certs/dhparam.pem
-
-- name: Remove old hosts file
-  file:
-    path: /root/hosts.txt
-    state: absent
-
-- name: Remove install.php
-  file:
-    path: "{{ keitaro_root }}/install.php"
-    state: absent
+    - "{{ keitaro_root }}/install.php"
+    - /etc/logrotate.d/mariadb
+    - /etc/keitaro/roadrunner.yml
+    - /etc/sudoers.d/10-enable-ssl-command
+    - /root/hosts.txt
+    - /root/install.log
+    - /root/enable-ssl.log
+    - /root/add-site.log
 
 - name: Remove all cron tasks of nginx user
   shell: "crontab -r -u {{ nginx_user }} || true"
@@ -23,12 +21,7 @@
 - name: Remove old root cron.php task
   shell: 'sed -i /cron.php/d /var/spool/cron/root'
 
-- name: Remove old mariadb logrotate config
-  file:
-    path: /etc/logrotate.d/mariadb
-    state: absent
-
-- name: Remove old roadrunner files
-  file:
-    path: /etc/keitaro/roadrunner.yml
+- name: Remove old packages
+  package:
+    name: certbot
     state: absent

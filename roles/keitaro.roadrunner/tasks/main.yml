@@ -20,3 +20,18 @@
     dest: /usr/local/bin/rr
     state: link
     force: true
+    
+- name: check roadrunner symlink is exist
+  stat: 
+    path: /usr/local/bin/roadrunner
+  register: roadrunner
+  
+- name: check rr is exist
+  stat:
+    path: /usr/local/bin/rr
+  register: rr 
+
+- name: fail if roadrunner not installed
+  fail: 
+    msg: "Roadrunner is not installed"
+  when: not rr.stat.exists or not roadrunner.stat.exists

@@ -2,7 +2,7 @@ keitaro_user: keitaro
 keitaro_group: keitaro
 keitaro_home: /home/keitaro
 keitaro_root: /var/www/keitaro
-keitaro_install_php: https://files.keitaro.io/scripts/install-php/latest/install.php
+keitaro_install_php: "https://files.keitaro.io/scripts/install-php/latest/install.php"
 keitaro_config_dir: /etc/keitaro
 keitaro_config_backups_dir: "{{ keitaro_config_dir }}/backups"
 keitaro_stats_json_path: "{{ keitaro_root }}/var/stats.json"
@@ -10,6 +10,10 @@ keitaro_watch_list: "{{ keitaro_root }}/application/data/watch_list.txt"
 keitaro_logrotate_common_period: 5
 keitaro_logrotate_nginx_period: 14
 keitaro_installer_version: "{{ lookup('file', 'RELEASE_VERSION') }}"
-keitaro_tools_url: https://github.com/apliteni/centos_provision/raw/v{{ keitaro_installer_version }}/scripts
 keitaro_release: 9
-keitaro_url: https://keitaro.io
+keitaro_url: "https://keitaro.io"
+
+kctl_root: /opt/keitaro
+kctl_bin_dir: "{{ kctl_root }}/bin"
+kctl_tools_url: "https://github.com/apliteni/centos_provision/raw/current/scripts"
+kctl_tool_names: [install, enable-ssl, delete-ssl, add-site]

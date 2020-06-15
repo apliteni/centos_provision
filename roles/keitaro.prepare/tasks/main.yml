@@ -1,16 +1,16 @@
 - include: create_user.yml
 
+- include: install_kctl_tools.yml
+
 - include: install_tools.yml
 
 - include: install_cronie.yml
-
-- include: install_sudo.yml
 
 - include: prepare_home.yml
 
 - include: prepare_ssl.yml
 
-- include: add_sudo_enable_ssl.yml
+- include: allow_keitaro_user_to_run_kctl_enable_ssl.yml
 
 - include: prepare_config_dirs.yml
 
