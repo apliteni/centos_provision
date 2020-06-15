@@ -8,11 +8,11 @@ DICT['en.messages.check_keitaro_dump_validity']="Checking SQL dump"
 DICT['en.messages.successful.use_old_credentials']="The database was successfully restored from the archive. Use old login data"
 DICT['en.messages.successful.how_to_enable_ssl']=$(cat <<- END
 	You can install free SSL certificates with the following command
-	curl keitaro.io/enable-ssl.sh > run; bash run -D domain1.com,domain2.com
+	kctl-enable-ssl -D domain1.com,domain2.com
 END
 )
 DICT['en.errors.see_logs']=$(cat <<- END
-	Installation log saved to ${SCRIPT_LOG}. Configuration settings saved to ${INVENTORY_PATH}.
+	Installation log saved to ${LOG_PATH}. Configuration settings saved to ${INVENTORY_PATH}.
 	You can rerun \`${SCRIPT_COMMAND}\` with saved settings after resolving installation problems.
 END
 )
@@ -57,11 +57,11 @@ DICT['ru.messages.check_keitaro_dump_validity']="Проверяем SQL дамп
 DICT["ru.messages.successful.use_old_credentials"]="База данных успешно восстановлена из архива. Используйте старые данные для входа в систему"
 DICT['ru.messages.successful.how_to_enable_ssl']=$(cat <<- END
 	Вы можете установить бесплатные SSL сертификаты, выполнив следующую команду:
-	curl keitaro.io/enable-ssl.sh > run; bash run -D domain1.com,domain2.com
+	kctl-enable-ssl -D domain1.com,domain2.com -L ru
 END
 )
 DICT['ru.errors.see_logs']=$(cat <<- END
-	Журнал установки сохранён в ${SCRIPT_LOG}. Настройки сохранены в ${INVENTORY_PATH}.
+	Журнал установки сохранён в ${LOG_PATH}. Настройки сохранены в ${INVENTORY_PATH}.
 	Вы можете повторно запустить \`${SCRIPT_COMMAND}\` с этими настройками после устранения возникших проблем.
 END
 )

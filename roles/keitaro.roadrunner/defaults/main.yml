@@ -1,4 +1,4 @@
-rr_version: 1.4.6
+rr_version: 1.8.1
 rr_release_name: "roadrunner-{{ rr_version }}-linux-amd64"
 rr_bin: /usr/local/bin/roadrunner
 rr_wrapper: /usr/local/bin/keitaro-roadrunner

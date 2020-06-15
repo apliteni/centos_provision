@@ -11,7 +11,7 @@ check_openvz(){
 }
 
 check_thp_disable_possibility(){
-  if empty "${CI}"; then
+  if ! is_ci_mode; then
     if is_file_exist "/sys/kernel/mm/transparent_hugepage/enabled" && is_file_exist "/sys/kernel/mm/transparent_hugepage/defrag"; then
       echo never > /sys/kernel/mm/transparent_hugepage/enabled && echo never > /sys/kernel/mm/transparent_hugepage/defrag
       thp_enabled="$(cat /sys/kernel/mm/transparent_hugepage/enabled)"

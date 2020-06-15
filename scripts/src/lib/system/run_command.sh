@@ -110,8 +110,8 @@ save_command_logs(){
   local evaluated_command="${1}"
   local output_log="${2}"
   local remove_colors="sed -r -e '${REMOVE_COLORS_SED_REGEX}'"
-  save_output_log="tee -i ${CURRENT_COMMAND_OUTPUT_LOG} | tee -ia >(${remove_colors} >> ${SCRIPT_LOG})"
-  save_error_log="tee -i ${CURRENT_COMMAND_ERROR_LOG} | tee -ia >(${remove_colors} >> ${SCRIPT_LOG})"
+  save_output_log="tee -i ${CURRENT_COMMAND_OUTPUT_LOG} | tee -ia >(${remove_colors} >> ${LOG_PATH})"
+  save_error_log="tee -i ${CURRENT_COMMAND_ERROR_LOG} | tee -ia >(${remove_colors} >> ${LOG_PATH})"
   if isset "${output_log}"; then
     save_output_log="${save_output_log} | tee -ia ${output_log}"
     save_error_log="${save_error_log} | tee -ia ${output_log}"

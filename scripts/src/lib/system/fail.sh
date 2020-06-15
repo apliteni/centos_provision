@@ -1,9 +1,4 @@
 #!/usr/bin/env bash
-#
-
-
-
-
 
 fail(){
   local message="${1}"

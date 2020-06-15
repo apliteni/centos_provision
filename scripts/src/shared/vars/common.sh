@@ -1,52 +1,69 @@
 #!/usr/bin/env bash
 
-SHELL_NAME=$(basename "$0")
-
-SUCCESS_RESULT=0
-TRUE=0
-FAILURE_RESULT=1
-FALSE=1
-ROOT_UID=0
+SELF_NAME=${0}
 
 KEITARO_URL="https://keitaro.io"
 
-RELEASE_VERSION='2.8'
+RELEASE_VERSION='2.12'
 DEFAULT_BRANCH="master"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
 
-WEBROOT_PATH="/var/www/keitaro"
-
-if [[ "$EUID" == "$ROOT_UID" ]]; then
-  WORKING_DIR="${HOME}/.keitaro"
-  INVENTORY_DIR="/etc/keitaro/config"
+if is_ci_mode && is_pipe_mode; then
+  ROOT_PREFIX=".keitaro"
+elif is_ci_mode; then
+  ROOT_PREFIX="$(dirname ${SELF_NAME})/.keitaro"
 else
-  WORKING_DIR=".keitaro"
-  INVENTORY_DIR=".keitaro"
+  ROOT_PREFIX=""
 fi
 
+WEBAPP_ROOT="${ROOT_PREFIX}/var/www/keitaro"
+
+KCTL_ROOT="${ROOT_PREFIX}/opt/keitaro"
+KCTL_BIN_DIR="${KCTL_ROOT}/bin"
+KCTL_LOG_DIR="${KCTL_ROOT}/log"
+KCTL_ETC_DIR="${KCTL_ROOT}/etc"
+KCTL_WORKING_DIR="${KCTL_ROOT}/tmp"
+
+ETC_DIR="${ROOT_PREFIX}/etc/keitaro"
+
+WORKING_DIR="${ROOT_PREFIX}/var/tmp/keitaro"
+
+LOG_DIR="${ROOT_PREFIX}/var/log/keitaro"
+LOG_FILENAME="${TOOL_NAME}.log"
+LOG_PATH="${LOG_DIR}/${LOG_FILENAME}"
+
+INVENTORY_DIR="${ETC_DIR}/config"
 INVENTORY_PATH="${INVENTORY_DIR}/inventory"
 DETECTED_INVENTORY_PATH=""
 
-NGINX_ROOT_PATH="/etc/nginx"
-NGINX_VHOSTS_DIR="${NGINX_ROOT_PATH}/conf.d"
+NGINX_CONFIG_ROOT="/etc/nginx"
+NGINX_VHOSTS_DIR="${NGINX_CONFIG_ROOT}/conf.d"
 NGINX_KEITARO_CONF="${NGINX_VHOSTS_DIR}/keitaro.conf"
 
-SCRIPT_NAME="${TOOL_NAME}.sh"
-SCRIPT_URL="${KEITARO_URL}/${TOOL_NAME}.sh"
-SCRIPT_LOG="${TOOL_NAME}.log"
+SCRIPT_NAME="kctl-${TOOL_NAME}"
 
-CURRENT_COMMAND_OUTPUT_LOG="current_command.output.log"
-CURRENT_COMMAND_ERROR_LOG="current_command.error.log"
+CURRENT_COMMAND_OUTPUT_LOG="${WORKING_DIR}/current_command.output.log"
+CURRENT_COMMAND_ERROR_LOG="${WORKING_DIR}/current_command.error.log"
 CURRENT_COMMAND_SCRIPT_NAME="current_command.sh"
 
 INDENTATION_LENGTH=2
 INDENTATION_SPACES=$(printf "%${INDENTATION_LENGTH}s")
 
-if ! empty ${@}; then
-  SCRIPT_COMMAND="curl -fsSL "$SCRIPT_URL" > run; bash run ${@}"
-  TOOL_ARGS="${@}"
+if [[ "${TOOL_NAME}" == "install" ]]; then
+  SCRIPT_URL="${KEITARO_URL}/${TOOL_NAME}.sh"
+  if ! empty ${@}; then
+    SCRIPT_COMMAND="curl -fsSL "$SCRIPT_URL" > run; bash run ${@}"
+    TOOL_ARGS="${@}"
+  else
+    SCRIPT_COMMAND="curl -fsSL "$SCRIPT_URL" > run; bash run"
+  fi
 else
-  SCRIPT_COMMAND="curl -fsSL "$SCRIPT_URL" > run; bash run"
+  if ! empty ${@}; then
+    SCRIPT_COMMAND="${SCRIPT_NAME} ${@}"
+    TOOL_ARGS="${@}"
+  else
+    SCRIPT_COMMAND="${SCRIPT_NAME}"
+  fi
 fi
 
 declare -A VARS

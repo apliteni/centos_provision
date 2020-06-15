@@ -70,11 +70,13 @@ RSpec.describe 'test-run-command.sh' do
 
 
     shared_examples 'should not print ansible stderr' do
-      it_behaves_like 'should print to', :stderr, %Q{Content of 'current_command.error.log':\n  \n  [WARNING]: Ignoring "pattern" as it is not used in "systemd"}
+      it_behaves_like 'should print to',
+                      :stderr,
+                      %r{Content of '.*current_command.error.log':\n  \n  \[WARNING\]: Ignoring "pattern"}
     end
 
     shared_examples 'should not print full json of ansible error' do
-      it_behaves_like 'should not print to', :stderr, "Content of 'ansible_failure.json':"
+      it_behaves_like 'should not print to', :stderr, /Content of '.*ansible_failure.json':/
     end
 
     context 'invalid license' do
@@ -117,7 +119,7 @@ RSpec.describe 'test-run-command.sh' do
 
       it_behaves_like 'should print to', :stderr, [
         "Task info:\n  TASK [Unknown]",
-        %Q(Content of '.keitaro/ansible_failure.json':\n  {\n      "changed": true,\n)
+        %r(Content of '.*ansible_failure\.json':\n  {\n      "changed": true,\n)
       ]
     end
   end

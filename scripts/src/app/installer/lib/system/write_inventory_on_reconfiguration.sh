@@ -27,8 +27,8 @@ reset_vars_on_reconfiguration(){
 
 detect_inventory_variables(){
   if empty "${VARS['license_key']}"; then
-    if [[ -f ${WEBROOT_PATH}/var/license/key.lic ]]; then
-      VARS['license_key']="$(cat ${WEBROOT_PATH}/var/license/key.lic)"
+    if [[ -f ${WEBAPP_ROOT}/var/license/key.lic ]]; then
+      VARS['license_key']="$(cat ${WEBAPP_ROOT}/var/license/key.lic)"
       debug "Detected license key: ${VARS['license_key']}"
     fi
   fi
@@ -56,5 +56,5 @@ detect_inventory_variables(){
 
 get_var_from_keitaro_app_config(){
   local var="${1}"
-  get_var_from_config "${var}" "${WEBROOT_PATH}/application/config/config.ini.php" '='
+  get_var_from_config "${var}" "${WEBAPP_ROOT}/application/config/config.ini.php" '='
 }

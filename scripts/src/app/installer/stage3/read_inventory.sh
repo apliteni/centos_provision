@@ -9,7 +9,7 @@ read_inventory(){
 
 parse_inventory(){
   local file="${1}"
-  debug "Found inventory file ${file}, read defaults from it"
+  debug "Found inventory file ${file}, reading defaults from it"
   while IFS="" read -r line; do
     if [[ "$line" =~ = ]]; then
       parse_line_from_inventory_file "$line"
@@ -17,14 +17,13 @@ parse_inventory(){
   done < "${file}"
 }
 
-
 parse_line_from_inventory_file(){
   local line="${1}"
   IFS="=" read var_name value <<< "$line"
   if [[ "$var_name" != 'db_restore_path' ]]; then
     if empty "${VARS[$var_name]}"; then
       VARS[$var_name]=$value
-      debug "# read $var_name from inventory"
+      debug "# read '$var_name' from inventory"
     else
       debug "# $var_name is set from options, skip inventory value"
     fi

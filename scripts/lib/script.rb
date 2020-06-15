@@ -24,7 +24,8 @@ class Script
   )
     @script_command = script_command
     @base_name = File.basename(script_command, '.*')
-    @log_file = "#{@base_name}.log"
+
+    @log_file = ".keitaro/var/log/keitaro/#{@base_name}.log"
 
     @env, @args, @prompts_with_values, @docker_image, @command_stubs, @commands, @save_files =
       env, args, prompts_with_values, docker_image, command_stubs, commands, [*save_files]
@@ -32,7 +33,7 @@ class Script
 
   def call(current_dir:)
     invoke_script_cmd(current_dir)
-    read_log
+    read_log(current_dir)
   end
 
   def self.docker_installed?
@@ -55,13 +56,13 @@ class Script
     end
   end
 
-  def read_log
-    @log = without_formatting(IO.read(@log_file)) rescue nil
+  def read_log(current_dir)
+    @log = without_formatting(IO.read("#{current_dir}/#{@log_file}")) rescue nil
   end
 
   def make_cmd(current_dir)
     if docker_image
-      docker_run = "docker run #{docker_env} -e CI=#{ENV['CI']} --name keitaro_scripts_test -i --rm"
+      docker_run = "docker run #{docker_env} -e CI=true --name keitaro_scripts_test -i --rm"
       docker_run += " -v #{scripts_dir}:#{DOCKER_SCRIPTS_DIR}"
       docker_run += " -v #{current_dir}:#{DOCKER_DATA_DIR}"
       docker_run += " -w #{DOCKER_DATA_DIR}"
