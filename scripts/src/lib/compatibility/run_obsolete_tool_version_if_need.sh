@@ -4,7 +4,7 @@
 run_obsolete_tool_version_if_need(){
   debug 'Ensure configs has been genereated by relevant installer'
   if isset "$SKIP_CHECKS"; then
-    debug "SKIP: аctual check of installer version in ${INVENTORY_PATH} disabled"
+    debug "SKIP: actual check of installer version in ${INVENTORY_PATH} disabled"
   else
     installed_version=$(detect_installed_version)
     if [[ "${RELEASE_VERSION}" == "${installed_version}" ]]; then

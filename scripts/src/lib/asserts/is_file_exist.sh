@@ -10,7 +10,7 @@ is_file_exist(){
   local result_on_skip="${2}"
   debug "Checking ${file} file existence"
   if isset "$SKIP_CHECKS"; then
-    debug "SKIP: аctual check of ${file} file existence disabled"
+    debug "SKIP: actual check of ${file} file existence disabled"
     if [[ "$result_on_skip" == "no" ]]; then
       debug "NO: simulate ${file} file does not exist"
       return ${FAILURE_RESULT}

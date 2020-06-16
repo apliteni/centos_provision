@@ -5,7 +5,7 @@ detect_license_ip(){
   if isset "$SKIP_CHECKS"; then
     DETECTED_LICENSE_EDITION_TYPE=$LICENSE_EDITION_TYPE_TRIAL
     VARS['license_ip']="127.0.0.1"
-    debug "SKIP: аctual detecting of license IP skipped, used 127.0.0.1"
+    debug "SKIP: actual detecting of license IP skipped, used 127.0.0.1"
   else
     host_ips="$(get_host_ips)"
     debug "$(echo 'IPs for checking:' ${host_ips})"

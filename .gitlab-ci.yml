@@ -51,10 +51,6 @@ run_rspec:
     - ci/bin/testing/validate_scripts
     - ci/bin/testing/install_bundle
     - ci/bin/testing/run_rspec
-  cache:
-    key: vendor
-    paths:
-      - scripts/vendor/
   dependencies:
     - build_scripts
 
