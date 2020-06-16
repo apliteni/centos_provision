@@ -10,7 +10,7 @@ is_directory_exist(){
   local result_on_skip="${2}"
   debug "Checking ${directory} directory existence"
   if isset "$SKIP_CHECKS"; then
-    debug "SKIP: аctual check of ${directory} directory existence disabled"
+    debug "SKIP: actual check of ${directory} directory existence disabled"
     if [[ "$result_on_skip" == "no" ]]; then
       debug "NO: simulate ${directory} directory does not exist"
       return ${FAILURE_RESULT}

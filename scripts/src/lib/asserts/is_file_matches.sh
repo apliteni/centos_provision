@@ -11,7 +11,7 @@ is_file_matches(){
   local result_on_skip="${3}"
   debug "Checking ${file} file matching with pattern '${pattern}'"
   if isset "$SKIP_CHECKS"; then
-    debug "SKIP: аctual check of ${file} file matching disabled"
+    debug "SKIP: actual check of ${file} file matching disabled"
     if [[ "$result_on_skip" == "no" ]]; then
       debug "NO: simulate ${file} file does not match '${pattern}'"
       return ${FAILURE_RESULT}

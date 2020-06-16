@@ -10,7 +10,7 @@ is_path_exist(){
   local result_on_skip="${2}"
   debug "Checking ${path} path existence"
   if isset "$SKIP_CHECKS"; then
-    debug "SKIP: аctual check of ${path} path existence disabled"
+    debug "SKIP: actual check of ${path} path existence disabled"
     if [[ "$result_on_skip" == "no" ]]; then
       debug "NO: simulate ${path} path does not exist"
       return ${FAILURE_RESULT}
