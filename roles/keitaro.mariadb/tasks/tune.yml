@@ -1,56 +1,3 @@
-# roles/mariadb/tasks/main.yml
----
-
-- include_vars: "{{ item }}"
-  with_first_found:
-    - "{{ ansible_distribution }}.yml"
-    - "{{ ansible_os_family }}.yml"
-  tags: mariadb
-
-- name: Add MariaDB repo
-  template:
-    src: mariadb.repo.j2
-    dest: /etc/yum.repos.d/mariadb.repo
-  when: rhel_version == 7
-
-- name: Add MariaDB repo
-  template:
-    src: mariadb.centos8.repo.j2
-    dest: /etc/yum.repos.d/mariadb.repo
-  when: rhel_version == 8
-
-- name: Install packages
-  package:
-    name: "{{ item }}"
-    state: installed
-    enablerepo: mariadb
-  with_items: "{{ mariadb_packages }}"
-  tags: mariadb
-  when: rhel_version == 7
-
-- name: Install packages step 1
-  dnf:
-    name: boost-program-options
-    state: installed
-  tags: mariadb
-  when: rhel_version == 8
-
-- name: Install packages step 2
-  dnf:
-    name: [MariaDB-server, MariaDB-client]
-    state: installed
-    disablerepo: AppStream
-  tags: mariadb
-  when: rhel_version == 8
-
-- name: Make sure pymysql is present
-  become: true # needed if the other tasks are not played as root
-  pip:
-    name: pymysql
-    state: present
-  tags: mariadb
-  when: rhel_version == 8
-
 - name: Ensure service is started
   service:
     name: "{{ mariadb_service }}"
@@ -65,16 +12,37 @@
   notify: restart mariadb
   tags: mariadb
 
-- name: Update root password
+- name: Check if root password is set
+  shell: >
+    mysqladmin -u root status
+  changed_when: false
+  failed_when: false
+  register: root_pwd_check
+  tags: mariadb
+
+- name: Set MariaDB root password for the first time (root@localhost)
   mysql_user:
     name: root
-    host: "{{ item }}"
     password: "{{ mariadb_root_password }}"
+    host: localhost
+    login_unix_socket: "{{ mariadb_socket }}"
+    state: present
+  when: root_pwd_check.rc == 0
+  tags: mariadb
+
+- name: Set MariaDB root password for 127.0.0.1, ::1
+  mysql_user:
+    name: root
+    password: "{{ mariadb_root_password }}"
+    host: "{{ item }}"
+    login_user: root
+    login_password: "{{ mariadb_root_password }}"
+    login_unix_socket: "{{ mariadb_socket }}"
     state: present
   with_items:
-    - 127.0.0.1
     - ::1
-    - localhost
+    - 127.0.0.1
+  when: root_pwd_check.rc == 0
   tags: mariadb
 
 - name: Install ~/.my.cnf
@@ -84,18 +52,10 @@
     mode: '0600'
   tags: mariadb
 
-- name: Update root password
-  mysql_user:
-    name: root
-    host: "{{ ansible_hostname }}"
-    password: "{{ mariadb_root_password }}"
-    state: present
-  when: ansible_hostname != 'localhost'
-  tags: mariadb
-
 - name: Remove the test database
   mysql_db:
     name: test
+    login_unix_socket: "{{ mariadb_socket }}"
     state: absent
   tags: mariadb
 
