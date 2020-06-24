@@ -1,0 +1,20 @@
+---
+- hosts: all
+  sudo: true
+  vars:
+    mariadb_databases:
+      - myappdb
+      - myotherdb
+    mariadb_root_password: drowssap
+    mariadb_users:
+      - name: appusr
+        password: sekrit
+        priv: "myappdb.*:ALL,GRANT"
+      - name: otheruser
+        password: letmein
+        priv: "myotherdb.*:ALL"
+    mariadb_init_scripts:
+      - database: myappdb
+        script: files/init.sql
+  roles:
+    - mariadb
