@@ -1,0 +1,15 @@
+# roles/mariadb/vars/main.yml
+---
+
+mariadb_packages:
+  - MariaDB
+  - MariaDB-server
+  - MySQL-python
+
+mariadb_service: mariadb
+
+mariadb_config: /etc/my.cnf.d/network.cnf
+mariadb_my_config: ~/.my.cnf
+
+mariadb_version: 10.2
+mariadb_version_rhel_8: 10.3
