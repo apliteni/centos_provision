@@ -1,0 +1,20 @@
+- name: set openssl version to variable
+  shell: openssl version
+  register: openssl_version_output
+
+- name: Unarchive a file that needs to be downloaded (added in 2.0)
+  unarchive:
+    src: https://ftp.openssl.org/source/old/1.1.1/openssl-1.1.1.tar.gz
+    dest: /usr/local/bin/
+    remote_src: yes
+    list_files: yes
+  register: unarchive_contents
+  when: openssl_version_output is not search( '{{ openssl_version }}' )
+
+- name: Install openssl
+  command: chdir=/usr/local/bin/{{ unarchive_contents.files[0] }} {{ item }}
+  with_items:
+    - ./config --prefix=/usr --openssldir=/etc/ssl --libdir=lib no-shared zlib-dynamic 
+    - make 
+    - make install 
+  when: openssl_version_output is not search( '{{ openssl_version }}' )

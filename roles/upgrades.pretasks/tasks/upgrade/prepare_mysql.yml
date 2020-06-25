@@ -8,6 +8,7 @@
     - mysqld-optimize_performance.cnf
     - mysqld-set_pidfile_path.cnf
     - mysqld.cnf
+    - keitaro-mysqld-set_default_storage_engine.cnf
 
 - name: Remove old log directory
   file:
