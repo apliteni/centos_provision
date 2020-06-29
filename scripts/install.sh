@@ -54,7 +54,7 @@ SELF_NAME=${0}
 
 KEITARO_URL="https://keitaro.io"
 
-RELEASE_VERSION='2.12'
+RELEASE_VERSION='2.13'
 DEFAULT_BRANCH="current"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
 
@@ -230,7 +230,7 @@ is_file_exist(){
   local result_on_skip="${2}"
   debug "Checking ${file} file existence"
   if isset "$SKIP_CHECKS"; then
-    debug "SKIP: аctual check of ${file} file existence disabled"
+    debug "SKIP: actual check of ${file} file existence disabled"
     if [[ "$result_on_skip" == "no" ]]; then
       debug "NO: simulate ${file} file does not exist"
       return ${FAILURE_RESULT}
@@ -251,7 +251,7 @@ is_file_exist(){
 assert_config_relevant_or_upgrade_running(){
   debug 'Ensure configs has been genereated by relevant installer'
   if isset "$SKIP_CHECKS"; then
-    debug "SKIP: аctual check of installer version in ${INVENTORY_PATH} disabled"
+    debug "SKIP: actual check of installer version in ${INVENTORY_PATH} disabled"
   else
     installed_version=$(detect_installed_version)
     if [[ "${RELEASE_VERSION}" == "${installed_version}" ]]; then
@@ -990,7 +990,7 @@ detect_license_ip(){
   if isset "$SKIP_CHECKS"; then
     DETECTED_LICENSE_EDITION_TYPE=$LICENSE_EDITION_TYPE_TRIAL
     VARS['license_ip']="127.0.0.1"
-    debug "SKIP: аctual detecting of license IP skipped, used 127.0.0.1"
+    debug "SKIP: actual detecting of license IP skipped, used 127.0.0.1"
   else
     host_ips="$(get_host_ips)"
     debug "$(echo 'IPs for checking:' ${host_ips})"
