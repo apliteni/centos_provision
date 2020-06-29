@@ -53,7 +53,7 @@ SELF_NAME=${0}
 
 KEITARO_URL="https://keitaro.io"
 
-RELEASE_VERSION='2.12'
+RELEASE_VERSION='2.13'
 DEFAULT_BRANCH="current"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
 
@@ -244,7 +244,7 @@ is_file_exist(){
   local result_on_skip="${2}"
   debug "Checking ${file} file existence"
   if isset "$SKIP_CHECKS"; then
-    debug "SKIP: аctual check of ${file} file existence disabled"
+    debug "SKIP: actual check of ${file} file existence disabled"
     if [[ "$result_on_skip" == "no" ]]; then
       debug "NO: simulate ${file} file does not exist"
       return ${FAILURE_RESULT}
@@ -272,7 +272,7 @@ is_file_matches(){
   local result_on_skip="${3}"
   debug "Checking ${file} file matching with pattern '${pattern}'"
   if isset "$SKIP_CHECKS"; then
-    debug "SKIP: аctual check of ${file} file matching disabled"
+    debug "SKIP: actual check of ${file} file matching disabled"
     if [[ "$result_on_skip" == "no" ]]; then
       debug "NO: simulate ${file} file does not match '${pattern}'"
       return ${FAILURE_RESULT}
@@ -299,7 +299,7 @@ is_directory_exist(){
   local result_on_skip="${2}"
   debug "Checking ${directory} directory existence"
   if isset "$SKIP_CHECKS"; then
-    debug "SKIP: аctual check of ${directory} directory existence disabled"
+    debug "SKIP: actual check of ${directory} directory existence disabled"
     if [[ "$result_on_skip" == "no" ]]; then
       debug "NO: simulate ${directory} directory does not exist"
       return ${FAILURE_RESULT}
@@ -332,7 +332,7 @@ detect_installed_version(){
 run_obsolete_tool_version_if_need(){
   debug 'Ensure configs has been genereated by relevant installer'
   if isset "$SKIP_CHECKS"; then
-    debug "SKIP: аctual check of installer version in ${INVENTORY_PATH} disabled"
+    debug "SKIP: actual check of installer version in ${INVENTORY_PATH} disabled"
   else
     installed_version=$(detect_installed_version)
     if [[ "${RELEASE_VERSION}" == "${installed_version}" ]]; then
