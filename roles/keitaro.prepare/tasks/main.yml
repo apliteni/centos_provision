@@ -21,6 +21,3 @@
 - include: disable_ipv6.yml
 
 - include: disable_selinux.yml
-
-- include: update_openssl.yml
-  when: rhel_version == 7
