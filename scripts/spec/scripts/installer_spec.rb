@@ -4,7 +4,7 @@ RSpec.describe 'install.sh' do
   include_context 'run script in tmp dir'
   include_context 'build subject'
 
-  BRANCH='master'
+  BRANCH='current'
   PLAYBOOK_PATH="centos_provision-#{BRANCH}/playbook.yml"
   INVENTORY_PATH='./.keitaro/etc/keitaro/config/inventory'
 
