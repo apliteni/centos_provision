@@ -17,7 +17,7 @@
         awk -F '::' '{print $2}'
   vars:
     user_agent: "Keitaro Installer v{{ keitaro_installer_version }} PHP/{{ php_release }}"
-    request_params: "version={{ keitaro_release }}&stability={{ get_tracker_stability.stdout }}"
+    request_params: "version={{ keitaro_release }}&stability={{ get_tracker_stability.stdout }}&phpversion={{ php_relase }}"
   register: get_latest_tracker_version
 
 - name: Upgrade Keitaro to the latest version if need
