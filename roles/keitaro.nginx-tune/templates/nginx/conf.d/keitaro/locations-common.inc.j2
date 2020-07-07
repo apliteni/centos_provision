@@ -19,7 +19,8 @@ location = /status-nontracker {
 }
 
 # Cache assets
-location ~* \.(jpg|jpeg|gif|png|js|css|txt|zip|ico|gz|csv|svg|ttf|woff|mp.|mpeg|mkv)$ {
+location ~* \.(jpg|jpeg|gif|png|js|css|txt|zip|ico|gz|csv|svg|ttf|woff|mp.|mpeg|mkv|woff2)$ {
+  add_header Access-Control-Allow-Origin *;
   access_log off;
   expires 10d;
 }
