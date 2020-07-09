@@ -1,0 +1,16 @@
+- name: Download certbot-auto
+  get_url:
+    url: "{{ certbot_url }}"
+    dest: "/tmp/certbot"
+    mode: '0755'
+    owner: "root"
+    force: yes
+
+- name: Install certbot-auto
+  shell: /tmp/certbot-installer --install-only --non-interactive
+
+- name: Remove certbot-auto installation script
+  file:
+    path: /tmp/certbot-installer
+    state: absent
+
