@@ -1,11 +1,11 @@
 - name: Add public ipv4 nameserver to /etc/resolv.conf
   command: awk '/^nameserver [[:digit:]]{1,3}(\.[[:digit:]]{1,3}){3}/' /etc/resolv.conf
-  register: get_ipv4_nameservers
+  register: get_ipv4_nameservers_command_result
   changed_when: false
 
 - name: Add public ipv4 nameservers to resolv.conf
   include: disable_ipv6-add_ipv4_nameservers.yml
-  when: not (get_ipv4_nameservers.stdout is match("nameserver"))
+  when: not (get_ipv4_nameservers_command_result.stdout is match("nameserver"))
 
 - name: Update kernel params
   sysctl:
@@ -14,3 +14,4 @@
     state: present
   ignore_errors: true
   with_dict: "{{ kernel_sysctl_tweaks }}"
+
