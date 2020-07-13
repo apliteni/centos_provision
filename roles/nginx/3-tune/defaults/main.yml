@@ -1,0 +1,16 @@
+nginx_vhost_path: /etc/nginx/conf.d
+nginx_conf_path: /etc/nginx/conf.d
+nginx_pidfile: /var/run/nginx.pid
+nginx_log_dir: /var/log/nginx
+nginx_error_log: "{{ nginx_log_dir }}/error.log"
+nginx_error_log_format: warn
+nginx_access_log: "{{ nginx_log_dir }}/access.log"
+nginx_access_log_options: buffer=16k flush=5s
+nginx_access_log_keitaro: "{{ nginx_log_dir }}/access.log"
+nginx_access_log_keitaro_admin: "{{ nginx_log_dir }}/keitaro-admin.access.log"
+nginx_access_log_keitaro_nontracker: "{{ nginx_log_dir }}/access.log"
+nginx_access_log_keitaro_tracker: "{{ nginx_log_dir }}/access.log"
+nginx_access_log_keitaro_tracker_status: "{{ nginx_log_dir }}/tracker.status"
+nginx_access_log_keitaro_nontracker_status: "{{ nginx_log_dir }}/nontracker.status"
+nginx_ip_list_cf_v4_path: "{{ nginx_conf_path }}/keitaro/realip.cloudflare-ipv4.inc"
+nginx_ip_list_cf_v6_path: "{{ nginx_conf_path }}/keitaro/realip.cloudflare-ipv6.inc"

@@ -1,7 +1,7 @@
 - name: Download certbot-auto
   get_url:
     url: "{{ certbot_url }}"
-    dest: "/tmp/certbot"
+    dest: "/tmp/certbot-installer"
     mode: '0755'
     owner: "root"
     force: yes

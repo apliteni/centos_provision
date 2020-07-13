@@ -6,10 +6,11 @@
   command: mv /etc/nginx/conf.d/vhosts.conf /etc/nginx/conf.d/keitaro.conf
   when: vhosts_conf.stat.exists
 
-- name: Make ssl certs dir
-  file:
-    path: "{{ ssl_root }}"
-    state: directory
+- name: Remove old renewal certs job
+  cron:
+    name: Renew Let's Encrypt certs
+    state: absent
+    user: "{{ nginx_user }}"
 
 - name: Copy ssl certs to the new location
   shell: "test -f {{ item.src }} && cp {{ item.src }} {{ item.dest }} || true"

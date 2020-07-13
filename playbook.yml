@@ -30,8 +30,10 @@
     - {role: 'keitaro.mariadb', tags: 'mariadb, upgrade'}
     - {role: 'keitaro.mariadb-install_tokudb', tags: 'mariadb, tokudb, upgrade'}
     - {role: 'keitaro.mariadb-tune', tags: 'mariadb, tokudb, tune, mariadb-tune, upgrade'}
-    - {role: 'keitaro.nginx', tags: 'nginx'}
-    - {role: 'keitaro.nginx-tune', tags: 'nginx, tune, nginx-tune, upgrade'}
+    - {role: 'nginx/1-preupgrade', tags: 'never, upgrade'}
+    - {role: 'nginx/2-install', tags: 'nginx, upgrade'}
+    - {role: 'nginx/3-tune', tags: 'nginx, tune, nginx-tune'}
+    - {role: 'nginx/4-upgrade', tags: 'never, upgrade'}
     - {role: 'keitaro.php', tags: 'php, upgrade'}
     - {role: 'keitaro.tracker', tags: 'tracker'}
     - {role: 'keitaro.tracker-tune', tags: 'tracker, tune, tracker-tune, upgrade'}
@@ -41,3 +43,4 @@
     - {role: 'keitaro.roadrunner', tags: 'php, roadrunner, upgrade'}
     - {role: 'keitaro.roadrunner-tune', tags: 'php, roadrunner, tune, roadrunner-tune, upgrade'}
     - {role: 'upgrades.tasks', tags: 'never, upgrade, upgrade-tracker, upgrade-php, upgrade-nginx' }
+

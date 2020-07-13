@@ -1,0 +1,65 @@
+# Allow access to status page only from localhost
+location = /status {
+  allow 127.0.0.1;
+  deny all;
+  access_log off;
+
+  include {{ nginx_conf_path }}/keitaro/tracker.php-fpm.inc;
+}
+
+
+# Hide tracker files
+location ~ ^/(application|bin|lib|var|vendor)/.* {
+  access_log off;
+  return 404;
+}
+
+location = /cron.php {
+  return 404;
+}
+
+location = /server.php {
+  return 404;
+}
+
+location = /version.php {
+  return 404;
+}
+
+
+
+# Admin locations
+location = /admin {
+   return 301 /admin/;
+}
+
+location /admin/ {
+  location /admin/assets/ {
+    access_log off;
+  }
+
+  location = /admin/index.php {
+    include {{ nginx_conf_path }}/keitaro/admin.inc;
+  }
+
+  try_files $uri /admin/index.php$is_args$args;
+}
+
+location /admin_api/ {
+  include {{ nginx_conf_path }}/keitaro/admin.inc;
+  fastcgi_param SCRIPT_FILENAME $document_root/index.php;
+}
+
+
+# Tracker locations
+location / {
+  location = /api.php {
+    include {{ nginx_conf_path }}/keitaro/tracker.inc;
+  }
+
+  location = /index.php {
+    include {{ nginx_conf_path }}/keitaro/tracker.inc;
+  }
+
+  try_files $uri $uri/ /index.php$is_args$args;
+}

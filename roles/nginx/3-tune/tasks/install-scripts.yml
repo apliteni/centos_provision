@@ -1,0 +1,18 @@
+- name: Install scripts
+  copy:
+    src: "bin/{{ item }}"
+    dest: "/usr/local/bin/{{ item }}"
+    mode: "0755"
+  with_items:
+    - keitaro-generate_cf_ip_lists
+
+- name: Generate scripts
+  template:
+    src: "bin/{{ item }}.j2"
+    dest: "/usr/local/bin/{{ item }}"
+    mode: "0755"
+  with_items:
+    - keitaro-generate_stats_json
+    - keitaro-print_stats_json
+    - keitaro-rotate_nginx_status_logs
+

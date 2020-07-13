@@ -1,0 +1,5 @@
+include {{ nginx_conf_path }}/local/keitaro/nontracker.inc;
+
+access_log {{ nginx_access_log_keitaro_nontracker }} main {{ nginx_access_log_options }};
+
+include {{ nginx_conf_path }}/keitaro/nontracker.php-fpm.inc;
