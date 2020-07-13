@@ -1,0 +1,15 @@
+- name: Install scripts
+  include: install-scripts.yml
+
+- name: Tune logroatate
+  include: tune-logrotate.yml
+
+- name: Tune systemd
+  include: tune-systemd.yml
+
+- name: Tune nginx
+  include: tune-nginx.yml
+
+- name: Tune generating stats.json
+  include: tune-generating_stats_json.yml
+
