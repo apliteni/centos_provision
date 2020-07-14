@@ -217,7 +217,7 @@ is_keitaro_installed() {
 }
 
 should_use_new_algorithm_for_installation_check() {
- [[ ! $(version_to_number ${RELEASE_VERSION}) < $(version_to_number ${USE_NEW_ALGORITHM_FOR_INSTALLATION_CHECK_SINCE}) ]]
+  (( $(as_version ${RELEASE_VERSION}) >= $(as_version ${USE_NEW_ALGORITHM_FOR_INSTALLATION_CHECK_SINCE}) ))
 }
 #
 
@@ -279,11 +279,11 @@ detect_installed_version(){
 # Based on https://stackoverflow.com/a/53400482/612799
 #
 # Use:
-#   (( $(version_to_number 1.2.3.4) >= $(version_to_number 1.2.3.3) )) && echo "yes" || echo "no"
+#   (( $(as_version 1.2.3.4) >= $(as_version 1.2.3.3) )) && echo "yes" || echo "no"
 #
 # Version number should not contain more than 4 parts (3 dots) and each part should not contain more than 3 digits
 #
-version_to_number() {
+as_version() {
   local version="${1}"
   local dots="${version//[^.]}"
   if [[ ${#dots} > 3 ]]; then
