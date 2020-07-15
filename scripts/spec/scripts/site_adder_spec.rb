@@ -4,6 +4,7 @@ RSpec.describe 'add-site.sh' do
   include_context 'run script in tmp dir'
   include_context 'build subject'
 
+  let(:inventory_values) { {installer_version: Script::INSTALLER_RELEASE_VERSION} }
   let(:script_name) { 'add-site.sh' }
   let(:all_command_stubs) { {nginx: '/bin/true'} }
   let(:nginx_conf) {

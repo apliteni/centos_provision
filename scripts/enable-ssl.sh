@@ -51,18 +51,16 @@ TOOL_NAME='enable-ssl'
 
 SELF_NAME=${0}
 
-KEITARO_URL="https://keitaro.io"
+KEITARO_URL='https://keitaro.io'
 
 RELEASE_VERSION='2.13'
-DEFAULT_BRANCH="current"
+DEFAULT_BRANCH='current'
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
 
-if is_ci_mode && is_pipe_mode; then
-  ROOT_PREFIX=".keitaro"
-elif is_ci_mode; then
-  ROOT_PREFIX="$(dirname ${SELF_NAME})/.keitaro"
+if is_ci_mode; then
+  ROOT_PREFIX='.keitaro'
 else
-  ROOT_PREFIX=""
+  ROOT_PREFIX=''
 fi
 
 WEBAPP_ROOT="${ROOT_PREFIX}/var/www/keitaro"
@@ -206,11 +204,6 @@ DICT['ru.warnings.nginx_config_exists_for_domain']="nginx конфигураци
 DICT['ru.warnings.certificate_exists_for_domain']="сертификат уже существует"
 DICT['ru.warnings.skip_nginx_config_generation']="пропускаем генерацию конфигурации nginx"
 
-#
-
-
-
-
 
 assert_caller_root(){
   debug 'Ensure script has been running by root'
@@ -225,6 +218,7 @@ assert_caller_root(){
     fi
   fi
 }
+
 
 assert_installed(){
   local program="${1}"
@@ -316,50 +310,69 @@ is_directory_exist(){
   fi
 }
 
+# Based on https://stackoverflow.com/a/53400482/612799
+#
+# Use:
+#   (( $(as_version 1.2.3.4) >= $(as_version 1.2.3.3) )) && echo "yes" || echo "no"
+#
+# Version number should not contain more than 4 parts (3 dots) and each part should not contain more than 3 digits
+#
+as_version() {
+  local version="${1}"
+  local dots="${version//[^.]}"
+  if [[ ${#dots} > 3 ]]; then
+    debug "Version number '${version}' has more than 3 dots"
+    fail "Internal error - wrong version format"
+  fi
+  if [[ "${version}" =~ [[:digit:]]{4,} ]]; then
+    debug "Version number '${version}' some part has more than 3 digits"
+    fail "Internal error - wrong version format"
+  fi
+  printf "1%03d%03d%03d%03d" ${version//./ }
+}
+
 detect_installed_version(){
-  local version=""
-  detect_inventory_path
-  if isset "${DETECTED_INVENTORY_PATH}"; then
-    version=$(grep "^installer_version=" ${DETECTED_INVENTORY_PATH} | sed s/^installer_version=//g)
+  if empty "${INSTALLED_VERSION}"; then
+    detect_inventory_path
+    if isset "${DETECTED_INVENTORY_PATH}"; then
+      INSTALLED_VERSION=$(grep "^installer_version=" ${DETECTED_INVENTORY_PATH} | sed s/^installer_version=//g)
+      debug "Got installer_version='${INSTALLED_VERSION}' from ${DETECTED_INVENTORY_PATH}"
+    fi
+    if empty "$INSTALLED_VERSION"; then
+      debug "Couldn't detect installer_version, resetting to 0.9"
+      INSTALLED_VERSION="0.9"
+    fi
   fi
-  if empty "$version"; then
-    version="0.9"
-  fi
-  echo "$version"
 }
 
 
 run_obsolete_tool_version_if_need(){
   debug 'Ensure configs has been genereated by relevant installer'
-  if isset "$SKIP_CHECKS"; then
-    debug "SKIP: actual check of installer version in ${INVENTORY_PATH} disabled"
+  detect_installed_version
+  local current_major_release=${RELEASE_VERSION/\.*/}
+  local installed_major_release=${INSTALLED_VERSION/\.*/}
+  if [[ "${installed_major_release}" == "${current_major_release}" ]]; then
+    debug "Current ${RELEASE_VERSION} is compatible with ${INSTALLED_VERSION}"
   else
-    local installed_version=$(detect_installed_version)
-    local current_major_release=${RELEASE_VERSION/\.*/}
-    local installed_major_release=${installed_version/\.*/}
-    if [[ "${installed_major_release}" == "${current_major_release}" ]]; then
-      debug "Current ${RELEASE_VERSION} is compatible with ${installed_version}"
-    else
-      local tool_url="${KEITARO_URL}/v${installed_version}/${TOOL_NAME}.sh"
-      local tool_args="${TOOL_ARGS}"
-      if [[ "${TOOL_NAME}" == "add-site" ]]; then
-        if (( $(as_version "${installed_version}") < $(as_version "1.4") )); then
-          fail "$(translate 'errors.upgrade_server')"
-        else
-          tool_args="-D ${VARS['site_domains']} -R ${VARS['site_root']}"
-        fi
+    local tool_url="${KEITARO_URL}/v${INSTALLED_VERSION}/${TOOL_NAME}.sh"
+    local tool_args="${TOOL_ARGS}"
+    if [[ "${TOOL_NAME}" == "add-site" ]]; then
+      if (( $(as_version "${INSTALLED_VERSION}") < $(as_version "1.4") )); then
+        fail "$(translate 'errors.upgrade_server')"
+      else
+        tool_args="-D ${VARS['site_domains']} -R ${VARS['site_root']}"
       fi
-      if [[ "${TOOL_NAME}" == "enable-ssl" ]]; then
-        if (( $(as_version "${installed_version}") < $(as_version "1.4") )); then
-          tool_args="-wa ${VARS['ssl_domains']//,/ }"
-        else
-          tool_args="-D ${VARS['ssl_domains']}"
-        fi
-      fi
-      command="curl -fsSL ${tool_url} | bash -s -- ${tool_args}"
-      run_command "${command}" "Running obsolete ${TOOL_NAME} (v${installed_version})"
-      exit
     fi
+    if [[ "${TOOL_NAME}" == "enable-ssl" ]]; then
+      if (( $(as_version "${INSTALLED_VERSION}") < $(as_version "1.4") )); then
+        tool_args="-wa ${VARS['ssl_domains']//,/ }"
+      else
+        tool_args="-D ${VARS['ssl_domains']}"
+      fi
+    fi
+    command="curl -fsSL ${tool_url} | bash -s -- ${tool_args}"
+    run_command "${command}" "Running obsolete ${TOOL_NAME} (v${INSTALLED_VERSION})"
+    exit
   fi
 }
 #
@@ -459,10 +472,12 @@ is_installed(){
 }
 
 detect_inventory_path(){
+  debug "Detecting inventory path"
   paths=("${INVENTORY_PATH}" /root/.keitaro/installer_config .keitaro/installer_config /root/hosts.txt hosts.txt)
   for path in "${paths[@]}"; do
     if [[ -f "${path}" ]]; then
       DETECTED_INVENTORY_PATH="${path}"
+      debug "Inventory found - ${DETECTED_INVENTORY_PATH}"
       return
     fi
   done
