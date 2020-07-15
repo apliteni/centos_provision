@@ -1,12 +1,8 @@
 #!/usr/bin/env bash
 
-
-run_obsolete_tool_version_if_need(){
+run_obsolete_tool_version_if_need() {
   debug 'Ensure configs has been genereated by relevant installer'
-  detect_installed_version
-  local current_major_release=${RELEASE_VERSION/\.*/}
-  local installed_major_release=${INSTALLED_VERSION/\.*/}
-  if [[ "${installed_major_release}" == "${current_major_release}" ]]; then
+  if is_compatible_with_current_release; then
     debug "Current ${RELEASE_VERSION} is compatible with ${INSTALLED_VERSION}"
   else
     local tool_url="${KEITARO_URL}/v${INSTALLED_VERSION}/${TOOL_NAME}.sh"

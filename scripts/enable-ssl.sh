@@ -346,12 +346,15 @@ detect_installed_version(){
 }
 
 
-run_obsolete_tool_version_if_need(){
-  debug 'Ensure configs has been genereated by relevant installer'
-  detect_installed_version
+is_compatible_with_current_release(){
   local current_major_release=${RELEASE_VERSION/\.*/}
   local installed_major_release=${INSTALLED_VERSION/\.*/}
-  if [[ "${installed_major_release}" == "${current_major_release}" ]]; then
+  [[ "${installed_major_release}" == "${current_major_release}" ]]
+}
+
+run_obsolete_tool_version_if_need() {
+  debug 'Ensure configs has been genereated by relevant installer'
+  if is_compatible_with_current_release; then
     debug "Current ${RELEASE_VERSION} is compatible with ${INSTALLED_VERSION}"
   else
     local tool_url="${KEITARO_URL}/v${INSTALLED_VERSION}/${TOOL_NAME}.sh"
@@ -670,7 +673,7 @@ debug(){
   echo "$message" >> "${LOG_PATH}"
 }
 
-fail(){
+fail() {
   local message="${1}"
   local see_logs="${2}"
   log_and_print_err "*** $(translate errors.program_failed) ***"
@@ -1326,6 +1329,7 @@ help_en(){
 stage2(){
   debug "Starting stage 2: make some asserts"
   assert_caller_root
+  detect_installed_version
   run_obsolete_tool_version_if_need
 }
 

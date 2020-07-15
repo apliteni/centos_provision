@@ -18,6 +18,7 @@ _require 'lib/asserts/is_file_exist.sh'
 _require 'lib/compatibility/as_version.sh'
 _require 'lib/compatibility/assert_config_relevant_or_upgrade_running.sh'
 _require 'lib/compatibility/detect_installed_version.sh'
+_require 'lib/compatibility/is_compatible_with_current_release.sh'
 _require 'lib/i18n/set_ui_lang.sh'
 _require 'lib/i18n/translate.sh'
 _require 'lib/io/add_indentation.sh'
@@ -107,7 +108,6 @@ install(){
   stage2                    # make some asserts
   stage3                    # read vars from the inventory file
   if isset "$RECONFIGURE"; then
-    detect_installed_version
     assert_config_relevant_or_upgrade_running
     write_inventory_on_reconfiguration
     expand_ansible_tags_on_upgrade

@@ -265,7 +265,7 @@ debug(){
   echo "$message" >> "${LOG_PATH}"
 }
 
-fail(){
+fail() {
   local message="${1}"
   local see_logs="${2}"
   log_and_print_err "*** $(translate errors.program_failed) ***"
