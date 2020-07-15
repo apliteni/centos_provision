@@ -7,6 +7,7 @@ RSpec.describe 'test-run-command.sh' do
   SUCCESS_EXIT_CODE = 0
   ERROR_EXIT_CODE = 1
 
+  let(:inventory_values) { {installer_version: Script::INSTALLER_RELEASE_VERSION} }
   let(:script_name) { 'test-run-command.sh' }
   let(:message) {}
   let(:hide_output) {}

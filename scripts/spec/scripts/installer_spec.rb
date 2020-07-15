@@ -6,9 +6,9 @@ RSpec.describe 'install.sh' do
 
   BRANCH='current'
   PLAYBOOK_PATH="centos_provision-#{BRANCH}/playbook.yml"
-  INVENTORY_PATH='./.keitaro/etc/keitaro/config/inventory'
+  INVENTORY_PATH='.keitaro/etc/keitaro/config/inventory'
 
-  let(:stored_values) { {} }
+  let(:inventory_values) { {installer_version: Script::INSTALLER_RELEASE_VERSION} }
   let(:script_name) { 'install.sh' }
 
   let(:skip_firewall) { 'yes' }
@@ -62,14 +62,14 @@ RSpec.describe 'install.sh' do
 
   shared_examples_for 'inventory contains value' do |field, value|
     it "inventory file contains field #{field.inspect} with value #{value.inspect}" do
-      run_script(inventory_values: stored_values)
+      run_script
       expect(@inventory.values[field]).to match(value)
     end
   end
 
   shared_examples_for 'inventory does not contain field' do |field|
     it "inventory file does not contain field #{field.inspect}" do
-      run_script(inventory_values: stored_values)
+      run_script
       expect(@inventory.values).not_to have_key(field)
     end
   end
@@ -126,9 +126,9 @@ RSpec.describe 'install.sh' do
 
     shared_examples_for 'should take value from previously saved inventory' do |field, value: 'stored-value'|
       context 'field stored in inventory' do
-        let(:stored_values) { {field => value} }
+        let(:inventory_values) { {field => value} }
 
-        it_behaves_like 'should show default value', field, showed_value: value, inventory_values: {field => value}
+        it_behaves_like 'should show default value', field, showed_value: value
 
         it_behaves_like 'should store default value', field, readed_inventory_value: value
 
@@ -165,24 +165,79 @@ RSpec.describe 'install.sh' do
     describe 'kversion field' do
       context '-k option missed' do
         let(:options) { '-s -p' }
-        before { run_script(inventory_values: stored_values) }
+        before { run_script }
         it { expect(@inventory.values).not_to have_key(:kversion) }
       end
 
       context '-k specified' do
         let(:options) { '-s -p -k 9' }
-        before { run_script(inventory_values: stored_values) }
+        before { run_script }
         it { expect(@inventory.values[:kversion]).to eq('9') }
       end
 
       context 'specified -k with wrong value' do
-        let(:options) { '-s -p -k 10' }
-        it_behaves_like 'should exit with error', "Specified Keitaro release '10' is not supported"
+        context 'specified v10' do
+          let(:options) { '-s -p -k 10' }
+          it_behaves_like 'should exit with error', "Specified Keitaro release '10' is not supported"
+        end
+
+        context 'specified v8' do
+          let(:options) { '-s -p -k 8' }
+          # it_behaves_like 'should exit with error', "Specified Keitaro release '8' is not supported"
+        end
       end
     end
+  end
 
-    describe 'cpu_cores' do
+  context 'when running in upgrade mode' do
+    let(:options) { '-s -p -r -t upgrade' }
+
+    shared_examples_for "upgrades to versions" do |versions|
+
+      tags = %w[upgrade] + versions.map { |version| "upgrade_from_#{version}" }
+
+      it_behaves_like 'should print to', :stdout,
+        "ansible-playbook -vvv -i #{INVENTORY_PATH} #{PLAYBOOK_PATH} --tags #{tags.join(',')}"
     end
+
+    context 'when too old version is installed' do
+      let(:inventory_values) { {} }
+      it_behaves_like "upgrades to versions", %w[0.9 1.4 2.0]
+    end
+
+    context 'when 0.9 is installed' do
+      let(:inventory_values) { {installer_version: '0.9'} }
+      it_behaves_like "upgrades to versions", %w[0.9 1.4 2.0]
+    end
+
+    context 'when 1.9 version installed' do
+      let(:inventory_values) { {installer_version: '1.9'} }
+      it_behaves_like "upgrades to versions", %w[2.0]
+    end
+
+    context 'when 2.0 version installed' do
+      let(:inventory_values) { {installer_version: '2.0'} }
+      it_behaves_like "upgrades to versions", %w[2.0]
+    end
+
+    context 'when 2.1 version installed' do
+      let(:inventory_values) { {installer_version: '2.1'} }
+      it_behaves_like "upgrades to versions", []
+    end
+  end
+
+  context '-t specified' do
+    let(:options) { '-s -p -t tag1,tag2' }
+
+    it_behaves_like 'should print to', :stdout,
+                    "ansible-playbook -vvv -i #{INVENTORY_PATH} #{PLAYBOOK_PATH} --tags tag1,tag2"
+  end
+
+  context '-i specified' do
+    let(:options) { '-s -p -i tag1,tag2' }
+
+    it_behaves_like 'should print to', :stdout,
+                    "ansible-playbook -vvv -i #{INVENTORY_PATH} #{PLAYBOOK_PATH} --skip-tags tag1,tag2"
   end
 
   context 'without actual installing software' do
@@ -199,19 +254,6 @@ RSpec.describe 'install.sh' do
       it_behaves_like 'should print to', :stdout,
                       "ansible-playbook -vvv -i #{INVENTORY_PATH} #{PLAYBOOK_PATH}"
 
-      context '-t specified' do
-        let(:options) { '-p -t tag1,tag2' }
-
-        it_behaves_like 'should print to', :stdout,
-                        "ansible-playbook -vvv -i #{INVENTORY_PATH} #{PLAYBOOK_PATH} --tags tag1,tag2"
-      end
-
-      context '-i specified' do
-        let(:options) { '-p -i tag1,tag2' }
-
-        it_behaves_like 'should print to', :stdout,
-                        "ansible-playbook -vvv -i #{INVENTORY_PATH} #{PLAYBOOK_PATH} --skip-tags tag1,tag2"
-      end
     end
 
     context 'yum presented' do
@@ -267,8 +309,8 @@ RSpec.describe 'install.sh' do
 
       it_behaves_like 'should exit with error', [
         %r{There was an error evaluating current command\n(.*\n){3}.* ansible-playbook},
-        'Installation log saved to ./.keitaro/var/log/keitaro/install.log',
-        'Configuration settings saved to ./.keitaro/etc/keitaro/config/inventory',
+        'Installation log saved to .keitaro/var/log/keitaro/install.log',
+        'Configuration settings saved to .keitaro/etc/keitaro/config/inventory',
         'You can rerun `curl -fsSL https://keitaro.io/install.sh > run; bash run`'
       ]
     end
