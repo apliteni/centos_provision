@@ -1,9 +1,4 @@
 #!/usr/bin/env bash
-#
-
-
-
-
 
 assert_caller_root(){
   debug 'Ensure script has been running by root'
@@ -18,3 +13,4 @@ assert_caller_root(){
     fi
   fi
 }
+

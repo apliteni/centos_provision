@@ -15,9 +15,9 @@ _require 'lib/asserts/assert_caller_root.sh'
 _require 'lib/asserts/assert_installed.sh'
 _require 'lib/asserts/assert_keitaro_not_installed.sh'
 _require 'lib/asserts/is_file_exist.sh'
+_require 'lib/compatibility/as_version.sh'
 _require 'lib/compatibility/assert_config_relevant_or_upgrade_running.sh'
 _require 'lib/compatibility/detect_installed_version.sh'
-_require 'lib/compatibility/as_version.sh'
 _require 'lib/i18n/set_ui_lang.sh'
 _require 'lib/i18n/translate.sh'
 _require 'lib/io/add_indentation.sh'
@@ -93,6 +93,8 @@ _require 'app/installer/stage6/run_ansible_playbook.sh'
 _require 'app/installer/stage6/show_credentials.sh'
 _require 'app/installer/stage6/show_successful_message.sh'
 _require 'app/installer/stage6/json2dict.sh'
+_require 'app/installer/upgrade/is_upgrade_mode_set.sh'
+_require 'app/installer/upgrade/expand_ansible_tags_on_upgrade.sh'
 
 # We wrap the entire script in a big function which we only call at the very end, in order to
 # protect against the possibility of the connection dying mid-script. This protects us against
@@ -105,8 +107,10 @@ install(){
   stage2                    # make some asserts
   stage3                    # read vars from the inventory file
   if isset "$RECONFIGURE"; then
+    detect_installed_version
     assert_config_relevant_or_upgrade_running
     write_inventory_on_reconfiguration
+    expand_ansible_tags_on_upgrade
   else
     assert_keitaro_not_installed
     stage4                  # get and save vars to the inventory file
