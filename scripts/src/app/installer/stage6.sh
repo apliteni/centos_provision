@@ -8,7 +8,7 @@ stage6(){
   signal_successful_installation
   show_successful_message
   if isset "$ANSIBLE_TAGS"; then
-    debug 'ansible tags is set to ${ANSIBLE_TAGS} - skip printing credentials'
+    debug "Ansible tags is set to ${ANSIBLE_TAGS} - skip printing credentials"
   else
     show_credentials
   fi

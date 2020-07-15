@@ -28,8 +28,8 @@ get_firewall_ssh_port(){
 }
 
 get_rhel_version(){
-  local version="$(cat /etc/centos-release | cut -f1 -d. | sed 's/[^0-9]*//g')"
-  if isset "$version" && [ "$version" == "8" ]; then
+  local version="$(test -f /etc/centos-release && grep -Po '\d+' /etc/centos-release | head -n1)"
+  if [[ "$version" == "8" ]]; then
     echo "8"
   else
     echo "7"
