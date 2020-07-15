@@ -286,6 +286,13 @@ detect_installed_version(){
     fi
   fi
 }
+
+
+is_compatible_with_current_release(){
+  local current_major_release=${RELEASE_VERSION/\.*/}
+  local installed_major_release=${INSTALLED_VERSION/\.*/}
+  [[ "${installed_major_release}" == "${current_major_release}" ]]
+}
 #
 
 
@@ -499,7 +506,7 @@ debug(){
   echo "$message" >> "${LOG_PATH}"
 }
 
-fail(){
+fail() {
   local message="${1}"
   local see_logs="${2}"
   log_and_print_err "*** $(translate errors.program_failed) ***"
@@ -1813,6 +1820,7 @@ stage3(){
   debug "Starting stage 3: read values from inventory file"
   read_inventory
   setup_vars
+  detect_installed_version
   if isset "$RECONFIGURE"; then
     upgrade_packages
   fi
@@ -2397,7 +2405,6 @@ install(){
   stage2                    # make some asserts
   stage3                    # read vars from the inventory file
   if isset "$RECONFIGURE"; then
-    detect_installed_version
     assert_config_relevant_or_upgrade_running
     write_inventory_on_reconfiguration
     expand_ansible_tags_on_upgrade
