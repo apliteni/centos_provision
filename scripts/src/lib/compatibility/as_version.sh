@@ -18,5 +18,5 @@ as_version() {
     debug "Version number '${version}' some part has more than 3 digits"
     fail "Internal error - wrong version format"
   fi
-  printf "%03d%03d%03d%03d" ${version//./ }
+  printf "1%03d%03d%03d%03d" ${version//./ }
 }
