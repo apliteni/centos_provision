@@ -1,2 +1,19 @@
-- include: upgrade/main.yml
-  tags: 'upgrade'
+- include: ensure_relevant_keitaro_installed.yml
+
+- include: backup_configs.yml
+
+- include: mysql/prepare_upgrade_from_1.2-set_db_engine.yml
+  when: db_engine is not defined
+  tags: [never, upgrade_from_1.2]
+  notify: restart mariadb
+
+- include: mysql/prepare_upgrade_from_1.4-tune_logrotate.yml
+  tags: [never, upgrade_from_1.4]
+  notify: restart mariadb
+
+- include: mysql/prepare_upgrade_from_2.12-remove_old_configs.yml
+  tags: [never, upgrade_from_2.12]
+  notify: restart mariadb
+
+- include: upgrade_from_2.12-remove_sendmail.yml
+  tags: [never, upgrade_from_2.12]
