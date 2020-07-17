@@ -6,12 +6,6 @@
   command: mv /etc/nginx/conf.d/vhosts.conf /etc/nginx/conf.d/keitaro.conf
   when: vhosts_conf.stat.exists
 
-- name: Remove old renewal certs job
-  cron:
-    name: Renew Let's Encrypt certs
-    state: absent
-    user: "{{ nginx_user }}"
-
 - name: Copy ssl certs to the new location
   shell: "test -f {{ item.src }} && cp {{ item.src }} {{ item.dest }} || true"
   with_items:
@@ -21,3 +15,16 @@
       dest: "{{ ssl_privkey_path }}"
     - src: /etc/ssl/certs/dhparam.pem
       dest: "{{ ssl_dhparam_path }}"
+
+- name: Remove all cron tasks of nginx user
+  shell: "crontab -r -u {{ nginx_user }} || true"
+
+- name: Remove old root cron.php task
+  shell: 'sed -i /cron.php/d /var/spool/cron/root'
+
+- name: Remove old renewal certs job
+  cron:
+    name: Renew Let's Encrypt certs
+    state: absent
+    user: "{{ nginx_user }}"
+

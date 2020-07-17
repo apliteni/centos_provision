@@ -30,7 +30,6 @@
     - {role: 'keitaro.mariadb', tags: 'mariadb, upgrade'}
     - {role: 'keitaro.mariadb-install_tokudb', tags: 'mariadb, tokudb, upgrade'}
     - {role: 'keitaro.mariadb-tune', tags: 'mariadb, tokudb, tune, mariadb-tune, upgrade'}
-    - {role: 'nginx/0-preupgrade', tags: 'never, upgrade'}
     - {role: 'nginx/1-install', tags: 'nginx, upgrade'}
     - {role: 'nginx/2-tune', tags: 'nginx, tune, nginx-tune'}
     - {role: 'nginx/3-upgrade', tags: 'never, upgrade'}
