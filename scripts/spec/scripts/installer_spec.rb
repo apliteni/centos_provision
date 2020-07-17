@@ -192,37 +192,36 @@ RSpec.describe 'install.sh' do
   context 'when running in upgrade mode' do
     let(:options) { '-s -p -r -t upgrade' }
 
-    shared_examples_for "upgrades to versions" do |versions|
+    shared_examples_for "upgrades from versions" do |versions|
 
       tags = %w[upgrade] + versions.map { |version| "upgrade_from_#{version}" }
 
-      it_behaves_like 'should print to', :stdout,
-        "ansible-playbook -vvv -i #{INVENTORY_PATH} #{PLAYBOOK_PATH} --tags #{tags.join(',')}"
+      it_behaves_like 'should print to', :stdout, "-tags #{tags.join(',')}`"
     end
 
     context 'when too old version is installed' do
       let(:inventory_values) { {} }
-      it_behaves_like "upgrades to versions", %w[0.9 1.4 2.0]
+      it_behaves_like "upgrades from versions", %w[1.5 2.0 2.12]
     end
 
     context 'when 0.9 is installed' do
       let(:inventory_values) { {installer_version: '0.9'} }
-      it_behaves_like "upgrades to versions", %w[0.9 1.4 2.0]
+      it_behaves_like "upgrades from versions", %w[1.5 2.0 2.12]
     end
 
     context 'when 1.9 version installed' do
       let(:inventory_values) { {installer_version: '1.9'} }
-      it_behaves_like "upgrades to versions", %w[2.0]
+      it_behaves_like "upgrades from versions", %w[2.0 2.12]
     end
 
     context 'when 2.0 version installed' do
-      let(:inventory_values) { {installer_version: '2.0'} }
-      it_behaves_like "upgrades to versions", %w[2.0]
+      let(:inventory_values) { {installer_version: '2.12'} }
+      it_behaves_like "upgrades from versions", %w[2.12]
     end
 
     context 'when 2.1 version installed' do
-      let(:inventory_values) { {installer_version: '2.1'} }
-      it_behaves_like "upgrades to versions", []
+      let(:inventory_values) { {installer_version: '2.13'} }
+      it_behaves_like "upgrades from versions", []
     end
   end
 

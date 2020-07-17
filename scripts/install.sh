@@ -2379,7 +2379,7 @@ is_upgrade_mode_set() {
   [[ "${ANSIBLE_TAGS}" =~ upgrade  ]]
 }
 
-UPGRADE_CHECKPOINTS=(0.9 1.4 2.0)
+UPGRADE_CHECKPOINTS=(1.5 2.0 2.12)
 
 expand_ansible_tags_on_upgrade() {
   if is_upgrade_mode_set; then
