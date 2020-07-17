@@ -14,10 +14,10 @@
     - vars/performance.yml
 
   roles:
-    - {role: 'keitaro.debug', tags: 'debug, tune, upgrade'}
-    - {role: 'upgrades.pretasks', tags: 'never, upgrade'}
+    - {role: 'init/0-debug', tags: 'debug, tune, upgrade'}
+    - {role: 'init/1-install', tags: 'prepare, upgrade'}
+    - {role: 'init/2-upgrade', tags: 'never, upgrade'}
     - {role: 'mikegleasonjr.swap', tags: 'swap, upgrade'}
-    - {role: 'keitaro.prepare', tags: 'prepare, upgrade'}
     - {role: 'geerlingguy.firewall', tags: 'firewall', when: "skip_firewall is not defined or skip_firewall != 'yes'"}
     - {role: 'resmo.ntp', tags: 'ntp'}
     - {role: 'mrlesmithjr.timezone'}
