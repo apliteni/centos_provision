@@ -1,3 +1,9 @@
+- name: Remove mail utilites
+  package:
+    name: [mailx, sendmail, sendmail-cf]
+    state: absent
+  tags: 'never, upgrade_from_2.12'
+
 - name: Remove old files
   file:
     path: "{{ item }}"
@@ -14,12 +20,6 @@
     - /root/install.log
     - /root/enable-ssl.log
     - /root/add-site.log
-
-- name: Remove all cron tasks of nginx user
-  shell: "crontab -r -u {{ nginx_user }} || true"
-
-- name: Remove old root cron.php task
-  shell: 'sed -i /cron.php/d /var/spool/cron/root'
 
 - name: Remove old packages
   package:

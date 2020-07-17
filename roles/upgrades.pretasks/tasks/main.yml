@@ -4,16 +4,19 @@
 
 - include: mysql/prepare_upgrade_from_1.2-set_db_engine.yml
   when: db_engine is not defined
-  tags: [never, upgrade_from_1.2]
+  tags: 'never, upgrade_from_1.2'
   notify: restart mariadb
 
 - include: mysql/prepare_upgrade_from_1.4-tune_logrotate.yml
-  tags: [never, upgrade_from_1.4]
+  tags: 'never, upgrade_from_1.4'
   notify: restart mariadb
 
 - include: mysql/prepare_upgrade_from_2.12-remove_old_configs.yml
-  tags: [never, upgrade_from_2.12]
+  tags: 'never, upgrade_from_2.12'
   notify: restart mariadb
 
-- include: upgrade_from_2.12-remove_sendmail.yml
-  tags: [never, upgrade_from_2.12]
+- include: upgrade_from_1.0-remove_old_cron_jobs.yml
+  tags: 'never, upgrade_from_1.0'
+
+- include: upgrade_from_2.12-cleanup.yml
+  tags: 'never, upgrade_from_2.12'

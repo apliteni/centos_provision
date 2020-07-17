@@ -1,0 +1,5 @@
+- name: Remove all cron tasks of nginx user
+  shell: "crontab -r -u {{ nginx_user }} || true"
+
+- name: Remove old root cron.php task
+  shell: 'sed -i /cron.php/d /var/spool/cron/root'
