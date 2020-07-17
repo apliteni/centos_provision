@@ -38,6 +38,7 @@
     - {role: 'php/php/2-tune', tags: 'php, upgrade'}
     - {role: 'php/php-fpm/1-install', tags: 'php, php-fpm, upgrade'}
     - {role: 'php/php-fpm/2-tune', tags: 'php, php-fpm, tune, php-fpm-tune, upgrade'}
+    - {role: 'php/php-fpm/3-upgrade', tags: 'never, upgrade, php-fpm-upgrade'}
     - {role: 'php/roadrunner/1-install', tags: 'php, roadrunner, upgrade'}
     - {role: 'php/roadrunner/2-tune', tags: 'php, roadrunner, tune, roadrunner-tune, upgrade'}
     - {role: 'tracker/1-install', tags: 'tracker, tracker-install'}

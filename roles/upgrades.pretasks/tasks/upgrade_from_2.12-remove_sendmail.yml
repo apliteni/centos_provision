@@ -1,5 +1,0 @@
-- name: remove mail utilites
-  package:
-    name: [mailx, sendmail, sendmail-cf]
-    state: absent
-  tags: [never, upgrade_from_2.12]
