@@ -1,7 +1,0 @@
-- name: Tune logrotate - set rotation period
-  lineinfile:
-    path: /etc/logrotate.d/nginx
-    regexp: '^(\s*)rotate '
-    line: '\1rotate {{ keitaro_logrotate_nginx_period }}'
-    backrefs: true
-    insertbefore: postrotate
