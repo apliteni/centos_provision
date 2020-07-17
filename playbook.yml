@@ -30,17 +30,19 @@
     - {role: 'keitaro.mariadb', tags: 'mariadb, upgrade'}
     - {role: 'keitaro.mariadb-install_tokudb', tags: 'mariadb, tokudb, upgrade'}
     - {role: 'keitaro.mariadb-tune', tags: 'mariadb, tokudb, tune, mariadb-tune, upgrade'}
-    - {role: 'nginx/1-preupgrade', tags: 'never, upgrade'}
-    - {role: 'nginx/2-install', tags: 'nginx, upgrade'}
-    - {role: 'nginx/3-tune', tags: 'nginx, tune, nginx-tune'}
-    - {role: 'nginx/4-upgrade', tags: 'never, upgrade'}
-    - {role: 'keitaro.php', tags: 'php, upgrade'}
-    - {role: 'keitaro.tracker', tags: 'tracker'}
-    - {role: 'keitaro.tracker-tune', tags: 'tracker, tune, tracker-tune, upgrade'}
+    - {role: 'nginx/0-preupgrade', tags: 'never, upgrade'}
+    - {role: 'nginx/1-install', tags: 'nginx, upgrade'}
+    - {role: 'nginx/2-tune', tags: 'nginx, tune, nginx-tune'}
+    - {role: 'nginx/3-upgrade', tags: 'never, upgrade'}
+    - {role: 'php/php/1-install', tags: 'php, upgrade'}
+    - {role: 'php/php/2-tune', tags: 'php, upgrade'}
+    - {role: 'php/php-fpm/1-install', tags: 'php, php-fpm, upgrade'}
+    - {role: 'php/php-fpm/2-tune', tags: 'php, php-fpm, tune, php-fpm-tune, upgrade'}
+    - {role: 'php/roadrunner/1-install', tags: 'php, roadrunner, upgrade'}
+    - {role: 'php/roadrunner/2-tune', tags: 'php, roadrunner, tune, roadrunner-tune, upgrade'}
+    - {role: 'tracker/1-install', tags: 'tracker, tracker-install'}
+    - {role: 'tracker/2-tune', tags: 'tracker, tune, tracker-tune, upgrade'}
+    - {role: 'tracker/3-upgrade', tags: 'never, upgrade'}
     - {role: 'keitaro.db_restore', tags: 'db_restore', when: "db_restore_path is defined and db_restore_path != ''"}
-    - {role: 'keitaro.php-fpm', tags: 'php, php-fpm, upgrade'}
-    - {role: 'keitaro.php-fpm-tune', tags: 'php, php-fpm, tune, php-fpm-tune, upgrade'}
-    - {role: 'keitaro.roadrunner', tags: 'php, roadrunner, upgrade'}
-    - {role: 'keitaro.roadrunner-tune', tags: 'php, roadrunner, tune, roadrunner-tune, upgrade'}
     - {role: 'upgrades.tasks', tags: 'never, upgrade, upgrade-tracker, upgrade-php, upgrade-nginx' }
 

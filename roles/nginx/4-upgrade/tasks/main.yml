@@ -1,2 +1,2 @@
 - incude: upgrade_from_1.20.yml
-  tags: [never, upgrade_from_1.20]
+  tags: 'never, upgrade_from_1.20'
