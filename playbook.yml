@@ -44,5 +44,4 @@
     - {role: 'tracker/2-tune', tags: 'tracker, tune, tracker-tune, upgrade'}
     - {role: 'tracker/3-upgrade', tags: 'never, upgrade'}
     - {role: 'keitaro.db_restore', tags: 'db_restore', when: "db_restore_path is defined and db_restore_path != ''"}
-    - {role: 'upgrades.tasks', tags: 'never, upgrade, upgrade-tracker, upgrade-php, upgrade-nginx' }
 
