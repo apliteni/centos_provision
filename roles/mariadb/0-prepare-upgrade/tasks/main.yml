@@ -1,32 +1,16 @@
-- name: set mariadb version to variable
-  shell: mysql --version
-  register: mysql_version_output
-- set_fact:
-    mariadb_version_output: "{{ mysql_version_output.stdout | regex_search('(?<=Distrib )(.*)(?=-MariaDB)') }}"
+- include: prepare_upgrade_from_1.5-set_db_engine.yml
+  when: db_engine is not defined
+  tags: 'never, upgrade_from_1.5'
+  notify: restart mariadb
 
-- name: remove old mariadb repo
-  file:
-    path: /etc/yum.repos.d/mariadb.repo
-    state: absent
+- include: prepare_upgrade_from_1.5-tune_logrotate.yml
+  tags: 'never, upgrade_from_1.5'
+  notify: restart mariadb
 
-- name: remove old maria Centos 7
-  package:
-    name: "{{ item }}"
-    state: absent
-  with_items: "{{ mariadb_packages }}"
-  tags: mariadb
-  when: mariadb_version_output is not search( '{{ mariadb_version }}' )
+- include: prepare_upgrade_from_2.12-remove_old_configs.yml
+  tags: 'never, upgrade_from_2.12'
+  notify: restart mariadb
 
-- name: remove old galera
-  package:
-    name: galera
-    state: absent
-  tags: mariadb
-  when: mariadb_version_output is not search( '{{ mariadb_version }}' )
-
-- name: remove old maria Centos 8
-  dnf:
-    name: [MariaDB-server, MariaDB-client]
-    state: absent
-  tags: mariadb
-  when: rhel_version == 8 and mariadb_version_output is not search( '{{ mariadb_version }}' )
+- include: cleanup.yml
+  tags: 'never, upgrade_mariadb'
+  notify: restart mariadb
