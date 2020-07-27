@@ -27,7 +27,7 @@
     - {role: 'keitaro.postfix', tags: 'mail, upgrade'}
     - {role: 'redis/1-install', tags: 'redis'}
     - {role: 'redis/2-tune', tags: 'redis, tune, redis-tune, upgrade'}
-    - {role: 'mariadb/0-prepare-upgrade', tags: 'never, update_mariadb'}
+    - {role: 'mariadb/0-prepare-upgrade', tags: 'never, upgrade'}
     - {role: 'mariadb/1-install', tags: 'mariadb, upgrade'}
     - {role: 'mariadb/2-tokudb', tags: 'mariadb, tokudb, upgrade'}
     - {role: 'mariadb/3-tune', tags: 'mariadb, tokudb, tune, mariadb-tune, upgrade'}

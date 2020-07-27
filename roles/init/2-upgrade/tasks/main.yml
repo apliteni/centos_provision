@@ -2,19 +2,6 @@
 
 - include: backup_configs.yml
 
-- include: mysql/prepare_upgrade_from_1.5-set_db_engine.yml
-  when: db_engine is not defined
-  tags: 'never, upgrade_from_1.5'
-  notify: restart mariadb
-
-- include: mysql/prepare_upgrade_from_1.5-tune_logrotate.yml
-  tags: 'never, upgrade_from_1.5'
-  notify: restart mariadb
-
-- include: mysql/prepare_upgrade_from_2.12-remove_old_configs.yml
-  tags: 'never, upgrade_from_2.12'
-  notify: restart mariadb
-
 - include: upgrade_from_1.5.yml
   tags: 'never, upgrade_from_1.5'
 
