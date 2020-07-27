@@ -1,0 +1,4 @@
+- include: install.yml
+
+- include: tune.yml
+  when: "'upgrade' not in ansible_run_tags"

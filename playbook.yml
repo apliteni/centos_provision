@@ -27,10 +27,10 @@
     - {role: 'keitaro.postfix', tags: 'mail, upgrade'}
     - {role: 'redis/1-install', tags: 'redis'}
     - {role: 'redis/2-tune', tags: 'redis, tune, redis-tune, upgrade'}
-    - {role: 'keitaro.clean-mariadb', tags: 'never, update_mariadb'}
-    - {role: 'keitaro.mariadb', tags: 'mariadb, upgrade'}
-    - {role: 'keitaro.mariadb-install_tokudb', tags: 'mariadb, tokudb, upgrade'}
-    - {role: 'keitaro.mariadb-tune', tags: 'mariadb, tokudb, tune, mariadb-tune, upgrade'}
+    - {role: 'mariadb/0-prepare-upgrade', tags: 'never, update_mariadb'}
+    - {role: 'mariadb/1-install', tags: 'mariadb, upgrade'}
+    - {role: 'mariadb/2-tokudb', tags: 'mariadb, tokudb, upgrade'}
+    - {role: 'mariadb/3-tune', tags: 'mariadb, tokudb, tune, mariadb-tune, upgrade'}
     - {role: 'nginx/1-install', tags: 'nginx, upgrade'}
     - {role: 'nginx/2-tune', tags: 'nginx, tune, nginx-tune'}
     - {role: 'nginx/3-upgrade', tags: 'never, upgrade'}
