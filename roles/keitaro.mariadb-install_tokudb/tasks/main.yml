@@ -1,8 +1,12 @@
-- name: set variable
+- name: set mariadb version to variable
   shell: mysql --version
-  register: mysql_version
+  register: mysql_version_output
 - set_fact:
-    tokudb_version: "{{ mysql_version.stdout | regex_search('(?<=Distrib )(.*)(?=-MariaDB)') }}"
+    tokudb_version: "{{ mysql_version_output.stdout | regex_search('(?<=Distrib )(.*)(?=-MariaDB)') }}"
+
+#get version before last dot (tokudb version 10.x.xx this task capture only 10.x)
+- set_fact:
+    tokudb_short_version: "{{ tokudb_version | regex_search('.*(?=\\.)') }}"
 
 - name: Install TokuDB Engine
   package:
@@ -17,7 +21,7 @@
     state: installed
   when: rhel_version == 8
 
-- name:
+- name: Install jemalloc package for Centos 8
   yum:
     name: jemalloc
     state: installed
