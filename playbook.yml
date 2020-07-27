@@ -25,8 +25,8 @@
     - {role: 'keitaro.systemd', tags: 'systemd, upgrade'}
     - {role: 'keitaro.disable_thp', tags: 'mariadb, tokudb, redis, upgrade'}
     - {role: 'keitaro.postfix', tags: 'mail, upgrade'}
-    - {role: 'keitaro.redis', tags: 'redis'}
-    - {role: 'keitaro.redis-tune', tags: 'redis, tune, redis-tune, upgrade'}
+    - {role: 'redis/1-install', tags: 'redis'}
+    - {role: 'redis/2-tune', tags: 'redis, tune, redis-tune, upgrade'}
     - {role: 'keitaro.mariadb', tags: 'mariadb, upgrade'}
     - {role: 'keitaro.mariadb-install_tokudb', tags: 'mariadb, tokudb, upgrade'}
     - {role: 'keitaro.mariadb-tune', tags: 'mariadb, tokudb, tune, mariadb-tune, upgrade'}
@@ -43,5 +43,5 @@
     - {role: 'tracker/1-install', tags: 'tracker, tracker-install'}
     - {role: 'tracker/2-tune', tags: 'tracker, tune, tracker-tune, upgrade'}
     - {role: 'tracker/3-upgrade', tags: 'never, upgrade'}
-    - {role: 'keitaro.db_restore', tags: 'db_restore', when: "db_restore_path is defined and db_restore_path != ''"}
+    - {role: 'tracker/4-restore-db', tags: 'db_restore', when: "db_restore_path is defined and db_restore_path != ''"}
 
