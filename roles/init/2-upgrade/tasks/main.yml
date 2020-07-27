@@ -15,6 +15,9 @@
   tags: 'never, upgrade_from_2.12'
   notify: restart mariadb
 
+- include: mysql/cleanup_mariadb.yml
+  tags: 'never, update_mariadb'
+
 - include: upgrade_from_1.5.yml
   tags: 'never, upgrade_from_1.5'
 
