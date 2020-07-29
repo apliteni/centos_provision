@@ -14,7 +14,7 @@
   file:
     state: link
     src: "{{ kctl_bin_dir }}/kctl-{{ item }}"
-    dest: "/usr/bin/kctl-{{ item }}"
+    dest: "/usr/local/bin/kctl-{{ item }}"
   with_items: "{{ kctl_tool_names }}"
 
 - name: Allow keitaro user to run kctl tools
