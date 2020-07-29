@@ -14,3 +14,8 @@
     path: /tmp/certbot-installer
     state: absent
 
+- name: Link certbot binary to /usr/local/bin
+  file:
+    src: /opt/eff.org/certbot/venv/bin/certbot
+    dest: /usr/local/bin/certbot
+    state: link
