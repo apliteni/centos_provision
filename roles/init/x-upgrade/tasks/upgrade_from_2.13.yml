@@ -1,0 +1,5 @@
+- name: Remove old kctl tools links
+  file:
+    path: "/usr/bin/kctl-{{ item }}"
+  with_items: "{{ kctl_tool_names }}"
+

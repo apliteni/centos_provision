@@ -7,3 +7,6 @@
 
 - include: upgrade_from_2.12.yml
   tags: 'never, upgrade_from_2.12'
+
+- include: upgrade_from_2.13.yml
+  tags: 'never, upgrade_from_2.13'
