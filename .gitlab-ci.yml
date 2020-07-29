@@ -4,6 +4,7 @@ before_script:
 
 variables:
   BUILDS_FOLDER: builds
+  RELEASE_FOLDER: releases
   GIT_URL: "git@gitlab.x.apli.tech:apliteni/keitaro/installer.git"
   LOCAL_BUILD_PATH: "${BUILDS_FOLDER}/${CI_COMMIT_REF_NAME}"
   REMOTE_BUILD_PATH: "${BUILDS_FOLDER}/${CI_COMMIT_REF_NAME}"
@@ -92,8 +93,46 @@ deploy:
       when: never
     - if: '$CI_COMMIT_REF_NAME =~ /(master)/'
       when: on_success
-    - if: '$CI_COMMIT_REF_NAME == "INST-126"'
-      when: always
     - if: '$ACTION == "build"'
       when: always
+    - when: never
+
+deploy_release:
+  variables:
+    DEPLOY_RELEASE: 'true'
+  extends: [.deployment-jobs-common]
+  tags: [kubernetes]
+  image: apliteni/mc
+  script:
+    - ci/bin/deployment/create_build
+    - ci/bin/deployment/prepare_mc
+    - ci/bin/deployment/upload_to_s3
+    - ci/bin/deployment/notify
+  allow_failure: false
+  dependencies:
+    - build_scripts
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+      when: never
+    - if: '$CI_COMMIT_REF_NAME =~ /(master)/'
+      when: manual
+    - when: never
+
+deploy_branch:
+  extends: [.deployment-jobs-common]
+  tags: [kubernetes]
+  image: apliteni/mc
+  script:
+    - ci/bin/deployment/create_build
+    - ci/bin/deployment/prepare_mc
+    - ci/bin/deployment/upload_to_s3
+    - ci/bin/deployment/notify
+  allow_failure: false
+  dependencies:
+    - build_scripts
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+      when: never
+    - if: '$CI_COMMIT_REF_NAME =~/(INST-)/'
+      when: manual
     - when: never
