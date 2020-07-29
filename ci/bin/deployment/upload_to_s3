@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 set -e -x -o pipefail
 
 if [ -z "$S3_BUCKET" ]
@@ -19,5 +19,20 @@ then
       exit 1;
 fi
 
+if [[ "$CI_COMMIT_REF_NAME" =~ INST-* ]]
+then
+      mc mirror "${LOCAL_BUILD_PATH}" "default/${S3_BUCKET}/${REMOTE_BUILD_PATH}/" --overwrite;
+fi
 
-mc mirror "${LOCAL_BUILD_PATH}" "default/${S3_BUCKET}/${REMOTE_BUILD_PATH}/" --overwrite
+if [[ "$CI_COMMIT_REF_NAME" == master ]]
+then
+      mc mirror "${LOCAL_BUILD_PATH}" "default/${S3_BUCKET}/${RELEASE_FOLDER}/current/" --overwrite;
+fi
+
+if [ -z "$DEPLOY_RELEASE" ]
+then
+      mc mirror "${LOCAL_BUILD_PATH}" "default/${S3_BUCKET}/${RELEASE_FOLDER}/${RELEASE_VERSION}/" --overwrite
+      mc mirror "${LOCAL_BUILD_PATH}" "default/${S3_BUCKET}/${RELEASE_FOLDER}/stable/" --overwrite
+fi
+
+
