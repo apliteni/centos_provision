@@ -1,6 +1,6 @@
 - name: Download certbot-auto
   get_url:
-    url: "{{ certbot_url }}"
+    url: https://dl.eff.org/certbot-auto
     dest: "/tmp/certbot-installer"
     mode: '0755'
     owner: "root"

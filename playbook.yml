@@ -15,9 +15,15 @@
 
   roles:
     - {role: 'init/0-debug', tags: 'upgrade, tune'}
-    - {role: 'init/1-install', tags: 'init-install'}
-    - {role: 'init/2-init-swap', tags: 'init-swap, tune'}
-    - {role: 'init/x-upgrade', tags: 'never, upgrade'}
+    - {role: 'init/1-prepare-upgrade', tags: 'never, upgrade, prepare-upgrade'}
+    - {role: 'init/create-tracker-user-and-dirs', tags: 'init, create-tracker-user-and-dirs'}
+    - {role: 'init/disable-ipv6', tags: 'init, disable-ipv6'}
+    - {role: 'init/enable-swap', tags: 'init, enable-swap'}
+    - {role: 'init/increase-max-opened-files', tags: 'init, increase-max-opened-files'}
+    - {role: 'init/install-certbot', tags: 'init, install-certbot'}
+    - {role: 'init/install-kctl-tools', tags: 'init, install-kctl-tools'}
+    - {role: 'init/install-packages', tags: 'init, install-packages'}
+    - {role: 'init/setup-certs', tags: 'init, setup-certs'}
     - {role: 'geerlingguy.firewall', tags: 'firewall', when: "skip_firewall is not defined or skip_firewall != 'yes'"}
     - {role: 'resmo.ntp', tags: 'ntp'}
     - {role: 'mrlesmithjr.timezone'}
