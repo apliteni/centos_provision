@@ -1,0 +1,7 @@
+- name: Increase max opend files parameter
+  sysctl:
+    name: "fs.file-max"
+    value: '{{ max_opened_files }}'
+    state: present
+  ignore_errors: true
+
