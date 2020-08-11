@@ -98,12 +98,11 @@ deploy:
     - when: never
 
 deploy_release:
-  variables:
-    DEPLOY_RELEASE: 'true'
   extends: [.deployment-jobs-common]
   tags: [kubernetes]
   image: apliteni/mc
   script:
+    - DEPLOY_RELEASE='yes'
     - ci/bin/deployment/create_build
     - ci/bin/deployment/prepare_mc
     - ci/bin/deployment/upload_to_s3
@@ -134,5 +133,5 @@ deploy_branch:
     - if: $CI_MERGE_REQUEST_ID
       when: never
     - if: '$CI_COMMIT_REF_NAME =~/(INST-)/'
-      when: manual
+      when: on_success
     - when: never
