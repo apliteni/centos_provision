@@ -5,7 +5,7 @@ SELF_NAME=${0}
 KEITARO_URL="https://keitaro.io"
 
 RELEASE_VERSION='2.13'
-DEFAULT_BRANCH="current"
+DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
 
 if is_ci_mode && is_pipe_mode; then

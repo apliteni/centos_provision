@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-PROVISION_DIRECTORY="centos_provision-${BRANCH}"
+PROVISION_DIRECTORY="centos_provision"
 KEITARO_ALREADY_INSTALLED_RESULT=2
 PHP_ENGINE=${PHP_ENGINE:-roadrunner}
 DETECTED_PREFIX_PATH="${WORKING_DIR}/detected_prefix"

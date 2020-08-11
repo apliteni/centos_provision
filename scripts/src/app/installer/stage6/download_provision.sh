@@ -2,6 +2,7 @@
 
 download_provision(){
   debug "Download provision"
-  release_url="https://github.com/apliteni/centos_provision/archive/${BRANCH}.tar.gz"
-  run_command "curl -fsSL ${release_url} | tar xz"
+  release_url="https://files.keitaro.io/scripts/${BRANCH}/playbook.tar.gz"
+  mkdir -p "${PROVISION_DIRECTORY}"
+  run_command "curl -fsSL ${release_url} | tar -xzC ${PROVISION_DIRECTORY}"
 }
