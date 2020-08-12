@@ -19,6 +19,7 @@ UPGRADE_CHECKPOINTS=(1.5 2.0 2.12 2.13)
 declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['init']='1.0'
   ['enable-swap']='2.0'
+  ['enable-repo-remi']='2.5'
 )
 
 expand_ansible_tags_on_upgrade() {

@@ -19,6 +19,7 @@
     - {role: 'init/create-tracker-user-and-dirs', tags: 'init, create-tracker-user-and-dirs'}
     - {role: 'init/disable-ipv6', tags: 'init, disable-ipv6'}
     - {role: 'init/enable-swap', tags: 'init, enable-swap'}
+    - {role: 'init/enable-repo-remi', tags: 'init, enable-repo-remi'}
     - {role: 'init/increase-max-opened-files', tags: 'init, increase-max-opened-files'}
     - {role: 'init/install-certbot', tags: 'init, install-certbot'}
     - {role: 'init/install-kctl-tools', tags: 'init, install-kctl-tools'}
@@ -27,7 +28,6 @@
     - {role: 'geerlingguy.firewall', tags: 'firewall', when: "skip_firewall is not defined or skip_firewall != 'yes'"}
     - {role: 'resmo.ntp', tags: 'ntp'}
     - {role: 'mrlesmithjr.timezone'}
-    - {role: 'geerlingguy.repo-remi', tags: 'repo-remi'}
     - {role: 'keitaro.systemd', tags: 'systemd, upgrade'}
     - {role: 'keitaro.disable_thp', tags: 'mariadb, tokudb, redis, upgrade'}
     - {role: 'keitaro.postfix', tags: 'mail, upgrade'}
