@@ -1,6 +1,6 @@
 - name: Ensure postfix is installed.
   package:
-    name: [mailx, postfix]
+    name: postfix
     state: present
 
 - name: Update Postfix configuration.
@@ -18,13 +18,18 @@
 - set_fact:
     hostname_check: "{{ ansible_hostname | regex_search('^[0-9]+$') }}"
 
-- name: Change hostname if contain only digits
+- name: Change hostname if it contains only digits
   shell: "hostname {{ ansible_hostname }}a"
   when: hostname_check != ''
 
-- name: Ensure postfix is started and enabled at boot.
+- name: Start postfix and enable it at boot.
   service:
     name: postfix
     state: started
     enabled: true
 
+- name: Add alias for keitaro user to /etc/aliases
+  lineinfile:
+    dest: /etc/aliases
+    line: "{{ keitaro_user }}: root"
+  notify: apply changing mail alises
