@@ -17,6 +17,8 @@ UPGRADE_CHECKPOINTS=(1.5 2.0 2.12 2.13)
 #     and we are upgrading to 2.14
 #   then ansible tags will be expanded by `enable-swap` tag
 declare -A REPLAY_ROLE_TAGS_SINCE=(
+  ['configure-journald']='2.12'
+  ['configure-timezone']='0.9'
   ['create-tracker-user-and-dirs']='1.0'
   ['disable-ipv6']='1.0'
   ['disable-thp']='0.9'
@@ -30,7 +32,6 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['install-ntp']='1.14'
   ['install-packages']='1.4'
   ['install-postfix']='2.13'
-  ['setup-timezone']='0.9'
 )
 
 expand_ansible_tags_on_upgrade() {
