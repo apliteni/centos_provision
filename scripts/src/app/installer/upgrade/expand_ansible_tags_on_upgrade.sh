@@ -17,10 +17,19 @@ UPGRADE_CHECKPOINTS=(1.5 2.0 2.12 2.13)
 #     and we are upgrading to 2.14
 #   then ansible tags will be expanded by `enable-swap` tag
 declare -A REPLAY_ROLE_TAGS_SINCE=(
-  ['init']='1.0'
-  ['enable-swap']='2.0'
-  ['enable-repo-remi']='2.5'
+  ['create-tracker-user-and-dirs']='1.0'
+  ['disable-ipv6']='1.0'
+  ['disable-thp']='0.9'
   ['enable-firewall']='1.9'
+  ['enable-repo-remi']='2.5'
+  ['enable-swap']='2.0'
+  ['increase-max-opened-files']='1.0'
+  ['install-certbot']='2.13'
+  ['install-certs']='2.13'
+  ['install-kctl-tools']='2.12'
+  ['install-packages']='1.4'
+  ['setup-ntp']='1.14'
+  ['setup-timezone']='0.9'
 )
 
 expand_ansible_tags_on_upgrade() {
