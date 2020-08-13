@@ -1,9 +1,9 @@
-- name: Install php package
-  yum:
-    name: "{{ keitaro_url }}/mirrors/power_tools/libedit-devel-3.1-23.20170329cvs.el8.x86_64.rpm"
-    state: present
-  when: rhel_version == 8
-
+#- name: Install php package
+#  yum:
+#    name: "{{ keitaro_url }}/mirrors/power_tools/libedit-devel-3.1-23.20170329cvs.el8.x86_64.rpm"
+#    state: present
+#  when: rhel_version == 8
+#
 - name: Install php extensions
   yum:
     name:
@@ -29,3 +29,17 @@
     - {from: "/usr/bin/{{php_version}}", to: '/usr/bin/php'}
     - {from: "/opt/remi/{{php_version}}/root/bin/php-config", to: '/usr/bin/php-config'}
     - {from: "/etc/opt/remi/{{php_version}}", to: '/etc/php'}
+
+- name: Increase php limits
+  lineinfile:
+    path: /etc/php/php.ini
+    regexp: '^{{ item.key }}'
+    line: '{{ item.key }} = {{ item.value }}'
+  with_dict:
+    memory_limit: '{{ php_memory_limit }}'
+    post_max_size: '{{ php_max_upload_size }}'
+    upload_max_filesize: '{{ php_max_upload_size }}'
+    short_open_tag: 'On'
+  notify:
+    - restart php-fpm
+    - restart roadrunner
