@@ -18,6 +18,7 @@
     - {role: 'init/1-prepare-upgrade', tags: 'never, upgrade, prepare-upgrade'}
     - {role: 'init/create-tracker-user-and-dirs', tags: 'init, create-tracker-user-and-dirs'}
     - {role: 'init/disable-ipv6', tags: 'init, disable-ipv6'}
+    - {role: 'init/disable-thp', tags: 'init, disable-thp'}
     - {role: 'init/enable-swap', tags: 'init, enable-swap'}
     - {role: 'init/enable-repo-remi', tags: 'init, enable-repo-remi'}
     - {role: 'init/enable-firewall', tags: 'init, enable-firewall', when: "skip_firewall is not defined or skip_firewall != 'yes'"}
@@ -26,10 +27,9 @@
     - {role: 'init/install-kctl-tools', tags: 'init, install-kctl-tools'}
     - {role: 'init/install-packages', tags: 'init, install-packages'}
     - {role: 'init/setup-certs', tags: 'init, setup-certs'}
-    - {role: 'resmo.ntp', tags: 'ntp'}
-    - {role: 'mrlesmithjr.timezone'}
+    - {role: 'init/setup-ntp', tags: 'init, setup-ntp'}
+    - {role: 'init/setup-timezone', tags: 'init, setup-timezone'}
     - {role: 'keitaro.systemd', tags: 'systemd, upgrade'}
-    - {role: 'keitaro.disable_thp', tags: 'mariadb, tokudb, redis, upgrade'}
     - {role: 'keitaro.postfix', tags: 'mail, upgrade'}
     - {role: 'redis/1-install', tags: 'redis'}
     - {role: 'redis/2-tune', tags: 'redis, tune, redis-tune, upgrade'}
