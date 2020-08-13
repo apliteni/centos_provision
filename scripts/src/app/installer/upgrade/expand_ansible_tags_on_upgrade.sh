@@ -27,8 +27,9 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['install-certbot']='2.13'
   ['install-certs']='2.13'
   ['install-kctl-tools']='2.12'
+  ['install-ntp']='1.14'
   ['install-packages']='1.4'
-  ['setup-ntp']='1.14'
+  ['install-postfix']='2.13'
   ['setup-timezone']='0.9'
 )
 
