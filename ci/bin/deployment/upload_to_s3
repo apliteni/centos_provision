@@ -21,18 +21,16 @@ fi
 
 if [[ "$CI_COMMIT_REF_NAME" =~ INST-* ]]
 then
-      mc mirror "${LOCAL_BUILD_PATH}" "default/${S3_BUCKET}/${REMOTE_BUILD_PATH}/" --overwrite;
+      mc cp --recursive "${LOCAL_BUILD_PATH}" "default/${S3_BUCKET}/${REMOTE_BUILD_PATH}/";
 fi
 
 if [[ "$CI_COMMIT_REF_NAME" == master ]]
 then
-      mc mirror "${LOCAL_BUILD_PATH}" "default/${S3_BUCKET}/${RELEASE_FOLDER}/current/" --overwrite;
+      mc cp --recursive "${LOCAL_BUILD_PATH}" "default/${S3_BUCKET}/${RELEASE_FOLDER}/current/";
 fi
 
 if [ -z "$DEPLOY_RELEASE" ]
 then
-      mc mirror "${LOCAL_BUILD_PATH}" "default/${S3_BUCKET}/${RELEASE_FOLDER}/${RELEASE_VERSION}/" --overwrite
-      mc mirror "${LOCAL_BUILD_PATH}" "default/${S3_BUCKET}/${RELEASE_FOLDER}/stable/" --overwrite
+      mc cp --recursive "${LOCAL_BUILD_PATH}" "default/${S3_BUCKET}/${RELEASE_FOLDER}/${RELEASE_VERSION}/";
+      mc cp --recursive "${LOCAL_BUILD_PATH}" "default/${S3_BUCKET}/${RELEASE_FOLDER}/stable/";
 fi
-
-
