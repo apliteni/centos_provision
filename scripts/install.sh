@@ -55,7 +55,7 @@ SELF_NAME=${0}
 KEITARO_URL='https://keitaro.io'
 
 RELEASE_VERSION='2.13'
-DEFAULT_BRANCH='current'
+DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
 
 if is_ci_mode; then
@@ -1290,7 +1290,7 @@ validate_yes_no(){
   (is_yes "$value" || is_no "$value")
 }
 
-PROVISION_DIRECTORY="centos_provision-${BRANCH}"
+PROVISION_DIRECTORY="centos_provision"
 KEITARO_ALREADY_INSTALLED_RESULT=2
 PHP_ENGINE=${PHP_ENGINE:-roadrunner}
 DETECTED_PREFIX_PATH="${WORKING_DIR}/detected_prefix"
@@ -2036,8 +2036,9 @@ signal_successful_installation() {
 
 download_provision(){
   debug "Download provision"
-  release_url="https://github.com/apliteni/centos_provision/archive/${BRANCH}.tar.gz"
-  run_command "curl -fsSL ${release_url} | tar xz"
+  release_url="https://files.keitaro.io/scripts/${BRANCH}/playbook.tar.gz"
+  mkdir -p "${PROVISION_DIRECTORY}"
+  run_command "curl -fsSL ${release_url} | tar -xzC ${PROVISION_DIRECTORY}"
 }
 
 ANSIBLE_TASK_HEADER="^TASK \[(.*)\].*"
@@ -2396,8 +2397,21 @@ UPGRADE_CHECKPOINTS=(1.5 2.0 2.12 2.13)
 #     and we are upgrading to 2.14
 #   then ansible tags will be expanded by `enable-swap` tag
 declare -A REPLAY_ROLE_TAGS_SINCE=(
-  ['init']='1.0'
+  ['configure-journald']='2.12'
+  ['configure-timezone']='0.9'
+  ['create-tracker-user-and-dirs']='1.0'
+  ['disable-ipv6']='1.0'
+  ['disable-thp']='0.9'
+  ['enable-firewall']='1.9'
+  ['enable-repo-remi']='2.5'
   ['enable-swap']='2.0'
+  ['increase-max-opened-files']='1.0'
+  ['install-certbot']='2.13'
+  ['install-certs']='2.13'
+  ['install-kctl-tools']='2.12'
+  ['install-ntp']='1.14'
+  ['install-packages']='1.4'
+  ['install-postfix']='2.13'
 )
 
 expand_ansible_tags_on_upgrade() {
