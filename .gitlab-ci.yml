@@ -8,12 +8,14 @@ variables:
   GIT_URL: "git@gitlab.x.apli.tech:apliteni/keitaro/installer.git"
   LOCAL_BUILD_PATH: "${BUILDS_FOLDER}/${CI_COMMIT_REF_NAME}"
   REMOTE_BUILD_PATH: "${BUILDS_FOLDER}/${CI_COMMIT_REF_NAME}"
+  BUILDS_TTL: 7d
 
 # Stages
 stages:
   - build
   - quality_checks
   - deployment
+  - actions
 
 # Build jobs
 build_scripts:
@@ -29,7 +31,6 @@ build_scripts:
       - scripts/install.sh
       - scripts/add-site.sh
       - scripts/enable-ssl.sh
-      - scripts/fix-renewal-certs-cron-job.sh
       - scripts/test-run-command.sh
   rules:
     - if: $CI_MERGE_REQUEST_ID
@@ -37,16 +38,9 @@ build_scripts:
     - when: always
 
 # Quality checks
-.quality-checks-common:
+run_rspec:
   stage: quality_checks
   interruptible: true
-  rules:
-    - if: $CI_MERGE_REQUEST_ID
-      when: never
-    - when: always
-
-run_rspec:
-  extends: [.quality-checks-common]
   tags: [ruby]
   script:
     - ci/bin/testing/validate_scripts
@@ -98,12 +92,11 @@ deploy:
     - when: never
 
 deploy_release:
-  variables:
-    DEPLOY_RELEASE: 'true'
   extends: [.deployment-jobs-common]
   tags: [kubernetes]
   image: apliteni/mc
   script:
+    - DEPLOY_RELEASE='yes'
     - ci/bin/deployment/create_build
     - ci/bin/deployment/prepare_mc
     - ci/bin/deployment/upload_to_s3
@@ -134,5 +127,16 @@ deploy_branch:
     - if: $CI_MERGE_REQUEST_ID
       when: never
     - if: '$CI_COMMIT_REF_NAME =~/(INST-)/'
-      when: manual
+      when: on_success
     - when: never
+
+prune_files:
+  stage: actions
+  tags: [docker]
+  image: apliteni/mc
+  allow_failure: false
+  script:
+    - "ci/bin/prune_old_files ${S3_BUCKET}/${BUILDS_FOLDER} ${BUILDS_TTL}"
+  only:
+    variables:
+      - $ACTION == 'prune'

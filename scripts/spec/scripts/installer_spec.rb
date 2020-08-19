@@ -4,8 +4,9 @@ RSpec.describe 'install.sh' do
   include_context 'run script in tmp dir'
   include_context 'build subject'
 
-  BRANCH='current'
-  PLAYBOOK_PATH="centos_provision-#{BRANCH}/playbook.yml"
+  BRANCH='releases/stable'
+  PROVISION_DIRECTORY="centos_provision"
+  PLAYBOOK_PATH="#{PROVISION_DIRECTORY}/playbook.yml"
   INVENTORY_PATH='.keitaro/etc/keitaro/config/inventory'
 
   let(:inventory_values) { {installer_version: Script::INSTALLER_RELEASE_VERSION} }
@@ -248,7 +249,7 @@ RSpec.describe 'install.sh' do
 
     shared_examples_for 'should install keitaro' do
       it_behaves_like 'should print to', :stdout,
-                      %r{curl -fsSL https://github.com/.*/#{BRANCH}.tar.gz | tar xz}
+                      %r{mkdir -p #{PROVISION_DIRECTORY} && curl -fsSL https://files.keitaro.io/scripts/#{BRANCH}/playbook.tar.gz | tar -xzC #{PROVISION_DIRECTORY}}
 
       it_behaves_like 'should print to', :stdout,
                       "ansible-playbook -vvv -i #{INVENTORY_PATH} #{PLAYBOOK_PATH}"
