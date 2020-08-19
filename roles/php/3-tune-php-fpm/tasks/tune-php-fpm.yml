@@ -29,6 +29,8 @@
     emergency_restart_threshold: "{{ php_nontracker_workers_count }}"
     emergency_restart_interval: 10s
     process_control_timeout: 10s
+  notify:
+    - restart php-fpm
 
 - name: Enable and run php-fpm
   service:

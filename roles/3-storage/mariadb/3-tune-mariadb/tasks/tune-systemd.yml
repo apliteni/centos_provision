@@ -5,27 +5,11 @@
 
 - name: Generate systemd nginx config
   template:
-    src: systemd/keitaro-systemd-mariadb.conf.j2
+    src: "systemd/keitaro-systemd-mariadb.centos{{ rhel_version }}.conf.j2"
     dest: /etc/systemd/system/mariadb.service.d/keitaro-systemd-mariadb.conf
-  notify:
-    - reconfigure mariadb
-  when: rhel_version == 7
 
-- name: Generate systemd nginx config
-  template:
-    src: systemd/keitaro-systemd-mariadb-centos8.conf.j2
-    dest: /etc/systemd/system/mariadb.service.d/keitaro-systemd-mariadb.conf
-  when: rhel_version == 8
-
-- name: reconfigure mariadb
+- name: Reconfigure mariadb systemd service
   service:
     daemon-reload: true
     name: mariadb
     state: restarted
-  when: rhel_version == 8
-
-- name: restart mariadb
-  service:
-    name: mariadb
-    state: restarted
-  when: rhel_version == 8
