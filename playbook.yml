@@ -41,7 +41,7 @@
     - {role: '3-storage/redis/2-tune-redis',                tags: 'tune-redis,                                   tune'}
     - {role: '4-nginx/1-install-nginx',                     tags: 'install-nginx'}
     - {role: '4-nginx/2-tune-nginx',                        tags: 'tune-nginx,                                   tune'}
-    - {role: '4-nginx/3-upgrade-nginx-configs',             tags: 'upgrade-nginx-configs,        never'}
+    - {role: '4-nginx/x-upgrade-nginx-configs',             tags: 'upgrade-nginx-configs,        never, upgrade'}
     - {role: 'php/1-install-php',                           tags: 'install-php'}
     - {role: 'php/2-install-php-fpm',                       tags: 'install-php-fpm'}
     - {role: 'php/3-tune-php-fpm',                          tags: 'tune-php-fpm,                                 tune'}

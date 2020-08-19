@@ -4,15 +4,6 @@
     state: latest
   notify:
     - restart redis
-  when: rhel_version == 7
-
-- name: Install redis on Centos 8
-  dnf:
-    name: redis
-    state: latest
-  notify:
-    - restart redis
-  when: rhel_version == 8
 
 - name: Start and enable redis
   service:

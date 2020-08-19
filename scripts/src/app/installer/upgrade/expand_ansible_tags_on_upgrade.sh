@@ -32,8 +32,19 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['install-ntp']='1.14'
   ['install-packages']='1.4'
   ['install-postfix']='2.13'
+  ['install-mariadb']='2.13' # 0.9
+  ['install-tokudb']='2.13'  # 0.9
+  ['tune-mariadb']='2.13'    # 1.17
+  ['tune-redis']='1.4'
+  ['install-nginx']='1.0'
+  ['tune-nginx']='2.13'
+  ['install-php']='2.12'
+  ['install-php-fpm']='2.12'
+  ['tune-php-fpm']='2.12'
+  ['install-roadrunner']='2.12'
+  ['tune-roadrunner']='1.16'
+  ['tune-tracker']='1.14'
 )
-
 expand_ansible_tags_on_upgrade() {
   if is_upgrade_mode_set; then
     debug "Upgrade mode is detected, expading ansible tags"
