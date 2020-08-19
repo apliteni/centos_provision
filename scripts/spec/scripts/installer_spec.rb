@@ -195,34 +195,41 @@ RSpec.describe 'install.sh' do
 
     shared_examples_for "upgrades from versions" do |versions|
 
-      tags = %w[upgrade] + versions.map { |version| "upgrade_from_#{version}" }
+      expected_tags = %w[upgrade] + versions.map { |version| "upgrade-from-#{version}" }
 
-      it_behaves_like 'should print to', :stdout, "-tags #{tags.join(',')}`"
+      it "invokes ansiple-playbook with upgrade tags #{expected_tags}" do
+        run_script
+        all_tags_string = subject.stdout.match(/`.* ansible-playbook .* --tags (?<tags>.*)`/)[:tags]
+        upgrade_tags = all_tags_string.split(',').select{ |tag| tag.start_with?('upgrade') }
+        expect(upgrade_tags).to eq(expected_tags)
+      end
+
+      #it_behaves_like 'should print to', :stdout, /--tags #{tags.join(',')}(`|,(?!upgrade))/
     end
 
     context 'when too old version is installed' do
       let(:inventory_values) { {} }
-      it_behaves_like "upgrades from versions", %w[1.5 2.0 2.12]
+      it_behaves_like "upgrades from versions", %w[1.5 2.0 2.12 2.13]
     end
 
     context 'when 0.9 is installed' do
       let(:inventory_values) { {installer_version: '0.9'} }
-      it_behaves_like "upgrades from versions", %w[1.5 2.0 2.12]
+      it_behaves_like "upgrades from versions", %w[1.5 2.0 2.12 2.13]
     end
 
     context 'when 1.9 version installed' do
       let(:inventory_values) { {installer_version: '1.9'} }
-      it_behaves_like "upgrades from versions", %w[2.0 2.12]
+      it_behaves_like "upgrades from versions", %w[2.0 2.12 2.13]
     end
 
     context 'when 2.0 version installed' do
-      let(:inventory_values) { {installer_version: '2.12'} }
-      it_behaves_like "upgrades from versions", %w[2.12]
+      let(:inventory_values) { {installer_version: '2.12 2.13'} }
+      it_behaves_like "upgrades from versions", %w[2.12 2.13]
     end
 
     context 'when 2.1 version installed' do
       let(:inventory_values) { {installer_version: '2.13'} }
-      it_behaves_like "upgrades from versions", []
+      it_behaves_like "upgrades from versions", %w[2.13]
     end
   end
 
