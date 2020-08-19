@@ -8,6 +8,8 @@
   
 - name: install certbot-auto
   shell: cd {{ certbot_dir }} && ./certbot --install-only --non-interactive
+  async: 360 # 6 minutes
+  poll: 15
   
 - name: Set Certbot script variable.
   set_fact:
