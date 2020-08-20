@@ -95,8 +95,9 @@ deploy_release:
   extends: [.deployment-jobs-common]
   tags: [kubernetes]
   image: apliteni/mc
+  variables:
+    DEPLOY_RELEASE: 'yes'
   script:
-    - DEPLOY_RELEASE='yes'
     - ci/bin/deployment/create_build
     - ci/bin/deployment/prepare_mc
     - ci/bin/deployment/upload_to_s3
