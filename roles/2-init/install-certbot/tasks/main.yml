@@ -8,6 +8,8 @@
 
 - name: Install certbot-auto
   shell: /tmp/certbot-installer --install-only --non-interactive
+  async: 300 # 5 minutes
+  poll: 15
 
 - name: Remove certbot-auto installation script
   file:
