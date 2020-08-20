@@ -7,11 +7,24 @@ then
       exit 1;
 fi
 
-s3_url="https://${S3_HOST}/${S3_BUCKET}/${REMOTE_BUILD_PATH}"
+if [[ "$CI_COMMIT_REF_NAME" =~ INST-* ]]
+then
+      s3_url="https://${S3_HOST}/${S3_BUCKET}/${REMOTE_BUILD_PATH}";
+      text="Installer build v${RELEASE_VERSION} (${CI_COMMIT_SHORT_SHA}) is ready!"
+fi
 
-text="Installer build v${RELEASE_VERSION} (${CI_COMMIT_SHORT_SHA}) is ready!
-${s3_url}/install.sh
-${s3_url}/enable-ssl.sh
-и другие файлы"
+if [[ "$CI_COMMIT_REF_NAME" == master ]]
+then
+      s3_url="https://${S3_HOST}/${S3_BUCKET}/${RELEASE_FOLDER}/current";
+      text="Installer merged with $CI_COMMIT_REF_NAME branch"
+fi
+
+if [[ "$DEPLOY_RELEASE" == 'yes' ]]
+then
+      s3_url="https://${S3_HOST}/${S3_BUCKET}/${RELEASE_FOLDER}/stable";
+      text="Installer v${RELEASE_VERSION} deployed successfully"   
+fi
+
+text="$text\n${s3_url}/install.sh\n${s3_url}/enable-ssl.sh\nand other filer"
 
 curl "${SLACK_WEBHOOK}" -X POST --data "{\"text\": \"${text}\"}" -H 'Content-type: application/json'

@@ -29,7 +29,7 @@ then
       mc cp --recursive "${LOCAL_BUILD_PATH}" "default/${S3_BUCKET}/${RELEASE_FOLDER}/current/";
 fi
 
-if [ -z "$DEPLOY_RELEASE" ]
+if [[ "$DEPLOY_RELEASE" == 'yes' ]]
 then
       mc cp --recursive "${LOCAL_BUILD_PATH}" "default/${S3_BUCKET}/${RELEASE_FOLDER}/${RELEASE_VERSION}/";
       mc cp --recursive "${LOCAL_BUILD_PATH}" "default/${S3_BUCKET}/${RELEASE_FOLDER}/stable/";
