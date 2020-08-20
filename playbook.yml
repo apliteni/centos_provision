@@ -14,43 +14,43 @@
     - vars/performance.yml
 
   roles:
-    - {role: '1-prepare/1-print-debug-info',                tags: 'print-debug-info,                    upgrade, tune'}
-    - {role: '1-prepare/x-prepare-upgrade',                 tags: 'prepare-upgrade,              never'}
-    - {role: '2-init/configure-systemd',                    tags: 'configure-systemd'}
-    - {role: '2-init/configure-timezone',                   tags: 'configure-timezone'}
-    - {role: '2-init/tune-swap',                            tags: 'tune-swap,                                    tune'}
-    - {role: '2-init/create-tracker-user-and-dirs',         tags: 'create-tracker-user-and-dirs'}
-    - {role: '2-init/disable-ipv6',                         tags: 'disable-ipv6'}
-    - {role: '2-init/disable-thp',                          tags: 'disable-thp'}
-    - {role: '2-init/enable-firewall',                      tags: 'enable-firewall', 
+    - {role: '_prepare/print-debug-info',                 tags: 'print-debug-info,                    upgrade, tune'}
+    - {role: '_prepare/x-prepare-upgrade',                tags: 'prepare-upgrade,              never, upgrade'}
+    - {role: 'init/configure-journald',                   tags: 'configure-journald'}
+    - {role: 'init/configure-timezone',                   tags: 'configure-timezone'}
+    - {role: 'init/create-tracker-user-and-dirs',         tags: 'create-tracker-user-and-dirs'}
+    - {role: 'init/disable-ipv6',                         tags: 'disable-ipv6'}
+    - {role: 'init/disable-thp',                          tags: 'disable-thp'}
+    - {role: 'init/enable-firewall',                      tags: 'enable-firewall', 
        when: "skip_firewall is not defined or skip_firewall != 'yes'"}
-    - {role: '2-init/enable-repo-remi',                     tags: 'enable-repo-remi'}
-    - {role: '2-init/increase-max-opened-files',            tags: 'increase-max-opened-files'}
-    - {role: '2-init/install-certbot',                      tags: 'install-certbot'}
-    - {role: '2-init/install-certs',                        tags: 'install-certs'}
-    - {role: '2-init/install-kctl-tools',                   tags: 'install-kctl-tools'}
-    - {role: '2-init/install-ntp',                          tags: 'install-ntp'}
-    - {role: '2-init/install-packages',                     tags: 'install-packages'}
-    - {role: '2-init/install-postfix',                      tags: 'install-postfix'}
-    - {role: '3-storage/clickhouse/x-install-clickhouse',   tags: 'install-clickhouse,           never'}
-    - {role: '3-storage/mariadb/x-prepare-mariadb-upgrade', tags: 'prepare-mariadb-upgrade,      never'}
-    - {role: '3-storage/mariadb/1-install-mariadb',         tags: 'install-mariadb'}
-    - {role: '3-storage/mariadb/2-install-tokudb',          tags: 'install-tokudb'}
-    - {role: '3-storage/mariadb/3-tune-mariadb',            tags: 'tune-mariadb,                                 tune'}
-    - {role: '3-storage/redis/1-install-redis',             tags: 'install-redis'}
-    - {role: '3-storage/redis/2-tune-redis',                tags: 'tune-redis,                                   tune'}
-    - {role: '4-nginx/1-install-nginx',                     tags: 'install-nginx'}
-    - {role: '4-nginx/2-tune-nginx',                        tags: 'tune-nginx,                                   tune'}
-    - {role: '4-nginx/x-upgrade-nginx-configs',             tags: 'upgrade-nginx-configs,        never, upgrade'}
-    - {role: 'php/1-install-php',                           tags: 'install-php'}
-    - {role: 'php/2-install-php-fpm',                       tags: 'install-php-fpm'}
-    - {role: 'php/3-tune-php-fpm',                          tags: 'tune-php-fpm,                                 tune'}
-    - {role: 'php/1-install-roadrunner',                    tags: 'install-roadrunner'}
-    - {role: 'php/2-tune-roadrunner',                       tags: 'tune-roadrunner,                              tune'}
-    - {role: 'php/x-upgrade-php-fpm',                       tags: 'upgrade-php-fpm,              never'}
-    - {role: 'tracker/1-install-tracker',                   tags: 'install-tracker'}
-    - {role: 'tracker/2-tune-tracker',                      tags: 'tune-tracker,                                 tune'}
-    - {role: 'tracker/3-upgrade-tracker',                   tags: 'upgrade-tracker,              never'}
-    - {role: 'tracker/4-restore-db',                        tags: 'db_restore', 
+    - {role: 'init/enable-repo-remi',                     tags: 'enable-repo-remi'}
+    - {role: 'init/increase-max-opened-files',            tags: 'increase-max-opened-files'}
+    - {role: 'init/install-certbot',                      tags: 'install-certbot'}
+    - {role: 'init/install-certs',                        tags: 'install-certs'}
+    - {role: 'init/install-kctl-tools',                   tags: 'install-kctl-tools'}
+    - {role: 'init/install-ntp',                          tags: 'install-ntp'}
+    - {role: 'init/install-packages',                     tags: 'install-packages'}
+    - {role: 'init/install-postfix',                      tags: 'install-postfix'}
+    - {role: 'init/tune-swap',                            tags: 'tune-swap,                                    tune'}
+    - {role: 'php/install-php',                           tags: 'install-php'}
+    - {role: 'php/install-php-fpm',                       tags: 'install-php-fpm'}
+    - {role: 'php/tune-php-fpm',                          tags: 'tune-php-fpm,                                 tune'}
+    - {role: 'php/install-roadrunner',                    tags: 'install-roadrunner'}
+    - {role: 'php/tune-roadrunner',                       tags: 'tune-roadrunner,                              tune'}
+    - {role: 'php/x-upgrade-php-fpm',                     tags: 'upgrade-php-fpm,              never, upgrade'}
+    - {role: 'storage/clickhouse/x-install-clickhouse',   tags: 'install-clickhouse,           never'}
+    - {role: 'storage/mariadb/install-mariadb',           tags: 'install-mariadb'}
+    - {role: 'storage/mariadb/install-tokudb',            tags: 'install-tokudb'}
+    - {role: 'storage/mariadb/tune-mariadb',              tags: 'tune-mariadb,                                 tune'}
+    - {role: 'storage/mariadb/x-prepare-mariadb-upgrade', tags: 'prepare-mariadb-upgrade,      never,                upgrade-mariadb'}
+    - {role: 'storage/redis/install-redis',               tags: 'install-redis'}
+    - {role: 'storage/redis/tune-redis',                  tags: 'tune-redis,                                   tune'}
+    - {role: 'tracker/install-tracker',                   tags: 'install-tracker'}
+    - {role: 'tracker/tune-tracker',                      tags: 'tune-tracker,                                 tune'}
+    - {role: 'tracker/x-upgrade-tracker',                 tags: 'upgrade-tracker,              never, upgrade'}
+    - {role: 'tracker/x-restore-db',                      tags: 'db_restore', 
        when: "db_restore_path is defined and db_restore_path != ''"}
+    - {role: 'web/install-nginx',                         tags: 'install-nginx'}
+    - {role: 'web/tune-nginx',                            tags: 'tune-nginx,                                   tune'}
+    - {role: 'web/x-upgrade-nginx-configs',               tags: 'upgrade-nginx-configs,        never, upgrade'}
 
