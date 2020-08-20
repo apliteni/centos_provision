@@ -3,10 +3,10 @@
 - include: backup_configs.yml
 
 - include: upgrade_from_1.5.yml
-  tags: 'never, upgrade_from_1.5'
+  tags: 'never, upgrade-from-1.5'
 
 - include: upgrade_from_2.12.yml
-  tags: 'never, upgrade_from_2.12'
+  tags: 'never, upgrade-from-2.12'
 
 - include: upgrade_from_2.13.yml
-  tags: 'never, upgrade_from_2.13'
+  tags: 'never, upgrade-from-2.13'
