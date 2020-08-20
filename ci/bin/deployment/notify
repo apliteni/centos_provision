@@ -25,9 +25,6 @@ then
       text="Installer v${RELEASE_VERSION} deployed successfully"   
 fi
 
-text="$text
-${s3_url}/install.sh
-${s3_url}/enable-ssl.sh
-и другие файлы"
+text="$text\n${s3_url}/install.sh\n${s3_url}/enable-ssl.sh\nand other filer"
 
 curl "${SLACK_WEBHOOK}" -X POST --data "{\"text\": \"${text}\"}" -H 'Content-type: application/json'
