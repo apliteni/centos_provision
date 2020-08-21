@@ -33,11 +33,10 @@
     - {role: 'init/install-postfix',                      tags: 'install-postfix'}
     - {role: 'init/tune-swap',                            tags: 'tune-swap,                                    tune'}
     - {role: 'php/install-php',                           tags: 'install-php'}
-    - {role: 'php/install-php-fpm',                       tags: 'install-php-fpm'}
-    - {role: 'php/tune-php-fpm',                          tags: 'tune-php-fpm,                                 tune'}
     - {role: 'php/install-roadrunner',                    tags: 'install-roadrunner'}
+    - {role: 'php/tune-php',                              tags: 'tune-php,                                     tune'}
     - {role: 'php/tune-roadrunner',                       tags: 'tune-roadrunner,                              tune'}
-    - {role: 'php/x-upgrade-php-fpm',                     tags: 'upgrade-php-fpm,              never, upgrade'}
+    - {role: 'php/x-upgrade-php',                         tags: 'upgrade-php,                  never, upgrade'}
     - {role: 'storage/clickhouse/x-install-clickhouse',   tags: 'install-clickhouse,           never'}
     - {role: 'storage/mariadb/install-mariadb',           tags: 'install-mariadb'}
     - {role: 'storage/mariadb/install-tokudb',            tags: 'install-tokudb'}
@@ -54,3 +53,7 @@
     - {role: 'web/tune-nginx',                            tags: 'tune-nginx,                                   tune'}
     - {role: 'web/x-upgrade-nginx-configs',               tags: 'upgrade-nginx-configs,        never, upgrade'}
 
+  handlers:
+    - name: reload systemd
+      service:
+        daemon-reload: true

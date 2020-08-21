@@ -2,6 +2,8 @@
   file:
     path: "/etc/php/php-fpm.d/www.conf"
     state: absent
+  notify:
+    - restart php-fpm
 
 - name: Generate a pool config
   template:
@@ -32,9 +34,7 @@
   notify:
     - restart php-fpm
 
-- name: Enable and run php-fpm
+- name: Enable php-fpm
   service:
     name: "{{php_version}}-php-fpm"
-    state: restarted
-    daemon-reload: true
     enabled: yes
