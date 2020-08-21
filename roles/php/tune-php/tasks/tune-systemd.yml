@@ -8,4 +8,5 @@
     src: systemd/keitaro-systemd-php-fpm.conf.j2
     dest: "/etc/systemd/system/{{ php_version }}-php-fpm.service.d/keitaro-systemd-php-fpm.conf"
   notify:
-    - reconfigure php-fpm
+    - reload systemd
+    - restart php-fpm

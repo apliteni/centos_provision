@@ -1,0 +1,13 @@
+- name: Increase php limits
+  lineinfile:
+    path: /etc/php/php.ini
+    regexp: '^{{ item.key }}'
+    line: '{{ item.key }} = {{ item.value }}'
+  with_dict:
+    memory_limit: '{{ php_memory_limit }}'
+    post_max_size: '{{ php_max_upload_size }}'
+    upload_max_filesize: '{{ php_max_upload_size }}'
+    short_open_tag: 'On'
+  notify:
+    - restart php-fpm
+    - restart roadrunner
