@@ -3,3 +3,7 @@
     path: "/usr/bin/kctl-{{ item }}"
   with_items: "{{ kctl_tool_names }}"
 
+- name: Remove ntp package
+  package: 
+    name: ntp
+    state: absent
