@@ -7,4 +7,4 @@ mkdir -p "${LOCAL_BUILD_PATH}"
 
 cp scripts/{install,add-site,enable-ssl,delete-ssl}.sh "${LOCAL_BUILD_PATH}"
 
-tar -zcvf "${LOCAL_BUILD_PATH}/playbook.tar.gz" playbook.yml ansible.cfg roles vars
+tar -zcvf "${LOCAL_BUILD_PATH}/playbook.tar.gz" playbook.yml ansible.cfg roles vars RELEASE_VERSION
