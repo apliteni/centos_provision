@@ -7,9 +7,6 @@
   template:
     src: "systemd/keitaro-systemd-mariadb.conf.centos{{ rhel_version }}.j2"
     dest: /etc/systemd/system/mariadb.service.d/keitaro-systemd-mariadb.conf
-
-- name: Reconfigure mariadb systemd service
-  service:
-    daemon-reload: true
-    name: mariadb
-    state: restarted
+  notify:
+    - reload systemd
+    - restart mariadb

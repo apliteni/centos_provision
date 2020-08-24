@@ -2404,7 +2404,6 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['disable-thp']='0.9'
   ['enable-firewall']='1.9'
   ['enable-repo-remi']='2.5'
-  ['enable-swap']='2.0'
   ['increase-max-opened-files']='1.0'
   ['install-certbot']='2.13'
   ['install-certs']='2.13'
@@ -2412,8 +2411,18 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['install-ntp']='1.14'
   ['install-packages']='1.4'
   ['install-postfix']='2.13'
+  ['tune-swap']='2.0'
+  ['install-php']='2.12'
+  ['install-roadrunner']='2.12'
+  ['tune-php']='2.12'
+  ['tune-roadrunner']='1.16'
+  ['install-mariadb']='1.17'
+  ['tune-mariadb']='1.17'
+  ['tune-redis']='1.4'
+  ['install-nginx']='1.0'
+  ['tune-nginx']='2.13'
+  ['tune-tracker']='1.14'
 )
-
 expand_ansible_tags_on_upgrade() {
   if is_upgrade_mode_set; then
     debug "Upgrade mode is detected, expading ansible tags"
