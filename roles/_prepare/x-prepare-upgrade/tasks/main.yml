@@ -1,6 +1,8 @@
-- include: ensure_relevant_keitaro_installed.yml
+- include: upgrade-ensure_relevant_keitaro_installed.yml
+  tags: 'never, upgrade'
 
-- include: backup_configs.yml
+- include: upgrade-backup_configs.yml
+  tags: 'never, upgrade'
 
 - include: upgrade_from_1.5.yml
   tags: 'never, upgrade-from-1.5'
