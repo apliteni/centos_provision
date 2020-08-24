@@ -1,5 +1,0 @@
----
-remi_repo_base_url: "{{ keitaro_url }}/mirrors/"
-jemalloc_rpm: "{{ remi_repo_base_url }}/epel/jemalloc-5.2.1-2.el8.x86_64.rpm"
-#tokudb_engine: "http://archive.mariadb.org/mariadb-{{ tokudb_version }}/yum/centos/8/x86_64/rpms/MariaDB-tokudb-engine-{{ tokudb_version }}-1.el8.x86_64.rpm"
-tokudb_engine: "https://yum.mariadb.org/{{ tokudb_short_version }}/rhel8-amd64/rpms/MariaDB-tokudb-engine-{{ tokudb_version }}-1.el8.x86_64.rpm"

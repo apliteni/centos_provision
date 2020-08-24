@@ -7,10 +7,6 @@
   tags: 'never, upgrade-from-1.5'
   notify: restart mariadb
 
-- include: prepare_upgrade_from_2.12-remove_old_configs.yml
+- include: prepare_upgrade_from_2.12-remove_old_configs_and_packages.yml
   tags: 'never, upgrade-from-2.12'
-  notify: restart mariadb
-
-- include: cleanup.yml
-  tags: 'never, upgrade-mariadb'
   notify: restart mariadb

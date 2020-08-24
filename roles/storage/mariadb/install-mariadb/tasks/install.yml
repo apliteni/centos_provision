@@ -1,4 +1,3 @@
----
 - name: Add MariaDB repo
   template:
     src: mariadb.repo.j2
@@ -7,32 +6,29 @@
 
 - name: Install packages
   package:
-    name: "{{ item }}"
+    name:
+      - MariaDB-server
+      - MariaDB-client
+      - MariaDB-tokudb-engine
+      - jemalloc
     state: installed
-    enablerepo: mariadb
-  with_items: "{{ mariadb_packages }}"
-  tags: mariadb
-  when: rhel_version == 7
+  notify:
+    - restart mariadb
 
-- name: Install packages step 1
-  dnf:
-    name: boost-program-options
-    state: installed
-  tags: mariadb
-  when: rhel_version == 8
-
-- name: Install packages step 2
-  dnf:
-    name: [MariaDB-server, MariaDB-client]
-    state: installed
-    disablerepo: AppStream
-  tags: mariadb
-  when: rhel_version == 8
-
-- name: Make sure pymysql is present
-  become: true # needed if the other tasks are not played as root
+- name: Install PyMySQL
   pip:
     name: pymysql
     state: present
-  tags: mariadb
-  when: rhel_version == 8
+
+- name: Ensure service is started
+  service:
+    name: mariadb
+    state: started
+    enabled: yes
+
+- name: Install config file for network settings
+  template:
+    src: etc_my.cnf.d_network.cnf.j2
+    dest: /etc/my.cnf.d/network.cnf
+  notify: 
+    - restart mariadb
