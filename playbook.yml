@@ -3,6 +3,7 @@
   become: yes
   become_method: sudo
   vars_files:
+    - vars/defaults.yml
     - vars/keitaro.yml
     - vars/server.yml
     - vars/ssl.yml
@@ -20,8 +21,7 @@
     - {role: 'init/create-tracker-user-and-dirs',          tags: 'create-tracker-user-and-dirs'}
     - {role: 'init/disable-ipv6',                          tags: 'disable-ipv6'}
     - {role: 'init/disable-thp',                           tags: 'disable-thp'}
-    - {role: 'init/enable-firewall',                       tags: 'enable-firewall', 
-       when: "skip_firewall is not defined or skip_firewall != 'yes'"}
+    - {role: 'init/enable-firewall',                       tags: 'enable-firewall',                    when: "skip_firewall != 'yes'"}
     - {role: 'init/enable-repo-remi',                      tags: 'enable-repo-remi'}
     - {role: 'init/increase-max-opened-files',             tags: 'increase-max-opened-files'}
     - {role: 'init/install-certbot',                       tags: 'install-certbot'}
@@ -30,23 +30,22 @@
     - {role: 'init/install-kctl-tools',                    tags: 'install-kctl-tools'}
     - {role: 'init/install-helper-packages',               tags: 'install-helper-packages'}
     - {role: 'init/install-postfix',                       tags: 'install-postfix'}
-    - {role: 'init/tune-swap',                             tags: 'tune-swap,                                    tune'}
+    - {role: 'init/tune-swap',                             tags: 'tune-swap,                    tune'}
     - {role: 'php/install-php',                            tags: 'install-php'}
     - {role: 'php/install-roadrunner',                     tags: 'install-roadrunner'}
-    - {role: 'php/tune-php',                               tags: 'tune-php,                                     tune'}
-    - {role: 'php/tune-roadrunner',                        tags: 'tune-roadrunner,                              tune'}
+    - {role: 'php/tune-php',                               tags: 'tune-php,                     tune'}
+    - {role: 'php/tune-roadrunner',                        tags: 'tune-roadrunner,              tune'}
     - {role: 'php/x-upgrade-php',                          tags: 'upgrade-php'}
     - {role: 'storage/clickhouse/x-install-clickhouse',    tags: 'install-clickhouse,           never'}
     - {role: 'storage/mariadb/_x-prepare-mariadb-upgrade', tags: 'prepare-mariadb-upgrade'}
     - {role: 'storage/mariadb/install-mariadb',            tags: 'install-mariadb'}
-    - {role: 'storage/mariadb/tune-mariadb',               tags: 'tune-mariadb,                                 tune'}
+    - {role: 'storage/mariadb/tune-mariadb',               tags: 'tune-mariadb,                 tune'}
     - {role: 'storage/redis/install-redis',                tags: 'install-redis'}
-    - {role: 'storage/redis/tune-redis',                   tags: 'tune-redis,                                   tune'}
+    - {role: 'storage/redis/tune-redis',                   tags: 'tune-redis,                   tune'}
     - {role: 'tracker/install-tracker',                    tags: 'install-tracker'}
-    - {role: 'tracker/tune-tracker',                       tags: 'tune-tracker,                                 tune'}
+    - {role: 'tracker/tune-tracker',                       tags: 'tune-tracker,                 tune'}
     - {role: 'tracker/x-upgrade-tracker',                  tags: 'upgrade-tracker'}
-    - {role: 'tracker/x-restore-db',                       tags: 'db_restore'} 
-       when: "db_restore_path is defined and db_restore_path != ''"}
+    - {role: 'tracker/x-restore-db',                       tags: 'db_restore',                         when: "db_restore_path != ''"}
     - {role: 'web/install-nginx',                          tags: 'install-nginx'}
-    - {role: 'web/tune-nginx',                             tags: 'tune-nginx,                                   tune'}
+    - {role: 'web/tune-nginx',                             tags: 'tune-nginx,                   tune'}
     - {role: 'web/x-upgrade-nginx-configs',                tags: 'upgrade-nginx-configs'}
