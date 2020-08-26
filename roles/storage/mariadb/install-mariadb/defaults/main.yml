@@ -3,3 +3,6 @@ mariadb_users: []
 mariadb_root_password: ''
 mariadb_bind_address: '127.0.0.1'
 mariadb_socket: /var/lib/mysql/mysql.sock
+mariadb_enabled_repos:
+  centos7: base,mariadb
+  centos8: BaseOS,mariadb
