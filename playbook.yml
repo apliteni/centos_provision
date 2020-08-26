@@ -10,7 +10,7 @@
     - vars/mariadb.yml
     - vars/nginx.yml
     - vars/php.yml
-    - "vars/performance.{{ php_engine }}.yml"
+    - vars/performance.roadrunner.yml
     - vars/performance.yml
 
   roles:
@@ -71,7 +71,6 @@
         name: roadrunner
         state: restarted
         daemon-reload: true
-      when: "php_engine == 'roadrunner'"
     - name: restart nginx
       service:
         name: nginx

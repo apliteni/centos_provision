@@ -20,7 +20,6 @@
 
 - name: Disable php-fpm tracker pool if engine is roadrunner
   command: mv /etc/php/php-fpm.d/keitaro-tracker.conf /etc/php/php-fpm.d/keitaro-tracker.conf.disabled
-  when: php_engine == 'roadrunner'
 
 - name: Tune php-fpm master
   lineinfile:
