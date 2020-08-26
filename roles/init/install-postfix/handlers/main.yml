@@ -3,5 +3,5 @@
     name: postfix
     state: restarted
 
-- name: apply changing mail alises
+- name: apply changing mail aliases
   shell: newaliases

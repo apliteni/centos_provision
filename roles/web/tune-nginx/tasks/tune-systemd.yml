@@ -8,4 +8,4 @@
     src: systemd/keitaro-systemd-nginx.conf.j2
     dest: /etc/systemd/system/nginx.service.d/keitaro-systemd-nginx.conf
   notify:
-    - reconfigure nginx
+    - restart nginx
