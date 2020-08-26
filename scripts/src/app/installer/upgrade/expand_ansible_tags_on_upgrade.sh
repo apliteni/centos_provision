@@ -26,7 +26,7 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['enable-repo-remi']='2.5'
   ['increase-max-opened-files']='1.0'
   ['install-certbot']='2.13'
-  ['install-certs']='2.13'
+  ['install-certs']='1.0'
   ['install-chrony']='2.13'
   ['install-kctl-tools']='2.12'
   ['install-helper-packages']='1.4'
@@ -43,6 +43,7 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['tune-nginx']='2.13'
   ['tune-tracker']='1.14'
 )
+
 expand_ansible_tags_on_upgrade() {
   if is_upgrade_mode_set; then
     debug "Upgrade mode is detected, expading ansible tags"
