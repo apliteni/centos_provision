@@ -11,7 +11,6 @@ setup_vars(){
   setup_default_value db_engine 'tokudb'
   setup_default_value php_engine "${PHP_ENGINE}"
   setup_default_value ssh_port "$(get_firewall_ssh_port)"
-  setup_default_value rhel_version "$(get_rhel_version)"
 }
 
 get_firewall_ssh_port(){
@@ -24,15 +23,6 @@ get_firewall_ssh_port(){
     else
       echo "22"
     fi
-  fi
-}
-
-get_rhel_version(){
-  local version="$(test -f /etc/centos-release && grep -Po '\d+' /etc/centos-release | head -n1)"
-  if [[ "$version" == "8" ]]; then
-    echo "8"
-  else
-    echo "7"
   fi
 }
 

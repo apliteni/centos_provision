@@ -1677,7 +1677,6 @@ setup_vars(){
   setup_default_value db_engine 'tokudb'
   setup_default_value php_engine "${PHP_ENGINE}"
   setup_default_value ssh_port "$(get_firewall_ssh_port)"
-  setup_default_value rhel_version "$(get_rhel_version)"
 }
 
 get_firewall_ssh_port(){
@@ -1690,15 +1689,6 @@ get_firewall_ssh_port(){
     else
       echo "22"
     fi
-  fi
-}
-
-get_rhel_version(){
-  local version="$(test -f /etc/centos-release && grep -Po '\d+' /etc/centos-release | head -n1)"
-  if [[ "$version" == "8" ]]; then
-    echo "8"
-  else
-    echo "7"
   fi
 }
 
@@ -1950,7 +1940,6 @@ write_inventory_file(){
   print_line_to_inventory_file "cpu_cores=$(get_cpu_cores)"
   print_line_to_inventory_file "ram=$(get_ram)"
   print_line_to_inventory_file "ssh_port=${VARS['ssh_port']}"
-  print_line_to_inventory_file "rhel_version=${VARS['rhel_version']}"
   if isset "${VARS['db_engine']}"; then
     print_line_to_inventory_file "db_engine=${VARS['db_engine']}"
   fi
@@ -1965,7 +1954,6 @@ write_inventory_file(){
   fi
   debug "Writing inventory file: DONE"
 }
-
 
 get_cpu_cores(){
   cpu_cores=$(grep -c ^processor /proc/cpuinfo 2>/dev/null || echo 1)
@@ -1992,9 +1980,6 @@ stage5(){
 }
 
 upgrade_packages(){
-  if isset "${VARS['rhel_version']}" && [ "${VARS['rhel_version']}" == "7" ]; then
-    install_package deltarpm
-  fi
   debug "Upgrading packages"
   run_command "yum update -y"
 }
@@ -2006,11 +1991,6 @@ install_packages(){
   if ! is_installed ansible; then
     install_package epel-release
     install_package ansible
-    if isset "${VARS['rhel_version']}" && [ "${VARS['rhel_version']}" == "7" ]; then
-      install_package libselinux-python
-    else
-      install_package python3-libselinux
-    fi
   fi
 }
 
@@ -2406,10 +2386,10 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['enable-repo-remi']='2.5'
   ['increase-max-opened-files']='1.0'
   ['install-certbot']='2.13'
-  ['install-certs']='2.13'
+  ['install-certs']='1.0'
+  ['install-chrony']='2.13'
   ['install-kctl-tools']='2.12'
-  ['install-ntp']='1.14'
-  ['install-packages']='1.4'
+  ['install-helper-packages']='1.4'
   ['install-postfix']='2.13'
   ['tune-swap']='2.0'
   ['install-php']='2.12'
@@ -2423,6 +2403,7 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['tune-nginx']='2.13'
   ['tune-tracker']='1.14'
 )
+
 expand_ansible_tags_on_upgrade() {
   if is_upgrade_mode_set; then
     debug "Upgrade mode is detected, expading ansible tags"
