@@ -49,3 +49,35 @@
     - {role: 'web/install-nginx',                          tags: 'install-nginx'}
     - {role: 'web/tune-nginx',                             tags: 'tune-nginx,                   tune'}
     - {role: 'web/x-upgrade-nginx-configs',                tags: 'upgrade-nginx-configs'}
+
+  handlers:
+    - name: restart mariadb
+      service:
+        name: mariadb
+        state: restarted
+        daemon-reload: true
+    - name: restart redis
+      service:
+        name: redis
+        state: restarted
+        daemon-reload: true
+    - name: restart php-fpm
+      service:
+        name: "{{php_version}}-php-fpm"
+        state: restarted
+        daemon-reload: true
+    - name: restart roadrunner
+      service:
+        name: roadrunner
+        state: restarted
+        daemon-reload: true
+      when: "php_engine == 'roadrunner'"
+    - name: restart nginx
+      service:
+        name: nginx
+        state: restarted
+        daemon-reload: true
+    - name: reload nginx
+      service:
+        name: nginx
+        state: reloaded
