@@ -4,23 +4,29 @@
     dest: /etc/yum.repos.d/mariadb.repo
     force: no
 
-- name: Install packages
+- name: Install supporting libraries
+  package:
+    name:
+      - jemalloc
+      - boost-program-options
+    state: installed
+
+- name: Install MariaDB packages
   package:
     name:
       - MariaDB-server
       - MariaDB-client
       - MariaDB-tokudb-engine
-      - jemalloc
     state: installed
-  notify:
-    - restart mariadb
+    enablerepo: '{{ mariadb_enabled_repos["centos" + ansible_distribution_major_version] }}'
+    disablerepo: '*'
 
 - name: Install PyMySQL
   pip:
     name: pymysql
     state: present
 
-- name: Ensure service is started
+- name: Ensure mariadb service is started
   service:
     name: mariadb
     state: started
