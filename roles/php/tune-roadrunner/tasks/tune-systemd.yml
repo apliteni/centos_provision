@@ -3,8 +3,3 @@
 
 - name: Enable roadrunner and related services if engine is roadrunner
   include: tune-systemd-enable-roadrunner.yml
-  when: "php_engine == 'roadrunner'"
-
-- name: Disable roadrunner and related services if engine is not roadrunner
-  include: tune-systemd-disable-roadrunner.yml
-  when: "php_engine != 'roadrunner'"
