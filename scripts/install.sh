@@ -1999,11 +1999,14 @@ stage6(){
   download_provision
   run_ansible_playbook
   clean_up
-  signal_successful_installation
   show_successful_message
   if isset "$ANSIBLE_TAGS"; then
     debug "Ansible tags is set to ${ANSIBLE_TAGS} - skip printing credentials"
+    if [[ "${ANSIBLE_TAGS}" =~ /upgrade/ ]]; then
+      signal_successful_installation
+    fi
   else
+    signal_successful_installation
     show_credentials
   fi
 }
