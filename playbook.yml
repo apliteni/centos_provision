@@ -48,7 +48,7 @@
     - {role: 'tracker/install-tracker',                    tags: 'install-tracker'}
     - {role: 'tracker/tune-tracker',                       tags: 'tune-tracker,                 tune'}
     - {role: 'tracker/x-restore-db',                       tags: 'db_restore',                         when: "db_restore_path != ''"}
-    - {role: 'wrap-up/force-services-restarts',            tags: 'force-services-restarts'}
+    - {role: 'wrap-up/force-restart-services',             tags: 'force-restart-services'}
 
   handlers:
     - name: restart mariadb
