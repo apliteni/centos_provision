@@ -31,6 +31,9 @@
     - {role: 'init/install-helper-packages',               tags: 'install-helper-packages'}
     - {role: 'init/install-postfix',                       tags: 'install-postfix'}
     - {role: 'init/tune-swap',                             tags: 'tune-swap,                    tune'}
+    - {role: 'nginx/install-nginx',                        tags: 'install-nginx'}
+    - {role: 'nginx/tune-nginx',                           tags: 'tune-nginx,                   tune'}
+    - {role: 'nginx/x-upgrade-nginx-configs',              tags: 'upgrade-nginx-configs'}
     - {role: 'php/install-php',                            tags: 'install-php'}
     - {role: 'php/install-roadrunner',                     tags: 'install-roadrunner'}
     - {role: 'php/tune-php',                               tags: 'tune-php,                     tune'}
@@ -44,11 +47,8 @@
     - {role: 'storage/redis/tune-redis',                   tags: 'tune-redis,                   tune'}
     - {role: 'tracker/install-tracker',                    tags: 'install-tracker'}
     - {role: 'tracker/tune-tracker',                       tags: 'tune-tracker,                 tune'}
-    - {role: 'tracker/x-upgrade-tracker',                  tags: 'upgrade-tracker'}
     - {role: 'tracker/x-restore-db',                       tags: 'db_restore',                         when: "db_restore_path != ''"}
-    - {role: 'web/install-nginx',                          tags: 'install-nginx'}
-    - {role: 'web/tune-nginx',                             tags: 'tune-nginx,                   tune'}
-    - {role: 'web/x-upgrade-nginx-configs',                tags: 'upgrade-nginx-configs'}
+    - {role: 'wrap-up/force-services-restarts',            tags: 'force-services-restarts'}
 
   handlers:
     - name: restart mariadb

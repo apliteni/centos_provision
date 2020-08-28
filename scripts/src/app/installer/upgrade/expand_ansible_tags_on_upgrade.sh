@@ -40,7 +40,7 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['tune-mariadb']='1.17'
   ['tune-redis']='1.4'
   ['install-nginx']='1.0'
-  ['tune-nginx']='2.13'
+  ['tune-nginx']='2.12'
   ['tune-tracker']='1.14'
 )
 

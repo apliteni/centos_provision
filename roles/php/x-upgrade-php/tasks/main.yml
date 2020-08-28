@@ -1,2 +1,5 @@
 - include: stop-and-disable-old-php-fpm.yml
   tags: 'never, upgrade-from-2.12'
+
+- include: upgrade-tracker.yml
+  tags: 'never, upgrade-from-2.12'
