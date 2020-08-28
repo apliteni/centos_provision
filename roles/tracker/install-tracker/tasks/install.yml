@@ -1,3 +1,6 @@
+- name: Force all notified handlers to run at this point
+  meta: flush_handlers
+
 - name: Download installer
   get_url:
     url: "{{ keitaro_install_php }}"
