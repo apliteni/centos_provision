@@ -2,7 +2,7 @@
   tags: 'never, upgrade'
 
 - include: upgrade-backup_configs.yml
-  tags: 'never, upgrade'
+  tags: 'never, upgrade-from-2.0'
 
 - include: upgrade_from_1.5.yml
   tags: 'never, upgrade-from-1.5'
