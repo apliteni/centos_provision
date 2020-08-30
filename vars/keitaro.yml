@@ -15,5 +15,5 @@ keitaro_url: "https://keitaro.io"
 
 kctl_root: /opt/keitaro
 kctl_bin_dir: "{{ kctl_root }}/bin"
-kctl_tools_url: "https://github.com/apliteni/centos_provision/raw/current/scripts"
+kctl_tools_url: "https://files.keitaro.io/scripts/releases/stable"
 kctl_tool_names: [install, enable-ssl, delete-ssl, add-site]
