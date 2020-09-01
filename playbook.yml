@@ -1,43 +1,82 @@
----
 - hosts: all
   connection: "{{connection}}"
   become: yes
   become_method: sudo
   vars_files:
+    - vars/defaults.yml
     - vars/keitaro.yml
     - vars/server.yml
     - vars/ssl.yml
     - vars/mariadb.yml
     - vars/nginx.yml
     - vars/php.yml
-    - "vars/performance.{{ php_engine }}.yml"
+    - vars/performance.roadrunner.yml
     - vars/performance.yml
 
   roles:
-    - {role: 'keitaro.debug', tags: 'debug, tune, upgrade'}
-    - {role: 'upgrades.pretasks', tags: 'never, upgrade'}
-    - {role: 'mikegleasonjr.swap', tags: 'swap, upgrade'}
-    - {role: 'keitaro.prepare', tags: 'prepare, upgrade'}
-    - {role: 'geerlingguy.firewall', tags: 'firewall', when: "skip_firewall is not defined or skip_firewall != 'yes'"}
-    - {role: 'resmo.ntp', tags: 'ntp'}
-    - {role: 'mrlesmithjr.timezone'}
-    - {role: 'geerlingguy.repo-remi', tags: 'repo-remi'}
-    - {role: 'keitaro.systemd', tags: 'systemd, upgrade'}
-    - {role: 'keitaro.disable_thp', tags: 'mariadb, tokudb, redis, upgrade'}
-    - {role: 'keitaro.postfix', tags: 'mail, upgrade'}
-    - {role: 'keitaro.redis', tags: 'redis'}
-    - {role: 'keitaro.redis-tune', tags: 'redis, tune, redis-tune, upgrade'}
-    - {role: 'bertvv.mariadb', tags: 'mariadb, upgrade'}
-    - {role: 'keitaro.mariadb-install_tokudb', tags: 'mariadb, tokudb, upgrade'}
-    - {role: 'keitaro.mariadb-tune', tags: 'mariadb, tokudb, tune, mariadb-tune, upgrade'}
-    - {role: 'keitaro.nginx', tags: 'nginx'}
-    - {role: 'keitaro.nginx-tune', tags: 'nginx, tune, nginx-tune, upgrade'}
-    - {role: 'keitaro.php', tags: 'php, upgrade'}
-    - {role: 'keitaro.tracker', tags: 'tracker'}
-    - {role: 'keitaro.tracker-tune', tags: 'tracker, tune, tracker-tune, upgrade'}
-    - {role: 'keitaro.db_restore', tags: 'db_restore', when: "db_restore_path is defined and db_restore_path != ''"}
-    - {role: 'keitaro.php-fpm', tags: 'php, php-fpm, upgrade'}
-    - {role: 'keitaro.php-fpm-tune', tags: 'php, php-fpm, tune, php-fpm-tune, upgrade'}
-    - {role: 'keitaro.roadrunner', tags: 'php, roadrunner, upgrade'}
-    - {role: 'keitaro.roadrunner-tune', tags: 'php, roadrunner, tune, roadrunner-tune, upgrade'}
-    - {role: 'upgrades.tasks', tags: 'never, upgrade, upgrade-tracker, upgrade-php, upgrade-nginx' }
+    - {role: '_prepare/print-debug-info',                  tags: 'print-debug-info'}
+    - {role: '_prepare/x-prepare-upgrade',                 tags: 'prepare-upgrade'}
+    - {role: 'init/configure-journald',                    tags: 'configure-journald'}
+    - {role: 'init/configure-timezone',                    tags: 'configure-timezone'}
+    - {role: 'init/create-tracker-user-and-dirs',          tags: 'create-tracker-user-and-dirs'}
+    - {role: 'init/disable-ipv6',                          tags: 'disable-ipv6'}
+    - {role: 'init/disable-thp',                           tags: 'disable-thp'}
+    - {role: 'init/enable-firewall',                       tags: 'enable-firewall',                    when: "skip_firewall != 'yes'"}
+    - {role: 'init/enable-repo-remi',                      tags: 'enable-repo-remi'}
+    - {role: 'init/increase-max-opened-files',             tags: 'increase-max-opened-files'}
+    - {role: 'init/install-certbot',                       tags: 'install-certbot'}
+    - {role: 'init/install-certs',                         tags: 'install-certs'}
+    - {role: 'init/install-chrony',                        tags: 'install-chrony'}
+    - {role: 'init/install-kctl-tools',                    tags: 'install-kctl-tools'}
+    - {role: 'init/install-helper-packages',               tags: 'install-helper-packages'}
+    - {role: 'init/install-postfix',                       tags: 'install-postfix'}
+    - {role: 'init/tune-swap',                             tags: 'tune-swap,                    tune'}
+    - {role: 'nginx/install-nginx',                        tags: 'install-nginx'}
+    - {role: 'nginx/tune-nginx',                           tags: 'tune-nginx,                   tune'}
+    - {role: 'nginx/x-upgrade-nginx-configs',              tags: 'upgrade-nginx-configs'}
+    - {role: 'php/install-php',                            tags: 'install-php'}
+    - {role: 'php/install-roadrunner',                     tags: 'install-roadrunner'}
+    - {role: 'php/tune-php',                               tags: 'tune-php,                     tune'}
+    - {role: 'php/tune-roadrunner',                        tags: 'tune-roadrunner,              tune'}
+    - {role: 'php/x-upgrade-php',                          tags: 'upgrade-php'}
+    - {role: 'storage/clickhouse/x-install-clickhouse',    tags: 'install-clickhouse,           never'}
+    - {role: 'storage/mariadb/_x-prepare-mariadb-upgrade', tags: 'prepare-mariadb-upgrade'}
+    - {role: 'storage/mariadb/install-mariadb',            tags: 'install-mariadb'}
+    - {role: 'storage/mariadb/tune-mariadb',               tags: 'tune-mariadb,                 tune'}
+    - {role: 'storage/redis/install-redis',                tags: 'install-redis'}
+    - {role: 'storage/redis/tune-redis',                   tags: 'tune-redis,                   tune'}
+    - {role: 'tracker/install-tracker',                    tags: 'install-tracker'}
+    - {role: 'tracker/tune-tracker',                       tags: 'tune-tracker,                 tune'}
+    - {role: 'tracker/x-restore-db',                       tags: 'db_restore',                         when: "db_restore_path != ''"}
+    - {role: 'wrap-up/force-restart-services',             tags: 'force-restart-services'}
+
+  handlers:
+    - name: restart mariadb
+      service:
+        name: mariadb
+        state: restarted
+        daemon-reload: true
+    - name: restart redis
+      service:
+        name: redis
+        state: restarted
+        daemon-reload: true
+    - name: restart php-fpm
+      service:
+        name: "{{php_version}}-php-fpm"
+        state: restarted
+        daemon-reload: true
+    - name: restart roadrunner
+      service:
+        name: roadrunner
+        state: restarted
+        daemon-reload: true
+    - name: restart nginx
+      service:
+        name: nginx
+        state: restarted
+        daemon-reload: true
+    - name: reload nginx
+      service:
+        name: nginx
+        state: reloaded

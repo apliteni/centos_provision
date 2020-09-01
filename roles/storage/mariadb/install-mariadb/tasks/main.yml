@@ -1,0 +1,10 @@
+- include: install.yml
+
+- name: Check if root password is set
+  shell: mysqladmin -u root status
+  changed_when: false
+  failed_when: false
+  register: root_pwd_check
+
+- include: create_user_and_database.yml
+  when: root_pwd_check.rc == 0

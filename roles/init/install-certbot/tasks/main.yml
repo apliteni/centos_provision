@@ -1,0 +1,23 @@
+- name: Download certbot-auto
+  get_url:
+    url: https://dl.eff.org/certbot-auto
+    dest: "/tmp/certbot-installer"
+    mode: '0755'
+    owner: "root"
+    force: yes
+
+- name: Install certbot-auto
+  shell: /tmp/certbot-installer --install-only --non-interactive
+  async: 300 # 5 minutes
+  poll: 15
+
+- name: Remove certbot-auto installation script
+  file:
+    path: /tmp/certbot-installer
+    state: absent
+
+- name: Link certbot binary to /usr/local/bin
+  file:
+    src: /opt/eff.org/certbot/venv/bin/certbot
+    dest: /usr/local/bin/certbot
+    state: link

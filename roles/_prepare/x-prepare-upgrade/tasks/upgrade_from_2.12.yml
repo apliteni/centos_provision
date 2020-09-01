@@ -1,0 +1,27 @@
+- name: Remove mail utilites
+  package:
+    name: [mailx, sendmail, sendmail-cf]
+    state: absent
+  tags: 'never, upgrade-from-2.12'
+
+- name: Remove old files
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - /etc/nginx/ssl/cert.pem
+    - /etc/nginx/ssl/privkey.pem
+    - /etc/ssl/certs/dhparam.pem
+    - "{{ keitaro_root }}/install.php"
+    - /etc/logrotate.d/mariadb
+    - /etc/keitaro/roadrunner.yml
+    - /etc/sudoers.d/10-enable-ssl-command
+    - /root/hosts.txt
+    - /root/install.log
+    - /root/enable-ssl.log
+    - /root/add-site.log
+
+- name: Remove old packages
+  package:
+    name: certbot
+    state: absent
