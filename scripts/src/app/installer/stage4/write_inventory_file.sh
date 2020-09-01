@@ -28,7 +28,6 @@ write_inventory_file(){
   print_line_to_inventory_file "cpu_cores=$(get_cpu_cores)"
   print_line_to_inventory_file "ram=$(get_ram)"
   print_line_to_inventory_file "ssh_port=${VARS['ssh_port']}"
-  print_line_to_inventory_file "rhel_version=${VARS['rhel_version']}"
   if isset "${VARS['db_engine']}"; then
     print_line_to_inventory_file "db_engine=${VARS['db_engine']}"
   fi
@@ -43,7 +42,6 @@ write_inventory_file(){
   fi
   debug "Writing inventory file: DONE"
 }
-
 
 get_cpu_cores(){
   cpu_cores=$(grep -c ^processor /proc/cpuinfo 2>/dev/null || echo 1)

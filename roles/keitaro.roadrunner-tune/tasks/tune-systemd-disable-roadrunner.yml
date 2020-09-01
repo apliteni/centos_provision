@@ -1,6 +1,0 @@
-- name: Disable roadrunner and related services
-  systemd:
-    name: "{{ item }}"
-    state: stopped
-    enabled: no
-  with_items: "{{ roadrunner_services | difference(roadrunner_inactive_services) }}"

@@ -1,2 +1,0 @@
----
-power_tools: "{{ keitaro_url }}/mirrors/power_tools/libedit-devel-3.1-23.20170329cvs.el8.x86_64.rpm"

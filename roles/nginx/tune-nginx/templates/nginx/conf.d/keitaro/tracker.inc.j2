@@ -1,0 +1,6 @@
+include {{ nginx_conf_path }}/local/keitaro/tracker.inc;
+
+access_log {{ nginx_access_log_keitaro_tracker }} main {{ nginx_access_log_options }};
+access_log {{ nginx_access_log_keitaro_tracker_status }} status {{ nginx_access_log_options }};
+
+include {{ nginx_conf_path }}/keitaro/tracker.roadrunner.inc;

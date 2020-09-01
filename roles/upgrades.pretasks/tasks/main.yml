@@ -1,2 +1,0 @@
-- include: upgrade/main.yml
-  tags: 'upgrade'

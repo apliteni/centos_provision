@@ -1,0 +1,11 @@
+- name: Make mariadb service extra configuration dir
+  file:
+    path: /etc/systemd/system/mariadb.service.d
+    state: directory
+
+- name: Generate systemd mariadb config
+  template:
+    src: "systemd/keitaro-systemd-mariadb.conf.centos{{ ansible_distribution_major_version }}.j2"
+    dest: /etc/systemd/system/mariadb.service.d/keitaro-systemd-mariadb.conf
+  notify:
+    - restart mariadb

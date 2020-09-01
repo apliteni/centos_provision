@@ -1,0 +1,12 @@
+- include: prepare_upgrade_from_1.5-set_db_engine.yml
+  when: db_engine is not defined
+  tags: 'never, upgrade-from-1.5'
+  notify: restart mariadb
+
+- include: prepare_upgrade_from_1.5-tune_logrotate.yml
+  tags: 'never, upgrade-from-1.5'
+  notify: restart mariadb
+
+- include: prepare_upgrade_from_2.13.yml
+  tags: 'never, upgrade-from-2.13'
+  notify: restart mariadb

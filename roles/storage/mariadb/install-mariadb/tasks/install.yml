@@ -1,0 +1,40 @@
+- name: Add MariaDB repo
+  template:
+    src: mariadb.repo.j2
+    dest: /etc/yum.repos.d/mariadb.repo
+    force: no
+
+- name: Install supporting libraries
+  package:
+    name:
+      - jemalloc
+      - boost-program-options
+    state: installed
+
+- name: Install MariaDB packages
+  package:
+    name:
+      - MariaDB-server
+      - MariaDB-client
+      - MariaDB-tokudb-engine
+    state: installed
+    enablerepo: '{{ mariadb_enabled_repos["centos" + ansible_distribution_major_version] }}'
+    disablerepo: '*'
+
+- name: Install PyMySQL
+  pip:
+    name: pymysql
+    state: present
+
+- name: Ensure mariadb service is started
+  service:
+    name: mariadb
+    state: started
+    enabled: yes
+
+- name: Install config file for network settings
+  template:
+    src: etc_my.cnf.d_network.cnf.j2
+    dest: /etc/my.cnf.d/network.cnf
+  notify: 
+    - restart mariadb

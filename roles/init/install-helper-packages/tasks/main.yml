@@ -1,0 +1,4 @@
+- name: Install packages
+  package:
+    name: [nano, htop, httpd-tools, sudo, unzip, bind-utils, git, socat, strace]
+    state: present

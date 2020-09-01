@@ -1,0 +1,39 @@
+- name: Remove default pool www.conf
+  file:
+    path: "/etc/php/php-fpm.d/www.conf"
+    state: absent
+  notify:
+    - restart php-fpm
+
+- name: Generate a pool config
+  template:
+    src: "php-fpm.d/{{ item }}.j2"
+    dest: "/etc/php/php-fpm.d/{{ item }}"
+    owner: root
+    group: root
+    mode: 0644
+  with_items:
+    - keitaro-tracker.conf
+    - keitaro-nontracker.conf
+  notify:
+    - restart php-fpm
+
+- name: Disable php-fpm tracker pool if engine is roadrunner
+  command: mv /etc/php/php-fpm.d/keitaro-tracker.conf /etc/php/php-fpm.d/keitaro-tracker.conf.disabled
+
+- name: Tune php-fpm master
+  lineinfile:
+    path: /etc/php/php-fpm.conf
+    regexp: "^;?{{ item.key }} ="
+    line: "{{ item.key }} = {{ item.value }}"
+  with_dict:
+    emergency_restart_threshold: "{{ php_nontracker_workers_count }}"
+    emergency_restart_interval: 10s
+    process_control_timeout: 10s
+  notify:
+    - restart php-fpm
+
+- name: Enable php-fpm
+  service:
+    name: "{{php_version}}-php-fpm"
+    enabled: yes

@@ -1,9 +1,0 @@
-- include: ensure_relevant_keitaro_installed.yml
-
-- include: backup_configs.yml
-
-- include: prepare_nginx.yml
-
-- include: prepare_mysql.yml
-
-- include: remove_sendmail.yml

@@ -1,5 +1,0 @@
-- name: reconfigure nginx
-  service:
-    name: nginx
-    state: restarted
-    daemon-reload: true

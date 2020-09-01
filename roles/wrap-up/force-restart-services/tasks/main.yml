@@ -1,0 +1,9 @@
+- name: Force service restarts
+  shell: /bin/true
+  notify:
+    - restart nginx
+    - restart mariadb
+    - restart php-fpm
+    - restart roadrunner
+    - restart redis
+  when: "'upgrade' in ansible_run_tags or not installed"

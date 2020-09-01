@@ -1,0 +1,42 @@
+- debug:
+    var: "{{ item }}"
+  with_items:
+    - ansible_distribution_major_version
+    - ansible_hostname
+    - ansible_memtotal_mb
+    - db_memory_mb
+    - db_memory_1pct_kb
+    - db_max_connections
+    - db_key_buffer_size_kb
+    - db_query_cache_size_kb
+    - db_tmp_table_size_kb
+    - db_max_heap_table_size_kb
+    - db_join_buffer_size_kb
+    - db_table_open_cache
+    - db_open_files_limit
+    - db_main_size_kb
+    - redis_memory_mb
+    - php_memory_mb
+    - php_opened_files
+    - php_tracker_memory_factor
+    - php_tracker_memory_mb
+    - php_tracker_worker_size_mb
+    - php_tracker_worker_max_requests
+    - php_tracker_workers_count
+    - php_tracker_min_idle_workers_count
+    - php_tracker_max_idle_workers_count
+    - php_tracker_start_workers_count
+    - php_tracker_opened_files
+    - php_nontracker_memory_factor
+    - php_nontracker_worker_size_mb
+    - php_nontracker_worker_max_requests
+    - php_nontracker_memory_mb
+    - php_nontracker_workers_count
+    - php_nontracker_min_idle_workers_count
+    - php_nontracker_max_idle_workers_count
+    - php_nontracker_start_workers_count
+    - php_nontracker_opened_files
+    - nginx_workers_count
+    - nginx_worker_connections
+    - nginx_opened_files
+    - max_opened_files

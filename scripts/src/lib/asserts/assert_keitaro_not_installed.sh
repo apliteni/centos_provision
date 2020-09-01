@@ -27,5 +27,5 @@ is_keitaro_installed() {
 }
 
 should_use_new_algorithm_for_installation_check() {
- [[ ! $(version_to_number ${RELEASE_VERSION}) < $(version_to_number ${USE_NEW_ALGORITHM_FOR_INSTALLATION_CHECK_SINCE}) ]]
+  (( $(as_version ${RELEASE_VERSION}) >= $(as_version ${USE_NEW_ALGORITHM_FOR_INSTALLATION_CHECK_SINCE}) ))
 }
