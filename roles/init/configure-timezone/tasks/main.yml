@@ -1,7 +1,2 @@
----
-# tasks file for ansible-timezone
-- include: debian.yml
-  when: ansible_os_family == "Debian"
-
-- include: centos.yml
-  when: ansible_os_family == "RedHat"
+- name: configuring /etc/localtime
+  file: src=/usr/share/zoneinfo/{{ timezone }} dest=/etc/localtime state=link force=yes
