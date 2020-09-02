@@ -65,7 +65,6 @@ expand_ansible_tags_by_upgrade_from_tags() {
 expand_ansible_tags_by_role_tags() {
   for role_tag in ${!REPLAY_ROLE_TAGS_SINCE[@]}; do
     replay_role_tag_since=${REPLAY_ROLE_TAGS_SINCE[${role_tag}]}
-    echo role: ${role_tag} version: ${replay_role_tag_since}
     if (( $(as_version ${INSTALLED_VERSION}) <= $(as_version ${replay_role_tag_since}) )); then
       ANSIBLE_TAGS="${ANSIBLE_TAGS},${role_tag}"
     fi

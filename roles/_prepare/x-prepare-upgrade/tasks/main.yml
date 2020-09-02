@@ -1,14 +1,13 @@
-- include: upgrade-ensure_relevant_keitaro_installed.yml
-  tags: 'never, upgrade'
+- include: ensure_relevant_keitaro_installed.yml
 
-- include: upgrade-backup_configs.yml
-  tags: 'never, upgrade-from-2.0'
+- include: backup_configs.yml
+  when: "'upgrade-from-2.0' in ansible_run_tags"
 
 - include: upgrade_from_1.5.yml
-  tags: 'never, upgrade-from-1.5'
+  when: "'upgrade-from-1.5' in ansible_run_tags"
 
 - include: upgrade_from_2.12.yml
-  tags: 'never, upgrade-from-2.12'
+  when: "'upgrade-from-2.12' in ansible_run_tags"
 
 - include: upgrade_from_2.13.yml
-  tags: 'never, upgrade-from-2.13'
+  when: "'upgrade-from-2.13' in ansible_run_tags"
