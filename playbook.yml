@@ -14,8 +14,8 @@
     - vars/performance.yml
 
   roles:
-    - {role: '_prepare/print-debug-info',                  tags: 'print-debug-info'}
-    - {role: '_prepare/x-prepare-upgrade',                 tags: 'prepare-upgrade'}
+    - {role: '_prepare/print-debug-info',                  tags: 'print-debug-info,             always'}
+    - {role: '_prepare/x-prepare-upgrade',                 tags: 'prepare-upgrade,              never, upgrade'}
     - {role: 'init/configure-journald',                    tags: 'configure-journald'}
     - {role: 'init/configure-timezone',                    tags: 'configure-timezone'}
     - {role: 'init/create-tracker-user-and-dirs',          tags: 'create-tracker-user-and-dirs'}
@@ -33,14 +33,14 @@
     - {role: 'init/tune-swap',                             tags: 'tune-swap,                    tune'}
     - {role: 'nginx/install-nginx',                        tags: 'install-nginx'}
     - {role: 'nginx/tune-nginx',                           tags: 'tune-nginx,                   tune'}
-    - {role: 'nginx/x-upgrade-nginx-configs',              tags: 'upgrade-nginx-configs'}
+    - {role: 'nginx/x-upgrade-nginx-configs',              tags: 'upgrade-nginx-configs,        never, upgrade'}
     - {role: 'php/install-php',                            tags: 'install-php'}
     - {role: 'php/install-roadrunner',                     tags: 'install-roadrunner'}
     - {role: 'php/tune-php',                               tags: 'tune-php,                     tune'}
     - {role: 'php/tune-roadrunner',                        tags: 'tune-roadrunner,              tune'}
-    - {role: 'php/x-upgrade-php',                          tags: 'upgrade-php'}
+    - {role: 'php/x-upgrade-php',                          tags: 'upgrade-php,                  never, upgrade'}
     - {role: 'storage/clickhouse/x-install-clickhouse',    tags: 'install-clickhouse,           never'}
-    - {role: 'storage/mariadb/_x-prepare-mariadb-upgrade', tags: 'prepare-mariadb-upgrade'}
+    - {role: 'storage/mariadb/_x-prepare-mariadb-upgrade', tags: 'prepare-mariadb-upgrade,      never, upgrade'}
     - {role: 'storage/mariadb/install-mariadb',            tags: 'install-mariadb'}
     - {role: 'storage/mariadb/tune-mariadb',               tags: 'tune-mariadb,                 tune'}
     - {role: 'storage/redis/install-redis',                tags: 'install-redis'}
@@ -48,7 +48,8 @@
     - {role: 'tracker/install-tracker',                    tags: 'install-tracker'}
     - {role: 'tracker/tune-tracker',                       tags: 'tune-tracker,                 tune'}
     - {role: 'tracker/x-restore-db',                       tags: 'db_restore',                         when: "db_restore_path != ''"}
-    - {role: 'wrap-up/force-restart-services',             tags: 'force-restart-services'}
+    - {role: 'wrap-up/force-restart-services',             tags: 'force-restart-services,       always'}
+    - {role: 'wrap-up/post-upgrade',                       tags: 'post-upgrade,                 never, upgrade'}
 
   handlers:
     - name: restart mariadb

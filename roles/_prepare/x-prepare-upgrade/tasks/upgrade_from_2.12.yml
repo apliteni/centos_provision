@@ -2,7 +2,6 @@
   package:
     name: [mailx, sendmail, sendmail-cf]
     state: absent
-  tags: 'never, upgrade-from-2.12'
 
 - name: Remove old files
   file:
