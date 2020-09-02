@@ -8,7 +8,6 @@
     force: yes
 
 - name: Install Keitaro
-  tags: keitaro
   command: |
       {{ php_path }} install.php install \
                                  --ip={{ license_ip }} \

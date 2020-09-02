@@ -1,2 +1,2 @@
 - include: upgrade_from_2.0.yml
-  tags: 'never, upgrade-from-2.0'
+  when: "'upgrade-from-2.0' in ansible_run_tags"

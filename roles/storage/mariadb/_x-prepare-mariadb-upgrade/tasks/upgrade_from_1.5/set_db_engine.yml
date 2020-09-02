@@ -11,4 +11,5 @@
     path: "{{ inventory_file }}"
     regexp: ^db_engine=
     line: "db_engine={{ db_engine }}"
+  notify: restart mariadb
 
