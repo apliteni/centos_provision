@@ -1,0 +1,5 @@
+- name: Remove single channel keitaro cron task
+  cron:
+    user: "{{ keitaro_user }}"
+    name: "keitaro"
+    state: absent
