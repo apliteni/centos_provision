@@ -1,8 +1,16 @@
 #!/usr/bin/env bash
 set -e -x -o pipefail
 
-mc rm \
-    --recursive \
-    --force \
-    --older-than ${2} \
-    default/${1}
+if [ -z "$1" ]
+  then
+    echo "build path is empty";
+    exit 1;
+fi
+
+if [ -z "$2" ]
+  then
+    echo "ttl is empty";
+    exit 1;
+fi
+
+mc rm -r --force --older-than ${2} default/${1}
