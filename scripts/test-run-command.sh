@@ -303,6 +303,12 @@ init_kctl_dirs_and_links() {
       exit 1
     fi
   fi
+  if [[ ! -d ${WORKING_DIR} ]]; then
+    if ! mkdir -p ${WORKING_DIR}; then
+      echo "Can't create keitaro working directory ${WORKING_DIR}" >&2
+      exit 1
+    fi
+  fi
 }
 
 create_kctl_dirs_and_links() {

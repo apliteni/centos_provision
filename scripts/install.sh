@@ -674,6 +674,12 @@ init_kctl_dirs_and_links() {
       exit 1
     fi
   fi
+  if [[ ! -d ${WORKING_DIR} ]]; then
+    if ! mkdir -p ${WORKING_DIR}; then
+      echo "Can't create keitaro working directory ${WORKING_DIR}" >&2
+      exit 1
+    fi
+  fi
 }
 
 create_kctl_dirs_and_links() {
@@ -2392,14 +2398,14 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['install-certbot']='2.13'
   ['install-certs']='1.0'
   ['install-chrony']='2.13'
-  ['install-kctl-tools']='2.12'
+  ['install-kctl-tools']='2.14'
   ['install-helper-packages']='1.4'
   ['install-postfix']='2.13'
   ['tune-swap']='2.0'
   ['install-php']='2.12'
   ['install-roadrunner']='2.12'
   ['tune-php']='2.12'
-  ['tune-roadrunner']='2.12'
+  ['tune-roadrunner']='2.14'
   ['install-mariadb']='1.17'
   ['tune-mariadb']='1.17'
   ['tune-redis']='1.4'
