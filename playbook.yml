@@ -3,7 +3,6 @@
   become: yes
   become_method: sudo
   vars_files:
-    - vars/defaults.yml
     - vars/keitaro.yml
     - vars/server.yml
     - vars/ssl.yml
@@ -22,7 +21,7 @@
     - {role: 'init/disable-ipv6',                          tags: 'disable-ipv6'}
     - {role: 'init/disable-selinux',                       tags: 'disable-selinux'}
     - {role: 'init/disable-thp',                           tags: 'disable-thp'}
-    - {role: 'init/enable-firewall',                       tags: 'enable-firewall',                    when: "skip_firewall != 'yes'"}
+    - {role: 'init/enable-firewall',                       tags: 'enable-firewall'}
     - {role: 'init/enable-repo-remi',                      tags: 'enable-repo-remi'}
     - {role: 'init/increase-max-opened-files',             tags: 'increase-max-opened-files'}
     - {role: 'init/install-certbot',                       tags: 'install-certbot'}
@@ -48,9 +47,9 @@
     - {role: 'storage/redis/tune-redis',                   tags: 'tune-redis,                   tune'}
     - {role: 'tracker/install-tracker',                    tags: 'install-tracker'}
     - {role: 'tracker/tune-tracker',                       tags: 'tune-tracker,                 tune'}
-    - {role: 'tracker/x-restore-db',                       tags: 'db_restore',                         when: "db_restore_path != ''"}
     - {role: 'wrap-up/force-restart-services',             tags: 'force-restart-services,       always'}
     - {role: 'wrap-up/post-upgrade',                       tags: 'post-upgrade,                 never, upgrade'}
+    - {role: 'wrap-up/restore-db',                         tags: 'restore-db'}
 
   handlers:
     - name: restart mariadb

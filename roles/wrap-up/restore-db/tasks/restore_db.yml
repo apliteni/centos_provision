@@ -9,20 +9,17 @@
     chdir: ../
   register: db_restore_dump_file_mime
 
-- name: Set default engine
-  include: set_default_engine.yml
-
 - name: Drop newly created keitaro DB
   shell: 'mysql -e "DROP DATABASE {{ db_name }}; CREATE DATABASE {{ db_name }}"'
 
 - name: Restore DB from gzipped SQL dump
-  include: restore_from_dump.yml cat=zcat
+  include: restore_db/restore_from_dump.yml cat=zcat
   when: "db_restore_dump_file_mime.stdout == 'application/x-gzip'"
 
 - name: Restore DB from unpacked SQL dump
-  include: restore_from_dump.yml cat=cat
+  include: restore_db/restore_from_dump.yml cat=cat
   when: "db_restore_dump_file_mime.stdout != 'application/x-gzip'"
 
 - name: Run post-restoring tasks
-  include: post_restore.yml
+  include: restore_db/post_restore.yml
 
