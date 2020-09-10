@@ -6,4 +6,4 @@
     - restart php-fpm
     - restart roadrunner
     - restart redis
-  when: "'upgrade' in ansible_run_tags or not installed"
+  when: "'upgrade' in ansible_run_tags or installed is not defined"
