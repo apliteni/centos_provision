@@ -124,7 +124,9 @@ DICT['en.errors.run_command.fail']='There was an error evaluating current comman
 DICT['en.errors.run_command.fail_extra']=''
 DICT['en.errors.terminated']='Terminated by user'
 DICT['en.messages.generating_nginx_vhost']="Generating nginx config for domain :domain:"
-DICT['en.messages.reload_nginx']="Reloading nginx"
+DICT['ru.messages.reloading_nginx']="Reloading nginx"
+DICT['ru.messages.nginx_is_not_running']="Nginx is not running"
+DICT['ru.messages.starting_nginx']="Starting nginx"
 DICT['en.messages.skip_nginx_conf_generation']="Skip nginx config generation"
 DICT['en.messages.run_command']='Evaluating command'
 DICT['en.messages.successful']='Everything is done!'
@@ -145,7 +147,9 @@ DICT['ru.errors.run_command.fail']='Ошибка выполнения текущ
 DICT['ru.errors.run_command.fail_extra']=''
 DICT['ru.errors.terminated']='Выполнение прервано'
 DICT['ru.messages.generating_nginx_vhost']="Генерируется конфигурация для сайта :domain:"
-DICT['ru.messages.reload_nginx']="Перезагружается nginx"
+DICT['ru.messages.reloading_nginx']="Перезагружается nginx"
+DICT['ru.messages.nginx_is_not_running']="Nginx не запущен"
+DICT['ru.messages.starting_nginx']="Запускается nginx"
 DICT['ru.messages.skip_nginx_conf_generation']="Пропуск генерации конфигурации nginx"
 DICT['ru.messages.run_command']='Выполняется команда'
 DICT['ru.messages.successful']='Готово!'
@@ -251,11 +255,6 @@ is_path_exist(){
     return ${FAILURE_RESULT}
   fi
 }
-#
-
-
-
-
 
 is_file_exist(){
   local file="${1}"
@@ -834,9 +833,15 @@ print_with_color(){
   fi
 }
 
-reload_nginx(){
-  debug "Reload nginx"
-  run_command "nginx -s reload" "$(translate 'messages.reload_nginx')" 'hide_output'
+start_or_reload_nginx(){
+  if is_file_exist "/var/run/nginx.pid" || is_ci_mode; then
+    debug "Nginx is started, reloading"
+    run_command "nginx -s reload" "$(translate 'messages.reloading_nginx')" 'hide_output'
+  else
+    debug "Nginx is not running, starting"
+    print_with_color "$(translate 'messages.nginx_is_not_running')" "yellow"
+    run_command "systemctl start nginx" "$(translate 'messages.starting_nginx')" 'hide_output'
+  fi
 }
 
 REMOVE_COLORS_SED_REGEX="s/\x1b\[([0-9]{1,3}(;[0-9]{1,3}){,2})?[mGK]//g"
@@ -1360,7 +1365,7 @@ stage4(){
   for domain in ${VARS['site_domains']//,/ }; do
     generate_vhost_site_adder $domain
   done
-  reload_nginx
+  start_or_reload_nginx
   show_successful_message
 }
 

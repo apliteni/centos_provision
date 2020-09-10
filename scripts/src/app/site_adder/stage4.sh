@@ -6,6 +6,6 @@ stage4(){
   for domain in ${VARS['site_domains']//,/ }; do
     generate_vhost_site_adder $domain
   done
-  reload_nginx
+  start_or_reload_nginx
   show_successful_message
 }
