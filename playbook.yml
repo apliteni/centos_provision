@@ -20,6 +20,7 @@
     - {role: 'init/configure-timezone',                    tags: 'configure-timezone'}
     - {role: 'init/create-tracker-user-and-dirs',          tags: 'create-tracker-user-and-dirs'}
     - {role: 'init/disable-ipv6',                          tags: 'disable-ipv6'}
+    - {role: 'init/disable-selinux',                       tags: 'disable-selinux'}
     - {role: 'init/disable-thp',                           tags: 'disable-thp'}
     - {role: 'init/enable-firewall',                       tags: 'enable-firewall',                    when: "skip_firewall != 'yes'"}
     - {role: 'init/enable-repo-remi',                      tags: 'enable-repo-remi'}
