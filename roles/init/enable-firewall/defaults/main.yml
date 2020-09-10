@@ -17,5 +17,3 @@ firewall_log_dropped_packets: true
 # Set to true to ensure other firewall management software is disabled.
 firewall_disable_firewalld: false
 firewall_disable_ufw: false
-
-skip_firewall: false
