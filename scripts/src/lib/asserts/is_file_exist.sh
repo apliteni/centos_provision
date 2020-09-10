@@ -1,9 +1,4 @@
 #!/usr/bin/env bash
-#
-
-
-
-
 
 is_file_exist(){
   local file="${1}"

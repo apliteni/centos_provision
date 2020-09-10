@@ -17,7 +17,7 @@ RSpec.describe 'add-site.sh' do
   let(:make_proper_nginx_conf) do
     [
       'mkdir -p /etc/nginx/conf.d/keitaro /etc/nginx/conf.d/local/keitaro',
-      %Q{echo -e "#{nginx_conf}"> /etc/nginx/conf.d/keitaro.conf}
+      %Q{echo -e "#{nginx_conf}"> /etc/nginx/conf.d/keitaro.conf},
     ]
   end
 
