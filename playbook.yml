@@ -46,10 +46,10 @@
     - {role: 'storage/redis/install-redis',                tags: 'install-redis'}
     - {role: 'storage/redis/tune-redis',                   tags: 'tune-redis,                   tune'}
     - {role: 'tracker/install-tracker',                    tags: 'install-tracker'}
+    - {role: 'tracker/restore-db',                         tags: 'restore-db'}
     - {role: 'tracker/tune-tracker',                       tags: 'tune-tracker,                 tune'}
     - {role: 'wrap-up/force-restart-services',             tags: 'force-restart-services,       always'}
     - {role: 'wrap-up/post-upgrade',                       tags: 'post-upgrade,                 never, upgrade'}
-    - {role: 'wrap-up/restore-db',                         tags: 'restore-db'}
 
   handlers:
     - name: restart mariadb
