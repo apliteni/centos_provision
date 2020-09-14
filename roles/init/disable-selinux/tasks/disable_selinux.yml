@@ -1,0 +1,9 @@
+- name: Install supporting package
+  package:
+    name: "{{ selinux_supporting_supporting_package_name['centos' + ansible_distribution_major_version] }}"
+    state: installed
+
+- name: Disable selinux
+  selinux:
+    policy: targeted
+    state: disabled
