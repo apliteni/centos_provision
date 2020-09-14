@@ -1,0 +1,3 @@
+selinux_supporting_supporting_package_name:
+  centos7: libselinux-python
+  centos8: python3-libselinux
