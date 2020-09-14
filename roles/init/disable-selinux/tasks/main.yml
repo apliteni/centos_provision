@@ -3,8 +3,5 @@
     path: /etc/selinux/config
   register: selinux_config
 
-- name: Disable selinux
-  selinux:
-    policy: targeted
-    state: disabled
+- include: disable_selinux.yml
   when: selinux_config.stat.exists
