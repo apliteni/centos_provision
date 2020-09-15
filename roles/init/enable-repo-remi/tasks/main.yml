@@ -6,5 +6,6 @@
 
 - name: Install remi repo.
   yum:
+    disable_gpg_check: True
     name: "{{ remi_repo_url }}"
     state: present
