@@ -54,7 +54,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.16'
+RELEASE_VERSION='2.17'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
 
@@ -2405,7 +2405,7 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['install-roadrunner']='2.12'
   ['tune-php']='2.12'
   ['tune-roadrunner']='2.14'
-  ['install-mariadb']='1.17'
+  ['install-mariadb']='2.16'
   ['tune-mariadb']='1.17'
   ['tune-redis']='1.4'
   ['install-nginx']='1.0'
