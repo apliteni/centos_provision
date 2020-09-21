@@ -235,12 +235,12 @@ RSpec.describe 'enable-ssl.sh' do
   describe 'should run obsolete enable-ssl for old versions' do
     include_context 'run in docker'
 
-    let(:inventory_values) { {installer_version: 1.9} }
+    let(:inventory_values) { {installer_version: '1.20'} }
 
     let(:command_stubs) { all_command_stubs }
     let(:commands) { make_proper_nginx_conf + emulate_crontab }
 
-    it_behaves_like 'should print to', :stdout, 'Running obsolete enable-ssl (v1.9)'
+    it_behaves_like 'should print to', :stdout, 'Running obsolete enable-ssl (v1.20)'
   end
 end
 
