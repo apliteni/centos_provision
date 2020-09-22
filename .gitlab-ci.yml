@@ -62,24 +62,6 @@ run_rspec:
 .deployment-jobs-common:
   stage: deployment
 
-legacy_deploy:
-  extends: [.deployment-jobs-common]
-  tags: [shell]
-  script:
-    - ci/bin/deployment/allow_git_push
-    - ci/bin/deployment/legacy_deploy
-  dependencies:
-    - build_scripts
-  rules:
-    - if: $CI_MERGE_REQUEST_ID
-      when: never
-    - if: '$ACTION == "prune"'
-      when: never  
-    - if: '$CI_COMMIT_REF_NAME =~ /(master)/'
-      when: manual
-    - when: never
-
-
 deploy:
   extends: [.deployment-jobs-common]
   tags: [kubernetes]
