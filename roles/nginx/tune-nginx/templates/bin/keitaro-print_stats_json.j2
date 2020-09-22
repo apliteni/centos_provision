@@ -5,7 +5,6 @@ set -o pipefail
 
 NGINX_KEITARO_STATUS_LOG_SNAPSHOT="{{ nginx_access_log_keitaro_tracker_status }}.snapshot"
 KEITARO_CONFIG="/etc/keitaro/config/inventory"
-GITHUB_RAWCONTENT="https://raw.githubusercontent.com"
 
 escape() {
   local value="$1"
@@ -44,7 +43,7 @@ print_json() {
 }
 
 versions_json() {
-  current_installer_version="$(curl -fsSL ${GITHUB_RAWCONTENT}/apliteni/centos_provision/master/RELEASE_VERSION)"
+  current_installer_version="$(curl -fsSL https://files.keitaro.io/scripts/releases/stable/RELEASE_VERSION)"
   print_json installer "\"$(get_config_var 'installer_version')\"" \
              current_installer "\"${current_installer_version}\"" \
              php "\"$(php_version)\"" \

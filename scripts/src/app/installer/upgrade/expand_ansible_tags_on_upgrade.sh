@@ -37,11 +37,11 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['install-roadrunner']='2.12'
   ['tune-php']='2.12'
   ['tune-roadrunner']='2.14'
-  ['install-mariadb']='2.16'
+  ['install-mariadb']='1.17'
   ['tune-mariadb']='1.17'
   ['tune-redis']='1.4'
   ['install-nginx']='1.0'
-  ['tune-nginx']='2.12'
+  ['tune-nginx']='2.16'
   ['tune-tracker']='1.14'
 )
 
