@@ -209,27 +209,17 @@ RSpec.describe 'install.sh' do
 
     context 'when too old version is installed' do
       let(:inventory_values) { {} }
-      it_behaves_like "upgrades from versions", %w[1.5 2.0 2.12 2.13]
-    end
-
-    context 'when 0.9 is installed' do
-      let(:inventory_values) { {installer_version: '0.9'} }
-      it_behaves_like "upgrades from versions", %w[1.5 2.0 2.12 2.13]
+      it_behaves_like "upgrades from versions", %w[1.5 2.0 2.12 2.13 2.16]
     end
 
     context 'when 1.9 version installed' do
       let(:inventory_values) { {installer_version: '1.9'} }
-      it_behaves_like "upgrades from versions", %w[2.0 2.12 2.13]
-    end
-
-    context 'when 2.0 version installed' do
-      let(:inventory_values) { {installer_version: '2.12 2.13'} }
-      it_behaves_like "upgrades from versions", %w[2.12 2.13]
+      it_behaves_like "upgrades from versions", %w[2.0 2.12 2.13 2.16]
     end
 
     context 'when 2.1 version installed' do
-      let(:inventory_values) { {installer_version: '2.13'} }
-      it_behaves_like "upgrades from versions", %w[2.13]
+      let(:inventory_values) { {installer_version: '2.16'} }
+      it_behaves_like "upgrades from versions", %w[2.16]
     end
   end
 

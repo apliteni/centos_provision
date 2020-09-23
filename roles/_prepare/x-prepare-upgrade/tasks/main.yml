@@ -11,3 +11,6 @@
 
 - include: upgrade_from_2.13.yml
   when: "'upgrade-from-2.13' in ansible_run_tags"
+
+- include: upgrade_from_2.16.yml
+  when: "'upgrade-from-2.16' in ansible_run_tags"

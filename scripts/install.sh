@@ -2375,7 +2375,7 @@ is_upgrade_mode_set() {
 #     and insalled version is 2.12
 #     and we are upgrading to 2.14
 #   then ansible tags will be expanded by `upgrade-from-2.12` and `upgrade-from-2.13` tags 
-UPGRADE_CHECKPOINTS=(1.5 2.0 2.12 2.13)
+UPGRADE_CHECKPOINTS=(1.5 2.0 2.12 2.13 2.16)
 
 # If installed version less than or equal to version from array value
 # then ANSIBLE_TAGS will be expanded by appropriate tags (given from array key)
@@ -2394,10 +2394,10 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['enable-firewall']='1.9'
   ['enable-repo-remi']='2.15'
   ['increase-max-opened-files']='1.0'
-  ['install-certbot']='2.13'
+  ['install-certbot']='2.16'
   ['install-certs']='1.0'
   ['install-chrony']='2.13'
-  ['install-kctl-tools']='2.14'
+  ['install-kctl-tools']='2.16'
   ['install-helper-packages']='1.4'
   ['install-postfix']='2.13'
   ['tune-swap']='2.0'
