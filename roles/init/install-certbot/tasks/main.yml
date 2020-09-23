@@ -21,3 +21,10 @@
     src: /opt/eff.org/certbot/venv/bin/certbot
     dest: /usr/local/bin/certbot
     state: link
+
+- name: Install renew certs task
+  cron:
+    name: Renew LE certificates
+    job: /usr/local/bin/certbot renew --allow-subset-of-names --quiet --renew-hook "/usr/bin/systemctl reload nginx"
+    hour: "{{ 23 | random }}"
+    minute: "{{ 59 | random }}"
