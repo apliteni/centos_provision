@@ -7,13 +7,7 @@ RSpec.describe 'enable-ssl.sh' do
   let(:inventory_values) { {installer_version: Script::INSTALLER_RELEASE_VERSION} }
   let(:script_name) { 'enable-ssl.sh' }
   let(:args) { options }
-  let(:emulate_crontab) do
-    [
-      %q(echo "if [[ \\"\\$2\\" != nginx ]]; then echo certbot renew; fi; if [[ \\${@:\\$#} == '-' ]]; then read -t 1; fi"  > /bin/crontab),
-      'chmod a+x /bin/crontab'
-    ]
-  end
-  let(:all_command_stubs) { {nginx: '/bin/true', certbot: '/bin/true', crontab: '/bin/true', chown: '/bin/true'} }
+  let(:all_command_stubs) { {nginx: '/bin/true', chown: '/bin/true', '/usr/local/bin/certbot' => '/bin/true'} }
   let(:nginx_conf) {
     <<-END
     server {
@@ -88,26 +82,11 @@ RSpec.describe 'enable-ssl.sh' do
     let(:commands) { make_proper_nginx_conf }
 
     context 'successful running certbot' do
-      let(:commands) { make_proper_nginx_conf + emulate_crontab }
+      let(:commands) { make_proper_nginx_conf }
 
       it_behaves_like 'should print to', :stdout, /Everything is done!/
 
       it_behaves_like 'should print to', :log, /certbot certonly .* --domain d1.com --register-unsafely-without-email/
-    end
-  end
-
-  describe 'adding cron task' do
-    let(:docker_image) { 'centos' }
-
-    let(:command_stubs) { all_command_stubs }
-    let(:commands) { make_proper_nginx_conf }
-
-    it_behaves_like 'should print to', :log, /Schedule renewal job/
-
-    context 'relevant cron job already scheduled' do
-      let(:commands) { make_proper_nginx_conf + emulate_crontab }
-
-      it_behaves_like 'should print to', :log, /Renewal cron job already scheduled/
     end
   end
 
@@ -135,7 +114,7 @@ RSpec.describe 'enable-ssl.sh' do
     let(:docker_image) { 'centos' }
 
     let(:command_stubs) { all_command_stubs }
-    let(:commands) { make_proper_nginx_conf + emulate_crontab }
+    let(:commands) { make_proper_nginx_conf }
 
     let(:save_files) { %w[/etc/nginx/conf.d/d1.com.conf] }
 
@@ -154,7 +133,7 @@ RSpec.describe 'enable-ssl.sh' do
     let(:ssl_domains) { 'd1.com,d2.com' }
     let(:command_stubs) { all_command_stubs }
 
-    let(:commands) { make_proper_nginx_conf + emulate_crontab + extra_commands }
+    let(:commands) { make_proper_nginx_conf + extra_commands }
     let(:extra_commands) { [] }
 
     context 'certificate for domain d1.com already exists' do
@@ -202,8 +181,8 @@ RSpec.describe 'enable-ssl.sh' do
     describe 'correctly recognizes errors' do
       let(:extra_commands) do
         [
-          "cp #{Script::DOCKER_SCRIPTS_DIR}/spec/files/certbot/#{error} /bin/certbot",
-          'chmod a+x /bin/certbot'
+          "cp #{Script::DOCKER_SCRIPTS_DIR}/spec/files/certbot/#{error} /usr/local/bin/certbot",
+          'chmod a+x /usr/local/bin/certbot'
         ]
       end
 
@@ -238,7 +217,7 @@ RSpec.describe 'enable-ssl.sh' do
     let(:inventory_values) { {installer_version: '1.20'} }
 
     let(:command_stubs) { all_command_stubs }
-    let(:commands) { make_proper_nginx_conf + emulate_crontab }
+    let(:commands) { make_proper_nginx_conf }
 
     it_behaves_like 'should print to', :stdout, 'Running obsolete enable-ssl (v1.20)'
   end

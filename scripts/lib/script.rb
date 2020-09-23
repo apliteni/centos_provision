@@ -81,7 +81,8 @@ class Script
 
   def make_command_stubs
     command_stubs.map do |command, fake_command|
-      %Q{rm -f `sh -c "command -v #{command}"` && cp #{fake_command} /bin/#{command}}
+      command_to_stub = command.is_a?(Symbol) ? "/bin/#{command}" : command
+      %Q{rm -f `sh -c "command -v #{command}"` && cp #{fake_command} #{command_to_stub}}
     end
   end
 
