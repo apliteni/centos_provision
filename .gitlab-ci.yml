@@ -66,6 +66,8 @@ deploy:
   extends: [.deployment-jobs-common]
   tags: [kubernetes]
   image: apliteni/mc
+  variables:
+    DEPLOY_TO: releases/current
   script:
     - ci/bin/deployment/create_build
     - ci/bin/deployment/prepare_mc
@@ -90,6 +92,7 @@ deploy_release:
   tags: [kubernetes]
   image: apliteni/mc
   variables:
+    DEPLOY_TO: releases/stable
     DEPLOY_RELEASE: 'yes'
   script:
     - ci/bin/deployment/create_build
@@ -112,6 +115,8 @@ deploy_branch:
   extends: [.deployment-jobs-common]
   tags: [kubernetes]
   image: apliteni/mc
+  variables:
+    DEPLOY_TO: builds/$CI_COMMIT_REF_NAME
   script:
     - ci/bin/deployment/create_build
     - ci/bin/deployment/prepare_mc
