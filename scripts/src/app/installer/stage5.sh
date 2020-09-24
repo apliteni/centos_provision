@@ -8,7 +8,11 @@ stage5(){
 
 upgrade_packages(){
   debug "Upgrading packages"
-  run_command "yum update -y --nobest"
+  if [[ "$(get_centos_major_release)" == "7" ]]; then
+    run_command "yum update -y"
+  else
+    run_command "yum update -y --nobest"
+  fi
 }
 
 install_packages(){
