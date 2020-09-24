@@ -5,7 +5,7 @@ rm -rf "${LOCAL_BUILD_PATH}"
 
 mkdir -p "${LOCAL_BUILD_PATH}"
 
-sed -i "s:releases/stable:$DEPLOY_TO:g" scripts/install.sh
+sed -i "s:releases/stable:$DEPLOY_TO:g" scripts/install.sh vars/keitaro.yml
 
 cp scripts/{install,add-site,enable-ssl,delete-ssl}.sh RELEASE_VERSION "${LOCAL_BUILD_PATH}"
 
