@@ -61,13 +61,8 @@ run_rspec:
 # Deployment jobs
 .deployment-jobs-common:
   stage: deployment
-
-deploy:
-  extends: [.deployment-jobs-common]
   tags: [kubernetes]
   image: apliteni/mc
-  variables:
-    DEPLOY_TO: releases/current
   script:
     - ci/bin/deployment/create_build
     - ci/bin/deployment/prepare_mc
@@ -76,6 +71,11 @@ deploy:
   allow_failure: false
   dependencies:
     - build_scripts
+
+deploy:
+  extends: [.deployment-jobs-common]
+  variables:
+    DEPLOY_TO: releases/current
   rules:
     - if: $CI_MERGE_REQUEST_ID
       when: never
@@ -89,19 +89,9 @@ deploy:
 
 deploy_release:
   extends: [.deployment-jobs-common]
-  tags: [kubernetes]
-  image: apliteni/mc
   variables:
     DEPLOY_TO: releases/stable
     DEPLOY_RELEASE: 'yes'
-  script:
-    - ci/bin/deployment/create_build
-    - ci/bin/deployment/prepare_mc
-    - ci/bin/deployment/upload_to_s3
-    - ci/bin/deployment/notify
-  allow_failure: false
-  dependencies:
-    - build_scripts
   rules:
     - if: $CI_MERGE_REQUEST_ID
       when: never
@@ -113,18 +103,8 @@ deploy_release:
 
 deploy_branch:
   extends: [.deployment-jobs-common]
-  tags: [kubernetes]
-  image: apliteni/mc
   variables:
     DEPLOY_TO: builds/$CI_COMMIT_REF_NAME
-  script:
-    - ci/bin/deployment/create_build
-    - ci/bin/deployment/prepare_mc
-    - ci/bin/deployment/upload_to_s3
-    - ci/bin/deployment/notify
-  allow_failure: false
-  dependencies:
-    - build_scripts
   rules:
     - if: $CI_MERGE_REQUEST_ID
       when: never
