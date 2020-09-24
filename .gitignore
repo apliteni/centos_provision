@@ -10,3 +10,7 @@ TODO
 builds
 scripts/tmp
 .env
+scripts/install.sh
+scripts/enable-ssl.sh
+scripts/add-site.sh
+scripts/test-run-command.sh
