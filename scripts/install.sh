@@ -1852,11 +1852,6 @@ parse_line_from_inventory_file(){
   fi
 }
 
-upgrade_packages(){
-  debug "Upgrading packages"
-  run_command "yum update -y"
-}
-
 stage4(){
   debug "Starting stage 4: generate inventory file"
   if isset "$AUTO_INSTALL"; then
@@ -1986,7 +1981,7 @@ stage5(){
 
 upgrade_packages(){
   debug "Upgrading packages"
-  run_command "yum update -y"
+  run_command "yum update -y --nobest"
 }
 
 install_packages(){

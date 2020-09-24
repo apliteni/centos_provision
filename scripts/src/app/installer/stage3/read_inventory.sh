@@ -30,8 +30,3 @@ parse_line_from_inventory_file(){
     debug "  "$var_name"=${VARS[$var_name]}"
   fi
 }
-
-upgrade_packages(){
-  debug "Upgrading packages"
-  run_command "yum update -y"
-}
