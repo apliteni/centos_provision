@@ -67,6 +67,7 @@ run_rspec:
     - ci/bin/deployment/create_build
     - ci/bin/deployment/prepare_mc
     - ci/bin/deployment/upload_to_s3
+    - ci/bin/deployment/deploy_release_if_need
     - ci/bin/deployment/notify
   allow_failure: false
   dependencies:

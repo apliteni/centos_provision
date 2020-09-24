@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -e -x -o pipefail
+
+. $(dirname "${BASH_SOURCE[0]}")/../lib/ensure_variables_are_set.sh
+
+# This script tags current commit by calling GitLab API 
+# The main idea was taken from https://gitlab.com/gitlab-org/gitlab/-/issues/15962
+
+ensure_variables_are_set RELEASE_VERSION GITLAB_TOKEN CI_COMMIT_SHA CI_PROJECT_ID LOCAL_BUILD_PATH S3_BUCKET RELEASE_FOLDER
+
+NEW_TAG="v${RELEASE_VERSION}"
+
+echo "Adding git tag for version ${NEW_TAG}"
+curl --request POST --header "PRIVATE-TOKEN:${GITLAB_TOKEN}" --header "Content-Type: application/json" \
+    --data "{\"tag_name\": \"${NEW_TAG}\", \"ref\": \"$CI_COMMIT_SHA\"}" \
+    https://${CI_SERVER_HOST}/api/v4/projects/${CI_PROJECT_ID}/repository/tags
+  
+if [[ "$DEPLOY_RELEASE" == 'yes' ]]; then
+  echo "Copying release to ${RELEASE_FOLDER}/${RELEASE_VERSION}"
+  mc cp --recursive "${LOCAL_BUILD_PATH}" "default/${S3_BUCKET}/${RELEASE_FOLDER}/${RELEASE_VERSION}/";
+fi
