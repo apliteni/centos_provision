@@ -8,7 +8,7 @@ stage5(){
 
 upgrade_packages(){
   debug "Upgrading packages"
-  run_command "yum update -y"
+  run_command "yum update -y --nobest"
 }
 
 install_packages(){
