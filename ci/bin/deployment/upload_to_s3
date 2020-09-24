@@ -1,36 +1,8 @@
 #!/usr/bin/env bash
 set -e -x -o pipefail
 
-if [ -z "$S3_BUCKET" ]
-then
-      echo "\$S3_BUCKET is empty";
-      exit 1;
-fi
+. $(dirname "${BASH_SOURCE[0]}")/../lib/ensure_variables_are_set.sh
 
-if [ -z "$LOCAL_BUILD_PATH" ]
-then
-      echo "\$LOCAL_BUILD_PATH is empty";
-      exit 1;
-fi
+ensure_variables_are_set LOCAL_BUILD_PATH S3_BUCKET DEPLOY_TO
 
-if [ -z "$LOCAL_BUILD_PATH" ]
-then
-      echo "\$LOCAL_BUILD_PATH is empty";
-      exit 1;
-fi
-
-if [[ "$CI_COMMIT_REF_NAME" =~ INST-* ]]
-then
-      mc cp --recursive "${LOCAL_BUILD_PATH}" "default/${S3_BUCKET}/${REMOTE_BUILD_PATH}/";
-fi
-
-if [[ "$CI_COMMIT_REF_NAME" == master ]]
-then
-      mc cp --recursive "${LOCAL_BUILD_PATH}" "default/${S3_BUCKET}/${RELEASE_FOLDER}/current/";
-fi
-
-if [[ "$DEPLOY_RELEASE" == 'yes' ]]
-then
-      mc cp --recursive "${LOCAL_BUILD_PATH}" "default/${S3_BUCKET}/${RELEASE_FOLDER}/${RELEASE_VERSION}/";
-      mc cp --recursive "${LOCAL_BUILD_PATH}" "default/${S3_BUCKET}/${RELEASE_FOLDER}/stable/";
-fi
+mc cp --recursive "${LOCAL_BUILD_PATH}" "default/${S3_BUCKET}/${DEPLOY_TO}/"
