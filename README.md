@@ -4,16 +4,17 @@ This repository contains a bash installer and an Ansible playbook to provision n
 
 ## Compatibility
  - CentOS 7
+ - CentOS 8
  
 ## Install Keitaro with bash installer
 
 Connect to your CentOS server and run as root
 
-    yum update -y && curl keitaro.io/install.sh > install && bash install
+    curl keitaro.io/install.sh | bash
 
 Installer supports two locales: English (default) and Russian. In order to use Russian locale run as root
 
-    yum update -y && curl keitaro.io/install.sh > install && bash install -L ru
+    curl keitaro.io/install.sh | bash -s -- -L ru
 
 ## Install Let's Encrypt Free SSL certificates (optional)
 
