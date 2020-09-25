@@ -8,10 +8,17 @@ source ci/bin/lib/ensure_variables_are_set.sh
 
 ensure_variables_are_set RELEASE_VERSION GITLAB_TOKEN CI_COMMIT_SHA CI_PROJECT_ID LOCAL_BUILD_PATH S3_BUCKET RELEASE_FOLDER
 
-  echo "Adding git tag for version ${NEW_TAG}"
+NEW_TAG="v${RELEASE_VERSION}"
+
+  echo "Remove existing git tag ${NEW_TAG}"
+  curl --request DELETE \
+       --header "PRIVATE-TOKEN:${GITLAB_TOKEN}" \
+       https://${CI_SERVER_HOST}/api/v4/projects/${CI_PROJECT_ID}/repository/tags/${NEW_TAG}
+
+  echo "Adding git tag for version v${NEW_TAG}"
   curl --request POST \
        --header "PRIVATE-TOKEN:${GITLAB_TOKEN}" \
-       --form "tag_name=v${RELEASE_VERSION}" \
+       --form "tag_name=${NEW_TAG}" \
        --form "ref=${CI_COMMIT_SHA}" \
        https://${CI_SERVER_HOST}/api/v4/projects/${CI_PROJECT_ID}/repository/tags
   
