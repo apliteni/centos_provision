@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e -x -o pipefail
 
-. $(dirname "${BASH_SOURCE[0]}")/../lib/ensure_variables_are_set.sh
+source ci/bin/lib/ensure_variables_are_set.sh
 
 # This script tags current commit by calling GitLab API 
 # The main idea was taken from https://gitlab.com/gitlab-org/gitlab/-/issues/15962

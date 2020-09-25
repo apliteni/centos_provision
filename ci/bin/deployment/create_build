@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -e -x -o pipefail
 
+source ci/bin/lib/ensure_variables_are_set.sh
+
+ensure_variables_are_set LOCAL_BUILD_PATH DEPLOY_TO
+
 rm -rf "${LOCAL_BUILD_PATH}"
 
 mkdir -p "${LOCAL_BUILD_PATH}"

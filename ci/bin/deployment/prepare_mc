@@ -1,29 +1,8 @@
 #!/usr/bin/env bash
 set -e -x -o pipefail
 
-if [ -z "$S3_KEY" ]
-then
-      echo "\$S3_KEY is empty";
-      exit 1;
-fi
+source ci/bin/lib/ensure_variables_are_set.sh
 
-if [ -z "$S3_SECRET" ]
-then
-      echo "\$S3_SECRET is empty";
-      exit 1;
-fi
-
-if [ -z "$S3_BUCKET" ]
-then
-      echo "\$S3_BUCKET is empty";
-      exit 1;
-fi
-
-if [ -z "$S3_HOST" ]
-then
-      echo "\$S3_HOST is empty";
-      exit 1;
-fi
-
+ensure_variables_are_set S3_HOST S3_KEY S3_SECRET
 
 mc config host add default https://${S3_HOST} ${S3_KEY} ${S3_SECRET}

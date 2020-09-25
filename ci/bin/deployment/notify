@@ -1,18 +1,16 @@
 #!/usr/bin/env bash
 set -e -x -o pipefail
 
-if [ -z "$SLACK_WEBHOOK" ]
-then
-      echo "\$SLACK_WEBHOOK is empty";
-      exit 1;
-fi
+source ci/bin/lib/ensure_variables_are_set.sh
+
+ensure_variables_are_set SLACK_WEBHOOK S3_HOST S3_BUCKET DEPLOY_TO RELEASE_VERSION CI_COMMIT_REF_NAME
 
 s3_url="https://${S3_HOST}/${S3_BUCKET}/${DEPLOY_TO}";
 
 if [[ ${DEPLOY_TO} == 'releases/current' ]]; then
   build_description="current release (based on ${RELEASE_VERSION})"
 elif [[ ${DEPLOY_TO} == 'releases/stable' ]]; then
-  build_description="release ${RELEASE_TAG}"
+  build_description="release ${RELEASE_VERSION}"
 else
   build_description="${CI_COMMIT_REF_NAME} build (based on ${RELEASE_VERSION})"
 fi

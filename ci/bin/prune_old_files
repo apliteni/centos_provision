@@ -1,16 +1,11 @@
 #!/usr/bin/env bash
 set -e -x -o pipefail
 
-if [ -z "$1" ]
-  then
-    echo "build path is empty";
-    exit 1;
-fi
+source ci/bin/lib/ensure_variables_are_set.sh
 
-if [ -z "$2" ]
-  then
-    echo "ttl is empty";
-    exit 1;
-fi
+BUILDS_PATH="${1}"
+TTL="${2}"
 
-mc rm -r --force --older-than ${2} default/${1}
+ensure_variables_are_set TTL BUILDS_PATH
+
+mc rm -r --force --older-than ${TTL} default/${BUILDS_PATH}
