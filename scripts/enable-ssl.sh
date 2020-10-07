@@ -53,7 +53,8 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.17'
+RELEASE_VERSION='2.20'
+VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
 
@@ -337,9 +338,9 @@ detect_installed_version(){
       INSTALLED_VERSION=$(grep "^installer_version=" ${DETECTED_INVENTORY_PATH} | sed s/^installer_version=//g)
       debug "Got installer_version='${INSTALLED_VERSION}' from ${DETECTED_INVENTORY_PATH}"
     fi
-    if empty "$INSTALLED_VERSION"; then
-      debug "Couldn't detect installer_version, resetting to 0.9"
-      INSTALLED_VERSION="0.9"
+    if (( $(as_version ${INSTALLED_VERSION}) < $(as_version ${VERY_FIRST_VERSION}) )); then
+      debug "Couldn't detect installer_version, resetting to ${VERY_FIRST_VERSION}"
+      INSTALLED_VERSION="${VERY_FIRST_VERSION}"
     fi
   fi
 }
