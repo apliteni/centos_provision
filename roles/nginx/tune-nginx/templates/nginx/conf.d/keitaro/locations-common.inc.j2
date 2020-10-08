@@ -34,6 +34,8 @@ location ~* \.js@ {
 
 # Serve PHP pages via nontracker engine
 location ~ \.php$ {
+  add_header Access-Control-Allow-Origin *;
+
   try_files $uri =404;
 
   include {{ nginx_conf_path }}/keitaro/nontracker.inc;
