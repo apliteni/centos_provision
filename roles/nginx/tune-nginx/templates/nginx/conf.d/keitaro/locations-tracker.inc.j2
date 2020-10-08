@@ -29,17 +29,24 @@ location /admin_api/ {
   fastcgi_param SCRIPT_FILENAME $document_root/index.php;
 }
 
-
 # Tracker locations
 location / {
+
   # Hide tracker files
   location ~ ^/((application|bin|lib|var|vendor)\b|(cron|server|version)\.php) {
     access_log off;
     return 404;
   }
 
-  # Handle this files with tracker's engine
-  location ~ ^/(api.php|index.php|robots.txt)$ {
+  # Handle api.php & index.php with tracker's engine
+  location ~ ^/(api|index)\.php$ {
+    add_header Access-Control-Allow-Origin *;
+
+    include /etc/nginx/conf.d/keitaro/tracker.inc;
+  }
+
+  # Handle robots.txt with tracker's engine
+  location = /robots.txt {
     include /etc/nginx/conf.d/keitaro/tracker.inc;
   }
 

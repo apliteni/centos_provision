@@ -1,14 +1,10 @@
 - name: Get current swap size
-  shell: "free -m | grep '^Swap:' | awk '{print $2+1}'"
+  shell: "free -m | grep '^Swap:' | awk '{print $2}'"
   register: get_current_swap_size_command
-
-- name: List swap partitions
-  shell: "tail -n -1 /proc/swaps  | awk '{print $2}' | grep -v file || true"
-  register: list_swap_partitions_command
 
 - name: Really [re]create swap
   include: create_swap.yml
-  when: (get_current_swap_size_command.stdout | int) < (swap_size | int) and (not list_swap_partitions_command.stdout)
+  when: (get_current_swap_size_command.stdout | int) < ((swap_size | int) * 0.9)
 
 - name: Tweak swap sysctl variables
   sysctl:

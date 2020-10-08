@@ -336,7 +336,7 @@ detect_installed_version(){
       debug "Got installer_version='${INSTALLED_VERSION}' from ${DETECTED_INVENTORY_PATH}"
     fi
     if (( $(as_version ${INSTALLED_VERSION}) < $(as_version ${VERY_FIRST_VERSION}) )); then
-      debug "Couldn't detect installer_version, resetting to ${VERY_FIRST_VERSION}"
+      debug "Couldn't detect installer_version, resetting to 0.9"
       INSTALLED_VERSION="${VERY_FIRST_VERSION}"
     fi
   fi
