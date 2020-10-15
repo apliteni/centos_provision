@@ -54,7 +54,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.20'
+RELEASE_VERSION='2.20.2'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -281,7 +281,7 @@ detect_installed_version(){
       debug "Got installer_version='${INSTALLED_VERSION}' from ${DETECTED_INVENTORY_PATH}"
     fi
     if (( $(as_version ${INSTALLED_VERSION}) < $(as_version ${VERY_FIRST_VERSION}) )); then
-      debug "Couldn't detect installer_version, resetting to 0.9"
+      debug "Couldn't detect installer_version, resetting to ${VERY_FIRST_VERSION}"
       INSTALLED_VERSION="${VERY_FIRST_VERSION}"
     fi
   fi
@@ -2404,9 +2404,9 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['install-certbot']='2.16'
   ['install-certs']='1.0'
   ['install-chrony']='2.13'
-  ['install-helper-packages']='1.4'
+  ['install-helper-packages']='2.20'
   ['install-postfix']='2.13'
-  ['tune-swap']='2.0'
+  ['tune-swap']='2.20'
   ['install-php']='2.12'
   ['install-roadrunner']='2.12'
   ['tune-php']='2.12'
@@ -2415,7 +2415,7 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['tune-mariadb']='1.17'
   ['tune-redis']='1.4'
   ['install-nginx']='1.0'
-  ['tune-nginx']='2.18'
+  ['tune-nginx']='2.20'
   ['tune-tracker']='1.14'
 )
 
@@ -2460,14 +2460,14 @@ expand_ansible_tags_by_role_tags() {
 
 expand_ansible_tags_by_install_kctl_tools_tag() {
   local upgrade_since=${1}
-  if (( $(as_version ${upgrade_since}) <= $(as_version ${RELEASE_VERSION}) )); then
+  if (( $(as_version ${upgrade_since}) < $(as_version ${RELEASE_VERSION}) )); then
     ANSIBLE_TAGS="${ANSIBLE_TAGS},install-kctl-tools"
   fi
 }
 
 get_upgrade_since() {
   if [[ "${ANSIBLE_TAGS}" =~ full-upgrade ]]; then
-    debug "ANSIBLE_TAGS contains full-upgrade, include all available upgrades, upgrading from ${VERY_FIRST_VERSION}"
+    debug "ANSIBLE_TAGS contains full-upgrade, simulating upgrade from ${VERY_FIRST_VERSION}"
     echo ${VERY_FIRST_VERSION}
   else
     echo ${INSTALLED_VERSION}

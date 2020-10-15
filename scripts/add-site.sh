@@ -53,7 +53,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.20'
+RELEASE_VERSION='2.20.2'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -164,6 +164,8 @@ END
 DICT['ru.prompt_errors.validate_presence']='Введите значение'
 DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
 
+
+FORCE_ISSUING_CERTS=''
 DICT['en.errors.see_logs']="Evaluating log saved to ${LOG_PATH}. Please rerun \`${SCRIPT_COMMAND}\` after resolving problems."
 DICT['en.errors.vhost_already_exists']="Can not save site configuration - :vhost_filepath: already exists"
 DICT['en.errors.site_root_not_exists']="Can not save site configuration - :site_root: directory does not exist"
@@ -336,7 +338,7 @@ detect_installed_version(){
       debug "Got installer_version='${INSTALLED_VERSION}' from ${DETECTED_INVENTORY_PATH}"
     fi
     if (( $(as_version ${INSTALLED_VERSION}) < $(as_version ${VERY_FIRST_VERSION}) )); then
-      debug "Couldn't detect installer_version, resetting to 0.9"
+      debug "Couldn't detect installer_version, resetting to ${VERY_FIRST_VERSION}"
       INSTALLED_VERSION="${VERY_FIRST_VERSION}"
     fi
   fi
@@ -351,7 +353,9 @@ is_compatible_with_current_release(){
 
 run_obsolete_tool_version_if_need() {
   debug 'Ensure configs has been genereated by relevant installer'
-  if is_compatible_with_current_release; then
+  if isset "${FORCE_ISSUING_CERTS}"; then
+    debug "Skip checking current version and force isuuing certs"
+  elif is_compatible_with_current_release; then
     debug "Current ${RELEASE_VERSION} is compatible with ${INSTALLED_VERSION}"
   else
     local tool_url="${KEITARO_URL}/v${INSTALLED_VERSION}/${TOOL_NAME}.sh"
@@ -1282,7 +1286,7 @@ stage1(){
 }
 
 parse_options(){
-  while getopts ":D:R:L:l:vhsp" option; do
+  while getopts ":D:R:L:l:vhspf" option; do
     argument=$OPTARG
     case $option in
       D)
@@ -1292,6 +1296,9 @@ parse_options(){
       R)
         VARS['site_root']=$argument
         ensure_valid R site_root validate_directory_existence
+        ;;
+      f)
+        FORCE_ISSUING_CERTS=true
         ;;
       *)
         common_parse_options "$option" "$argument"
@@ -1311,6 +1318,8 @@ help_ru(){
   print_err
   print_err "  -R PATH                  задать существующий путь к корневой директории сайта"
   print_err
+  print_err "  -f                       форсировать добавление сайта (отключить проверку совместимости)."
+  print_err
 }
 
 
@@ -1322,6 +1331,8 @@ help_en(){
   print_err "  -D DOMAINS               set list of domains, DOMAINS=domain1.tld[,domain2.tld...]"
   print_err
   print_err "  -R PATH                  set existent path to the site root"
+  print_err
+  print_err "  -f                       force adding site (disable compatility check)."
   print_err
 }
 
