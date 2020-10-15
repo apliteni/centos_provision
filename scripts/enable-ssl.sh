@@ -53,7 +53,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.20'
+RELEASE_VERSION='2.20.2'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -173,6 +173,7 @@ SSL_PRIVKEY_PATH="${SSL_ROOT}/privkey.pem"
 CERT_DOMAINS_PATH="${WORKING_DIR}/ssl_enabler_cert_domains"
 CERTBOT_LOG="${WORKING_DIR}/ssl_enabler_cerbot.log"
 SSL_ENABLER_ERRORS_LOG="${WORKING_DIR}/ssl_enabler_errors.log"
+FORCE_ISSUING_CERTS=''
 DICT['en.prompts.ssl_domains']='Please enter domains separated by comma without spaces'
 DICT['en.prompts.ssl_domains.help']='Make sure all the domains are already linked to this server in the DNS'
 DICT['en.errors.see_logs']="Evaluating log saved to ${LOG_PATH}. Please rerun \`${SCRIPT_COMMAND}\` after resolving problems."
@@ -339,7 +340,7 @@ detect_installed_version(){
       debug "Got installer_version='${INSTALLED_VERSION}' from ${DETECTED_INVENTORY_PATH}"
     fi
     if (( $(as_version ${INSTALLED_VERSION}) < $(as_version ${VERY_FIRST_VERSION}) )); then
-      debug "Couldn't detect installer_version, resetting to 0.9"
+      debug "Couldn't detect installer_version, resetting to ${VERY_FIRST_VERSION}"
       INSTALLED_VERSION="${VERY_FIRST_VERSION}"
     fi
   fi
@@ -354,7 +355,9 @@ is_compatible_with_current_release(){
 
 run_obsolete_tool_version_if_need() {
   debug 'Ensure configs has been genereated by relevant installer'
-  if is_compatible_with_current_release; then
+  if isset "${FORCE_ISSUING_CERTS}"; then
+    debug "Skip checking current version and force isuuing certs"
+  elif is_compatible_with_current_release; then
     debug "Current ${RELEASE_VERSION} is compatible with ${INSTALLED_VERSION}"
   else
     local tool_url="${KEITARO_URL}/v${INSTALLED_VERSION}/${TOOL_NAME}.sh"
@@ -1273,12 +1276,15 @@ stage1(){
 
 
 parse_options(){
-  while getopts ":D:L:l:hvps" option; do
+  while getopts ":D:L:l:hvpsf" option; do
     argument=$OPTARG
     case $option in
       D)
         VARS['ssl_domains']=$argument
         ensure_valid D ssl_domains validate_domains_list
+        ;;
+      f)
+        FORCE_ISSUING_CERTS=true
         ;;
       *)
         common_parse_options "$option" "$argument"
@@ -1320,6 +1326,8 @@ help_ru(){
   print_err "Автоматизация:"
   print_err "  -D DOMAINS               выписать сертификаты для списка доменов, DOMAINS=domain1.tld[,domain2.tld...]."
   print_err
+  print_err "  -f                       форсировать выписку сертификатов (отключить проверку совместимости)."
+  print_err
 }
 
 
@@ -1330,6 +1338,8 @@ help_en(){
   print_err
   print_err "Script automation:"
   print_err "  -D DOMAINS               issue certs for domains, DOMAINS=domain1.tld[,domain2.tld...]."
+  print_err
+  print_err "  -f                       force issuing certs (disable compatility check)."
   print_err
 }
 
