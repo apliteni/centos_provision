@@ -2,4 +2,3 @@ clickhouse_config_path: /etc/clickhouse-server
 clickhouse_package:
   - clickhouse-client
   - clickhouse-server
-  - clickhouse-server-common

@@ -53,7 +53,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.20.3'
+RELEASE_VERSION='2.20.4'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -344,11 +344,8 @@ detect_installed_version(){
   fi
 }
 
-
-is_compatible_with_current_release(){
-  local current_major_release=${RELEASE_VERSION/\.*/}
-  local installed_major_release=${INSTALLED_VERSION/\.*/}
-  [[ "${installed_major_release}" == "${current_major_release}" ]]
+is_compatible_with_current_release() {
+  [[ "${RELEASE_VERSION}" == "${INSTALLED_VERSION}" ]]
 }
 
 run_obsolete_tool_version_if_need() {

@@ -1,11 +1,11 @@
-- name: Install by YUM | Add Altinity repo
-  shell: "curl -fsSL https://packagecloud.io/install/repositories/altinity/clickhouse/script.rpm.sh | sudo bash"
-  become: true
-
+- name: add Clickhouse repository
+  template:
+    src: Altinity_clickhouse.repo
+    dest: /etc/yum.repos.d
+    
 - name: Install by YUM | Install Clickhouse
   yum:
     name: "{{ item }}"
     state: present
     enablerepo: Altinity_clickhouse
   with_items: "{{ clickhouse_package }}"
-  become: true
