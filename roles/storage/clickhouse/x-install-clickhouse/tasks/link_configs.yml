@@ -9,4 +9,4 @@
     src: "{{ keitaro_root }}/application/config/clickhouse"
     dest: "{{ clickhouse_config_path }}"
     state: link
-  notify: restart-ch
+  notify: restart-clickhouse

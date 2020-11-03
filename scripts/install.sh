@@ -54,7 +54,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.20.3'
+RELEASE_VERSION='2.20.4'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -292,11 +292,8 @@ get_centos_major_release() {
 }
 
 
-
-is_compatible_with_current_release(){
-  local current_major_release=${RELEASE_VERSION/\.*/}
-  local installed_major_release=${INSTALLED_VERSION/\.*/}
-  [[ "${installed_major_release}" == "${current_major_release}" ]]
+is_compatible_with_current_release() {
+  [[ "${RELEASE_VERSION}" == "${INSTALLED_VERSION}" ]]
 }
 #
 
@@ -1163,7 +1160,7 @@ validate_keitaro_dump(){
   fi
   local mime_type="$(detect_mime_type "${file}")"
   debug "Detected mime type: ${mime_type}"
-  local get_head_chunk="$(build_get_chunk_command "${mime_type}" "${file}" "head" "100")"
+  local get_head_chunk="$(build_get_chunk_command "${mime_type}" "${file}" "head -n 100")"
   if empty "${get_head_chunk}"; then
     return ${FAILURE_RESULT}
   fi
@@ -1176,7 +1173,7 @@ validate_keitaro_dump(){
   if [[ "schema_version" < "${tables_prefix}${FIRST_KEITARO_TABLE_NAME}" ]]; then
     ensure_table_dumped "$get_head_chunk" "schema_version"
   else
-    local get_tail_chunk="$(build_get_chunk_command "${mime_type}" "${file}" "tail" "+1")"
+    local get_tail_chunk="$(build_get_chunk_command "${mime_type}" "${file}" "tail -n 2000")"
     ensure_table_dumped "$get_tail_chunk" "schema_version"
   fi
 }
@@ -1184,7 +1181,7 @@ validate_keitaro_dump(){
 ensure_table_dumped(){
   local get_table_chunk="${1}"
   local table="${2}"
-  command="${get_table_chunk} | grep -qP $(build_check_table_exists_expression "$table")"
+  command="(set +o pipefail && ${get_table_chunk} | grep -qP $(build_check_table_exists_expression "$table"))"
   message="$(translate 'messages.check_keitaro_dump_validity')"
   run_command "${command}" "${message}" 'hide_output' 'allow_errors' > /dev/stderr
 }
@@ -1192,11 +1189,12 @@ ensure_table_dumped(){
 
 detect_tables_prefix(){
   local get_head_chunk="${1}"
-  local command=$get_head_chunk
+  local command="${get_head_chunk}"
   command="${command} | grep -P $(build_check_table_exists_expression ".*${FIRST_KEITARO_TABLE_NAME}")"
   command="${command} | head -n 1"
   command="${command} | grep -oP '\`.*\`'"
   command="${command} | sed -e 's/\`//g' -e 's/${FIRST_KEITARO_TABLE_NAME}\$//'"
+  command="(set +o pipefail && ${command})"
   message="$(translate 'messages.check_keitaro_dump_get_tables_prefix')"
   rm -f "${DETECTED_PREFIX_PATH}"
   if run_command "$command" "$message" 'hide_output' 'allow_errors' '' '' "$DETECTED_PREFIX_PATH" > /dev/stderr; then
@@ -1205,30 +1203,22 @@ detect_tables_prefix(){
 }
 
 
-build_check_table_exists_expression(){
+build_check_table_exists_expression() {
   local table="${1}"
   echo "'^CREATE TABLE( IF NOT EXISTS)? \`${table}\`'"
 }
 
 
-build_get_chunk_command(){
+build_get_chunk_command() {
   local mime_type="${1}"
   local file="${2}"
-  local head_or_tail="${3}"
-  local chunk_size="${4}"
+  local filter="${3}"
   if [[ "$mime_type" == 'text/plain' ]]; then
-    echo "${head_or_tail} -n ${chunk_size} '${file}'"
+    echo "${filter} '${file}'"
   fi
   if [[ "$mime_type" == 'application/x-gzip' ]]; then
-    echo "(zcat '${file}'; true) | ${head_or_tail} -n ${chunk_size}"
+    echo "zcat '${file}' | ${filter}"
   fi
-}
-
-
-eval_bash(){
-  local command="${1}"
-  debug "Evaluating command \`${command}\`"
-  bash -c "${command}"
 }
 
 validate_license_key(){
