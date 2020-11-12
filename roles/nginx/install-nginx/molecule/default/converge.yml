@@ -1,0 +1,81 @@
+---
+- name: Converge
+  hosts: all
+  vars:
+    openssl_packages:
+      - openssl
+      - ca-certificates
+    rr_version: 1.8.1
+    rr_release_name: "roadrunner-{{ rr_version }}-linux-amd64"
+    rr_bin: /usr/local/bin/roadrunner
+    rr_wrapper: /usr/local/bin/keitaro-roadrunner
+    rr_config: /etc/php/roadrunner.yml
+    license_ip: '1.1.1.1'
+  vars_files:
+    - ../../../../../vars/server.yml
+    - ../../../../../vars/ssl.yml
+    - ../../../../../vars/nginx.yml
+    - ../../../../../vars/keitaro.yml
+    - ../../../../../vars/php.yml
+    - ../../../../../vars/performance.yml
+    - ../../../../../vars/molecule.yml
+    - ../../defaults/main.yml
+  pre_tasks:
+    - name: Installing packages
+      package:
+        name: "{{ openssl_packages }}"
+        state: present
+    - name: Create directory
+      file:
+        path: "{{ ssl_root }}"
+        state: directory
+    - name: Create keitaro group
+      group:
+        name: "{{ keitaro_group }}"
+        system: true
+    - name: Create keitaro user
+      user:
+        name: "{{ keitaro_user }}"
+        group: "{{ keitaro_group }}"
+        system: true
+        shell: /sbin/nologin
+        createhome: false
+        home: "{{ keitaro_home }}"
+    - name: Create dir
+      file:
+        path: /etc/keitaro/ssl
+        state: directory
+    - name: Create cert.pem to avoid nginx error
+      file:
+        path: /etc/keitaro/ssl/cert.pem
+        state: touch
+    - name: Fix
+      file:
+        path: /var/www/keitaro/var/
+        state: directory
+    - name: Create file
+      file:
+        path: /etc/logrotate.d/nginx
+        state: touch 
+  tasks:
+    - name: "Include install-cert"
+      include_role:
+        name: "../init/install-certs"
+    - block:
+      - name: "Include install-nginx"
+        include_role:
+          name: "install-nginx"
+      - name: "Include tune-nginx"
+        include_role:
+          name: "tune-nginx"
+      ignore_errors: yes
+  handlers:
+    - name: restart nginx
+      service:
+        name: nginx
+        state: restarted
+        daemon-reload: true
+    - name: reload nginx
+      service:
+        name: nginx
+        state: reloaded

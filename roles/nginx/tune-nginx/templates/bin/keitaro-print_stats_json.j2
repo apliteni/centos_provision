@@ -116,12 +116,12 @@ statuses_tracker_roadrunner_json() {
     print_json state inactive
   else
     local since=$(date -d "$(echo "${systemd_output}" | awk '{printf "%s %s", $6, $7}')")
-    local roadrunner_raw_output=$({{ rr_bin }} http:workers -l plain -c {{ rr_config }})
+    local roadrunner_raw_output=$({{ rr_bin }} http:workers -l plain -c {{ rr_config_path }})
     local roadrunner_output=$(echo "${roadrunner_raw_output}" | tail -n +4 | head -n -1)
     local idle=$(echo "${roadrunner_output}" | grep ready | wc -l)
     local active=$(echo "${roadrunner_output}" | grep working | wc -l)
     local total=$(echo "${roadrunner_output}" | wc -l)
-    local max="$(grep numWorkers: {{ rr_config }} | awk -F': +' '{print $2}')"
+    local max="$(grep numWorkers: {{ rr_config_path }} | awk -F': +' '{print $2}')"
     print_json state active \
                since "${since}" \
                "idle processes" "${idle}" \
@@ -189,7 +189,7 @@ memory_json() {
   # --------------------------------------------
   ram=($(free -m | grep 'Mem:'))
   swap=($(free -m | grep 'Swap:'))
-  initial_ram="$(get_config_var 'ram')"
+  initial_ram="$(get_config_var 'ram_size_mb')"
   ram_json="$(print_json total "${ram[1]}" used "${ram[2]}" free "${ram[3]}" initial "${initial_ram}")"
   swap_json="$(print_json total "${swap[1]}" used "${swap[2]}" free "${swap[3]}")"
   print_json ram "${ram_json}" swap "${swap_json}"

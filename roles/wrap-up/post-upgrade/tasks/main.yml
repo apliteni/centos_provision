@@ -1,2 +1,5 @@
-- include: stop_and_disable_old_php_fpm.yml
+- include: upgrade_from_2.12.yml
+  when: "'upgrade-from-2.12' in ansible_run_tags"
+
+- include: upgrade_from_2.20.yml
   when: "'upgrade-from-2.12' in ansible_run_tags"

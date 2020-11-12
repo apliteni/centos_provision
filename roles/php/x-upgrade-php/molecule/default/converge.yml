@@ -1,0 +1,7 @@
+---
+- name: Converge
+  hosts: all
+  tasks:
+    - name: "Include x-upgrade-php"
+      include_role:
+        name: "x-upgrade-php"

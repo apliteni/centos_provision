@@ -53,7 +53,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.20.4'
+RELEASE_VERSION='2.21.0'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -316,20 +316,31 @@ is_directory_exist(){
 # Use:
 #   (( $(as_version 1.2.3.4) >= $(as_version 1.2.3.3) )) && echo "yes" || echo "no"
 #
-# Version number should not contain more than 4 parts (3 dots) and each part should not contain more than 3 digits
+# Version number should contain from 1 to 4 parts (3 dots) and each part should contain from 1 to 3 digits
 #
+AS_VERSION__MAX_DIGITS_PER_PART=3
+AS_VERSION__PART_REGEX="[[:digit:]]{1,${AS_VERSION__MAX_DIGITS_PER_PART}}"
+AS_VERSION__PARTS_TO_KEEP=4
+AS_VERSION__REGEX="(${AS_VERSION__PART_REGEX}\.){1,${AS_VERSION__PARTS_TO_KEEP}}"
+
 as_version() {
-  local version="${1}"
-  local dots="${version//[^.]}"
-  if [[ ${#dots} > 3 ]]; then
-    debug "Version number '${version}' has more than 3 dots"
-    fail "Internal error - wrong version format"
+  local version_string="${1}"
+  # Expand version string by adding `.` to the end to simplify logic
+  local expanded_version_string="${version_string}."
+  if [[ ${expanded_version_string} =~ ^${AS_VERSION__REGEX}$ ]]; then
+    printf "1%03d%03d%03d%03d" ${expanded_version_string//./ }
+  else
+    printf "1%03d%03d%03d%03d" ''
   fi
-  if [[ "${version}" =~ [[:digit:]]{4,} ]]; then
-    debug "Version number '${version}' some part has more than 3 digits"
-    fail "Internal error - wrong version format"
-  fi
-  printf "1%03d%03d%03d%03d" ${version//./ }
+}
+
+as_minor_version() {
+  local version_string="${1}"
+  local version_number=$(as_version "${version_string}")
+  local meaningful_version_length=$(( 1 + 2*AS_VERSION__MAX_DIGITS_PER_PART ))
+  local zeroes_length=$(( 1 + AS_VERSION__PARTS_TO_KEEP * AS_VERSION__MAX_DIGITS_PER_PART - meaningful_version_length ))
+  local meaningful_version=${version_number:0:${meaningful_version_length}}
+  printf "%d%0${zeroes_length}d" "${meaningful_version}"
 }
 
 detect_installed_version(){
@@ -339,7 +350,7 @@ detect_installed_version(){
       INSTALLED_VERSION=$(grep "^installer_version=" ${DETECTED_INVENTORY_PATH} | sed s/^installer_version=//g)
       debug "Got installer_version='${INSTALLED_VERSION}' from ${DETECTED_INVENTORY_PATH}"
     fi
-    if (( $(as_version ${INSTALLED_VERSION}) < $(as_version ${VERY_FIRST_VERSION}) )); then
+    if empty ${INSTALLED_VERSION}; then
       debug "Couldn't detect installer_version, resetting to ${VERY_FIRST_VERSION}"
       INSTALLED_VERSION="${VERY_FIRST_VERSION}"
     fi
@@ -448,11 +459,6 @@ interpolate(){
   string="${string//:${name}:/${value}}"
   echo "${string}"
 }
-#
-
-
-
-
 
 is_installed(){
   local command="${1}"

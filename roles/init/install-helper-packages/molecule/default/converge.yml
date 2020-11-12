@@ -1,0 +1,7 @@
+---
+- name: Converge
+  hosts: all
+  tasks:
+    - name: "Include install-helper-packages"
+      include_role:
+        name: "install-helper-packages"

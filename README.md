@@ -35,9 +35,9 @@ run as root
 
 In case, when you need to remove SSL certificate from domain of your site, you can use our special script which will delete SSL certificate and domain. Script will take domain name as parameter. To delete ssl certificate, you can use following command: 
 
-    kctl-delete-ssl domain1.com
+    kctl-disable-ssl -D domain1.com,domain2.com
 
-Where domain.com - name of your domain, which you want to revoke and delete it's certificate. All certificates and their files, their keys, and configuration files of nginx of selected domain will be deleted (located in /etc/nginx/conf.d/). 
+Where domain1.com - name of your domain, which you want to revoke and delete it's certificate. All certificates and their files, their keys, and configuration files of nginx of selected domain will be deleted (located in /etc/nginx/conf.d/). 
 
 
 ## Add custom php site (optional)
