@@ -1,0 +1,11 @@
+---
+- name: Converge
+  hosts: all
+  vars_files:
+    - ../../../../../vars/performance.yml
+    - ../../../../../vars/performance.roadrunner.yml
+    - ../../../../../vars/molecule.yml
+  tasks:
+    - name: "Include increase-max-opened-files"
+      include_role:
+        name: "increase-max-opened-files"

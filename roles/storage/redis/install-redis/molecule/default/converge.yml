@@ -1,0 +1,19 @@
+---
+- name: Converge
+  hosts: all
+  vars_files:
+    - ../../../../../../vars/performance.roadrunner.yml
+    - ../../../../../../vars/keitaro.yml
+  tasks:
+    - name: "Include install-redis"
+      include_role:
+        name: "install-redis"
+    - name: "Include tune-redis"
+      include_role:
+        name: "tune-redis"
+  handlers:      
+    - name: restart redis
+      service:
+        name: redis
+        state: restarted
+        daemon-reload: true

@@ -17,4 +17,4 @@ kctl_root: /opt/keitaro
 kctl_bin_dir: "{{ kctl_root }}/bin"
 kctl_tools_branch: "releases/stable"
 kctl_tools_url: "https://files.keitaro.io/scripts/{{ kctl_tools_branch }}"
-kctl_tool_names: [install, enable-ssl, delete-ssl, add-site]
+kctl_tool_names: [install, enable-ssl, disable-ssl, add-site]

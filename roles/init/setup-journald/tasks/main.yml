@@ -1,0 +1,21 @@
+- name: Create the directory, if it doesnt exist already
+  file:
+    path: /var/log/journal
+    state: directory
+
+- name: Uncomment config line
+  replace:
+    path: /etc/systemd/journald.conf
+    regexp: '#Storage=auto'
+    replace: 'Storage=persistent'
+
+- name: Create journal service
+  shell: |
+    systemd-tmpfiles --create --prefix /var/log/journal
+    systemctl restart systemd-journald
+    
+- name: Ensure systemd-journald is started
+  service:
+    name: systemd-journald
+    state: started
+    enabled: yes

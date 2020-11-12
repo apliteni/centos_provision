@@ -1,0 +1,7 @@
+---
+- name: Converge
+  hosts: all
+  tasks:
+    - name: "Include _x-prepare-mariadb-upgrade"
+      include_role:
+        name: "_x-prepare-mariadb-upgrade"

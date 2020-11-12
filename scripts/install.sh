@@ -54,7 +54,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.20.4'
+RELEASE_VERSION='2.21.0'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -246,20 +246,31 @@ is_file_exist(){
 # Use:
 #   (( $(as_version 1.2.3.4) >= $(as_version 1.2.3.3) )) && echo "yes" || echo "no"
 #
-# Version number should not contain more than 4 parts (3 dots) and each part should not contain more than 3 digits
+# Version number should contain from 1 to 4 parts (3 dots) and each part should contain from 1 to 3 digits
 #
+AS_VERSION__MAX_DIGITS_PER_PART=3
+AS_VERSION__PART_REGEX="[[:digit:]]{1,${AS_VERSION__MAX_DIGITS_PER_PART}}"
+AS_VERSION__PARTS_TO_KEEP=4
+AS_VERSION__REGEX="(${AS_VERSION__PART_REGEX}\.){1,${AS_VERSION__PARTS_TO_KEEP}}"
+
 as_version() {
-  local version="${1}"
-  local dots="${version//[^.]}"
-  if [[ ${#dots} > 3 ]]; then
-    debug "Version number '${version}' has more than 3 dots"
-    fail "Internal error - wrong version format"
+  local version_string="${1}"
+  # Expand version string by adding `.` to the end to simplify logic
+  local expanded_version_string="${version_string}."
+  if [[ ${expanded_version_string} =~ ^${AS_VERSION__REGEX}$ ]]; then
+    printf "1%03d%03d%03d%03d" ${expanded_version_string//./ }
+  else
+    printf "1%03d%03d%03d%03d" ''
   fi
-  if [[ "${version}" =~ [[:digit:]]{4,} ]]; then
-    debug "Version number '${version}' some part has more than 3 digits"
-    fail "Internal error - wrong version format"
-  fi
-  printf "1%03d%03d%03d%03d" ${version//./ }
+}
+
+as_minor_version() {
+  local version_string="${1}"
+  local version_number=$(as_version "${version_string}")
+  local meaningful_version_length=$(( 1 + 2*AS_VERSION__MAX_DIGITS_PER_PART ))
+  local zeroes_length=$(( 1 + AS_VERSION__PARTS_TO_KEEP * AS_VERSION__MAX_DIGITS_PER_PART - meaningful_version_length ))
+  local meaningful_version=${version_number:0:${meaningful_version_length}}
+  printf "%d%0${zeroes_length}d" "${meaningful_version}"
 }
 
 assert_config_relevant_or_upgrade_running(){
@@ -280,7 +291,7 @@ detect_installed_version(){
       INSTALLED_VERSION=$(grep "^installer_version=" ${DETECTED_INVENTORY_PATH} | sed s/^installer_version=//g)
       debug "Got installer_version='${INSTALLED_VERSION}' from ${DETECTED_INVENTORY_PATH}"
     fi
-    if (( $(as_version ${INSTALLED_VERSION}) < $(as_version ${VERY_FIRST_VERSION}) )); then
+    if empty ${INSTALLED_VERSION}; then
       debug "Couldn't detect installer_version, resetting to ${VERY_FIRST_VERSION}"
       INSTALLED_VERSION="${VERY_FIRST_VERSION}"
     fi
@@ -469,11 +480,6 @@ install_package(){
   debug "Installing ${package}"
   run_command "yum install -y ${package}"
 }
-#
-
-
-
-
 
 is_installed(){
   local command="${1}"
@@ -1412,6 +1418,20 @@ clean_up(){
   fi
 }
 
+DETECTED_RAM_SIZE_MB=""
+
+get_ram_size_mb() {
+  if empty "${DETECTED_RAM_SIZE_MB}"; then
+    if is_ci_mode; then
+      DETECTED_RAM_SIZE_MB=2048
+    else
+      DETECTED_RAM_SIZE_MB=$((free -m | grep Mem: | awk '{print $2}') 2>/dev/null)
+    fi
+  fi
+  echo "${DETECTED_RAM_SIZE_MB}"
+}
+
+
 get_var_from_config(){
   local var="${1}"
   local file="${2}"
@@ -1424,6 +1444,12 @@ get_var_from_config(){
     awk '{$1=$1; print}' | \
     sed -r -e "s/^'(.*)'\$/\\1/g" -e 's/^"(.*)"$/\1/g'
   }
+
+is_ram_size_mb_changed() {
+  ( isset "${VARS['previous_ram_size_mb']}" && [[ "${VARS['previous_ram_size_mb']}" != "${VARS['ram_size_mb']}" ]] ) \
+      || ( isset "${VARS['ram_size_mb']}" && [[ "${VARS['ram_size_mb']}" != "$(get_ram_size_mb)" ]] )
+}
+
 
 
 write_inventory_on_reconfiguration(){
@@ -1667,48 +1693,6 @@ help_en(){
   print_err
 }
 
-setup_vars(){
-  setup_default_value skip_firewall no
-  setup_default_value admin_login 'admin'
-  setup_default_value admin_password "$(generate_password)"
-  setup_default_value db_name 'keitaro'
-  setup_default_value db_user 'keitaro'
-  setup_default_value db_password "$(generate_password)"
-  setup_default_value db_root_password "$(generate_password)"
-  setup_default_value db_engine 'tokudb'
-  setup_default_value php_engine "${PHP_ENGINE}"
-  setup_default_value ssh_port "$(get_firewall_ssh_port)"
-}
-
-get_firewall_ssh_port(){
-  local sshport=`echo $SSH_CLIENT | cut -d' ' -f 3`
-  if [ -z "$sshport" ]; then
-    echo "22"
-  else
-    if [ "$sshport" != "22" ]; then
-      echo "$sshport"
-    else
-      echo "22"
-    fi
-  fi
-}
-
-setup_default_value(){
-  local var_name="${1}"
-  local default_value="${2}"
-  if empty "${VARS[${var_name}]}"; then
-    debug "VARS['${var_name}'] is empty, set to '${default_value}'"
-    VARS[${var_name}]=$default_value
-  else
-    debug "VARS['${var_name}'] is set to '${VARS[$var_name]}'"
-  fi
-}
-
-generate_password(){
-  local PASSWORD_LENGTH=16
-  LC_ALL=C tr -cd '[:alnum:]' < /dev/urandom | head -c${PASSWORD_LENGTH}
-}
-
 stage2(){
   debug "Starting stage 2: make some asserts"
   assert_caller_root
@@ -1789,18 +1773,17 @@ databases_exist(){
   debug "Detect exist databases ${db1} ${db2}"
   mysql -Nse 'show databases' | tr '\n' ' ' | grep -Pq "${db1}.*${db2}"
 }
-MIN_SIZE_KB=1500000
+MIN_RAM_SIZE_MB=1500
 
 assert_has_enough_ram(){
   debug "Checking RAM size"
-  if is_file_exist /proc/meminfo no; then
-    local memsize_kb=$(cat /proc/meminfo | head -n1 | awk '{print $2}')
-    if [[ "$memsize_kb" -lt "$MIN_SIZE_KB" ]]; then
-      debug "RAM size ${current_size_kb}kb is less than ${MIN_SIZE_KB}, raising error"
-      fail "$(translate errors.not_enough_ram)"
-    else
-      debug "RAM size ${current_size_kb}kb is greater than ${MIN_SIZE_KB}, continuing"
-    fi
+
+  local current_ram_size_mb=$(get_ram_size_mb)
+  if [[ "$current_ram_size_mb" -lt "$MIN_RAM_SIZE_MB" ]]; then
+    debug "RAM size ${current_ram_size_mb}mb is less than ${MIN_RAM_SIZE_MB}mb, raising error"
+    fail "$(translate errors.not_enough_ram)"
+  else
+    debug "RAM size ${current_ram_size_mb}mb is greater than ${MIN_RAM_SIZE_MB}mb, continuing"
   fi
 }
 
@@ -1809,9 +1792,6 @@ stage3(){
   read_inventory
   setup_vars
   detect_installed_version
-  if isset "$RECONFIGURE"; then
-    upgrade_packages
-  fi
 }
 
 read_inventory(){
@@ -1843,6 +1823,48 @@ parse_line_from_inventory_file(){
     fi
     debug "  "$var_name"=${VARS[$var_name]}"
   fi
+}
+
+setup_vars(){
+  setup_default_value skip_firewall no
+  setup_default_value admin_login 'admin'
+  setup_default_value admin_password "$(generate_password)"
+  setup_default_value db_name 'keitaro'
+  setup_default_value db_user 'keitaro'
+  setup_default_value db_password "$(generate_password)"
+  setup_default_value db_root_password "$(generate_password)"
+  setup_default_value db_engine 'tokudb'
+  setup_default_value php_engine "${PHP_ENGINE}"
+  setup_default_value ssh_port "$(get_firewall_ssh_port)"
+}
+
+get_firewall_ssh_port(){
+  local sshport=`echo $SSH_CLIENT | cut -d' ' -f 3`
+  if [ -z "$sshport" ]; then
+    echo "22"
+  else
+    if [ "$sshport" != "22" ]; then
+      echo "$sshport"
+    else
+      echo "22"
+    fi
+  fi
+}
+
+setup_default_value(){
+  local var_name="${1}"
+  local default_value="${2}"
+  if empty "${VARS[${var_name}]}"; then
+    debug "VARS['${var_name}'] is empty, set to '${default_value}'"
+    VARS[${var_name}]=$default_value
+  else
+    debug "VARS['${var_name}'] is set to '${VARS[$var_name]}'"
+  fi
+}
+
+generate_password(){
+  local PASSWORD_LENGTH=16
+  LC_ALL=C tr -cd '[:alnum:]' < /dev/urandom | head -c${PASSWORD_LENGTH}
 }
 
 stage4(){
@@ -1905,7 +1927,6 @@ can_install_firewall(){
   run_command "$command" "$message" 'hide_output' 'allow_errors'
 }
 
-
 write_inventory_file(){
   debug "Writing inventory file: STARTED"
   mkdir -p "${INVENTORY_DIR}" -m 0700 || fail "Cant't create keitaro inventory dir ${INVENTORY_DIR}"
@@ -1930,8 +1951,15 @@ write_inventory_file(){
   print_line_to_inventory_file "evaluated_by_installer=yes"
   print_line_to_inventory_file "php_engine=${VARS['php_engine']}"
   print_line_to_inventory_file "cpu_cores=$(get_cpu_cores)"
-  print_line_to_inventory_file "ram=$(get_ram)"
   print_line_to_inventory_file "ssh_port=${VARS['ssh_port']}"
+  local current_ram_size_mb="$(get_ram_size_mb)"
+  if is_ram_size_mb_changed; then
+     local previous_ram_size_mb="${VARS['previous_ram_size_mb']:-${VARS['ram_size_mb']}}"
+     print_line_to_inventory_file "previous_ram_size_mb=${previous_ram_size_mb}"
+     print_line_to_inventory_file "ram_size_mb=${current_ram_size_mb}"
+  else
+     print_line_to_inventory_file "ram_size_mb=${current_ram_size_mb}"
+  fi
   if isset "${VARS['installer_version']}"; then
     print_line_to_inventory_file "installer_version=${VARS['installer_version']}"
   else
@@ -1952,7 +1980,7 @@ write_inventory_file(){
   debug "Writing inventory file: DONE"
 }
 
-get_cpu_cores(){
+get_cpu_cores() {
   cpu_cores=$(grep -c ^processor /proc/cpuinfo 2>/dev/null || echo 1)
   if [[ "$cpu_cores" == "0" ]]; then
     cpu_cores=1
@@ -1960,11 +1988,7 @@ get_cpu_cores(){
   echo "$cpu_cores"
 }
 
-get_ram(){
-  (free -m | grep Mem: | awk '{print $2}') 2>/dev/null
-}
-
-print_line_to_inventory_file(){
+print_line_to_inventory_file() {
   local line="${1}"
   debug "  "$line""
   echo "$line" >> "$INVENTORY_PATH"
@@ -2016,6 +2040,8 @@ signal_successful_installation() {
   debug "Signaling successful installation by writing 'installed' flag to the inventory file"
   VARS['installed']=true
   VARS['installer_version']="${RELEASE_VERSION}"
+  VARS['ram_size_mb']="$(get_ram_size_mb)"
+  VARS['previous_ram_size_mb']="${VARS['ram_size_mb']}"
   write_inventory_file
 }
 
@@ -2372,7 +2398,7 @@ is_upgrade_mode_set() {
 #     and insalled version is 2.12
 #     and we are upgrading to 2.14
 #   then ansible tags will be expanded by `upgrade-from-2.12` and `upgrade-from-2.13` tags 
-UPGRADE_CHECKPOINTS=(1.5 2.0 2.12 2.13 2.16)
+UPGRADE_CHECKPOINTS=(1.5 2.0 2.12 2.13 2.16 2.20)
 
 # If installed version less than or equal to version from array value
 # then ANSIBLE_TAGS will be expanded by appropriate tags (given from array key)
@@ -2382,9 +2408,7 @@ UPGRADE_CHECKPOINTS=(1.5 2.0 2.12 2.13 2.16)
 #     and we are upgrading to 2.14
 #   then ansible tags will be expanded by `enable-swap` tag
 declare -A REPLAY_ROLE_TAGS_SINCE=(
-  ['configure-journald']='2.12'
-  ['configure-timezone']='0.9'
-  ['create-tracker-user-and-dirs']='1.0'
+  ['create-tracker-user-and-dirs']='2.20.4'
   ['disable-ipv6']='1.0'
   ['disable-selinux']='2.14'
   ['disable-thp']='0.9'
@@ -2396,32 +2420,34 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['install-chrony']='2.13'
   ['install-helper-packages']='2.20'
   ['install-postfix']='2.13'
-  ['tune-swap']='2.20'
+  ['setup-journald']='2.12'
+  ['setup-timezone']='0.9'
+  ['tune-swap']='2.20.4'
   ['install-php']='2.12'
-  ['install-roadrunner']='2.12'
-  ['tune-php']='2.12'
-  ['tune-roadrunner']='2.14'
+  ['install-roadrunner']='2.20.4'
+  ['tune-php']='2.20.4'
+  ['tune-roadrunner']='2.20.4'
   ['install-mariadb']='1.17'
-  ['tune-mariadb']='1.17'
-  ['tune-redis']='1.4'
+  ['tune-mariadb']='2.20.4'
+  ['tune-redis']='2.20.4'
   ['install-nginx']='1.0'
-  ['tune-nginx']='2.20'
-  ['tune-tracker']='1.14'
+  ['tune-nginx']='2.20.4'
+  ['setup-tracker']='2.20.4'
 )
 
 expand_ansible_tags_on_upgrade() {
   if is_upgrade_mode_set; then
     debug "Upgrade mode detected, expading ansible tags."
-    local upgrade_since=$(get_upgrade_since)
-    debug "Upgrading ${upgrade_since} -> ${RELEASE_VERSION}"
+    local installed_version=$(get_installed_version)
+    debug "Upgrading ${installed_version} -> ${RELEASE_VERSION}"
     expand_ansible_tags_on_full_upgrade
-    expand_ansible_tags_by_upgrade_from_tags ${upgrade_since}
-    expand_ansible_tags_by_role_tags ${upgrade_since}
-    expand_ansible_tags_by_install_kctl_tools_tag ${upgrade_since}
+    expand_ansible_tags_with_tune_tag
+    expand_ansible_tags_with_upgrade_from_tags ${installed_version}
+    expand_ansible_tags_with_role_tags ${installed_version}
+    expand_ansible_tags_with_install_kctl_tools_tag ${installed_version}
     debug "ANSIBLE_TAGS is set to ${ANSIBLE_TAGS}"
   fi
 }
-
 
 expand_ansible_tags_on_full_upgrade() {
   if [[ "${ANSIBLE_TAGS}" =~ full-upgrade ]]; then
@@ -2429,33 +2455,40 @@ expand_ansible_tags_on_full_upgrade() {
   fi
 }
 
-expand_ansible_tags_by_upgrade_from_tags() {
-  local upgrade_since=${1}
-  for version in "${UPGRADE_CHECKPOINTS[@]}"; do
-    if (( $(as_version ${upgrade_since}) <= $(as_version ${version}) )); then
-      ANSIBLE_TAGS="${ANSIBLE_TAGS},upgrade-from-${version}"
+expand_ansible_tags_with_tune_tag() {
+  if is_ram_size_mb_changed; then
+    debug 'RAM size was changed recently, force tuning'
+    ANSIBLE_TAGS="${ANSIBLE_TAGS},tune"
+  fi
+}
+
+expand_ansible_tags_with_upgrade_from_tags() {
+  local installed_version=${1}
+  for checkpoint_version in "${UPGRADE_CHECKPOINTS[@]}"; do
+    if need_to_expand_with_upgrade_from_tag ${installed_version} ${checkpoint_version}; then
+      ANSIBLE_TAGS="${ANSIBLE_TAGS},upgrade-from-${checkpoint_version}"
     fi
   done
 }
 
-expand_ansible_tags_by_role_tags() {
-  local upgrade_since=${1}
+expand_ansible_tags_with_role_tags() {
+  local installed_version=${1}
   for role_tag in ${!REPLAY_ROLE_TAGS_SINCE[@]}; do
     replay_role_tag_since=${REPLAY_ROLE_TAGS_SINCE[${role_tag}]}
-    if (( $(as_version ${upgrade_since}) <= $(as_version ${replay_role_tag_since}) )); then
+    if (( $(as_version ${installed_version}) <= $(as_version ${replay_role_tag_since}) )); then
       ANSIBLE_TAGS="${ANSIBLE_TAGS},${role_tag}"
     fi
   done
 }
 
-expand_ansible_tags_by_install_kctl_tools_tag() {
-  local upgrade_since=${1}
-  if (( $(as_version ${upgrade_since}) < $(as_version ${RELEASE_VERSION}) )); then
+expand_ansible_tags_with_install_kctl_tools_tag() {
+  local installed_version=${1}
+  if (( $(as_version ${installed_version}) < $(as_version ${RELEASE_VERSION}) )); then
     ANSIBLE_TAGS="${ANSIBLE_TAGS},install-kctl-tools"
   fi
 }
 
-get_upgrade_since() {
+get_installed_version() {
   if [[ "${ANSIBLE_TAGS}" =~ full-upgrade ]]; then
     debug "ANSIBLE_TAGS contains full-upgrade, simulating upgrade from ${VERY_FIRST_VERSION}"
     echo ${VERY_FIRST_VERSION}
@@ -2464,6 +2497,18 @@ get_upgrade_since() {
   fi
 }
 
+need_to_expand_with_upgrade_from_tag() {
+  local installed_version=${1}
+  local checkpoint_version=${2}
+  local checkpoint_minor_version="$(as_minor_version ${checkpoint_version})"
+  local installed_minor_version="$(as_minor_version ${installed_version})"
+  local current_installer_minor_version="$(as_minor_version ${RELEASE_VERSION})"
+  (( ${checkpoint_minor_version} > ${installed_minor_version} )) || \
+  ( \
+    [[ ${checkpoint_minor_version} == ${installed_minor_version} ]] && \
+      (( ${checkpoint_minor_version} < ${current_installer_minor_version} )) \
+  )
+}
 
 # We wrap the entire script in a big function which we only call at the very end, in order to
 # protect against the possibility of the connection dying mid-script. This protects us against
@@ -2482,9 +2527,9 @@ install(){
   else
     assert_keitaro_not_installed
     stage4                  # get and save vars to the inventory file
-    stage5                  # upgrade packages and install ansible
   fi
-  stage6                    # run ansible playbook
+  stage5                    # upgrade packages and install ansible
+  stage6                    # upgrade packages and run ansible playbook
 }
 
 install "$@"

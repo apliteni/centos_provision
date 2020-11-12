@@ -1,0 +1,9 @@
+---
+- name: Converge
+  hosts: all
+  tasks:
+    - block:
+      - name: "Include install-chrony"
+        include_role:
+          name: "install-chrony"
+      ignore_errors: yes  

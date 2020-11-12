@@ -21,7 +21,12 @@
     state: link
     force: true
     
-- name: check roadrunner symlink is exist
+- name: Check roadrunner symlink exists
   stat: 
     path: /usr/local/bin/roadrunner
   register: roadrunner
+
+- name: Create roadrunner configuration directory
+  file:
+    path: "{{ rr_config_dir }}"
+    state: directory

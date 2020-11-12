@@ -1,0 +1,7 @@
+---
+- name: Converge
+  hosts: all
+  tasks:
+    - name: "Include disable-selinux"
+      include_role:
+        name: "disable-selinux"
