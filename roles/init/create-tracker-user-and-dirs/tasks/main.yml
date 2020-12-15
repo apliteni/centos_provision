@@ -27,7 +27,7 @@
     owner: "{{ keitaro_user }}"
     group: "{{ keitaro_group }}"
     mode: 0755
-    recurse: yes
+
 
 - name: Create directory for backups
   file:
@@ -44,4 +44,4 @@
     domain: "{{ keitaro_user }}"
     limit_type: '-'
     limit_item: nofile
-    value: 4096
+    value: '4096'

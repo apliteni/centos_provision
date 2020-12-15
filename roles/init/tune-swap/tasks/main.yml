@@ -1,13 +1,6 @@
-- name: Disable swap
-  shell: "grep -q '^{{ swap_location }} ' /proc/swaps && swapoff {{ swap_location }} || true"
+# This role is based on https://stackoverflow.com/a/64294534/612799
+---
+- name: "[Re]create swap if its size is too small"
+  include: recreate_swap.yml
+  when: ansible_swaptotal_mb < ((swap_file_size_mb | int) * 0.9)
 
-- name: Remove swap
-  file:
-    path: "{{ swap_location }}"
-    state: absent
-  register: swap_removed
-  ignore_errors: yes
-
-- name: Create swap
-  include: create_swap.yml
-  when: swap_removed.failed == false

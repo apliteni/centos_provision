@@ -53,7 +53,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.21.0'
+RELEASE_VERSION='2.22.0'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -63,6 +63,10 @@ if is_ci_mode; then
 else
   ROOT_PREFIX=''
 fi
+
+declare -A VARS
+declare -A ARGS
+declare -A DETECTED_VARS
 
 WEBAPP_ROOT="${ROOT_PREFIX}/var/www/keitaro"
 
@@ -114,8 +118,6 @@ else
   fi
 fi
 
-declare -A VARS
-declare -A ARGS
 declare -A DICT
 
 DICT['en.errors.program_failed']='PROGRAM FAILED'
@@ -132,14 +134,14 @@ DICT['en.messages.skip_nginx_conf_generation']="Skip nginx config generation"
 DICT['en.messages.run_command']='Evaluating command'
 DICT['en.messages.successful']='Everything is done!'
 DICT['en.no']='no'
-DICT['en.prompt_errors.validate_domains_list']=$(cat <<-END
+DICT['en.validation_errors.validate_domains_list']=$(cat <<-END
 	Please enter domains list, separated by comma without spaces (eg domain1.tld,www.domain1.tld).
 	Each domain name should consist of only letters, numbers and hyphens and contain at least one dot.
 	Domains longer than 64 characters are not supported.
 END
 )
-DICT['en.prompt_errors.validate_presence']='Please enter value'
-DICT['en.prompt_errors.validate_yes_no']='Please answer "yes" or "no"'
+DICT['en.validation_errors.validate_presence']='Please enter value'
+DICT['en.validation_errors.validate_yes_no']='Please answer "yes" or "no"'
 
 DICT['ru.errors.program_failed']='ОШИБКА ВЫПОЛНЕНИЯ ПРОГРАММЫ'
 DICT['ru.errors.must_be_root']='Эту программу может запускать только root.'
@@ -155,14 +157,14 @@ DICT['ru.messages.skip_nginx_conf_generation']="Пропуск генераци�
 DICT['ru.messages.run_command']='Выполняется команда'
 DICT['ru.messages.successful']='Готово!'
 DICT['ru.no']='нет'
-DICT['ru.prompt_errors.validate_domains_list']=$(cat <<-END
+DICT['ru.validation_errors.validate_domains_list']=$(cat <<-END
 	Укажите список доменных имён через запятую без пробелов (например domain1.tld,www.domain1.tld).
 	Каждое доменное имя должно сстоять только из букв, цифр и тире и содержать хотя бы одну точку.
 	Домены длиной более 64 символов не поддерживаются.
 END
 )
-DICT['ru.prompt_errors.validate_presence']='Введите значение'
-DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
+DICT['ru.validation_errors.validate_presence']='Введите значение'
+DICT['ru.validation_errors.validate_yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
 
 
 FORCE_ISSUING_CERTS=''
@@ -171,7 +173,7 @@ DICT['en.errors.vhost_already_exists']="Can not save site configuration - :vhost
 DICT['en.errors.site_root_not_exists']="Can not save site configuration - :site_root: directory does not exist"
 DICT['en.prompts.site_domains']='Please enter domains separated by comma without spaces'
 DICT['en.prompts.site_root']='Please enter site root directory'
-DICT['en.prompt_errors.validate_directory_existence']="Directory :value: doesn't exist"
+DICT['en.validation_errors.validate_directory_existence']="Directory :value: doesn't exist"
 
 DICT['ru.prompts.ssl_domains.help']='Убедитесь, что все указанные домены привязаны к этому серверу в DNS.'
 DICT['ru.errors.see_logs']="Журнал выполнения сохранён в ${LOG_PATH}. Пожалуйста запустите \`${SCRIPT_COMMAND}\` после устранения возникших проблем."
@@ -179,7 +181,7 @@ DICT['ru.errors.vhost_already_exists']="Невозможно сохранить 
 DICT['ru.errors.site_root_not_exists']="Невозможно сохранить конфигурацию сайта - нет директории :site_root:"
 DICT['ru.prompts.site_domains']='Укажите список доменов через запятую без пробелов'
 DICT['ru.prompts.site_root']='Укажите корневую директорию сайта'
-DICT['ru.prompt_errors.validate_directory_existence']="Директория :value: не существует"
+DICT['ru.validation_errors.validate_directory_existence']="Директория :value: не существует"
 
 
 assert_caller_root(){
@@ -432,10 +434,6 @@ get_ui_lang(){
   fi
   echo "$UI_LANG"
 }
-#
-
-
-
 
 
 translate(){
@@ -460,7 +458,7 @@ interpolate(){
 
 is_installed(){
   local command="${1}"
-  debug "Try to found "$command""
+  debug "Try to find "$command""
   if isset "$SKIP_CHECKS"; then
     debug "SKIPPED: actual checking of '$command' presence skipped"
   else
@@ -491,7 +489,12 @@ add_indentation(){
 }
 
 force_utf8_input(){
-  LC_CTYPE=en_US.UTF-8
+  if locale -a 2>/dev/null | grep -q en_US.UTF-8; then
+    LC_CTYPE=en_US.UTF-8
+  else
+    debug "Locale en_US.UTF-8 is not defined. Skip setting LC_CTYPE"
+    return
+  fi
   if [ -f /proc/$$/fd/1 ]; then
     stty -F /proc/$$/fd/1 iutf8
   fi
@@ -518,7 +521,7 @@ get_user_var(){
       if [[ "$validation_methods" =~ 'validate_yes_no' ]]; then
         transform_to_yes_no "$var_name"
       fi
-      debug "  ${var_name}=${value}"
+      debug "  ${var_name}=${VARS[${var_name}]}"
       break
     fi
   done
@@ -553,7 +556,7 @@ print_prompt(){
 }
 print_prompt_error(){
   local error_key="${1}"
-  error=$(translate "prompt_errors.$error_key")
+  error=$(translate "validation_errors.$error_key")
   print_with_color "*** ${error}" 'red'
 }
 
@@ -1166,19 +1169,14 @@ help_en_common(){
   print_err "  -v                       display version information and exit"
   print_err
 }
-#
 
-
-
-
-
-ensure_valid(){
+ensure_valid() {
   local option="${1}"
   local var_name="${2}"
   local validation_methods="${3}"
   error="$(get_error "${var_name}" "${validation_methods}")"
   if isset "$error"; then
-    print_err "-${option}: $(translate "prompt_errors.${error}" "value=${VARS[$var_name]}")"
+    print_err "-${option}: $(translate "validation_errors.${error}" "value=${VARS[$var_name]}")"
     exit ${FAILURE_RESULT}
   fi
 }
@@ -1200,10 +1198,6 @@ get_error(){
   done
   echo "${error}"
 }
-#
-
-
-
 
 
 validate_presence(){

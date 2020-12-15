@@ -1,0 +1,7 @@
+- name: Prepare keitaro root dir
+  file:
+    path: "{{ keitaro_root }}"
+    owner: "{{ keitaro_user }}"
+    group: "{{ keitaro_group }}"
+    mode: u=rwX,g=rX,o=rX
+    recurse: yes

@@ -1,5 +1,7 @@
 - include: ensure_relevant_keitaro_installed.yml
 
+- include: set_tracker_homedir_permissions.yml
+
 - include: backup_configs.yml
   when: "'upgrade-from-2.0' in ansible_run_tags"
 

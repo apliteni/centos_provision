@@ -1,6 +1,10 @@
 ---
 - name: Converge
   hosts: all
+
+  vars:
+    swap_test_mode: true
+
   tasks:
     - name: "Include tune-swap"
       include_role:

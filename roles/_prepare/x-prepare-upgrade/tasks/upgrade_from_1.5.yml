@@ -17,10 +17,12 @@
       dest: "{{ ssl_dhparam_path }}"
 
 - name: Remove all cron tasks of nginx user
-  shell: "crontab -r -u {{ nginx_user }} || true"
+  shell: "crontab -r -u {{ nginx_user }}"
+  failed_when: false
 
 - name: Remove old root cron.php task
   shell: 'sed -i /cron.php/d /var/spool/cron/root'
+  failed_when: false
 
 - name: Remove old renewal certs job
   cron:

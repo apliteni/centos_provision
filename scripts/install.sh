@@ -54,7 +54,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.21.0'
+RELEASE_VERSION='2.22.0'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -64,6 +64,10 @@ if is_ci_mode; then
 else
   ROOT_PREFIX=''
 fi
+
+declare -A VARS
+declare -A ARGS
+declare -A DETECTED_VARS
 
 WEBAPP_ROOT="${ROOT_PREFIX}/var/www/keitaro"
 
@@ -115,8 +119,6 @@ else
   fi
 fi
 
-declare -A VARS
-declare -A ARGS
 declare -A DICT
 
 DICT['en.errors.program_failed']='PROGRAM FAILED'
@@ -133,14 +135,14 @@ DICT['en.messages.skip_nginx_conf_generation']="Skip nginx config generation"
 DICT['en.messages.run_command']='Evaluating command'
 DICT['en.messages.successful']='Everything is done!'
 DICT['en.no']='no'
-DICT['en.prompt_errors.validate_domains_list']=$(cat <<-END
+DICT['en.validation_errors.validate_domains_list']=$(cat <<-END
 	Please enter domains list, separated by comma without spaces (eg domain1.tld,www.domain1.tld).
 	Each domain name should consist of only letters, numbers and hyphens and contain at least one dot.
 	Domains longer than 64 characters are not supported.
 END
 )
-DICT['en.prompt_errors.validate_presence']='Please enter value'
-DICT['en.prompt_errors.validate_yes_no']='Please answer "yes" or "no"'
+DICT['en.validation_errors.validate_presence']='Please enter value'
+DICT['en.validation_errors.validate_yes_no']='Please answer "yes" or "no"'
 
 DICT['ru.errors.program_failed']='ОШИБКА ВЫПОЛНЕНИЯ ПРОГРАММЫ'
 DICT['ru.errors.must_be_root']='Эту программу может запускать только root.'
@@ -156,14 +158,14 @@ DICT['ru.messages.skip_nginx_conf_generation']="Пропуск генераци�
 DICT['ru.messages.run_command']='Выполняется команда'
 DICT['ru.messages.successful']='Готово!'
 DICT['ru.no']='нет'
-DICT['ru.prompt_errors.validate_domains_list']=$(cat <<-END
+DICT['ru.validation_errors.validate_domains_list']=$(cat <<-END
 	Укажите список доменных имён через запятую без пробелов (например domain1.tld,www.domain1.tld).
 	Каждое доменное имя должно сстоять только из букв, цифр и тире и содержать хотя бы одну точку.
 	Домены длиной более 64 символов не поддерживаются.
 END
 )
-DICT['ru.prompt_errors.validate_presence']='Введите значение'
-DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
+DICT['ru.validation_errors.validate_presence']='Введите значение'
+DICT['ru.validation_errors.validate_yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
 
 
 assert_caller_root(){
@@ -218,6 +220,33 @@ is_keitaro_installed() {
 should_use_new_algorithm_for_installation_check() {
   (( $(as_version ${RELEASE_VERSION}) >= $(as_version ${USE_NEW_ALGORITHM_FOR_INSTALLATION_CHECK_SINCE}) ))
 }
+#
+
+
+
+
+
+is_directory_exist(){
+  local directory="${1}"
+  local result_on_skip="${2}"
+  debug "Checking ${directory} directory existence"
+  if isset "$SKIP_CHECKS"; then
+    debug "SKIP: actual check of ${directory} directory existence disabled"
+    if [[ "$result_on_skip" == "no" ]]; then
+      debug "NO: simulate ${directory} directory does not exist"
+      return ${FAILURE_RESULT}
+    fi
+    debug "YES: simulate ${directory} directory exists"
+    return ${SUCCESS_RESULT}
+  fi
+  if [ -d "${directory}" ]; then
+    debug "YES: ${directory} directory exists"
+    return ${SUCCESS_RESULT}
+  else
+    debug "NO: ${directory} directory does not exist"
+    return ${FAILURE_RESULT}
+  fi
+}
 
 is_file_exist(){
   local file="${1}"
@@ -238,6 +267,72 @@ is_file_exist(){
   else
     debug "NO: ${file} file does not exist"
     return ${FAILURE_RESULT}
+  fi
+}
+#
+
+
+
+
+
+is_file_matches(){
+  local file="${1}"
+  local pattern="${2}"
+  local result_on_skip="${3}"
+  debug "Checking ${file} file matching with pattern '${pattern}'"
+  if isset "$SKIP_CHECKS"; then
+    debug "SKIP: actual check of ${file} file matching disabled"
+    if [[ "$result_on_skip" == "no" ]]; then
+      debug "NO: simulate ${file} file does not match '${pattern}'"
+      return ${FAILURE_RESULT}
+    fi
+    debug "YES: simulate ${file} file matches '${pattern}'"
+    return ${SUCCESS_RESULT}
+  fi
+  if test -f "$file" && grep -q "$pattern" "$file"; then
+    debug "YES: ${file} file matches '${pattern}'"
+    return ${SUCCESS_RESULT}
+  else
+    debug "NO: ${file} file does not match '${pattern}"
+    return ${FAILURE_RESULT}
+  fi
+}
+#
+
+
+
+
+
+is_path_exist(){
+  local path="${1}"
+  local result_on_skip="${2}"
+  debug "Checking ${path} path existence"
+  if isset "$SKIP_CHECKS"; then
+    debug "SKIP: actual check of ${path} path existence disabled"
+    if [[ "$result_on_skip" == "no" ]]; then
+      debug "NO: simulate ${path} path does not exist"
+      return ${FAILURE_RESULT}
+    fi
+    debug "YES: simulate ${path} path exists"
+    return ${SUCCESS_RESULT}
+  fi
+  if [ -e "${path}" ]; then
+    debug "YES: ${path} path exists"
+    return ${SUCCESS_RESULT}
+  else
+    debug "NO: ${path} path does not exist"
+    return ${FAILURE_RESULT}
+  fi
+}
+
+assert_config_relevant_or_upgrade_running(){
+  debug 'Ensure configs has been genereated by relevant installer'
+  if [[ "${RELEASE_VERSION}" == "${INSTALLED_VERSION}" ]]; then
+    debug "Configs has been generated by recent version of installer ${RELEASE_VERSION}"
+  elif is_upgrade_mode_set; then
+    debug "Upgrade mode detected."
+  else
+    fail "$(translate 'errors.upgrade_server')"
   fi
 }
 
@@ -273,17 +368,6 @@ as_minor_version() {
   printf "%d%0${zeroes_length}d" "${meaningful_version}"
 }
 
-assert_config_relevant_or_upgrade_running(){
-  debug 'Ensure configs has been genereated by relevant installer'
-  if [[ "${RELEASE_VERSION}" == "${INSTALLED_VERSION}" ]]; then
-    debug "Configs has been generated by recent version of installer ${RELEASE_VERSION}"
-  elif is_upgrade_mode_set; then
-    debug "Upgrade mode detected."
-  else
-    fail "$(translate 'errors.upgrade_server')"
-  fi
-}
-
 detect_installed_version(){
   if empty "${INSTALLED_VERSION}"; then
     detect_inventory_path
@@ -299,12 +383,40 @@ detect_installed_version(){
 }
 
 get_centos_major_release() {
-  grep -oP '(?<=release )\d+' /etc/centos-release
+  if isset "${SKIP_CHECKS}"; then
+    echo 8
+  else
+    grep -oP '(?<=release )\d+' /etc/centos-release
+  fi
 }
 
 
 is_compatible_with_current_release() {
   [[ "${RELEASE_VERSION}" == "${INSTALLED_VERSION}" ]]
+}
+
+run_obsolete_tool_version_if_need() {
+  debug 'Ensure configs has been genereated by relevant installer'
+  if isset "${FORCE_ISSUING_CERTS}"; then
+    debug "Skip checking current version and force isuuing certs"
+  elif is_compatible_with_current_release; then
+    debug "Current ${RELEASE_VERSION} is compatible with ${INSTALLED_VERSION}"
+  else
+    local tool_url="${KEITARO_URL}/v${INSTALLED_VERSION}/${TOOL_NAME}.sh"
+    local tool_args="${TOOL_ARGS}"
+    if (( $(as_version "${INSTALLED_VERSION}") < $(as_version "1.13") )); then
+      fail "$(translate 'errors.upgrade_server')"
+    fi
+    if [[ "${TOOL_NAME}" == "add-site" ]]; then
+      tool_args="-D ${VARS['site_domains']} -R ${VARS['site_root']}"
+    fi
+    if [[ "${TOOL_NAME}" == "enable-ssl" ]]; then
+      tool_args="-D ${VARS['ssl_domains']}"
+    fi
+    command="curl -fsSL ${tool_url} | bash -s -- ${tool_args}"
+    run_command "${command}" "Running obsolete ${TOOL_NAME} (v${INSTALLED_VERSION})"
+    exit
+  fi
 }
 #
 
@@ -356,10 +468,6 @@ get_ui_lang(){
   fi
   echo "$UI_LANG"
 }
-#
-
-
-
 
 
 translate(){
@@ -394,6 +502,18 @@ detect_mime_type(){
   file --brief --mime-type "$file"
 }
 
+force_utf8_input(){
+  if locale -a 2>/dev/null | grep -q en_US.UTF-8; then
+    LC_CTYPE=en_US.UTF-8
+  else
+    debug "Locale en_US.UTF-8 is not defined. Skip setting LC_CTYPE"
+    return
+  fi
+  if [ -f /proc/$$/fd/1 ]; then
+    stty -F /proc/$$/fd/1 iutf8
+  fi
+}
+
 
 get_user_var(){
   local var_name="${1}"
@@ -415,17 +535,10 @@ get_user_var(){
       if [[ "$validation_methods" =~ 'validate_yes_no' ]]; then
         transform_to_yes_no "$var_name"
       fi
-      debug "  ${var_name}=${value}"
+      debug "  ${var_name}=${VARS[${var_name}]}"
       break
     fi
   done
-}
-
-force_utf8_input(){
-  LC_CTYPE=en_US.UTF-8
-  if [ -f /proc/$$/fd/1 ]; then
-    stty -F /proc/$$/fd/1 iutf8
-  fi
 }
 hack_stdin_if_pipe_mode(){
   if is_pipe_mode; then
@@ -439,6 +552,16 @@ hack_stdin_if_pipe_mode(){
 
 hack_stdin(){
   exec 3<&1
+}
+print_prompt_error(){
+  local error_key="${1}"
+  error=$(translate "validation_errors.$error_key")
+  print_with_color "*** ${error}" 'red'
+}
+
+print_prompt_help(){
+  local var_name="${1}"
+  print_translated "prompts.$var_name.help"
 }
 #
 
@@ -454,16 +577,6 @@ print_prompt(){
     prompt="$prompt [${VARS[$var_name]}]"
   fi
   echo -en "$prompt > "
-}
-print_prompt_error(){
-  local error_key="${1}"
-  error=$(translate "prompt_errors.$error_key")
-  print_with_color "*** ${error}" 'red'
-}
-
-print_prompt_help(){
-  local var_name="${1}"
-  print_translated "prompts.$var_name.help"
 }
 
 read_stdin(){
@@ -483,7 +596,7 @@ install_package(){
 
 is_installed(){
   local command="${1}"
-  debug "Try to found "$command""
+  debug "Try to find "$command""
   if isset "$SKIP_CHECKS"; then
     debug "SKIPPED: actual checking of '$command' presence skipped"
   else
@@ -507,6 +620,10 @@ detect_inventory_path(){
     fi
   done
   debug "Inventory file not found"
+}
+
+clean_up(){
+  debug 'called clean_up()'
 }
 
 debug(){
@@ -657,17 +774,6 @@ help_en_common(){
   print_err
 }
 
-init() {
-  init_kctl
-  force_utf8_input
-  debug "Starting init stage: log basic info"
-  debug "Command: ${SCRIPT_COMMAND}"
-  debug "Script version: ${RELEASE_VERSION}"
-  debug "User ID: "$EUID""
-  debug "Current date time: $(date +'%Y-%m-%d %H:%M:%S %:z')"
-  trap on_exit SIGHUP SIGINT SIGTERM
-}
-
 LOGS_TO_KEEP=5
 
 init_kctl() {
@@ -722,6 +828,17 @@ create_log() {
 
 delete_old_logs() {
   find "${LOG_DIR}" -name "${LOG_FILENAME}-*" | sort | head -n -${LOGS_TO_KEEP} | xargs rm -f
+}
+
+init() {
+  init_kctl
+  force_utf8_input
+  debug "Starting init stage: log basic info"
+  debug "Command: ${SCRIPT_COMMAND}"
+  debug "Script version: ${RELEASE_VERSION}"
+  debug "User ID: "$EUID""
+  debug "Current date time: $(date +'%Y-%m-%d %H:%M:%S %:z')"
+  trap on_exit SIGHUP SIGINT SIGTERM
 }
 
 log_and_print_err(){
@@ -998,76 +1115,77 @@ remove_current_command(){
   rmdir $(dirname "$current_command_script")
 }
 
-detect_license_ip(){
-  debug "Detecting license ip"
-  if isset "$SKIP_CHECKS"; then
-    DETECTED_LICENSE_EDITION_TYPE=$LICENSE_EDITION_TYPE_TRIAL
-    VARS['license_ip']="127.0.0.1"
-    debug "SKIP: actual detecting of license IP skipped, used 127.0.0.1"
+start_or_reload_nginx(){
+  if is_file_exist "/var/run/nginx.pid" || is_ci_mode; then
+    debug "Nginx is started, reloading"
+    run_command "nginx -s reload" "$(translate 'messages.reloading_nginx')" 'hide_output'
   else
-    host_ips="$(get_host_ips)"
-    debug "$(echo 'IPs for checking:' ${host_ips})"
-    for ip in ${host_ips}; do
-      local license_edition_type="$(get_license_edition_type "${VARS['license_key']}" "${ip}")"
-      if wrong_license_edition_type $license_edition_type; then
-        debug "Got wrong license edition type: ${license_edition_type}"
-        fail "$(translate 'errors.cant_detect_server_ip')" "see_logs"
-      fi
-      if [[ "${license_edition_type}" == "${LICENSE_EDITION_TYPE_INVALID}" ]]; then
-        debug "Valid license for IP ${ip} and key ${VARS['license_key']} not found"
-      else
-        debug "Found $license_edition_type license for IP ${ip} and key ${VARS['license_key']}"
-        DETECTED_LICENSE_EDITION_TYPE="${license_edition_type}"
-        VARS['license_ip']="$ip"
-        debug "Detected license ip: ${VARS['license_ip']}"
-        return
-      fi
-    done
-    debug "No valid license found for key ${VARS['license_key']} and IPs $(get_host_ips)"
-    fail "$(translate 'errors.cant_detect_server_ip')" "see_logs"
+    debug "Nginx is not running, starting"
+    print_with_color "$(translate 'messages.nginx_is_not_running')" "yellow"
+    run_command "systemctl start nginx" "$(translate 'messages.starting_nginx')" 'hide_output'
   fi
 }
 
-get_license_edition_type(){
-  local key="${1}"
-  local ip="${2}"
-  debug "Detecting license edition type for ip ${ip}"
-  local url="${KEITARO_URL}/external_api/licenses/edition_type?key=${key}&ip=${ip}"
-  debug "Getting url '${url}'"
-  local result="$(curl -fsSL "${url}" 2>&1)"
-  debug "Done, result is '$result'"
-  echo $result
-}
 
-wrong_license_edition_type(){
-  local license_edition_type="${1}"
-  [[ ! $license_edition_type =~ ^($(join_by "|" "${LICENSE_EDITION_TYPES[@]}"))$ ]]
-}
+detected_license_edition_type() {
+  local license_ip="${1}"
+  local license_key="${2}"
+  local dict_key="license_edition_type_${license_ip}_${license_key}"
 
-
-get_host_ips(){
-  host_ips="$(get_host_ips_internal)"
-  if empty "${host_ips}"; then
-    host_ips="$(get_host_ips_external)"
+  if isset "${DETECTED_VARS[${dict_key}]}"; then
+    debug "License edition type is already detected"
+  else
+    DETECTED_VARS[${dict_key}]=$(detect_license_edition_type "${license_ip}" "${license_key}")
   fi
-  echo "${host_ips}"
+  echo "${DETECTED_VARS[${dict_key}]}"
+}
+
+detect_license_edition_type() {
+  local license_ip="${1}"
+  local license_key="${2}"
+  local license_edition_type=""
+
+  debug "Detecting license edition type for ip ${license_ip} and key ${license_key}"
+
+  if isset "$SKIP_CHECKS"; then
+    debug "SKIP: actual detecting of license type skipped, using 'trial'"
+    license_edition_type="trial"
+  else
+    local url="${KEITARO_URL}/external_api/licenses/edition_type?key=${license_key}&ip=${license_ip}"
+    debug "Getting url '${url}'"
+    local license_edition_type="$(curl -fsSL "${url}" 2>&1)"
+    debug "Done, result is '${license_edition_type}'"
+  fi
+
+  echo "${license_edition_type}"
 }
 
 
-get_host_ips_internal(){
-  hostname -I 2>/dev/null \
-    | tr ' ' "\n" \
-    | grep -P '^(\d+\.){3}\d+$' \
-    | grep -vP '^10\.' \
-    | grep -vP '^172\.(1[6-9]|2[0-9]|3[1-2])\.' \
-    | grep -vP '^192\.168\.' \
-    | grep -vP '^127\.'
-  }
-
-
-get_host_ips_external(){
-  curl -fsSL -4 ifconfig.me 2>/dev/null
+detected_license_ip() {
+  if isset "${DETECTED_VARS['license_ip']}"; then
+    debug "License ip is already detected"
+  else
+    DETECTED_VARS['license_ip']=$(detect_license_ip)
+  fi
+  echo "${DETECTED_VARS['license_ip']}"
 }
+
+detect_license_ip() {
+  local license_ip=""
+  debug "Detecting license IP address"
+
+  if isset "$SKIP_CHECKS"; then
+    debug "SKIP: actual detecting of server IP skipped, using 127.0.0.1"
+    license_ip="127.0.0.1"
+  else
+    local url="https://myip.keitaro.io"
+    debug "Getting url '${url}'"
+    license_ip="$(curl -fsSL4 ${url} 2>&1)"
+    debug "Done, result is '${license_ip}'"
+  fi
+  echo "${license_ip}"
+}
+
 
 join_by(){
   local delimiter=$1
@@ -1075,6 +1193,28 @@ join_by(){
   echo -n "$1"
   shift
   printf "%s" "${@/#/${delimiter}}"
+}
+
+to_lower(){
+  local string="${1}"
+  echo "${string,,}"
+}
+
+ensure_license_valid() {
+  if ! validate_license "${VARS['license_key']}"; then
+    fail "$(translate "validation_errors.validate_license")"
+  fi
+}
+
+ensure_valid() {
+  local option="${1}"
+  local var_name="${2}"
+  local validation_methods="${3}"
+  error="$(get_error "${var_name}" "${validation_methods}")"
+  if isset "$error"; then
+    print_err "-${option}: $(translate "validation_errors.${error}" "value=${VARS[$var_name]}")"
+    exit ${FAILURE_RESULT}
+  fi
 }
 
 get_error(){
@@ -1094,21 +1234,15 @@ get_error(){
   done
   echo "${error}"
 }
-#
 
+validate_alnumdashdot(){
+  local value="${1}"
+  [[ "$value" =~  ^([0-9A-Za-z_\.\-]+)$ ]]
+}
 
-
-
-
-ensure_valid(){
-  local option="${1}"
-  local var_name="${2}"
-  local validation_methods="${3}"
-  error="$(get_error "${var_name}" "${validation_methods}")"
-  if isset "$error"; then
-    print_err "-${option}: $(translate "prompt_errors.${error}" "value=${VARS[$var_name]}")"
-    exit ${FAILURE_RESULT}
-  fi
+validate_directory_existence(){
+  local value="${1}"
+  [[ -d "$value" ]]
 }
 SUBDOMAIN_REGEXP="[[:alnum:]-]+"
 DOMAIN_REGEXP="(${SUBDOMAIN_REGEXP}\.)+[[:alpha:]]${SUBDOMAIN_REGEXP}"
@@ -1127,10 +1261,18 @@ validate_domains_list(){
   local value="${1}"
   [[ "$value" =~ ^${DOMAIN_LIST_REGEXP}$ ]] && [[ "${value}" =~ ^${DOMAIN_LIST_LENGTH_REGEXP}$ ]]
 }
+#
 
-validate_alnumdashdot(){
+
+
+
+
+validate_file_existence(){
   local value="${1}"
-  [[ "$value" =~  ^([0-9A-Za-z_\.\-]+)$ ]]
+  if empty "$value"; then
+    return ${SUCCESS_RESULT}
+  fi
+  [[ -f "$value" ]]
 }
 
 
@@ -1227,9 +1369,50 @@ build_get_chunk_command() {
   fi
 }
 
-validate_license_key(){
+validate_license_key() {
   local value="${1}"
   [[ "$value" =~  ^[0-9A-Z]{4}(-[0-9A-Z]{4}){3}$ ]]
+}
+
+validate_license() {
+  local license_key="${1}"
+
+  local license_ip=$(detected_license_ip)
+  ensure_license_ip_is_correct "${license_ip}"
+
+  local license_edition_type=$(detected_license_edition_type "${license_ip}" "${license_key}")
+  ensure_license_edition_type_is_correct "${license_edition_type}"
+
+  is_license_edition_type_valid "${license_edition_type}"
+}
+
+
+ensure_license_ip_is_correct() {
+  local license_ip="${1}"
+
+  if ! validate_ip "${license_ip}"; then
+    fail "$(translate 'errors.cant_detect_server_ip')" "see_logs"
+  fi
+}
+
+
+ensure_license_edition_type_is_correct() {
+  local license_edition_type="${1}"
+
+  if !  [[ " ${LICENSE_EDITION_TYPES[@]} " =~ " ${license_edition_type} " ]]; then
+    fail "$(translate 'errors.cant_detect_license_edition')" "see_logs"
+  fi
+}
+
+
+is_license_edition_type_valid() {
+  local license_edition_type="${1}"
+  isset "${license_edition_type}" && [[ "${license_edition_type}" != "$LICENSE_EDITION_TYPE_INVALID" ]]
+}
+
+validate_not_reserved_word(){
+  local value="${1}"
+  [[ "$value" !=  'yes' ]] && [[ "$value" != 'no' ]] && [[ "$value" != 'true' ]] && [[ "$value" != 'false' ]]
 }
 
 validate_not_root(){
@@ -1237,32 +1420,16 @@ validate_not_root(){
   [[ "$value" !=  'root' ]]
 }
 
-validate_not_reserved_word(){
-  local value="${1}"
-  [[ "$value" !=  'yes' ]] && [[ "$value" != 'no' ]] && [[ "$value" != 'true' ]] && [[ "$value" != 'false' ]]
-}
-#
-
-
-
-
 
 validate_presence(){
   local value="${1}"
   isset "$value"
 }
-#
 
-
-
-
-
-validate_file_existence(){
+validate_server_ip_matches_license_ip(){
   local value="${1}"
-  if empty "$value"; then
-    return ${SUCCESS_RESULT}
-  fi
-  [[ -f "$value" ]]
+  local server_ip=$(hostname -I | awk '{print $1}')
+  [[ "$value" == "$server_ip" ]]
 }
 
 validate_starts_with_latin_letter(){
@@ -1297,6 +1464,7 @@ validate_yes_no(){
   (is_yes "$value" || is_no "$value")
 }
 
+
 PROVISION_DIRECTORY="centos_provision"
 KEITARO_ALREADY_INSTALLED_RESULT=2
 PHP_ENGINE=${PHP_ENGINE:-roadrunner}
@@ -1307,12 +1475,10 @@ LICENSE_EDITION_TYPE_COMMERCIAL="commercial"
 LICENSE_EDITION_TYPE_INVALID="INVALID"
 LICENSE_EDITION_TYPES=("$LICENSE_EDITION_TYPE_TRIAL" "$LICENSE_EDITION_TYPE_COMMERCIAL" "$LICENSE_EDITION_TYPE_INVALID")
 
-DETECTED_LICENSE_EDITION_TYPE=""
 INSTALLED_VERSION=""
 
 
 DICT['en.messages.keitaro_already_installed']='Keitaro is already installed'
-DICT['en.messages.check_ability_firewall_installing']="Checking the ability of installing a firewall"
 DICT['en.messages.check_keitaro_dump_get_tables_prefix']="Getting tables prefix from dump"
 DICT['en.messages.check_keitaro_dump_validity']="Checking SQL dump"
 DICT['en.messages.successful.use_old_credentials']="The database was successfully restored from the archive. Use old login data"
@@ -1328,18 +1494,14 @@ END
 )
 DICT['en.errors.wrong_distro']='This installer works only on CentOS 7.x. Please run this program on the clean CentOS server'
 DICT['en.errors.not_enough_ram']='The size of RAM on your server should be at least 2 GB'
-DICT['en.errors.cant_install_firewall']='Please run this program in system with firewall support'
 DICT['en.errors.keitaro_dump_invalid']='SQL dump is broken'
 DICT['en.errors.isp_manager_installed']='You can not install Keitaro on the server with ISP Manager installed. Please run this program on a clean CentOS server.'
 DICT['en.errors.vesta_cp_installed']='You can not install Keitaro on the server with Vesta CP installed. Please run this program on a clean CentOS server.'
 DICT['en.errors.apache_installed']='You can not install Keitaro on the server with Apache HTTP server installed. Please run this program on a clean CentOS server.'
 DICT['en.errors.cant_detect_server_ip']="The installer couldn't detect the server IP address, please contact Keitaro support team"
-DICT['en.prompts.skip_firewall']='Do you want to skip installing firewall?'
-DICT['en.prompts.skip_firewall.help']=$(cat <<- END
-	It looks that your system does not support firewall. This can be happen, for example, if you are using a virtual machine based on OpenVZ and the hosting provider has disabled conntrack support (see http://forum.firstvds.ru/viewtopic.php?f=3&t=10759).
-	WARNING: Firewall can help prevent hackers or malicious software from gaining access to your server through Internet. You can continue installing the system without firewall, however we strongly recommend you to run this program on system with firewall support.
-END
-)
+DICT['en.errors.cant_detect_license_edition']="The installer couldn't detect the your license edition, please contact Keitaro support team"
+DICT['en.errors.dump_restoring_not_available_for_trials']='Dump restoring is not avalable for trial licenses'
+
 DICT['en.prompts.admin_login']='Please enter Keitaro admin login'
 DICT['en.prompts.admin_password']='Please enter Keitaro admin password'
 DICT['en.prompts.db_name']='Please enter database name'
@@ -1353,15 +1515,15 @@ DICT['en.welcome']=$(cat <<- END
 	This installer will guide you through the steps required to install Keitaro on your server.
 END
 )
-DICT['en.prompt_errors.validate_license_key']='Please enter valid license key (eg AAAA-BBBB-CCCC-DDDD)'
-DICT['en.prompt_errors.validate_alnumdashdot']='Only Latin letters, numbers, dashes, underscores and dots allowed'
-DICT['en.prompt_errors.validate_starts_with_latin_letter']='The value must begin with a Latin letter'
-DICT['en.prompt_errors.validate_file_existence']='The file was not found by the specified path, please enter the correct path to the file'
-DICT['en.prompt_errors.validate_keitaro_dump']='The SQL dump is broken, please specify path to correct SQL dump of Keitaro'
-DICT['en.prompt_errors.validate_not_reserved_word']='You are not allowed to use yes/no/true/false as value'
+DICT['en.validation_errors.validate_alnumdashdot']='Only Latin letters, numbers, dashes, underscores and dots allowed'
+DICT['en.validation_errors.validate_file_existence']='The file was not found by the specified path, please enter the correct path to the file'
+DICT['en.validation_errors.validate_keitaro_dump']='The SQL dump is broken, please specify path to correct SQL dump of Keitaro'
+DICT['en.validation_errors.validate_license']='Wrong license key or ip'
+DICT['en.validation_errors.validate_license_key']='Please enter valid license key (eg AAAA-BBBB-CCCC-DDDD)'
+DICT['en.validation_errors.validate_not_reserved_word']='You are not allowed to use yes/no/true/false as value'
+DICT['en.validation_errors.validate_starts_with_latin_letter']='The value must begin with a Latin letter'
 
 DICT['ru.messages.keitaro_already_installed']='Keitaro трекер уже установлен.'
-DICT['ru.messages.check_ability_firewall_installing']="Проверяем возможность установки фаервола"
 DICT['ru.messages.check_keitaro_dump_get_tables_prefix']="Получаем префикс таблиц из SQL дампа"
 DICT['ru.messages.check_keitaro_dump_validity']="Проверяем SQL дамп"
 DICT["ru.messages.successful.use_old_credentials"]="База данных успешно восстановлена из архива. Используйте старые данные для входа в систему"
@@ -1377,19 +1539,13 @@ END
 )
 DICT['ru.errors.wrong_distro']='Установщик Keitaro работает только в CentOS 7.x. Пожалуйста, запустите эту программу в CentOS дистрибутиве'
 DICT['ru.errors.not_enough_ram']='Размер оперативной памяти на вашем сервере должен быть не менее 2 ГБ'
-DICT['ru.errors.cant_install_firewall']='Пожалуйста, запустите эту программу на системе с поддержкой фаервола'
 DICT['ru.errors.keitaro_dump_invalid']='Указанный файл не является дампом Keitaro или загружен не полностью.'
 DICT['ru.errors.isp_manager_installed']="Программа установки не может быть запущена на серверах с установленным ISP Manager. Пожалуйста, запустите эту программу на чистом CentOS сервере."
 DICT['ru.errors.vesta_cp_installed']="Программа установки не может быть запущена на серверах с установленной Vesta CP. Пожалуйста, запустите эту программу на чистом CentOS сервере."
 DICT['ru.errors.apache_installed']="Программа установки не может быть запущена на серверах с установленным Apache HTTP server. Пожалуйста, запустите эту программу на чистом CentOS сервере."
-DICT['ru.errors.cant_detect_server_ip']='Программа установки не смогла определить IP адрес сервера. Пожалуйста,
-обратитесь в службу технической поддержки Keitaro'
-DICT['ru.prompts.skip_firewall']='Продолжить установку системы без фаервола?'
-DICT['ru.prompts.skip_firewall.help']=$(cat <<- END
-	Похоже, что на этот сервер невозможно установить фаервол. Такое может произойти, например если вы используете виртуальную машину на базе OpenVZ и хостинг провайдер отключил поддержку модуля conntrack (см. http://forum.firstvds.ru/viewtopic.php?f=3&t=10759).
-	ПРЕДУПРЕЖДЕНИЕ. Фаервол может помочь предотвратить доступ хакеров или вредоносного программного обеспечения к вашему серверу через Интернет. Вы можете продолжить установку системы без фаерфола, однако мы настоятельно рекомендуем поменять тарифный план либо провайдера и возобновить установку на системе с поддержкой фаервола.
-END
-)
+DICT['ru.errors.cant_detect_server_ip']='Программа установки не смогла определить IP адрес сервера. Пожалуйста, обратитесь в службу технической поддержки Keitaro'
+DICT['ru.errors.cant_detect_license_edition']='Программа установки не смогла определить тип вашей лицензии. Пожалуйста, обратитесь в службу технической поддержки Keitaro'
+DICT['ru.errors.dump_restoring_not_available_for_trials']='Восстановление из дампа не доступно для пробных лицензий'
 DICT['ru.prompts.admin_login']='Укажите имя администратора Keitaro'
 DICT['ru.prompts.admin_password']='Укажите пароль администратора Keitaro'
 DICT['ru.prompts.db_name']='Укажите имя базы данных'
@@ -1403,32 +1559,26 @@ DICT['ru.welcome']=$(cat <<- END
 	Эта программа поможет собрать информацию необходимую для установки Keitaro на вашем сервере.
 END
 )
-DICT['ru.prompt_errors.validate_license_key']='Введите корректный ключ лицензии (например AAAA-BBBB-CCCC-DDDD)'
-DICT['ru.prompt_errors.validate_alnumdashdot']='Можно использовать только латинские бувы, цифры, тире, подчёркивание и точку'
-DICT['ru.prompt_errors.validate_starts_with_latin_letter']='Значение должно начинаться с латинской буквы'
-DICT['ru.prompt_errors.validate_file_existence']='Файл по заданному пути не обнаружен, введите правильный путь к файлу'
-DICT['ru.prompt_errors.validate_keitaro_dump']='Указанный файл не является дампом Keitaro или загружен не полностью. Укажите путь до корректного SQL дампа'
-DICT['ru.prompt_errors.validate_not_reserved_word']='Запрещено использовать yes/no/true/false в качестве значения'
+DICT['ru.validation_errors.validate_license_key']='Введите корректный ключ лицензии (например AAAA-BBBB-CCCC-DDDD)'
+DICT['ru.validation_errors.validate_alnumdashdot']='Можно использовать только латинские бувы, цифры, тире, подчёркивание и точку'
+DICT['ru.validation_errors.validate_starts_with_latin_letter']='Значение должно начинаться с латинской буквы'
+DICT['ru.validation_errors.validate_file_existence']='Файл по заданному пути не обнаружен, введите правильный путь к файлу'
+DICT['ru.validation_errors.validate_keitaro_dump']='Указанный файл не является дампом Keitaro или загружен не полностью. Укажите путь до корректного SQL дампа'
+DICT['ru.validation_errors.validate_not_reserved_word']='Запрещено использовать yes/no/true/false в качестве значения'
+DICT['ru.validation_errors.validate_license']='Неверный ключ лицензии или IP'
 
 
-clean_up(){
-  if [ -d "$PROVISION_DIRECTORY" ]; then
-    debug "Remove ${PROVISION_DIRECTORY}"
-    rm -rf "$PROVISION_DIRECTORY"
-  fi
+
+is_detected_license_edition_type_commercial() {
+  local license_ip="$(detected_license_ip)"
+  local license_key="${VARS['license_key']}"
+  local license_edition_type=$(detected_license_edition_type ${license_ip} ${license_key})
+  [[ "${license_edition_type}" == "${LICENSE_EDITION_TYPE_COMMERCIAL}" ]]
 }
 
-DETECTED_RAM_SIZE_MB=""
-
-get_ram_size_mb() {
-  if empty "${DETECTED_RAM_SIZE_MB}"; then
-    if is_ci_mode; then
-      DETECTED_RAM_SIZE_MB=2048
-    else
-      DETECTED_RAM_SIZE_MB=$((free -m | grep Mem: | awk '{print $2}') 2>/dev/null)
-    fi
-  fi
-  echo "${DETECTED_RAM_SIZE_MB}"
+is_ram_size_mb_changed() {
+  ( isset "${VARS['previous_ram_size_mb']}" && [[ "${VARS['previous_ram_size_mb']}" != "${VARS['ram_size_mb']}" ]] ) \
+      || ( isset "${VARS['ram_size_mb']}" && [[ "${VARS['ram_size_mb']}" != "$(get_ram_size_mb)" ]] )
 }
 
 
@@ -1445,14 +1595,29 @@ get_var_from_config(){
     sed -r -e "s/^'(.*)'\$/\\1/g" -e 's/^"(.*)"$/\1/g'
   }
 
-is_ram_size_mb_changed() {
-  ( isset "${VARS['previous_ram_size_mb']}" && [[ "${VARS['previous_ram_size_mb']}" != "${VARS['ram_size_mb']}" ]] ) \
-      || ( isset "${VARS['ram_size_mb']}" && [[ "${VARS['ram_size_mb']}" != "$(get_ram_size_mb)" ]] )
+DETECTED_RAM_SIZE_MB=""
+
+get_ram_size_mb() {
+  if empty "${DETECTED_RAM_SIZE_MB}"; then
+    if is_ci_mode; then
+      DETECTED_RAM_SIZE_MB=2048
+    else
+      DETECTED_RAM_SIZE_MB=$((free -m | grep Mem: | awk '{print $2}') 2>/dev/null)
+    fi
+  fi
+  echo "${DETECTED_RAM_SIZE_MB}"
 }
 
 
+clean_up(){
+  if [ -d "$PROVISION_DIRECTORY" ]; then
+    debug "Remove ${PROVISION_DIRECTORY}"
+    rm -rf "$PROVISION_DIRECTORY"
+  fi
+}
 
-write_inventory_on_reconfiguration(){
+
+write_inventory_on_reconfiguration() {
   debug "Stages 3-5: write inventory on reconfiguration"
   if empty "${DETECTED_INVENTORY_PATH}"; then
     debug "Detecting inventory variables"
@@ -1465,7 +1630,7 @@ write_inventory_on_reconfiguration(){
 }
 
 
-reset_vars_on_reconfiguration(){
+reset_vars_on_reconfiguration() {
   VARS['admin_login']=''
   VARS['admin_password']=''
   VARS['db_name']=''
@@ -1476,15 +1641,12 @@ reset_vars_on_reconfiguration(){
 }
 
 
-detect_inventory_variables(){
+detect_inventory_variables() {
   if empty "${VARS['license_key']}"; then
     if [[ -f ${WEBAPP_ROOT}/var/license/key.lic ]]; then
       VARS['license_key']="$(cat ${WEBAPP_ROOT}/var/license/key.lic)"
       debug "Detected license key: ${VARS['license_key']}"
     fi
-  fi
-  if empty "${VARS['license_ip']}"; then
-    detect_license_ip
   fi
   if empty "${VARS['db_name']}"; then
     VARS['db_name']="$(get_var_from_keitaro_app_config name)"
@@ -1505,51 +1667,10 @@ detect_inventory_variables(){
 }
 
 
-get_var_from_keitaro_app_config(){
+get_var_from_keitaro_app_config() {
   local var="${1}"
   get_var_from_config "${var}" "${WEBAPP_ROOT}/application/config/config.ini.php" '='
 }
-
-
-stage1(){
-  debug "Starting stage 1: initial script setup"
-  check_openvz
-  check_thp_disable_possibility
-  parse_options "$@"
-  set_ui_lang
-}
-#
-
-check_openvz(){
-  if ! is_ci_mode; then
-    virtualization_type="$(hostnamectl status | grep Virtualization | sed -n "s/\s*Virtualization:\s*//p")"
-    if isset "$virtualization_type" && [ "$virtualization_type" == "openvnz" ]; then
-      print_err "Cannot install on server with OpenVZ virtualization" 'red'
-      clean_up
-      exit 1
-    fi
-  fi
-}
-
-check_thp_disable_possibility(){
-  if ! is_ci_mode; then
-    if is_file_exist "/sys/kernel/mm/transparent_hugepage/enabled" && is_file_exist "/sys/kernel/mm/transparent_hugepage/defrag"; then
-      echo never > /sys/kernel/mm/transparent_hugepage/enabled && echo never > /sys/kernel/mm/transparent_hugepage/defrag
-      thp_enabled="$(cat /sys/kernel/mm/transparent_hugepage/enabled)"
-      if [ "$thp_enabled" == "always madvise [never]" ]; then
-        echo -e "\e[${COLOR_CODE['blue']}mBefore installation check possibility to disalbe THP \e[${COLOR_CODE['green']}m. OK ${RESET_FORMATTING}"
-      else
-        print_err "Impossible to disable thp install will be interrupted" 'red'
-        clean_up
-        exit 1
-      fi
-    fi
-  fi
-}
-#
-
-
-
 
 
 
@@ -1559,13 +1680,12 @@ parse_options(){
     ARGS["${option}"]="${argument}"
     case $option in
       A)
-        VARS['license_ip']=$argument
-        AUTO_INSTALL="true"
-        ensure_valid A license_ip validate_ip
+        echo "Ignoring -A parameter"
         ;;
       K)
+        AUTO_INSTALL="true"
         VARS['license_key']=$argument
-        ensure_valid K license_key validate_license_key
+        ensure_license_set
         ;;
       U)
         VARS['admin_login']=$argument
@@ -1577,11 +1697,9 @@ parse_options(){
         ;;
       F)
         VARS['db_restore_path']=$argument
-        ensure_valid F db_restore_path "validate_file_existence validate_keitaro_dump"
         ;;
       S)
         VARS['db_restore_salt']=$argument
-        ensure_valid S db_restore_salt "validate_alnumdashdot"
         ;;
       r)
         RECONFIGURE="true"
@@ -1611,45 +1729,47 @@ parse_options(){
         ;;
     esac
   done
-  if isset "${ARGS['A']}" || isset "${ARGS['K']}"; then
-    ensure_license_is_set
-  fi
   if isset "${ARGS['U']}" || isset "${ARGS['P']}"; then
-    ensure_license_is_set
+    ensure_license_set
   fi
   if isset "${ARGS['F']}" || isset "${ARGS['S']}"; then
-    ensure_valid F db_restore_path validate_presence
-    ensure_valid S db_restore_salt validate_presence
-    ensure_license_is_set
+    ensure_license_set
+    ensure_license_edition_type_is_commercial
+    ensure_valid F db_restore_path "validate_presence validate_file_existence validate_keitaro_dump"
+    ensure_valid S db_restore_salt "validate_presence validate_alnumdashdot"
   fi
   ensure_options_correct
 }
 
 
-ensure_license_is_set(){
-  ensure_valid A license_ip validate_presence
-  ensure_valid K license_key validate_presence
+ensure_license_set() {
+  ensure_valid K license_key "validate_presence validate_license_key validate_license"
+}
+
+
+ensure_license_edition_type_is_commercial() {
+   if ! is_detected_license_edition_type_commercial; then
+     fail "$(translate 'errors.dump_restoring_not_available_for_trials')"
+   fi
 }
 
 
 help_ru(){
   print_err "$SCRIPT_NAME уставливает и настраивает Keitaro"
-  print_err "Пример: "$SCRIPT_NAME" -L ru -A a.b.c.d -K AAAA-BBBB-CCCC-DDDD -U some_username -P some_password"
+  print_err "Пример: "$SCRIPT_NAME" -L ru -K AAAA-BBBB-CCCC-DDDD -U some_username -P some_password"
   print_err
   print_err "Автоматизация:"
-  print_err "  -A LICENSE_IP            задать IP адрес лицензии (обязательно наличие -K, выключает интерактивный режим)"
+  print_err "  -K LICENSE_KEY           задать ключ лицензии"
   print_err
-  print_err "  -K LICENSE_KEY           задать ключ лицензии (обязательно наличие -A)"
+  print_err "  -F DUMP_FILEPATH         задать путь к дампу базы (обязательно наличие -S и -K)"
   print_err
-  print_err "  -F DUMP_FILEPATH         задать путь к дампу базы (обязательно наличие -S, -A и -K)"
+  print_err "  -S SALT                  задать salt при восстановлении из дампа (обязательно наличие -F и -K)"
   print_err
-  print_err "  -S SALT                  задать salt при восстановлении из дампа (обязательно наличие -F, -A и -K)"
+  print_err "  -U ADMIN_USER            задать имя администратора (обязательно наличие -K)"
   print_err
-  print_err "  -U ADMIN_USER            задать имя администратора (обязательно наличие -A и -K)"
+  print_err "  -P ADMIN_PASSWORD        задать пароль администратора (обязательно наличие -K)"
   print_err
-  print_err "  -P ADMIN_PASSWORD        задать пароль администратора (обязательно наличие -A и -K)"
-  print_err
-  print_err "  -r                       включить режим переконфигурации (несовместимо с -A)"
+  print_err "  -r                       включить режим переконфигурации (несовместимо с -K)"
   print_err
   print_err "Настройка:"
   print_err "  -a PATH_TO_PACKAGE       задать путь к установочному пакету с архивом Keitaro"
@@ -1665,22 +1785,20 @@ help_ru(){
 
 help_en(){
   print_err "$SCRIPT_NAME installs and configures Keitaro"
-  print_err "Example: "$SCRIPT_NAME" -L en -A a.b.c.d -K AAAA-BBBB-CCCC-DDDD -U some_username -P some_password"
+  print_err "Example: "$SCRIPT_NAME" -L en -K AAAA-BBBB-CCCC-DDDD -U some_username -P some_password"
   print_err
   print_err "Script automation:"
-  print_err "  -A LICENSE_IP            set license IP (-K should be specified, disables interactive mode)"
+  print_err "  -K LICENSE_KEY           set license key"
   print_err
-  print_err "  -K LICENSE_KEY           set license key (-A should be specified)"
+  print_err "  -F DUMP_FILEPATH         set filepath to dump (-S and -K should be specified)"
   print_err
-  print_err "  -F DUMP_FILEPATH         set filepath to dump (-S, -A and -K should be specified)"
+  print_err "  -S SALT                  set salt for dump restoring (-F and -K should be specified)"
   print_err
-  print_err "  -S SALT                  set salt for dump restoring (-F, -A and -K should be specified)"
+  print_err "  -U ADMIN_USER            set admin user name (-K should be specified)"
   print_err
-  print_err "  -U ADMIN_USER            set admin user name (-A and -K should be specified)"
+  print_err "  -P ADMIN_PASSWORD        set admin password (-K should be specified)"
   print_err
-  print_err "  -P ADMIN_PASSWORD        set admin password (-A and -K should be specified)"
-  print_err
-  print_err "  -r                       enables reconfiguration mode (incompatible with -A)"
+  print_err "  -r                       enables reconfiguration mode (incompatible with -K)"
   print_err
   print_err "Customization:"
   print_err "  -a PATH_TO_PACKAGE       set path to Keitaro installation package"
@@ -1693,13 +1811,105 @@ help_en(){
   print_err
 }
 
-stage2(){
-  debug "Starting stage 2: make some asserts"
-  assert_caller_root
-  assert_centos_distro
-  assert_pannels_not_installed
-  assert_apache_not_installed
-  assert_has_enough_ram
+stage1() {
+  debug "Starting stage 1: initial script setup"
+  parse_options "$@"
+  set_ui_lang
+}
+
+
+assert_not_running_under_openvz() {
+  debug "Assert we are not running under OpenVZ"
+  if is_ci_mode; then
+    debug "Detected test mode, skip OpenVZ checks"
+    return
+  fi
+
+  virtualization_type="$(hostnamectl status | grep Virtualization | awk '{print $2}')"
+  debug "Detected virtualization type: '${virtualization_type}'"
+  if isset "${virtualization_type}" && [[ "${virtualization_type}" == "openvnz" ]]; then
+    fail "Servers with OpenVZ virtualization are not supported"
+  fi
+}
+
+assert_centos_distro(){
+  assert_installed 'yum' 'errors.wrong_distro'
+  if ! is_file_exist /etc/centos-release; then
+    fail "$(translate errors.wrong_distro)" "see_logs"
+  fi
+}
+MIN_RAM_SIZE_MB=1500
+
+assert_has_enough_ram(){
+  debug "Checking RAM size"
+
+  local current_ram_size_mb=$(get_ram_size_mb)
+  if [[ "$current_ram_size_mb" -lt "$MIN_RAM_SIZE_MB" ]]; then
+    debug "RAM size ${current_ram_size_mb}mb is less than ${MIN_RAM_SIZE_MB}mb, raising error"
+    fail "$(translate errors.not_enough_ram)"
+  else
+    debug "RAM size ${current_ram_size_mb}mb is greater than ${MIN_RAM_SIZE_MB}mb, continuing"
+  fi
+}
+
+
+assert_thp_deactivatable() {
+  debug "Checking if it is possible to disable THP"
+  if is_ci_mode; then
+    debug "Skip actual checking"
+    return
+  fi
+  if are_thp_sys_files_existing; then
+    debug "There are THP files in /sys fs, checking for ability to disable THP" 
+    echo never > /sys/kernel/mm/transparent_hugepage/enabled
+    echo never > /sys/kernel/mm/transparent_hugepage/defrag
+    thp_enabled="$(cat /sys/kernel/mm/transparent_hugepage/enabled)"
+    if [ "$thp_enabled" == "always madvise [never]" ]; then
+      debug "OK, THP was successfully disabled"
+    else
+      fail "Can't disable Transparent Huge Pages" 
+    fi
+  else
+    debug "There are no THP files in /sys fs, continuing installation process" 
+  fi
+}
+
+are_thp_sys_files_existing() {
+  is_file_exist "/sys/kernel/mm/transparent_hugepage/enabled" && is_file_exist "/sys/kernel/mm/transparent_hugepage/defrag"
+}
+
+assert_pannels_not_installed(){
+  if isset "$SKIP_CHECKS"; then
+    debug "SKIPPED: actual checking of panels skipped"
+  else
+    if is_installed mysql; then
+      assert_isp_manager_not_installed
+      assert_vesta_cp_not_installed
+    fi
+  fi
+}
+
+
+assert_isp_manager_not_installed(){
+  if is_database_exists roundcube; then
+    debug "ISP Manager database detected"
+    fail "$(translate errors.isp_manager_installed)"
+  fi
+}
+
+
+assert_vesta_cp_not_installed(){
+  if is_database_exists admin_default; then
+    debug "Vesta CP database detected"
+    fail "$(translate errors.vesta_cp_installed)"
+  fi
+}
+
+
+is_database_exists(){
+  local database="${1}"
+  debug "Check if database ${database} exists"
+  mysql -Nse 'show databases' 2>/dev/null | tr '\n' ' ' | grep -Pq "${database}"
 }
 #
 
@@ -1717,81 +1927,56 @@ assert_apache_not_installed(){
   fi
 }
 
-assert_centos_distro(){
-  assert_installed 'yum' 'errors.wrong_distro'
-  if ! is_file_exist /etc/centos-release; then
-    fail "$(translate errors.wrong_distro)" "see_logs"
-  fi
+stage2(){
+  debug "Starting stage 2: make some asserts"
+  assert_caller_root
+  assert_apache_not_installed
+  assert_centos_distro
+  assert_has_enough_ram
+  assert_not_running_under_openvz
+  assert_pannels_not_installed
+  assert_thp_deactivatable
 }
-#
 
+setup_vars(){
+  setup_default_value admin_login 'admin'
+  setup_default_value admin_password "$(generate_password)"
+  setup_default_value db_name 'keitaro'
+  setup_default_value db_user 'keitaro'
+  setup_default_value db_password "$(generate_password)"
+  setup_default_value db_root_password "$(generate_password)"
+  setup_default_value db_engine 'tokudb'
+  setup_default_value php_engine "${PHP_ENGINE}"
+  setup_default_value ssh_port "$(get_ssh_port)"
+}
 
-
-
-
-assert_pannels_not_installed(){
-  if isset "$SKIP_CHECKS"; then
-    debug "SKIPPED: actual checking of panels skipped"
+get_ssh_port(){
+  local sshport=`echo $SSH_CLIENT | cut -d' ' -f 3`
+  if [ -z "$sshport" ]; then
+    echo "22"
   else
-    if is_installed mysql; then
-      assert_isp_manager_not_installed
-      assert_vesta_cp_not_installed
+    if [ "$sshport" != "22" ]; then
+      echo "$sshport"
+    else
+      echo "22"
     fi
   fi
 }
 
-
-assert_isp_manager_not_installed(){
-  if isp_manager_installed; then
-    debug "ISP Manager databases detected"
-    fail "$(translate errors.isp_manager_installed)"
-  fi
-}
-
-
-assert_vesta_cp_not_installed(){
-  if vesta_cp_installed; then
-    debug "Vesta CP databases detected"
-    fail "$(translate errors.vesta_cp_installed)"
-  fi
-}
-
-
-isp_manager_installed(){
-  databases_exist roundcube test
-}
-
-
-vesta_cp_installed(){
-  databases_exist admin_default roundcube
-}
-
-
-databases_exist(){
-  local db1="${1}"
-  local db2="${2}"
-  debug "Detect exist databases ${db1} ${db2}"
-  mysql -Nse 'show databases' | tr '\n' ' ' | grep -Pq "${db1}.*${db2}"
-}
-MIN_RAM_SIZE_MB=1500
-
-assert_has_enough_ram(){
-  debug "Checking RAM size"
-
-  local current_ram_size_mb=$(get_ram_size_mb)
-  if [[ "$current_ram_size_mb" -lt "$MIN_RAM_SIZE_MB" ]]; then
-    debug "RAM size ${current_ram_size_mb}mb is less than ${MIN_RAM_SIZE_MB}mb, raising error"
-    fail "$(translate errors.not_enough_ram)"
+setup_default_value(){
+  local var_name="${1}"
+  local default_value="${2}"
+  if empty "${VARS[${var_name}]}"; then
+    debug "VARS['${var_name}'] is empty, set to '${default_value}'"
+    VARS[${var_name}]=$default_value
   else
-    debug "RAM size ${current_ram_size_mb}mb is greater than ${MIN_RAM_SIZE_MB}mb, continuing"
+    debug "VARS['${var_name}'] is set to '${VARS[$var_name]}'"
   fi
 }
 
-stage3(){
-  debug "Starting stage 3: read values from inventory file"
-  read_inventory
-  setup_vars
-  detect_installed_version
+generate_password(){
+  local PASSWORD_LENGTH=16
+  LC_ALL=C tr -cd '[:alnum:]' < /dev/urandom | head -c${PASSWORD_LENGTH}
 }
 
 read_inventory(){
@@ -1825,128 +2010,30 @@ parse_line_from_inventory_file(){
   fi
 }
 
-setup_vars(){
-  setup_default_value skip_firewall no
-  setup_default_value admin_login 'admin'
-  setup_default_value admin_password "$(generate_password)"
-  setup_default_value db_name 'keitaro'
-  setup_default_value db_user 'keitaro'
-  setup_default_value db_password "$(generate_password)"
-  setup_default_value db_root_password "$(generate_password)"
-  setup_default_value db_engine 'tokudb'
-  setup_default_value php_engine "${PHP_ENGINE}"
-  setup_default_value ssh_port "$(get_firewall_ssh_port)"
-}
-
-get_firewall_ssh_port(){
-  local sshport=`echo $SSH_CLIENT | cut -d' ' -f 3`
-  if [ -z "$sshport" ]; then
-    echo "22"
-  else
-    if [ "$sshport" != "22" ]; then
-      echo "$sshport"
-    else
-      echo "22"
-    fi
-  fi
-}
-
-setup_default_value(){
-  local var_name="${1}"
-  local default_value="${2}"
-  if empty "${VARS[${var_name}]}"; then
-    debug "VARS['${var_name}'] is empty, set to '${default_value}'"
-    VARS[${var_name}]=$default_value
-  else
-    debug "VARS['${var_name}'] is set to '${VARS[$var_name]}'"
-  fi
-}
-
-generate_password(){
-  local PASSWORD_LENGTH=16
-  LC_ALL=C tr -cd '[:alnum:]' < /dev/urandom | head -c${PASSWORD_LENGTH}
-}
-
-stage4(){
-  debug "Starting stage 4: generate inventory file"
-  if isset "$AUTO_INSTALL"; then
-    debug "Skip reading vars from stdin"
-  else
-    if ! is_installed iptables; then
-      install_package iptables
-    fi  
-    get_user_vars
-  fi
-  write_inventory_file
-}
-#
-
-
-
-
-
-
-get_user_vars(){
-  debug 'Read vars from user input'
-  hack_stdin_if_pipe_mode
-  print_translated "welcome"
-  if ! can_install_firewall; then
-    get_user_var 'skip_firewall' 'validate_yes_no'
-    if is_no "${VARS['skip_firewall']}"; then
-      fail "$(translate 'errors.cant_install_firewall')"
-    fi
-  fi
-  get_user_license_vars
-  get_user_db_restore_vars
-}
-
-
-get_user_license_vars(){
-  get_user_var 'license_key' 'validate_presence validate_license_key'
-  if empty "${VARS['license_ip']}" || empty "$DETECTED_LICENSE_EDITION_TYPE"; then
-    detect_license_ip
-  fi
-}
-
-
-get_user_db_restore_vars(){
-  if [[ "$DETECTED_LICENSE_EDITION_TYPE" == "${LICENSE_EDITION_TYPE_TRIAL}" ]]; then
-    debug "Do not ask for DB restoring due trial license"
-    return
-  fi
-  get_user_var 'db_restore_path' 'validate_file_existence validate_keitaro_dump'
-  if isset "${VARS['db_restore_path']}"; then
-    get_user_var 'db_restore_salt' 'validate_presence validate_alnumdashdot'
-  fi
-}
-
-
-can_install_firewall(){
-  command='iptables -t nat -L'
-  message="$(translate 'messages.check_ability_firewall_installing')"
-  run_command "$command" "$message" 'hide_output' 'allow_errors'
+stage3(){
+  debug "Starting stage 3: read values from inventory file"
+  read_inventory
+  setup_vars
+  detect_installed_version
 }
 
 write_inventory_file(){
   debug "Writing inventory file: STARTED"
-  mkdir -p "${INVENTORY_DIR}" -m 0700 || fail "Cant't create keitaro inventory dir ${INVENTORY_DIR}"
-  (echo -n > "${INVENTORY_PATH}" && chmod 0600 "${INVENTORY_PATH}") || \
-    fail "Cant't create keitaro inventory file ${INVENTORY_PATH}"
+  create_inventory_file
   print_line_to_inventory_file "[server]"
   print_line_to_inventory_file "localhost connection=local ansible_user=root"
   print_line_to_inventory_file
   print_line_to_inventory_file "[server:vars]"
-  print_line_to_inventory_file "skip_firewall=${VARS['skip_firewall']}"
-  print_line_to_inventory_file "license_ip="${VARS['license_ip']}""
-  print_line_to_inventory_file "license_key="${VARS['license_key']}""
-  print_line_to_inventory_file "db_root_password="${VARS['db_root_password']}""
-  print_line_to_inventory_file "db_name="${VARS['db_name']}""
-  print_line_to_inventory_file "db_user="${VARS['db_user']}""
-  print_line_to_inventory_file "db_password="${VARS['db_password']}""
-  print_line_to_inventory_file "db_restore_path="${VARS['db_restore_path']}""
-  print_line_to_inventory_file "db_restore_salt="${VARS['db_restore_salt']}""
-  print_line_to_inventory_file "admin_login="${VARS['admin_login']}""
-  print_line_to_inventory_file "admin_password="${VARS['admin_password']}""
+  print_line_to_inventory_file "license_ip=$(detected_license_ip)"
+  print_line_to_inventory_file "license_key=${VARS['license_key']}"
+  print_line_to_inventory_file "db_root_password=${VARS['db_root_password']}"
+  print_line_to_inventory_file "db_name=${VARS['db_name']}"
+  print_line_to_inventory_file "db_user=${VARS['db_user']}"
+  print_line_to_inventory_file "db_password=${VARS['db_password']}"
+  print_line_to_inventory_file "db_restore_path=${VARS['db_restore_path']}"
+  print_line_to_inventory_file "db_restore_salt=${VARS['db_restore_salt']}"
+  print_line_to_inventory_file "admin_login=${VARS['admin_login']}"
+  print_line_to_inventory_file "admin_password=${VARS['admin_password']}"
   print_line_to_inventory_file "language=$(get_ui_lang)"
   print_line_to_inventory_file "evaluated_by_installer=yes"
   print_line_to_inventory_file "php_engine=${VARS['php_engine']}"
@@ -1980,6 +2067,12 @@ write_inventory_file(){
   debug "Writing inventory file: DONE"
 }
 
+create_inventory_file() {
+  mkdir -p "${INVENTORY_DIR}" -m 0700 || fail "Cant't create keitaro inventory dir ${INVENTORY_DIR}"
+  (echo -n > "${INVENTORY_PATH}" && chmod 0600 "${INVENTORY_PATH}") || \
+    fail "Cant't create keitaro inventory file ${INVENTORY_PATH}"
+}
+
 get_cpu_cores() {
   cpu_cores=$(grep -c ^processor /proc/cpuinfo 2>/dev/null || echo 1)
   if [[ "$cpu_cores" == "0" ]]; then
@@ -1990,8 +2083,37 @@ get_cpu_cores() {
 
 print_line_to_inventory_file() {
   local line="${1}"
-  debug "  "$line""
+  debug "  '$line'"
   echo "$line" >> "$INVENTORY_PATH"
+}
+
+
+get_user_vars(){
+  debug 'Read vars from user input'
+  hack_stdin_if_pipe_mode
+  print_translated "welcome"
+  get_user_var 'license_key' 'validate_presence validate_license_key validate_license'
+  get_user_db_restore_vars
+}
+
+
+get_user_db_restore_vars(){
+  if is_detected_license_edition_type_commercial; then
+    get_user_var 'db_restore_path' 'validate_file_existence validate_keitaro_dump'
+    if isset "${VARS['db_restore_path']}"; then
+      get_user_var 'db_restore_salt' 'validate_presence validate_alnumdashdot'
+    fi
+  fi
+}
+
+stage4(){
+  debug "Starting stage 4: generate inventory file"
+  if isset "$AUTO_INSTALL"; then
+    debug "Skip reading vars from stdin"
+  else
+    get_user_vars
+  fi
+  write_inventory_file
 }
 
 stage5(){
@@ -2019,206 +2141,11 @@ install_packages(){
   fi
 }
 
-stage6(){
-  debug "Starting stage 6: run ansible playbook"
-  download_provision
-  run_ansible_playbook
-  clean_up
-  show_successful_message
-  if isset "$ANSIBLE_TAGS"; then
-    debug "Ansible tags is set to '${ANSIBLE_TAGS}' - skip printing credentials"
-    if is_upgrade_mode_set; then
-      signal_successful_installation
-    fi
-  else
-    signal_successful_installation
-    show_credentials
-  fi
-}
-
-signal_successful_installation() {
-  debug "Signaling successful installation by writing 'installed' flag to the inventory file"
-  VARS['installed']=true
-  VARS['installer_version']="${RELEASE_VERSION}"
-  VARS['ram_size_mb']="$(get_ram_size_mb)"
-  VARS['previous_ram_size_mb']="${VARS['ram_size_mb']}"
-  write_inventory_file
-}
-
 download_provision(){
   debug "Download provision"
   release_url="https://files.keitaro.io/scripts/${BRANCH}/playbook.tar.gz"
   mkdir -p "${PROVISION_DIRECTORY}"
   run_command "curl -fsSL ${release_url} | tar -xzC ${PROVISION_DIRECTORY}"
-}
-
-ANSIBLE_TASK_HEADER="^TASK \[(.*)\].*"
-ANSIBLE_TASK_FAILURE_HEADER="^(fatal|failed): "
-ANSIBLE_FAILURE_JSON_FILEPATH="${WORKING_DIR}/ansible_failure.json"
-ANSIBLE_LAST_TASK_LOG="${WORKING_DIR}/ansible_last_task.log"
-
-run_ansible_playbook(){
-  local env="ANSIBLE_FORCE_COLOR=true"
-  env="${env} ANSIBLE_CONFIG=${PROVISION_DIRECTORY}/ansible.cfg"
-  env="${env} ANSIBLE_GATHER_TIMEOUT=30"
-  if [ -f "$DETECTED_PREFIX_PATH" ]; then
-    env="${env} TABLES_PREFIX='$(cat "${DETECTED_PREFIX_PATH}" | head -n1)'"
-    rm -f "${DETECTED_PREFIX_PATH}"
-  fi
-  local command="${env} ansible-playbook -vvv -i ${INVENTORY_PATH} ${PROVISION_DIRECTORY}/playbook.yml"
-  if isset "$ANSIBLE_TAGS"; then
-    command="${command} --tags ${ANSIBLE_TAGS}"
-  fi
-  if isset "$ANSIBLE_IGNORE_TAGS"; then
-    command="${command} --skip-tags ${ANSIBLE_IGNORE_TAGS}"
-  fi
-  run_command "${command}" '' '' '' '' 'print_ansible_fail_message'
-}
-
-print_ansible_fail_message(){
-  local current_command_script="${1}"
-  if ansible_task_found; then
-    debug "Found last ansible task"
-    print_tail_content_of "$CURRENT_COMMAND_ERROR_LOG"
-    cat "$CURRENT_COMMAND_OUTPUT_LOG" | remove_text_before_last_pattern_occurence "$ANSIBLE_TASK_HEADER" > "$ANSIBLE_LAST_TASK_LOG"
-    print_ansible_last_task_info
-    print_ansible_last_task_external_info
-    rm "$ANSIBLE_LAST_TASK_LOG"
-  else
-    print_common_fail_message "$current_command_script"
-  fi
-}
-
-ansible_task_found(){
-  grep -qE "$ANSIBLE_TASK_HEADER" "$CURRENT_COMMAND_OUTPUT_LOG"
-}
-
-print_ansible_last_task_info(){
-  echo "Task info:"
-  head -n2 "$ANSIBLE_LAST_TASK_LOG" | sed -r 's/\*+$//g' | add_indentation
-}
-
-print_ansible_last_task_external_info(){
-  if ansible_task_failure_found; then
-    debug "Found last ansible failure"
-    cat "$ANSIBLE_LAST_TASK_LOG" \
-      | keep_json_only \
-      > "$ANSIBLE_FAILURE_JSON_FILEPATH"
-  fi
-  print_ansible_task_module_info
-  rm "$ANSIBLE_FAILURE_JSON_FILEPATH"
-}
-
-ansible_task_failure_found(){
-  grep -qP "$ANSIBLE_TASK_FAILURE_HEADER" "$ANSIBLE_LAST_TASK_LOG"
-}
-
-
-keep_json_only(){
-  # The json with error is inbuilt into text. The structure of text is about:
-  #
-  # TASK [$ROLE_NAME : "$TASK_NAME"] *******
-  # task path: /path/to/task/file.yml:$LINE
-  # .....
-  # fatal: [localhost]: FAILED! => {
-  #     .....
-  #     failure JSON
-  #     .....
-  # }
-  # .....
-  #
-  # So, first remove all before "fatal: [localhost]: FAILED! => {" line
-  # then replace first line to just '{'
-  # then remove all after '}'
-  sed -n -r "/${ANSIBLE_TASK_FAILURE_HEADER}/,\$p" \
-    | sed '1c{' \
-    | sed -e '/^}$/q'
-  }
-
-remove_text_before_last_pattern_occurence(){
-  local pattern="${1}"
-  sed -n -r "H;/${pattern}/h;\${g;p;}"
-}
-
-print_ansible_task_module_info(){
-  declare -A   json
-  eval "json=$(cat "$ANSIBLE_FAILURE_JSON_FILEPATH" | json2dict)" 2>/dev/null
-  ansible_module="${json['invocation.module_name']}"
-  if isset "${json['invocation.module_name']}"; then
-    echo "Ansible module: ${json['invocation.module_name']}"
-  fi
-  if isset "${json['msg']}"; then
-    print_field_content "Field 'msg'" "${json['msg']}"
-  fi
-  if need_print_stdout_stderr "$ansible_module" "${json['stdout']}" "${json['stderr']}"; then
-    print_field_content "Field 'stdout'" "${json['stdout']}"
-    print_field_content "Field 'stderr'" "${json['stderr']}"
-  fi
-  if need_print_full_json "$ansible_module" "${json['stdout']}" "${json['stderr']}" "${json['msg']}"; then
-    print_content_of "$ANSIBLE_FAILURE_JSON_FILEPATH"
-  fi
-}
-
-print_field_content(){
-  local field_caption="${1}"
-  local field_content="${2}"
-  if empty "${field_content}"; then
-    echo "${field_caption} is empty"
-  else
-    echo "${field_caption}:"
-    echo -e "${field_content}" | fold -s -w $((${COLUMNS:-80} - ${INDENTATION_LENGTH})) | add_indentation
-  fi
-}
-
-need_print_stdout_stderr(){
-  local ansible_module="${1}"
-  local stdout="${2}"
-  local stderr="${3}"
-  isset "${stdout}"
-  local is_stdout_set=$?
-  isset "${stderr}"
-  local is_stderr_set=$?
-  [[ "$ansible_module" == 'cmd' || ${is_stdout_set} == ${SUCCESS_RESULT} || ${is_stderr_set} == ${SUCCESS_RESULT} ]]
-}
-
-need_print_full_json(){
-  local ansible_module="${1}"
-  local stdout="${2}"
-  local stderr="${3}"
-  local msg="${4}"
-  need_print_stdout_stderr "$ansible_module" "$stdout" "$stderr"
-  local need_print_output_fields=$?
-  isset "$msg"
-  is_msg_set=$?
-  [[ ${need_print_output_fields} != ${SUCCESS_RESULT} && ${is_msg_set} != ${SUCCESS_RESULT}  ]]
-}
-
-get_printable_fields(){
-  local ansible_module="${1}"
-  local fields="${2}"
-  echo "$fields"
-}
-#
-
-
-
-
-
-show_credentials(){
-  print_with_color "http://${VARS['license_ip']}/admin" 'light.green'
-  if isset "${VARS['db_restore_path']}"; then
-    echo "$(translate 'messages.successful.use_old_credentials')"
-  else
-    colored_login=$(print_with_color "${VARS['admin_login']}" 'light.green')
-    colored_password=$(print_with_color "${VARS['admin_password']}" 'light.green')
-    echo -e "login: ${colored_login}"
-    echo -e "password: ${colored_password}"
-  fi
-  echo "$(translate 'messages.successful.how_to_enable_ssl')"
-}
-
-show_successful_message(){
-  print_with_color "$(translate 'messages.successful')" 'green'
 }
 json2dict() {
 
@@ -2387,8 +2314,197 @@ json2dict() {
   echo "("; (tokenize | json_parse); echo ")"
 }
 
-is_upgrade_mode_set() {
-  [[ "${ANSIBLE_TAGS}" =~ upgrade  ]]
+show_successful_message(){
+  print_with_color "$(translate 'messages.successful')" 'green'
+}
+
+show_credentials(){
+  print_with_color "http://$(detected_license_ip)/admin" 'light.green'
+
+  if isset "${VARS['db_restore_path']}"; then
+    echo "$(translate 'messages.successful.use_old_credentials')"
+  else
+    colored_login=$(print_with_color "${VARS['admin_login']}" 'light.green')
+    colored_password=$(print_with_color "${VARS['admin_password']}" 'light.green')
+    echo -e "login: ${colored_login}"
+    echo -e "password: ${colored_password}"
+  fi
+  echo "$(translate 'messages.successful.how_to_enable_ssl')"
+}
+
+ANSIBLE_TASK_HEADER="^TASK \[(.*)\].*"
+ANSIBLE_TASK_FAILURE_HEADER="^(fatal|failed): "
+ANSIBLE_FAILURE_JSON_FILEPATH="${WORKING_DIR}/ansible_failure.json"
+ANSIBLE_LAST_TASK_LOG="${WORKING_DIR}/ansible_last_task.log"
+
+run_ansible_playbook(){
+  local env="ANSIBLE_FORCE_COLOR=true"
+  env="${env} ANSIBLE_CONFIG=${PROVISION_DIRECTORY}/ansible.cfg"
+  env="${env} ANSIBLE_GATHER_TIMEOUT=30"
+  if [ -f "$DETECTED_PREFIX_PATH" ]; then
+    env="${env} TABLES_PREFIX='$(cat "${DETECTED_PREFIX_PATH}" | head -n1)'"
+    rm -f "${DETECTED_PREFIX_PATH}"
+  fi
+  local command="${env} ansible-playbook -vvv -i ${INVENTORY_PATH} ${PROVISION_DIRECTORY}/playbook.yml"
+  if isset "$ANSIBLE_TAGS"; then
+    command="${command} --tags ${ANSIBLE_TAGS}"
+  fi
+  if isset "$ANSIBLE_IGNORE_TAGS"; then
+    command="${command} --skip-tags ${ANSIBLE_IGNORE_TAGS}"
+  fi
+  run_command "${command}" '' '' '' '' 'print_ansible_fail_message'
+}
+
+print_ansible_fail_message(){
+  local current_command_script="${1}"
+  if ansible_task_found; then
+    debug "Found last ansible task"
+    print_tail_content_of "$CURRENT_COMMAND_ERROR_LOG"
+    cat "$CURRENT_COMMAND_OUTPUT_LOG" | remove_text_before_last_pattern_occurence "$ANSIBLE_TASK_HEADER" > "$ANSIBLE_LAST_TASK_LOG"
+    print_ansible_last_task_info
+    print_ansible_last_task_external_info
+    rm "$ANSIBLE_LAST_TASK_LOG"
+  else
+    print_common_fail_message "$current_command_script"
+  fi
+}
+
+ansible_task_found(){
+  grep -qE "$ANSIBLE_TASK_HEADER" "$CURRENT_COMMAND_OUTPUT_LOG"
+}
+
+print_ansible_last_task_info(){
+  echo "Task info:"
+  head -n2 "$ANSIBLE_LAST_TASK_LOG" | sed -r 's/\*+$//g' | add_indentation
+}
+
+print_ansible_last_task_external_info(){
+  if ansible_task_failure_found; then
+    debug "Found last ansible failure"
+    cat "$ANSIBLE_LAST_TASK_LOG" \
+      | keep_json_only \
+      > "$ANSIBLE_FAILURE_JSON_FILEPATH"
+  fi
+  print_ansible_task_module_info
+  rm "$ANSIBLE_FAILURE_JSON_FILEPATH"
+}
+
+ansible_task_failure_found(){
+  grep -qP "$ANSIBLE_TASK_FAILURE_HEADER" "$ANSIBLE_LAST_TASK_LOG"
+}
+
+
+keep_json_only(){
+  # The json with error is inbuilt into text. The structure of text is about:
+  #
+  # TASK [$ROLE_NAME : "$TASK_NAME"] *******
+  # task path: /path/to/task/file.yml:$LINE
+  # .....
+  # fatal: [localhost]: FAILED! => {
+  #     .....
+  #     failure JSON
+  #     .....
+  # }
+  # .....
+  #
+  # So, first remove all before "fatal: [localhost]: FAILED! => {" line
+  # then replace first line to just '{'
+  # then remove all after '}'
+  sed -n -r "/${ANSIBLE_TASK_FAILURE_HEADER}/,\$p" \
+    | sed '1c{' \
+    | sed -e '/^}$/q'
+  }
+
+remove_text_before_last_pattern_occurence(){
+  local pattern="${1}"
+  sed -n -r "H;/${pattern}/h;\${g;p;}"
+}
+
+print_ansible_task_module_info(){
+  declare -A   json
+  eval "json=$(cat "$ANSIBLE_FAILURE_JSON_FILEPATH" | json2dict)" 2>/dev/null
+  ansible_module="${json['invocation.module_name']}"
+  if isset "${json['invocation.module_name']}"; then
+    echo "Ansible module: ${json['invocation.module_name']}"
+  fi
+  if isset "${json['msg']}"; then
+    print_field_content "Field 'msg'" "${json['msg']}"
+  fi
+  if need_print_stdout_stderr "$ansible_module" "${json['stdout']}" "${json['stderr']}"; then
+    print_field_content "Field 'stdout'" "${json['stdout']}"
+    print_field_content "Field 'stderr'" "${json['stderr']}"
+  fi
+  if need_print_full_json "$ansible_module" "${json['stdout']}" "${json['stderr']}" "${json['msg']}"; then
+    print_content_of "$ANSIBLE_FAILURE_JSON_FILEPATH"
+  fi
+}
+
+print_field_content(){
+  local field_caption="${1}"
+  local field_content="${2}"
+  if empty "${field_content}"; then
+    echo "${field_caption} is empty"
+  else
+    echo "${field_caption}:"
+    echo -e "${field_content}" | fold -s -w $((${COLUMNS:-80} - ${INDENTATION_LENGTH})) | add_indentation
+  fi
+}
+
+need_print_stdout_stderr(){
+  local ansible_module="${1}"
+  local stdout="${2}"
+  local stderr="${3}"
+  isset "${stdout}"
+  local is_stdout_set=$?
+  isset "${stderr}"
+  local is_stderr_set=$?
+  [[ "$ansible_module" == 'cmd' || ${is_stdout_set} == ${SUCCESS_RESULT} || ${is_stderr_set} == ${SUCCESS_RESULT} ]]
+}
+
+need_print_full_json(){
+  local ansible_module="${1}"
+  local stdout="${2}"
+  local stderr="${3}"
+  local msg="${4}"
+  need_print_stdout_stderr "$ansible_module" "$stdout" "$stderr"
+  local need_print_output_fields=$?
+  isset "$msg"
+  is_msg_set=$?
+  [[ ${need_print_output_fields} != ${SUCCESS_RESULT} && ${is_msg_set} != ${SUCCESS_RESULT}  ]]
+}
+
+get_printable_fields(){
+  local ansible_module="${1}"
+  local fields="${2}"
+  echo "$fields"
+}
+
+stage6(){
+  debug "Starting stage 6: run ansible playbook"
+  download_provision
+  run_ansible_playbook
+  clean_up
+  show_successful_message
+  if isset "$ANSIBLE_TAGS"; then
+    debug "Ansible tags is set to '${ANSIBLE_TAGS}' - skip printing credentials"
+    if is_upgrade_mode_set; then
+      signal_successful_installation
+    fi
+  else
+    signal_successful_installation
+    show_credentials
+  fi
+}
+
+signal_successful_installation() {
+  debug "Signaling successful installation by writing 'installed' flag to the inventory file"
+  VARS['installed']=true
+  VARS['installer_version']="${RELEASE_VERSION}"
+  VARS['ram_size_mb']="$(get_ram_size_mb)"
+  VARS['previous_ram_size_mb']="${VARS['ram_size_mb']}"
+  VARS['db_restore_path']=""
+  VARS['db_restore_salt']=""
+  write_inventory_file
 }
 
 # If installed version less than or equal to version from checkpoint 
@@ -2422,7 +2538,7 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['install-postfix']='2.13'
   ['setup-journald']='2.12'
   ['setup-timezone']='0.9'
-  ['tune-swap']='2.20.4'
+  ['tune-swap']='2.21.0'
   ['install-php']='2.12'
   ['install-roadrunner']='2.20.4'
   ['tune-php']='2.20.4'
@@ -2510,6 +2626,10 @@ need_to_expand_with_upgrade_from_tag() {
   )
 }
 
+is_upgrade_mode_set() {
+  [[ "${ANSIBLE_TAGS}" =~ upgrade  ]]
+}
+
 # We wrap the entire script in a big function which we only call at the very end, in order to
 # protect against the possibility of the connection dying mid-script. This protects us against
 # the problem described in this blog post:
@@ -2528,6 +2648,7 @@ install(){
     assert_keitaro_not_installed
     stage4                  # get and save vars to the inventory file
   fi
+  ensure_license_valid
   stage5                    # upgrade packages and install ansible
   stage6                    # upgrade packages and run ansible playbook
 }

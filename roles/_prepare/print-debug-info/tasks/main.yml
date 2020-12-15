@@ -4,6 +4,7 @@
     - ansible_distribution_major_version
     - ansible_hostname
     - ansible_memtotal_mb
+    - ansible_swaptotal_mb
     - ansible_run_tags
     - db_memory_mb
     - db_memory_1pct_kb
