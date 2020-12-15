@@ -1,0 +1,7 @@
+---
+- name: Converge
+  hosts: all
+  tasks:
+    - name: "Include setup-timezone"
+      include_role:
+        name: "setup-timezone"

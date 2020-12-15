@@ -54,7 +54,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.21.0'
+RELEASE_VERSION='2.22.0'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -64,6 +64,10 @@ if is_ci_mode; then
 else
   ROOT_PREFIX=''
 fi
+
+declare -A VARS
+declare -A ARGS
+declare -A DETECTED_VARS
 
 WEBAPP_ROOT="${ROOT_PREFIX}/var/www/keitaro"
 
@@ -115,8 +119,6 @@ else
   fi
 fi
 
-declare -A VARS
-declare -A ARGS
 declare -A DICT
 
 DICT['en.errors.program_failed']='PROGRAM FAILED'
@@ -133,14 +135,14 @@ DICT['en.messages.skip_nginx_conf_generation']="Skip nginx config generation"
 DICT['en.messages.run_command']='Evaluating command'
 DICT['en.messages.successful']='Everything is done!'
 DICT['en.no']='no'
-DICT['en.prompt_errors.validate_domains_list']=$(cat <<-END
+DICT['en.validation_errors.validate_domains_list']=$(cat <<-END
 	Please enter domains list, separated by comma without spaces (eg domain1.tld,www.domain1.tld).
 	Each domain name should consist of only letters, numbers and hyphens and contain at least one dot.
 	Domains longer than 64 characters are not supported.
 END
 )
-DICT['en.prompt_errors.validate_presence']='Please enter value'
-DICT['en.prompt_errors.validate_yes_no']='Please answer "yes" or "no"'
+DICT['en.validation_errors.validate_presence']='Please enter value'
+DICT['en.validation_errors.validate_yes_no']='Please answer "yes" or "no"'
 
 DICT['ru.errors.program_failed']='ОШИБКА ВЫПОЛНЕНИЯ ПРОГРАММЫ'
 DICT['ru.errors.must_be_root']='Эту программу может запускать только root.'
@@ -156,14 +158,14 @@ DICT['ru.messages.skip_nginx_conf_generation']="Пропуск генераци�
 DICT['ru.messages.run_command']='Выполняется команда'
 DICT['ru.messages.successful']='Готово!'
 DICT['ru.no']='нет'
-DICT['ru.prompt_errors.validate_domains_list']=$(cat <<-END
+DICT['ru.validation_errors.validate_domains_list']=$(cat <<-END
 	Укажите список доменных имён через запятую без пробелов (например domain1.tld,www.domain1.tld).
 	Каждое доменное имя должно сстоять только из букв, цифр и тире и содержать хотя бы одну точку.
 	Домены длиной более 64 символов не поддерживаются.
 END
 )
-DICT['ru.prompt_errors.validate_presence']='Введите значение'
-DICT['ru.prompt_errors.validate_yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
+DICT['ru.validation_errors.validate_presence']='Введите значение'
+DICT['ru.validation_errors.validate_yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
 
 #
 
@@ -215,10 +217,6 @@ get_ui_lang(){
   fi
   echo "$UI_LANG"
 }
-#
-
-
-
 
 
 translate(){
@@ -246,7 +244,12 @@ add_indentation(){
 }
 
 force_utf8_input(){
-  LC_CTYPE=en_US.UTF-8
+  if locale -a 2>/dev/null | grep -q en_US.UTF-8; then
+    LC_CTYPE=en_US.UTF-8
+  else
+    debug "Locale en_US.UTF-8 is not defined. Skip setting LC_CTYPE"
+    return
+  fi
   if [ -f /proc/$$/fd/1 ]; then
     stty -F /proc/$$/fd/1 iutf8
   fi
@@ -625,151 +628,11 @@ remove_current_command(){
 }
 
 
-ANSIBLE_TASK_HEADER="^TASK \[(.*)\].*"
-ANSIBLE_TASK_FAILURE_HEADER="^(fatal|failed): "
-ANSIBLE_FAILURE_JSON_FILEPATH="${WORKING_DIR}/ansible_failure.json"
-ANSIBLE_LAST_TASK_LOG="${WORKING_DIR}/ansible_last_task.log"
-
-run_ansible_playbook(){
-  local env="ANSIBLE_FORCE_COLOR=true"
-  env="${env} ANSIBLE_CONFIG=${PROVISION_DIRECTORY}/ansible.cfg"
-  env="${env} ANSIBLE_GATHER_TIMEOUT=30"
-  if [ -f "$DETECTED_PREFIX_PATH" ]; then
-    env="${env} TABLES_PREFIX='$(cat "${DETECTED_PREFIX_PATH}" | head -n1)'"
-    rm -f "${DETECTED_PREFIX_PATH}"
-  fi
-  local command="${env} ansible-playbook -vvv -i ${INVENTORY_PATH} ${PROVISION_DIRECTORY}/playbook.yml"
-  if isset "$ANSIBLE_TAGS"; then
-    command="${command} --tags ${ANSIBLE_TAGS}"
-  fi
-  if isset "$ANSIBLE_IGNORE_TAGS"; then
-    command="${command} --skip-tags ${ANSIBLE_IGNORE_TAGS}"
-  fi
-  run_command "${command}" '' '' '' '' 'print_ansible_fail_message'
-}
-
-print_ansible_fail_message(){
-  local current_command_script="${1}"
-  if ansible_task_found; then
-    debug "Found last ansible task"
-    print_tail_content_of "$CURRENT_COMMAND_ERROR_LOG"
-    cat "$CURRENT_COMMAND_OUTPUT_LOG" | remove_text_before_last_pattern_occurence "$ANSIBLE_TASK_HEADER" > "$ANSIBLE_LAST_TASK_LOG"
-    print_ansible_last_task_info
-    print_ansible_last_task_external_info
-    rm "$ANSIBLE_LAST_TASK_LOG"
-  else
-    print_common_fail_message "$current_command_script"
-  fi
-}
-
-ansible_task_found(){
-  grep -qE "$ANSIBLE_TASK_HEADER" "$CURRENT_COMMAND_OUTPUT_LOG"
-}
-
-print_ansible_last_task_info(){
-  echo "Task info:"
-  head -n2 "$ANSIBLE_LAST_TASK_LOG" | sed -r 's/\*+$//g' | add_indentation
-}
-
-print_ansible_last_task_external_info(){
-  if ansible_task_failure_found; then
-    debug "Found last ansible failure"
-    cat "$ANSIBLE_LAST_TASK_LOG" \
-      | keep_json_only \
-      > "$ANSIBLE_FAILURE_JSON_FILEPATH"
-  fi
-  print_ansible_task_module_info
-  rm "$ANSIBLE_FAILURE_JSON_FILEPATH"
-}
-
-ansible_task_failure_found(){
-  grep -qP "$ANSIBLE_TASK_FAILURE_HEADER" "$ANSIBLE_LAST_TASK_LOG"
-}
-
-
-keep_json_only(){
-  # The json with error is inbuilt into text. The structure of text is about:
-  #
-  # TASK [$ROLE_NAME : "$TASK_NAME"] *******
-  # task path: /path/to/task/file.yml:$LINE
-  # .....
-  # fatal: [localhost]: FAILED! => {
-  #     .....
-  #     failure JSON
-  #     .....
-  # }
-  # .....
-  #
-  # So, first remove all before "fatal: [localhost]: FAILED! => {" line
-  # then replace first line to just '{'
-  # then remove all after '}'
-  sed -n -r "/${ANSIBLE_TASK_FAILURE_HEADER}/,\$p" \
-    | sed '1c{' \
-    | sed -e '/^}$/q'
-  }
-
-remove_text_before_last_pattern_occurence(){
-  local pattern="${1}"
-  sed -n -r "H;/${pattern}/h;\${g;p;}"
-}
-
-print_ansible_task_module_info(){
-  declare -A   json
-  eval "json=$(cat "$ANSIBLE_FAILURE_JSON_FILEPATH" | json2dict)" 2>/dev/null
-  ansible_module="${json['invocation.module_name']}"
-  if isset "${json['invocation.module_name']}"; then
-    echo "Ansible module: ${json['invocation.module_name']}"
-  fi
-  if isset "${json['msg']}"; then
-    print_field_content "Field 'msg'" "${json['msg']}"
-  fi
-  if need_print_stdout_stderr "$ansible_module" "${json['stdout']}" "${json['stderr']}"; then
-    print_field_content "Field 'stdout'" "${json['stdout']}"
-    print_field_content "Field 'stderr'" "${json['stderr']}"
-  fi
-  if need_print_full_json "$ansible_module" "${json['stdout']}" "${json['stderr']}" "${json['msg']}"; then
-    print_content_of "$ANSIBLE_FAILURE_JSON_FILEPATH"
-  fi
-}
-
-print_field_content(){
-  local field_caption="${1}"
-  local field_content="${2}"
-  if empty "${field_content}"; then
-    echo "${field_caption} is empty"
-  else
-    echo "${field_caption}:"
-    echo -e "${field_content}" | fold -s -w $((${COLUMNS:-80} - ${INDENTATION_LENGTH})) | add_indentation
-  fi
-}
-
-need_print_stdout_stderr(){
-  local ansible_module="${1}"
-  local stdout="${2}"
-  local stderr="${3}"
-  isset "${stdout}"
-  local is_stdout_set=$?
-  isset "${stderr}"
-  local is_stderr_set=$?
-  [[ "$ansible_module" == 'cmd' || ${is_stdout_set} == ${SUCCESS_RESULT} || ${is_stderr_set} == ${SUCCESS_RESULT} ]]
-}
-
-need_print_full_json(){
-  local ansible_module="${1}"
-  local stdout="${2}"
-  local stderr="${3}"
-  local msg="${4}"
-  need_print_stdout_stderr "$ansible_module" "$stdout" "$stderr"
-  local need_print_output_fields=$?
-  isset "$msg"
-  is_msg_set=$?
-  [[ ${need_print_output_fields} != ${SUCCESS_RESULT} && ${is_msg_set} != ${SUCCESS_RESULT}  ]]
-}
-
-get_printable_fields(){
-  local ansible_module="${1}"
-  local fields="${2}"
-  echo "$fields"
+download_provision(){
+  debug "Download provision"
+  release_url="https://files.keitaro.io/scripts/${BRANCH}/playbook.tar.gz"
+  mkdir -p "${PROVISION_DIRECTORY}"
+  run_command "curl -fsSL ${release_url} | tar -xzC ${PROVISION_DIRECTORY}"
 }
 json2dict() {
 
@@ -936,6 +799,171 @@ json2dict() {
   }
 
   echo "("; (tokenize | json_parse); echo ")"
+}
+
+ANSIBLE_TASK_HEADER="^TASK \[(.*)\].*"
+ANSIBLE_TASK_FAILURE_HEADER="^(fatal|failed): "
+ANSIBLE_FAILURE_JSON_FILEPATH="${WORKING_DIR}/ansible_failure.json"
+ANSIBLE_LAST_TASK_LOG="${WORKING_DIR}/ansible_last_task.log"
+
+run_ansible_playbook(){
+  local env="ANSIBLE_FORCE_COLOR=true"
+  env="${env} ANSIBLE_CONFIG=${PROVISION_DIRECTORY}/ansible.cfg"
+  env="${env} ANSIBLE_GATHER_TIMEOUT=30"
+  if [ -f "$DETECTED_PREFIX_PATH" ]; then
+    env="${env} TABLES_PREFIX='$(cat "${DETECTED_PREFIX_PATH}" | head -n1)'"
+    rm -f "${DETECTED_PREFIX_PATH}"
+  fi
+  local command="${env} ansible-playbook -vvv -i ${INVENTORY_PATH} ${PROVISION_DIRECTORY}/playbook.yml"
+  if isset "$ANSIBLE_TAGS"; then
+    command="${command} --tags ${ANSIBLE_TAGS}"
+  fi
+  if isset "$ANSIBLE_IGNORE_TAGS"; then
+    command="${command} --skip-tags ${ANSIBLE_IGNORE_TAGS}"
+  fi
+  run_command "${command}" '' '' '' '' 'print_ansible_fail_message'
+}
+
+print_ansible_fail_message(){
+  local current_command_script="${1}"
+  if ansible_task_found; then
+    debug "Found last ansible task"
+    print_tail_content_of "$CURRENT_COMMAND_ERROR_LOG"
+    cat "$CURRENT_COMMAND_OUTPUT_LOG" | remove_text_before_last_pattern_occurence "$ANSIBLE_TASK_HEADER" > "$ANSIBLE_LAST_TASK_LOG"
+    print_ansible_last_task_info
+    print_ansible_last_task_external_info
+    rm "$ANSIBLE_LAST_TASK_LOG"
+  else
+    print_common_fail_message "$current_command_script"
+  fi
+}
+
+ansible_task_found(){
+  grep -qE "$ANSIBLE_TASK_HEADER" "$CURRENT_COMMAND_OUTPUT_LOG"
+}
+
+print_ansible_last_task_info(){
+  echo "Task info:"
+  head -n2 "$ANSIBLE_LAST_TASK_LOG" | sed -r 's/\*+$//g' | add_indentation
+}
+
+print_ansible_last_task_external_info(){
+  if ansible_task_failure_found; then
+    debug "Found last ansible failure"
+    cat "$ANSIBLE_LAST_TASK_LOG" \
+      | keep_json_only \
+      > "$ANSIBLE_FAILURE_JSON_FILEPATH"
+  fi
+  print_ansible_task_module_info
+  rm "$ANSIBLE_FAILURE_JSON_FILEPATH"
+}
+
+ansible_task_failure_found(){
+  grep -qP "$ANSIBLE_TASK_FAILURE_HEADER" "$ANSIBLE_LAST_TASK_LOG"
+}
+
+
+keep_json_only(){
+  # The json with error is inbuilt into text. The structure of text is about:
+  #
+  # TASK [$ROLE_NAME : "$TASK_NAME"] *******
+  # task path: /path/to/task/file.yml:$LINE
+  # .....
+  # fatal: [localhost]: FAILED! => {
+  #     .....
+  #     failure JSON
+  #     .....
+  # }
+  # .....
+  #
+  # So, first remove all before "fatal: [localhost]: FAILED! => {" line
+  # then replace first line to just '{'
+  # then remove all after '}'
+  sed -n -r "/${ANSIBLE_TASK_FAILURE_HEADER}/,\$p" \
+    | sed '1c{' \
+    | sed -e '/^}$/q'
+  }
+
+remove_text_before_last_pattern_occurence(){
+  local pattern="${1}"
+  sed -n -r "H;/${pattern}/h;\${g;p;}"
+}
+
+print_ansible_task_module_info(){
+  declare -A   json
+  eval "json=$(cat "$ANSIBLE_FAILURE_JSON_FILEPATH" | json2dict)" 2>/dev/null
+  ansible_module="${json['invocation.module_name']}"
+  if isset "${json['invocation.module_name']}"; then
+    echo "Ansible module: ${json['invocation.module_name']}"
+  fi
+  if isset "${json['msg']}"; then
+    print_field_content "Field 'msg'" "${json['msg']}"
+  fi
+  if need_print_stdout_stderr "$ansible_module" "${json['stdout']}" "${json['stderr']}"; then
+    print_field_content "Field 'stdout'" "${json['stdout']}"
+    print_field_content "Field 'stderr'" "${json['stderr']}"
+  fi
+  if need_print_full_json "$ansible_module" "${json['stdout']}" "${json['stderr']}" "${json['msg']}"; then
+    print_content_of "$ANSIBLE_FAILURE_JSON_FILEPATH"
+  fi
+}
+
+print_field_content(){
+  local field_caption="${1}"
+  local field_content="${2}"
+  if empty "${field_content}"; then
+    echo "${field_caption} is empty"
+  else
+    echo "${field_caption}:"
+    echo -e "${field_content}" | fold -s -w $((${COLUMNS:-80} - ${INDENTATION_LENGTH})) | add_indentation
+  fi
+}
+
+need_print_stdout_stderr(){
+  local ansible_module="${1}"
+  local stdout="${2}"
+  local stderr="${3}"
+  isset "${stdout}"
+  local is_stdout_set=$?
+  isset "${stderr}"
+  local is_stderr_set=$?
+  [[ "$ansible_module" == 'cmd' || ${is_stdout_set} == ${SUCCESS_RESULT} || ${is_stderr_set} == ${SUCCESS_RESULT} ]]
+}
+
+need_print_full_json(){
+  local ansible_module="${1}"
+  local stdout="${2}"
+  local stderr="${3}"
+  local msg="${4}"
+  need_print_stdout_stderr "$ansible_module" "$stdout" "$stderr"
+  local need_print_output_fields=$?
+  isset "$msg"
+  is_msg_set=$?
+  [[ ${need_print_output_fields} != ${SUCCESS_RESULT} && ${is_msg_set} != ${SUCCESS_RESULT}  ]]
+}
+
+get_printable_fields(){
+  local ansible_module="${1}"
+  local fields="${2}"
+  echo "$fields"
+}
+
+show_credentials(){
+  print_with_color "http://$(detected_license_ip)/admin" 'light.green'
+
+  if isset "${VARS['db_restore_path']}"; then
+    echo "$(translate 'messages.successful.use_old_credentials')"
+  else
+    colored_login=$(print_with_color "${VARS['admin_login']}" 'light.green')
+    colored_password=$(print_with_color "${VARS['admin_password']}" 'light.green')
+    echo -e "login: ${colored_login}"
+    echo -e "password: ${colored_password}"
+  fi
+  echo "$(translate 'messages.successful.how_to_enable_ssl')"
+}
+
+show_successful_message(){
+  print_with_color "$(translate 'messages.successful')" 'green'
 }
 
 

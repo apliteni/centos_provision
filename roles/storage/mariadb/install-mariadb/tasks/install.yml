@@ -8,6 +8,10 @@
   package:
     name:
       - jemalloc
+      - perl-DBI
+      - libaio
+      - lsof
+      - rsync
       - boost-program-options
     state: installed
 

@@ -1,30 +1,18 @@
-- name: Calculate needed swap space
-  set_fact:
-    needed_swap_size: "{{ (swap_size | int) - ( ansible_swaptotal_mb | int) }}"
+- name: Check if swap file exists
+  stat:
+    path: "{{ swap_file_path }}"
+  register: swap_file_check
 
-- name: Create swap file
-  command: "dd if=/dev/zero of={{ swap_location }} count={{ needed_swap_size }} bs=1MiB"
+- name: Try to disable and remove current swap
+  include: disable_and_remove_current_swap.yml
+  when: swap_file_check.stat.exists
 
-- name: Make swap file
-  command: "mkswap {{ swap_location }}"
-
-- name: Set swap file permissions
-  file:
-    path: "{{ swap_location }}"
-    owner: root
-    group: root
-    mode: 0600
-
-- name: Mount swap on boot
-  mount:
-    name: none
-    src: "{{ swap_location }}"
-    fstype: swap
-    opts: sw
-    passno: 0
-    dump: 0
-    state: present
-
-- name: Turn swap on
-  command: swapon -a
-
+- name: Create and enable new swap
+  include: create_and_enable_new_swap.yml
+  when: >
+    ( 
+      swap_file_check.stat.exists 
+          and swap_removed.path.state is defined
+          and swap_removed.path.state == 'absent')
+    or (
+      not swap_file_check.stat.exists)

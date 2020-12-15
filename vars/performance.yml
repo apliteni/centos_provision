@@ -43,8 +43,8 @@ db_main_size_kb: "{{ (db_memory_1pct_kb|int) * 75 }}"
 # Nginx settings
 nginx_workers_count: "{{ cpu_cores }}"
 # Assume one worker can serve 4096 requests
-nginx_worker_connections: 4096
-nginx_opened_files: "{{ 2 * nginx_worker_connections * (nginx_workers_count|int) }}"
+nginx_worker_connections: '4096'
+nginx_opened_files: "{{ 2 * (nginx_worker_connections|int) * (nginx_workers_count|int) }}"
 
 
 max_opened_files: "{{ 4096 + (php_opened_files|int) + (nginx_opened_files|int) + (db_open_files_limit|int) }}"
