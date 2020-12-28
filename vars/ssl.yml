@@ -1,4 +1,4 @@
-letsencrypt_webroot_path: "{{ keitaro_root }}"
+letsencrypt_webroot_path: "{{ keitaro_app_dir }}"
 letsencrypt_cert_domains: "{{ ssl_domains.split(',') }}"
 letsencrypt_email: "{{ ssl_email | default('') }}"
 ssl_root: /etc/keitaro/ssl

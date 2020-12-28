@@ -1,44 +1,21 @@
-- name: Get current php ioc version
-  shell: head -n2 /var/www/keitaro/index.php | tail -n1 | cut -f 5 -d ' '
-  register: get_current_php_ioc_version
-
-- name: Get current tracker version
-  command: "grep -oP '\\d+(\\.\\d+)+' /var/www/keitaro/version.php"
-  register: get_current_tracker_version
-
-- name: Get stability of tracker version
-  command:
-    curl -fsSL {{ keitaro_url }}/external_api/updates/stability?version={{ get_current_tracker_version.stdout }}
-  register: get_tracker_stability
-
-- name: Get latest tracker version
-  shell: >
-    curl -fsSL  -A "{{ user_agent }}" "{{ keitaro_url }}/license/api/checkUpdate?{{ request_params }}" | \
-        awk -F '::' '{print $2}'
+- include_tasks: "{{ item }}"
+  loop:
+    - "{{ playbook_dir }}/roles/common/get-tracker-info/current_php_ioc.yml"
+    - "{{ playbook_dir }}/roles/common/get-tracker-info/current_tracker.yml"
+    - "{{ playbook_dir }}/roles/common/get-tracker-info/stable_tracker.yml"
+    - "{{ playbook_dir }}/roles/common/get-tracker-info/latest_tracker.yml"
   vars:
     user_agent: "Keitaro Installer v{{ keitaro_installer_version }} PHP/{{ php_release }}"
     request_params: "version={{ keitaro_release }}&stability={{ get_tracker_stability.stdout }}&phpversion={{ php_release }}"
-  register: get_latest_tracker_version
 
-- name: Upgrade Keitaro to the latest version if need
-  shell: >
-    curl -fsSL {{ keitaro_url }}/releases/{{ get_latest_tracker_version.stdout }}/package8.zip > package.zip && \
-      unzip -qo package.zip && \
-      rsync -a www/ ./ && \
-      rm package.zip && rm -rf www
-  args:
-    chdir: "{{ keitaro_root }}"
-  become_user: "{{ keitaro_user }}"
+- name: Download keitaro distribution
+  include_tasks: "{{ playbook_dir }}/roles/common/download-tracker/keitaro_distribution.yml"
   when: (get_latest_tracker_version.stdout is version(get_current_tracker_version.stdout, '>')) or
-        (get_current_php_ioc_version.stdout != php_ioc_version )
-  notify:
-    - restart php-fpm
-    - restart roadrunner
+    (get_current_php_ioc_version.stdout != php_ioc_version )
 
 - name: Migrate database
   command: "{{ php_path }} bin/cli.php db:migrate"
   args:
-    chdir: "{{ keitaro_root }}"
+    chdir: "{{ keitaro_app_dir }}"
   become_user: "{{ keitaro_user }}"
   when: "get_latest_tracker_version.stdout is version(get_current_tracker_version.stdout, '>')"
-

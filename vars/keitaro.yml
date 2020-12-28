@@ -1,20 +1,27 @@
 keitaro_user: keitaro
 keitaro_group: keitaro
 keitaro_home: /home/keitaro
-keitaro_root: /var/www/keitaro
-keitaro_install_php: "https://files.keitaro.io/scripts/install-php/latest/install.php"
+keitaro_app_dir: /var/www/keitaro
+keitaro_app_logs_dir: "{{ keitaro_app_dir }}/var/log"
+keitaro_app_ssl_logs_dir: "{{ keitaro_app_logs_dir }}/ssl"
+keitaro_install_php: "https://files.keitaro.io/scripts/install-php/2.0/install.php"
 keitaro_config_dir: /etc/keitaro
 keitaro_config_backups_dir: "{{ keitaro_config_dir }}/backups"
-keitaro_stats_json_path: "{{ keitaro_root }}/var/stats.json"
-keitaro_watch_list: "{{ keitaro_root }}/application/data/watch_list.txt"
+keitaro_stats_json_path: "{{ keitaro_app_dir }}/var/stats.json"
+keitaro_watch_list: "{{ keitaro_app_dir }}/application/data/watch_list.txt"
 keitaro_logrotate_common_period: 5
 keitaro_logrotate_nginx_period: 14
 keitaro_installer_version: "{{ lookup('file', 'RELEASE_VERSION') }}"
 keitaro_release: 9
 keitaro_url: "https://keitaro.io"
+keitaro_database_schema: "{{ keitaro_app_dir }}/application/data/schema.sql"
+keitaro_database_data: "{{ keitaro_app_dir }}/application/data/data.sql"
 
 kctl_root: /opt/keitaro
 kctl_bin_dir: "{{ kctl_root }}/bin"
+kctl_enable_ssl_logs_dir: /var/log/keitaro/ssl
+kctl_enable_ssl_logs_keep_for_n_days: 30
+kctl_enable_ssl_logs_max_removable_batch_size: 10000
 kctl_tools_branch: "releases/stable"
 kctl_tools_url: "https://files.keitaro.io/scripts/{{ kctl_tools_branch }}"
 kctl_tool_names: [install, enable-ssl, disable-ssl, add-site]

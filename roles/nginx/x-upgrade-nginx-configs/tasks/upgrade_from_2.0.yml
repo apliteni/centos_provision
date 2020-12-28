@@ -11,7 +11,7 @@
 
 - name: Detect configs genereated by enable-ssl
   shell: >
-    grep -l /etc/letsencrypt/live/ $(grep -l 'root {{ keitaro_root }}' *.conf) | \
+    grep -l /etc/letsencrypt/live/ $(grep -l 'root {{ keitaro_app_dir }}' *.conf) | \
       sed 's/.conf$//g' | \
       tr '\n' ',' | \
       sed 's/,$//g'

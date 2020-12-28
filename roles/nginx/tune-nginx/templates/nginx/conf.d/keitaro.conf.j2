@@ -18,7 +18,7 @@ server {
 
   include {{ nginx_conf_path }}/local/keitaro/server.inc;
 
-  root {{ keitaro_root }};
+  root {{ keitaro_app_dir }};
 
   index index.php index.html;
 

@@ -18,7 +18,7 @@ keitaro_log() {
   local time="$(date +"%T" -u)"
   local jid="$(echo ${date} ${time} | md5sum | head -c ${JID_LENGTH})"
   log_line="[${date} ${time}] [${level}] (jid:${jid}) [\"systemd\"] : RoadRunner: ${message}"
-  echo "${log_line}" >> {{ keitaro_root }}/var/log/production-${date}.log
+  echo "${log_line}" >> {{ keitaro_app_dir }}/var/log/production-${date}.log
 }
 
 log_and_print_err() {

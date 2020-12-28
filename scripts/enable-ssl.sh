@@ -53,7 +53,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.22.0'
+RELEASE_VERSION='2.23.0'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -81,6 +81,7 @@ ETC_DIR="${ROOT_PREFIX}/etc/keitaro"
 WORKING_DIR="${ROOT_PREFIX}/var/tmp/keitaro"
 
 LOG_DIR="${ROOT_PREFIX}/var/log/keitaro"
+SSL_LOG_DIR="${LOG_DIR}/ssl"
 LOG_FILENAME="${TOOL_NAME}.log"
 LOG_PATH="${LOG_DIR}/${LOG_FILENAME}"
 
@@ -126,6 +127,7 @@ DICT['en.errors.upgrade_server']='You should upgrade the server configuration. P
 DICT['en.errors.run_command.fail']='There was an error evaluating current command'
 DICT['en.errors.run_command.fail_extra']=''
 DICT['en.errors.terminated']='Terminated by user'
+DICT['en.errors.unexpected']='Unexpected error'
 DICT['en.messages.generating_nginx_vhost']="Generating nginx config for domain :domain:"
 DICT['ru.messages.reloading_nginx']="Reloading nginx"
 DICT['ru.messages.nginx_is_not_running']="Nginx is not running"
@@ -149,6 +151,7 @@ DICT['ru.errors.upgrade_server']='Необходимо обновить конф
 DICT['ru.errors.run_command.fail']='Ошибка выполнения текущей команды'
 DICT['ru.errors.run_command.fail_extra']=''
 DICT['ru.errors.terminated']='Выполнение прервано'
+DICT['en.errors.unexpected']='Непредвиденная ошибка'
 DICT['ru.messages.generating_nginx_vhost']="Генерируется конфигурация для сайта :domain:"
 DICT['ru.messages.reloading_nginx']="Перезагружается nginx"
 DICT['ru.messages.nginx_is_not_running']="Nginx не запущен"
@@ -575,11 +578,6 @@ read_stdin(){
   fi
   echo "$variable"
 }
-#
-
-
-
-
 
 generate_vhost(){
   local domain="${1}"
@@ -594,7 +592,6 @@ generate_vhost(){
     run_command "$commands" "$message" hide_output
   fi
 }
-
 
 get_vhost_generating_commands(){
   local vhost_path="${1}"
@@ -672,9 +669,12 @@ clean_up(){
   debug 'called clean_up()'
 }
 
-debug(){
+debug() {
   local message="${1}"
   echo "$message" >> "${LOG_PATH}"
+  if isset "${ADDITIONAL_LOG_PATH}"; then
+    echo "$message" >> "${ADDITIONAL_LOG_PATH}"
+  fi
 }
 
 fail() {
@@ -746,6 +746,7 @@ save_previous_log() {
 
 create_log() {
   mkdir -p ${LOG_DIR}
+  mkdir -p ${SSL_LOG_DIR}
   if [[ "${TOOL_NAME}" == "install" ]] && ! is_ci_mode; then
     (umask 066 && touch "${LOG_PATH}")
   else
@@ -769,11 +770,6 @@ on_exit(){
   clean_up
   fail "$(translate 'errors.terminated')"
 }
-#
-
-
-
-
 
 print_content_of(){
   local filepath="${1}"
@@ -1369,56 +1365,71 @@ stage4(){
   fi
   show_finishing_message
 }
-#
 
-
-
-
-
-generate_certificates(){
+generate_certificates() {
   debug "Requesting certificates"
   echo -n > "$SSL_ENABLER_ERRORS_LOG"
   IFS=',' read -r -a domains <<< "${VARS['ssl_domains']}"
   for domain in "${domains[@]}"; do
-    certificate_generated=${FALSE}
-    certificate_error=""
-    if certificate_exists_for_domain "$domain"; then
-      SUCCESSFUL_DOMAINS+=($domain)
-      debug "Certificate already exists for domain ${domain}"
-      print_with_color "${domain}: $(translate 'warnings.certificate_exists_for_domain')" "yellow"
-      certificate_generated=${TRUE}
-    else
-      debug "Certificate for domain ${domain} does not exist"
-      if request_certificate_for "${domain}"; then
-        SUCCESSFUL_DOMAINS+=($domain)
-        debug "Certificate for domain ${domain} successfully issued"
-        certificate_generated=${TRUE}
-        rm -rf "$CERTBOT_LOG"
-      else
-        FAILED_DOMAINS+=($domain)
-        debug "There was an error while issuing certificate for domain ${domain}"
-        certificate_error="$(recognize_error "$CERTBOT_LOG")"
-        echo "${domain}: ${certificate_error}" >> "$SSL_ENABLER_ERRORS_LOG"
-      fi
-    fi
-    if [[ ${certificate_generated} == ${TRUE} ]]; then
-      debug "Generating nginx config for ${domain}"
-      generate_vhost_ssl_enabler "${domain}"
-    else
-      debug "Skip generation nginx config ${domain} due errors while cert issuing"
-      print_with_color "${domain}: ${certificate_error}" "red"
-      print_with_color "${domain}: $(translate 'warnings.skip_nginx_config_generation')" "yellow"
-    fi
+    generate_certificate_for_domain "${domain}"
   done
   rm -f "${CERT_DOMAINS_PATH}"
 }
 
+generate_certificate_for_domain() {
+  certificate_generated=${FALSE}
+  certificate_error=""
+  initialize_additional_ssl_logging_for_domain "${domain}"
+  if certificate_exists_for_domain "$domain"; then
+    SUCCESSFUL_DOMAINS+=($domain)
+    debug "Certificate already exists for domain ${domain}"
+    print_with_color "${domain}: $(translate 'warnings.certificate_exists_for_domain')" "yellow"
+    certificate_generated=${TRUE}
+  else
+    debug "Certificate for domain ${domain} does not exist"
+    if request_certificate_for "${domain}"; then
+      SUCCESSFUL_DOMAINS+=($domain)
+      debug "Certificate for domain ${domain} successfully issued"
+      certificate_generated=${TRUE}
+    else
+      FAILED_DOMAINS+=($domain)
+      debug "There was an error while issuing certificate for domain ${domain}"
+      certificate_error="$(recognize_error "$CERTBOT_LOG")"
+      echo "${domain}: ${certificate_error}" >> "$SSL_ENABLER_ERRORS_LOG"
+    fi
+  fi
+  if [[ ${certificate_generated} == ${TRUE} ]]; then
+    debug "Generating nginx config for ${domain}"
+    generate_vhost_ssl_enabler "${domain}"
+  else
+    debug "Skip generation nginx config ${domain} due errors while cert issuing"
+    print_with_color "${domain}: ${certificate_error}" "red"
+    print_with_color "${domain}: $(translate 'warnings.skip_nginx_config_generation')" "yellow"
+  fi
+  finalize_additional_ssl_logging_for_domain "${domain}"
+}
+
+initialize_additional_ssl_logging_for_domain() {
+  local domain="${1}"
+  local additional_log_path="$(tmp_ssl_log_path_for_domain ${domain})"
+  echo -n > "${additional_log_path}"
+  debug "Start copying logs to ${additional_log_path}"
+  ADDITIONAL_LOG_PATH="${additional_log_path}"
+}
+
+finalize_additional_ssl_logging_for_domain() {
+  local domain="${1}"
+  local additional_log_path="${ADDITIONAL_LOG_PATH}"
+  ADDITIONAL_LOG_PATH=""
+  debug "Stop copying logs to ${additional_log_path}"
+  mv "$(tmp_ssl_log_path_for_domain ${domain})" "$(ssl_log_path_for_domain ${domain})" && \
+          debug "Done" || fail "errors.unexpected" "see_logs"
+}
 
 certificate_exists_for_domain(){
   local domain="${1}"
   is_directory_exist "/etc/letsencrypt/live/${domain}" "no"
 }
-
 
 request_certificate_for(){
   local domain="${1}"
@@ -1435,13 +1446,24 @@ request_certificate_for(){
   run_command "${certbot_command}" "${requesting_message}" "hide_output" "allow_errors" "" "" "$CERTBOT_LOG"
 }
 
-generate_vhost_ssl_enabler(){
+ssl_log_path_for_domain() {
+  local domain="${1}"
+  echo "${SSL_LOG_DIR}/${domain}.log"
+}
+
+tmp_ssl_log_path_for_domain() {
+  local domain="${1}"
+  echo "${SSL_LOG_DIR}/.${domain}.log.tmp"
+}
+
+
+generate_vhost_ssl_enabler() {
   local domain="${1}"
   local certs_root_path="/etc/letsencrypt/live/${domain}"
   generate_vhost "$domain" \
       "s|ssl_certificate .*|ssl_certificate ${certs_root_path}/fullchain.pem;|" \
       "s|ssl_certificate_key .*|ssl_certificate_key ${certs_root_path}/privkey.pem;|"
-    }
+}
 #
 
 
@@ -1479,6 +1501,7 @@ print_not_enabled_domains(){
   print_with_color "NOK. ${message} ${domains}" "${color}"
   print_with_color "$(cat "$SSL_ENABLER_ERRORS_LOG")" "${color}"
 }
+
 
 recognize_error() {
   local certbot_log="${1}"
