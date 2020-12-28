@@ -13,6 +13,7 @@
     - vars/performance.yml
 
   roles:
+    - {role: 'common/get-tracker-info',                    tags: 'get-tracker-info'}
     - {role: '_prepare/print-debug-info',                  tags: 'print-debug-info,             always'}
     - {role: '_prepare/x-prepare-upgrade',                 tags: 'prepare-upgrade,              never, upgrade'}
     - {role: 'init/create-tracker-user-and-dirs',          tags: 'create-tracker-user-and-dirs'}

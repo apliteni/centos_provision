@@ -11,7 +11,7 @@
     - /etc/nginx/ssl/cert.pem
     - /etc/nginx/ssl/privkey.pem
     - /etc/ssl/certs/dhparam.pem
-    - "{{ keitaro_root }}/install.php"
+    - "{{ keitaro_app_dir }}/install.php"
     - /etc/logrotate.d/mariadb
     - /etc/keitaro/roadrunner.yml
     - /etc/sudoers.d/10-enable-ssl-command

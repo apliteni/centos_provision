@@ -11,14 +11,15 @@
     rr_wrapper: /usr/local/bin/keitaro-roadrunner
     rr_config: /etc/php/roadrunner.yml
     license_ip: '1.1.1.1'
+    ANSIBLE_VARS_PATH: ../../../../../vars
   vars_files:
-    - ../../../../../vars/server.yml
-    - ../../../../../vars/ssl.yml
-    - ../../../../../vars/nginx.yml
-    - ../../../../../vars/keitaro.yml
-    - ../../../../../vars/php.yml
-    - ../../../../../vars/performance.yml
-    - ../../../../../vars/molecule.yml
+    - "{{ ANSIBLE_VARS_PATH }}/server.yml"
+    - "{{ ANSIBLE_VARS_PATH }}/ssl.yml"
+    - "{{ ANSIBLE_VARS_PATH }}/nginx.yml"
+    - "{{ ANSIBLE_VARS_PATH }}/keitaro.yml"
+    - "{{ ANSIBLE_VARS_PATH }}/php.yml"
+    - "{{ ANSIBLE_VARS_PATH }}/performance.yml"
+    - "{{ ANSIBLE_VARS_PATH }}/molecule.yml"
     - ../../defaults/main.yml
   pre_tasks:
     - name: Installing packages

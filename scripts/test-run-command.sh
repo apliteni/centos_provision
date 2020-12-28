@@ -54,7 +54,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.22.0'
+RELEASE_VERSION='2.23.0'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -82,6 +82,7 @@ ETC_DIR="${ROOT_PREFIX}/etc/keitaro"
 WORKING_DIR="${ROOT_PREFIX}/var/tmp/keitaro"
 
 LOG_DIR="${ROOT_PREFIX}/var/log/keitaro"
+SSL_LOG_DIR="${LOG_DIR}/ssl"
 LOG_FILENAME="${TOOL_NAME}.log"
 LOG_PATH="${LOG_DIR}/${LOG_FILENAME}"
 
@@ -127,6 +128,7 @@ DICT['en.errors.upgrade_server']='You should upgrade the server configuration. P
 DICT['en.errors.run_command.fail']='There was an error evaluating current command'
 DICT['en.errors.run_command.fail_extra']=''
 DICT['en.errors.terminated']='Terminated by user'
+DICT['en.errors.unexpected']='Unexpected error'
 DICT['en.messages.generating_nginx_vhost']="Generating nginx config for domain :domain:"
 DICT['ru.messages.reloading_nginx']="Reloading nginx"
 DICT['ru.messages.nginx_is_not_running']="Nginx is not running"
@@ -150,6 +152,7 @@ DICT['ru.errors.upgrade_server']='Необходимо обновить конф
 DICT['ru.errors.run_command.fail']='Ошибка выполнения текущей команды'
 DICT['ru.errors.run_command.fail_extra']=''
 DICT['ru.errors.terminated']='Выполнение прервано'
+DICT['en.errors.unexpected']='Непредвиденная ошибка'
 DICT['ru.messages.generating_nginx_vhost']="Генерируется конфигурация для сайта :domain:"
 DICT['ru.messages.reloading_nginx']="Перезагружается nginx"
 DICT['ru.messages.nginx_is_not_running']="Nginx не запущен"
@@ -268,9 +271,12 @@ clean_up(){
   debug 'called clean_up()'
 }
 
-debug(){
+debug() {
   local message="${1}"
   echo "$message" >> "${LOG_PATH}"
+  if isset "${ADDITIONAL_LOG_PATH}"; then
+    echo "$message" >> "${ADDITIONAL_LOG_PATH}"
+  fi
 }
 
 fail() {
@@ -342,6 +348,7 @@ save_previous_log() {
 
 create_log() {
   mkdir -p ${LOG_DIR}
+  mkdir -p ${SSL_LOG_DIR}
   if [[ "${TOOL_NAME}" == "install" ]] && ! is_ci_mode; then
     (umask 066 && touch "${LOG_PATH}")
   else
@@ -365,11 +372,6 @@ on_exit(){
   clean_up
   fail "$(translate 'errors.terminated')"
 }
-#
-
-
-
-
 
 print_content_of(){
   local filepath="${1}"

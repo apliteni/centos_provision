@@ -14,7 +14,7 @@ http:
   # http worker pool configuration.
   workers:
     # php worker command.
-    command: "{{ php_path }} {{ keitaro_root }}/server.php"
+    command: "{{ php_path }} {{ keitaro_app_dir }}/server.php"
 
     # worker pool configuration.
     pool:
