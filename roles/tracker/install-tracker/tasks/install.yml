@@ -1,13 +1,13 @@
 - name: Force all notified handlers to run at this point
   meta: flush_handlers
 
-- include_tasks: "{{ playbook_dir }}/roles/common/get-tracker-info/latest_tracker.yml"
+- include_tasks: "{{ playbook_dir }}/roles/_common/get-tracker-info/latest_tracker.yml"
   vars:
     user_agent: "Keitaro Installer v{{ keitaro_installer_version }} PHP/{{ php_release }}"
     request_params: "version={{ keitaro_release }}&stability=unstable&phpversion={{ php_release }}"
 
 - name: Download keitaro distribution
-  include_tasks: "{{ playbook_dir }}/roles/common/download-tracker/keitaro_distribution.yml"
+  include_tasks: "{{ playbook_dir }}/roles/_common/download-tracker/keitaro_distribution.yml"
 
 - name: Download install.php
   get_url:
@@ -23,24 +23,20 @@
 
 - name: Run install.php with args
   command: |
-    {{ php_path }} install.php install \
-                               --key={{ license_key }} \
-                               --db-user="{{ db_user }}" \
-                               --db-name="{{ db_name }}" \
-                               --db-password="{{ db_password }}" \
-                               --draft-storage=redis \
-                               --cache-storage=files \
-                               --force-tokudb \
-                               --without-schema \
+    {{ php_path }} install.php install
+                               --key={{ license_key }}
+                               --ip={{ license_ip }}
+                               --db-user={{ db_user }}
+                               --db-name={{ db_name }}
+                               --db-password={{ db_password }}
+                               --draft-storage=redis
+                               --cache-storage=files
+                               --force-tokudb
+                               --without-schema
                                --without-geodbs
                                --without-admin
-                               {{ language_option }} \
-                               {{ kversion_option }} \
-                               {{ custom_package_option }}
-  vars:
-    language_option: "{% if language is defined %}--language={{ language }}{% endif %}"
-    kversion_option: "{% if kversion is defined %}--kversion={{ kversion }}{% endif %}"
-    custom_package_option: "{% if custom_package is defined %}--custom-package={{ custom_package }}{% endif %}"
+                               --without-tracker
+                               --language={{ language }}
   args:
     chdir: "{{ keitaro_app_dir }}"
   become_user: "{{ keitaro_user }}"
@@ -58,9 +54,3 @@
   file:
     path: "{{ keitaro_app_dir }}/install.php"
     state: absent
-
-- name: Add IP to configi.ini.php resolve method
-  lineinfile:
-    path: "{{ keitaro_app_dir }}/application/config/config.ini.php"
-    regexp: '^resolve_method'
-    line: 'resolve_method = {{ license_ip }}'
