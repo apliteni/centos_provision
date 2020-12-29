@@ -1,15 +1,15 @@
 - include_tasks: "{{ item }}"
   loop:
-    - "{{ playbook_dir }}/roles/common/get-tracker-info/current_php_ioc.yml"
-    - "{{ playbook_dir }}/roles/common/get-tracker-info/current_tracker.yml"
-    - "{{ playbook_dir }}/roles/common/get-tracker-info/stable_tracker.yml"
-    - "{{ playbook_dir }}/roles/common/get-tracker-info/latest_tracker.yml"
+    - "{{ playbook_dir }}/roles/_common/get-tracker-info/current_php_ioc.yml"
+    - "{{ playbook_dir }}/roles/_common/get-tracker-info/current_tracker.yml"
+    - "{{ playbook_dir }}/roles/_common/get-tracker-info/stable_tracker.yml"
+    - "{{ playbook_dir }}/roles/_common/get-tracker-info/latest_tracker.yml"
   vars:
     user_agent: "Keitaro Installer v{{ keitaro_installer_version }} PHP/{{ php_release }}"
     request_params: "version={{ keitaro_release }}&stability={{ get_tracker_stability.stdout }}&phpversion={{ php_release }}"
 
 - name: Download keitaro distribution
-  include_tasks: "{{ playbook_dir }}/roles/common/download-tracker/keitaro_distribution.yml"
+  include_tasks: "{{ playbook_dir }}/roles/_common/download-tracker/keitaro_distribution.yml"
   when: (get_latest_tracker_version.stdout is version(get_current_tracker_version.stdout, '>')) or
     (get_current_php_ioc_version.stdout != php_ioc_version )
 
