@@ -1,3 +1,5 @@
 - name: Get stability of tracker version
-  get_url: {{ keitaro_url }}/external_api/updates/stability?version={{ get_current_tracker_version.stdout }}
+  uri:
+    url: "{{ keitaro_url }}/external_api/updates/stability?version={{ get_current_tracker_version.stdout }}"
+    return_content: yes
   register: get_tracker_stability
