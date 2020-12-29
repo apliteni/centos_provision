@@ -33,7 +33,6 @@
                                --cache-storage=files
                                --force-tokudb
                                --without-schema
-                               --without-geodbs
                                --without-admin
                                --without-tracker
                                --language={{ language }}
