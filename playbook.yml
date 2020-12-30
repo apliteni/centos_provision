@@ -49,6 +49,7 @@
     - {role: 'tracker/restore-db',                         tags: 'restore-db'}
     - {role: 'tracker/setup-tracker',                      tags: 'setup-tracker'}
     - {role: 'wrap-up/force-restart-services',             tags: 'force-restart-services,       always'}
+    - {role: 'wrap-up/set-tracker-app-permissions',        tags: 'set-tracker-app-permissions,  always'}
     - {role: 'wrap-up/post-upgrade',                       tags: 'post-upgrade,                 never, upgrade'}
 
   handlers:

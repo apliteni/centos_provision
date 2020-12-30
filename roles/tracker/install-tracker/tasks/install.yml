@@ -34,6 +34,7 @@
                                --force-tokudb
                                --without-schema
                                --without-admin
+                               --without-geodbs
                                --without-tracker
                                --language={{ language }}
   args:
@@ -42,12 +43,18 @@
   notify:
     - restart roadrunner
 
+- name: Check keitaro admin exist
+  shell: "mysql keitaro --skip-column-names --batch -e  'SELECT 1 FROM keitaro_users LIMIT 1'"
+  register: db_user_exist
+
 - name: Create keitaro admin
   command: "{{ php_path }} bin/cli.php admin:create {{ admin_login }} {{ admin_password }}"
   args:
     chdir: "{{ keitaro_app_dir }}"
   become_user: "{{ keitaro_user }}"
-  when: "db_restore_path is undefined or db_restore_path == ''"
+  when:
+    - "db_restore_path is undefined or db_restore_path == ''"
+    - "db_user_exist.stdout != '1'"
 
 - name: Remove install.php
   file:

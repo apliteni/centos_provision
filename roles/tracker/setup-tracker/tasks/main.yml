@@ -4,6 +4,12 @@
     chdir: "{{ keitaro_app_dir }}"
   become_user: "{{ keitaro_user }}"
 
+- name: Update geo databases
+  command: "{{ php_path }}  bin/cli.php geodbs:update_all"
+  args:
+    chdir: "{{ keitaro_app_dir }}"
+  become_user: "{{ keitaro_user }}"
+
 - name: Configure cron to run keitaro task every minute (4 channels)
   cron:
     user: "{{ keitaro_user }}"
@@ -37,3 +43,4 @@
       application/filters/
       application/config/config.ini.php
     force: no
+
