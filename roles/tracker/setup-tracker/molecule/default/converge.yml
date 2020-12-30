@@ -25,10 +25,14 @@
         group: "{{ keitaro_group }}"
       with_items:
         - "{{ keitaro_app_dir }}/application/data"
-    - name: Create cron.php
+        - "{{ keitaro_app_dir }}/bin"
+    - name: Create cron.php and bin/cli.php stubs
       file:
-        path: "{{ keitaro_app_dir }}/cron.php"
+        path: "{{ item }}"
         state: touch
+      with_items:
+        - "{{ keitaro_app_dir }}/cron.php"
+        - "{{ keitaro_app_dir }}/bin/cli.php"
     - name: Install cronie
       package:
         name: cronie

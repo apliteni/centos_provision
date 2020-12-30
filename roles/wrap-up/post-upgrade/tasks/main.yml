@@ -1,5 +1,3 @@
-- include: set_tracker_homedir_permissions.yml
-
 - include: upgrade_from_2.12.yml
   when: "'upgrade-from-2.12' in ansible_run_tags"
 
