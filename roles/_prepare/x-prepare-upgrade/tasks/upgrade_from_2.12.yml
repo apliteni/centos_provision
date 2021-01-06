@@ -19,8 +19,3 @@
     - /root/install.log
     - /root/enable-ssl.log
     - /root/add-site.log
-
-- name: Remove old packages
-  package:
-    name: certbot
-    state: absent
