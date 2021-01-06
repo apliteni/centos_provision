@@ -1,11 +1,11 @@
-- name: Check certbot is already installed
-  stat:
-    path: /usr/local/bin/certbot
-  register: usr_local_bin_certbot
-
 - name: Install certbot
-  include: install-certbot.yml
-  when: not usr_local_bin_certbot.stat.exists
+  package:
+    name: certbot
+    state: installed
 
-- name: Install `certbot renew` cron task
-  include: install-certbot_renew-cron-job.yml
+- name: Install renew certs task
+  cron:
+    name: Renew LE certificates
+    job: /usr/bin/certbot renew --allow-subset-of-names --quiet --renew-hook "/usr/bin/systemctl reload nginx"
+    hour: "{{ 23 | random }}"
+    minute: "{{ 59 | random }}"

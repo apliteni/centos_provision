@@ -53,7 +53,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.23.4'
+RELEASE_VERSION='2.24.0'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -1434,7 +1434,7 @@ certificate_exists_for_domain(){
 request_certificate_for(){
   local domain="${1}"
   debug "Requesting certificate for domain ${domain}"
-  certbot_command="/usr/local/bin/certbot certonly --webroot --webroot-path=${WEBAPP_ROOT}"
+  certbot_command="/usr/bin/certbot certonly --webroot --webroot-path=${WEBAPP_ROOT}"
   certbot_command="${certbot_command} --agree-tos --non-interactive"
   certbot_command="${certbot_command} --domain ${domain}"
   if isset "${VARS['ssl_email']}"; then
