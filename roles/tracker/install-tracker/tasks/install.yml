@@ -19,7 +19,6 @@
   with_items:
     - "{{ keitaro_database_schema }}"
     - "{{ keitaro_database_data }}"
-  when: "db_restore_path is undefined or db_restore_path == ''"
 
 - name: Run install.php with args
   command: |
