@@ -7,4 +7,7 @@
   register: root_pwd_check
 
 - include: create_user_and_database.yml
+  vars:
+    ansible_python_interpreter: "/usr/bin/python3"
   when: root_pwd_check.rc == 0
+

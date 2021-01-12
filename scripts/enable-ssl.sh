@@ -53,7 +53,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.24.1'
+RELEASE_VERSION='2.24.2'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -118,7 +118,6 @@ else
     SCRIPT_COMMAND="${SCRIPT_NAME}"
   fi
 fi
-
 declare -A DICT
 
 DICT['en.errors.program_failed']='PROGRAM FAILED'
@@ -463,14 +462,29 @@ interpolate(){
 
 is_installed(){
   local command="${1}"
-  debug "Try to find "$command""
+  debug "Try to find command '$command'"
   if isset "$SKIP_CHECKS"; then
-    debug "SKIPPED: actual checking of '$command' presence skipped"
+    debug "SKIPPED: actual checking of command '$command' presence skipped"
   else
-    if [[ $(sh -c "command -v "$command" -gt /dev/null") ]]; then
-      debug "FOUND: "$command" found"
+    if [[ $(sh -c "command -v '$command' -gt /dev/null") ]]; then
+      debug "FOUND: Command '$command' found"
     else
-      debug "NOT FOUND: "$command" not found"
+      debug "NOT FOUND: Command '$command' not found"
+      return ${FAILURE_RESULT}
+    fi
+  fi
+}
+
+is_package_installed(){
+  local package="${1}"
+  debug "Try to find package '$package'"
+  if isset "$SKIP_CHECKS"; then
+    debug "SKIPPED: actual checking of package '$package' presence skipped"
+  else
+    if yum list installed --quiet "$package" &> /dev/null; then
+      debug "FOUND: Package '$package' found"
+    else
+      debug "NOT FOUND: Package '$package' not found"
       return ${FAILURE_RESULT}
     fi
   fi

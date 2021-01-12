@@ -54,7 +54,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.24.1'
+RELEASE_VERSION='2.24.2'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -119,7 +119,6 @@ else
     SCRIPT_COMMAND="${SCRIPT_NAME}"
   fi
 fi
-
 declare -A DICT
 
 DICT['en.errors.program_failed']='PROGRAM FAILED'
@@ -816,7 +815,7 @@ run_ansible_playbook(){
     env="${env} TABLES_PREFIX='$(cat "${DETECTED_PREFIX_PATH}" | head -n1)'"
     rm -f "${DETECTED_PREFIX_PATH}"
   fi
-  local command="${env} ansible-playbook -vvv -i ${INVENTORY_PATH} ${PROVISION_DIRECTORY}/playbook.yml"
+  local command="${env} $(get_ansible_playbook_command) -vvv -i ${INVENTORY_PATH} ${PROVISION_DIRECTORY}/playbook.yml"
   if isset "$ANSIBLE_TAGS"; then
     command="${command} --tags ${ANSIBLE_TAGS}"
   fi
@@ -824,6 +823,14 @@ run_ansible_playbook(){
     command="${command} --skip-tags ${ANSIBLE_IGNORE_TAGS}"
   fi
   run_command "${command}" '' '' '' '' 'print_ansible_fail_message'
+}
+
+get_ansible_playbook_command() {
+  if [[ "$(get_centos_major_release)" == "7" ]]; then
+    echo "ansible-playbook-3"
+  else
+    echo "ansible-playbook"
+  fi
 }
 
 print_ansible_fail_message(){
