@@ -29,6 +29,7 @@
   pip:
     name: pymysql
     state: present
+    executable: pip3
 
 - name: Ensure mariadb service is started
   service:
