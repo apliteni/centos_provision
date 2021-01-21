@@ -1,0 +1,9 @@
+- name: Check tracker database exists
+  shell: mysql --skip-column-names --batch --execute "select 'ok'" {{ db_name }}
+  failed_when: false
+  register: check_if_tracker_database_exists_command
+
+- include: create-user-and-database.yml
+  vars:
+    ansible_python_interpreter: "/usr/bin/python3"
+    when: check_if_tracker_database_exists_command.rc == 1 # mysql exits with rc = 1 when there is no specified db

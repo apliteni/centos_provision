@@ -1,8 +1,2 @@
-mariadb_root_password: '{{ db_root_password }}'
-mariadb_databases:
-  - "{{ db_name }}"
-mariadb_users:
-  - name: "{{ db_user }}"
-    password: "{{ db_password }}"
-    priv: "{{ db_name }}.*:ALL,GRANT"
 mariadb_version: "10.3"
+mariadb_bind_address: "localhost"

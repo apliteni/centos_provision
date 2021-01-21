@@ -1,13 +1,13 @@
 - name: Force all notified handlers to run at this point
   meta: flush_handlers
 
-- include_tasks: "{{ playbook_dir }}/roles/_common/get-tracker-info/latest_tracker.yml"
+- include_tasks: "{{ playbook_dir }}/roles/tracker/_common/get-tracker-info/latest_tracker.yml"
   vars:
     user_agent: "Keitaro Installer v{{ keitaro_installer_version }} PHP/{{ php_release }}"
     request_params: "version={{ keitaro_release }}&stability=unstable&phpversion={{ php_release }}"
 
 - name: Download keitaro distribution
-  include_tasks: "{{ playbook_dir }}/roles/_common/download-tracker/keitaro_distribution.yml"
+  include_tasks: "{{ playbook_dir }}/roles/tracker/_common/download-tracker/keitaro_distribution.yml"
 
 - name: Download install.php
   get_url:
@@ -15,10 +15,7 @@
     dest: "{{ keitaro_app_dir }}/install.php"
 
 - name: Import database .sql files
-  shell: "mysql --user={{ db_user }} --password={{ db_password }} {{ db_name }} < {{ item }}"
-  with_items:
-    - "{{ keitaro_database_schema }}"
-    - "{{ keitaro_database_data }}"
+  shell: "cat {{ keitaro_database_schema }} {{ keitaro_database_data }} | mysql {{ db_name }}"
 
 - name: Run install.php with args
   command: |
@@ -42,9 +39,9 @@
   notify:
     - restart roadrunner
 
-- name: Check keitaro admin exist
-  shell: "mysql keitaro --skip-column-names --batch -e  'SELECT 1 FROM keitaro_users LIMIT 1'"
-  register: db_user_exist
+- name: Check that keitaro admin exists
+  shell: mysql keitaro --skip-column-names --batch --execute  "SELECT 'exist' FROM keitaro_users LIMIT 1"
+  register: check_if_db_users_exist_command
 
 - name: Create keitaro admin
   command: "{{ php_path }} bin/cli.php admin:create {{ admin_login }} {{ admin_password }}"
@@ -52,8 +49,8 @@
     chdir: "{{ keitaro_app_dir }}"
   become_user: "{{ keitaro_user }}"
   when:
-    - "db_restore_path is undefined or db_restore_path == ''"
-    - "db_user_exist.stdout != '1'"
+    (db_restore_path is undefined or db_restore_path == '') and
+    (check_if_db_users_exist_command.stdout != 'exist')
 
 - name: Remove install.php
   file:

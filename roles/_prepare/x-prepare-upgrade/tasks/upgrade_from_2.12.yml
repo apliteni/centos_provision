@@ -1,6 +1,6 @@
 - name: Remove mail utilites
   package:
-    name: [mailx, sendmail, sendmail-cf]
+    name: [sendmail, sendmail-cf]
     state: absent
 
 - name: Remove old files

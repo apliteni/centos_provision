@@ -1,0 +1,16 @@
+- name: Remove certbot-auto dist
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - /opt/eff.org/certbot
+    - /usr/local/bin/certbot
+
+- name: Remove old mysql conf files 
+  file:
+    path: "/etc/my.cnf.d/{{ item }}"
+    state: absent
+  with_items:
+    - keitaro-mysqld-error_log.cnf
+    - keitaro-mysqld-log_slow_queries.cnf
+    - network.cnf
