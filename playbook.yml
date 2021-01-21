@@ -38,16 +38,17 @@
     - {role: 'php/install-roadrunner',                     tags: 'install-roadrunner'}
     - {role: 'php/tune-php',                               tags: 'tune-php,                     tune'}
     - {role: 'php/tune-roadrunner',                        tags: 'tune-roadrunner,              tune'}
-    - {role: 'php/x-upgrade-php',                          tags: 'upgrade-php,                  never, upgrade'}
     - {role: 'storage/clickhouse/x-install-clickhouse',    tags: 'install-clickhouse,           never'}
     - {role: 'storage/mariadb/_x-prepare-mariadb-upgrade', tags: 'prepare-mariadb-upgrade,      never, upgrade'}
     - {role: 'storage/mariadb/install-mariadb',            tags: 'install-mariadb'}
     - {role: 'storage/mariadb/tune-mariadb',               tags: 'tune-mariadb,                 tune'}
+    - {role: 'storage/mariadb/wrap-up-db-configuration',   tags: 'wrap-up-db-configuration'}
     - {role: 'storage/redis/install-redis',                tags: 'install-redis'}
     - {role: 'storage/redis/tune-redis',                   tags: 'tune-redis,                   tune'}
     - {role: 'tracker/install-tracker',                    tags: 'install-tracker'}
     - {role: 'tracker/restore-db',                         tags: 'restore-db'}
     - {role: 'tracker/setup-tracker',                      tags: 'setup-tracker'}
+    - {role: 'tracker/upgrade-tracker',                    tags: 'upgrade-tracker,              never'}
     - {role: 'wrap-up/force-restart-services',             tags: 'force-restart-services,       always'}
     - {role: 'wrap-up/set-tracker-app-permissions',        tags: 'set-tracker-app-permissions,  always'}
     - {role: 'wrap-up/post-upgrade',                       tags: 'post-upgrade,                 never, upgrade'}

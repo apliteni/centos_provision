@@ -1,0 +1,36 @@
+- name: Detect current tracker version
+  include_tasks: "{{ playbook_dir }}/roles/tracker/_common/get-tracker-info/current_tracker.yml"
+
+- name: Detect current PHP IOC version
+  include_tasks: "{{ playbook_dir }}/roles/tracker/_common/get-tracker-info/current_php_ioc.yml"
+
+- include_tasks: "{{ item }}"
+  vars:
+    user_agent: "Keitaro Installer v{{ keitaro_installer_version }} PHP/{{ php_release }}"
+    request_params: "version={{ keitaro_release }}&stability={{ get_tracker_stability.content }}&phpversion={{ php_release }}"
+  with_items:
+    - "{{ playbook_dir }}/roles/tracker/_common/get-tracker-info/stable_tracker.yml"
+    - "{{ playbook_dir }}/roles/tracker/_common/get-tracker-info/latest_tracker.yml"
+  when: custom_package is undefined
+
+- name: Download keitaro distribution
+  include_tasks: "{{ playbook_dir }}/roles/tracker/_common/download-tracker/keitaro_distribution.yml"
+  when:
+    (custom_package is defined) or
+    (get_latest_tracker_version.stdout is version(get_current_tracker_version.stdout, '>')) or
+    (get_current_php_ioc_version.stdout != php_ioc_version)
+   
+- name: Store previous tracker version
+  set_fact:
+    previous_tracker_version: "{{ get_current_tracker_version.stdout }}" 
+
+- name: Detect current tracker version
+  include_tasks: "{{ playbook_dir }}/roles/tracker/_common/get-tracker-info/current_tracker.yml"
+
+- name: Migrate database
+  command: "{{ php_path }} bin/cli.php db:migrate"
+  args:
+    chdir: "{{ keitaro_app_dir }}"
+  become_user: "{{ keitaro_user }}"
+  when:
+    (get_current_tracker_version.stdout is version(previous_tracker_version, '>'))

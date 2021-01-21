@@ -26,8 +26,8 @@
   with_items:
     - keitaro-mysqld-optimize_performance.cnf
     - keitaro-mysqld-set_default_storage_engine.cnf
-    - keitaro-mysqld-error_log.cnf
-    - keitaro-mysqld-log_slow_queries.cnf
+    - keitaro-mysqld-configure_error_log.cnf
+    - keitaro-mysqld-configure_network.cnf
   notify: 
     - restart mariadb
 

@@ -1,13 +1,38 @@
-- include: install.yml
+- name: Add MariaDB repo
+  template:
+    src: mariadb.repo.j2
+    dest: /etc/yum.repos.d/mariadb.repo
+    force: no
 
-- name: Check if root password is set
-  shell: mysqladmin -u root status
-  changed_when: false
-  failed_when: false
-  register: root_pwd_check
+- name: Install supporting libraries
+  package:
+    name:
+      - jemalloc
+      - perl-DBI
+      - libaio
+      - lsof
+      - rsync
+      - boost-program-options
+    state: installed
 
-- include: create_user_and_database.yml
-  vars:
-    ansible_python_interpreter: "/usr/bin/python3"
-  when: root_pwd_check.rc == 0
+- name: Install MariaDB packages
+  package:
+    name:
+      - MariaDB-server
+      - MariaDB-client
+      - MariaDB-tokudb-engine
+    state: installed
+    enablerepo: '{{ mariadb_enabled_repos["centos" + ansible_distribution_major_version] }}'
+    disablerepo: '*'
 
+- name: Install PyMySQL
+  pip:
+    name: pymysql
+    state: present
+    executable: pip3
+
+- name: Ensure mariadb service is started
+  service:
+    name: mariadb
+    state: started
+    enabled: yes
