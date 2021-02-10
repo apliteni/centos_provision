@@ -14,8 +14,19 @@
     url: "{{ keitaro_install_php }}"
     dest: "{{ keitaro_app_dir }}/install.php"
 
+- name: Restore DB from SQL dump
+  include_tasks: "{{ playbook_dir }}/roles/tracker/install-tracker/tasks/restore_db.yml"
+  when: db_restore_path is defined
+
 - name: Import database .sql files
-  shell: "cat {{ keitaro_database_schema }} {{ keitaro_database_data }} | mysql {{ db_name }}"
+  community.mysql.mysql_db:
+    state: import
+    name: "{{ db_name }}"
+    target: "{{ item }}"
+  with_items:
+    - "{{ keitaro_database_schema }}"
+    - "{{ keitaro_database_data }}"
+  when: db_restore_path is not defined
 
 - name: Run install.php with args
   command: |
@@ -39,18 +50,26 @@
   notify:
     - restart roadrunner
 
-- name: Check that keitaro admin exists
-  shell: mysql keitaro --skip-column-names --batch --execute  "SELECT 'exist' FROM keitaro_users LIMIT 1"
-  register: check_if_db_users_exist_command
+- name: Run post-restoring tasks
+  include_tasks: "{{ playbook_dir }}/roles/tracker/install-tracker/tasks/restore_db/post_restore.yml"
+  when: db_restore_path is defined
+
+- name: Check keitaro admin exist
+  community.mysql.mysql_query:
+    login_db: keitaro
+    query: SELECT 1 FROM keitaro_users LIMIT 1
+  register: db_tracker_users_exist_query
+
+- name: Define db_tracker_users_table_is_empty helper variable
+  set_fact:
+    db_tracker_users_table_is_empty: "{{ db_tracker_users_exist_query.query_result == [[]] }}"
 
 - name: Create keitaro admin
   command: "{{ php_path }} bin/cli.php admin:create {{ admin_login }} {{ admin_password }}"
   args:
     chdir: "{{ keitaro_app_dir }}"
   become_user: "{{ keitaro_user }}"
-  when:
-    (db_restore_path is undefined or db_restore_path == '') and
-    (check_if_db_users_exist_command.stdout != 'exist')
+  when: db_restore_path is not defined and db_tracker_users_table_is_empty
 
 - name: Remove install.php
   file:

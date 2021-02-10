@@ -54,7 +54,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.25.0'
+RELEASE_VERSION='2.25.1'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -128,10 +128,11 @@ DICT['en.errors.run_command.fail']='There was an error evaluating current comman
 DICT['en.errors.run_command.fail_extra']=''
 DICT['en.errors.terminated']='Terminated by user'
 DICT['en.errors.unexpected']='Unexpected error'
+DICT['en.errors.cant_upgrade']='Cannot upgrade because installation process is not finished yet'
 DICT['en.messages.generating_nginx_vhost']="Generating nginx config for domain :domain:"
-DICT['ru.messages.reloading_nginx']="Reloading nginx"
-DICT['ru.messages.nginx_is_not_running']="Nginx is not running"
-DICT['ru.messages.starting_nginx']="Starting nginx"
+DICT['en.messages.reloading_nginx']="Reloading nginx"
+DICT['en.messages.nginx_is_not_running']="Nginx is not running"
+DICT['en.messages.starting_nginx']="Starting nginx"
 DICT['en.messages.skip_nginx_conf_generation']="Skip nginx config generation"
 DICT['en.messages.run_command']='Evaluating command'
 DICT['en.messages.successful']='Everything is done!'
@@ -151,7 +152,8 @@ DICT['ru.errors.upgrade_server']='Необходимо обновить конф
 DICT['ru.errors.run_command.fail']='Ошибка выполнения текущей команды'
 DICT['ru.errors.run_command.fail_extra']=''
 DICT['ru.errors.terminated']='Выполнение прервано'
-DICT['en.errors.unexpected']='Непредвиденная ошибка'
+DICT['ru.errors.unexpected']='Непредвиденная ошибка'
+DICT['ru.errors.cant_upgrade']='Невозможно запустить upgrade т.к. установка не выполнена или произошла с ошибкой'
 DICT['ru.messages.generating_nginx_vhost']="Генерируется конфигурация для сайта :domain:"
 DICT['ru.messages.reloading_nginx']="Перезагружается nginx"
 DICT['ru.messages.nginx_is_not_running']="Nginx не запущен"
@@ -335,6 +337,13 @@ assert_config_relevant_or_upgrade_running(){
     debug "Upgrade mode detected."
   else
     fail "$(translate 'errors.upgrade_server')"
+  fi
+}
+
+assert_upgrade_allowed() {
+  if is_upgrade_mode_set && ! is_keitaro_installed; then
+    debug 'Cannot upgrade because installation process is not finished yet'
+    fail "$(translate errors.cant_upgrade)"
   fi
 }
 
@@ -1620,6 +1629,39 @@ is_detected_license_edition_type_commercial() {
   [[ "${license_edition_type}" == "${LICENSE_EDITION_TYPE_COMMERCIAL}" ]]
 }
 
+is_ram_size_mb_changed() {
+  ( isset "${VARS['previous_ram_size_mb']}" && [[ "${VARS['previous_ram_size_mb']}" != "${VARS['ram_size_mb']}" ]] ) \
+      || ( isset "${VARS['ram_size_mb']}" && [[ "${VARS['ram_size_mb']}" != "$(get_ram_size_mb)" ]] )
+}
+
+
+get_var_from_config(){
+  local var="${1}"
+  local file="${2}"
+  local separator="${3}"
+  cat "$file" | \
+    grep "^${var}\\b" | \
+    grep "${separator}" | \
+    head -n1 | \
+    awk -F"${separator}" '{print $2}' | \
+    awk '{$1=$1; print}' | \
+    sed -r -e "s/^'(.*)'\$/\\1/g" -e 's/^"(.*)"$/\1/g'
+  }
+
+DETECTED_RAM_SIZE_MB=""
+
+get_ram_size_mb() {
+  if empty "${DETECTED_RAM_SIZE_MB}"; then
+    if is_ci_mode; then
+      DETECTED_RAM_SIZE_MB=2048
+    else
+      DETECTED_RAM_SIZE_MB=$((free -m | grep Mem: | awk '{print $2}') 2>/dev/null)
+    fi
+  fi
+  echo "${DETECTED_RAM_SIZE_MB}"
+}
+
+
 clean_up(){
   if [ -d "$PROVISION_DIRECTORY" ]; then
     debug "Remove ${PROVISION_DIRECTORY}"
@@ -1682,39 +1724,6 @@ get_var_from_keitaro_app_config() {
   local var="${1}"
   get_var_from_config "${var}" "${WEBAPP_ROOT}/application/config/config.ini.php" '='
 }
-
-get_var_from_config(){
-  local var="${1}"
-  local file="${2}"
-  local separator="${3}"
-  cat "$file" | \
-    grep "^${var}\\b" | \
-    grep "${separator}" | \
-    head -n1 | \
-    awk -F"${separator}" '{print $2}' | \
-    awk '{$1=$1; print}' | \
-    sed -r -e "s/^'(.*)'\$/\\1/g" -e 's/^"(.*)"$/\1/g'
-  }
-
-is_ram_size_mb_changed() {
-  ( isset "${VARS['previous_ram_size_mb']}" && [[ "${VARS['previous_ram_size_mb']}" != "${VARS['ram_size_mb']}" ]] ) \
-      || ( isset "${VARS['ram_size_mb']}" && [[ "${VARS['ram_size_mb']}" != "$(get_ram_size_mb)" ]] )
-}
-
-
-DETECTED_RAM_SIZE_MB=""
-
-get_ram_size_mb() {
-  if empty "${DETECTED_RAM_SIZE_MB}"; then
-    if is_ci_mode; then
-      DETECTED_RAM_SIZE_MB=2048
-    else
-      DETECTED_RAM_SIZE_MB=$((free -m | grep Mem: | awk '{print $2}') 2>/dev/null)
-    fi
-  fi
-  echo "${DETECTED_RAM_SIZE_MB}"
-}
-
 
 
 
@@ -1863,19 +1872,19 @@ stage1() {
   parse_options "$@"
   set_ui_lang
 }
-#
 
 
+assert_not_running_under_openvz() {
+  debug "Assert we are not running under OpenVZ"
+  if is_ci_mode; then
+    debug "Detected test mode, skip OpenVZ checks"
+    return
+  fi
 
-
-
-assert_apache_not_installed(){
-  if isset "$SKIP_CHECKS"; then
-    debug "SKIPPED: actual checking of httpd skipped"
-  else
-    if is_installed httpd; then
-      fail "$(translate errors.apache_installed)"
-    fi
+  virtualization_type="$(hostnamectl status | grep Virtualization | awk '{print $2}')"
+  debug "Detected virtualization type: '${virtualization_type}'"
+  if isset "${virtualization_type}" && [[ "${virtualization_type}" == "openvnz" ]]; then
+    fail "Servers with OpenVZ virtualization are not supported"
   fi
 }
 
@@ -1883,6 +1892,19 @@ assert_centos_distro(){
   assert_installed 'yum' 'errors.wrong_distro'
   if ! is_file_exist /etc/centos-release; then
     fail "$(translate errors.wrong_distro)" "see_logs"
+  fi
+}
+MIN_RAM_SIZE_MB=1500
+
+assert_has_enough_ram(){
+  debug "Checking RAM size"
+
+  local current_ram_size_mb=$(get_ram_size_mb)
+  if [[ "$current_ram_size_mb" -lt "$MIN_RAM_SIZE_MB" ]]; then
+    debug "RAM size ${current_ram_size_mb}mb is less than ${MIN_RAM_SIZE_MB}mb, raising error"
+    fail "$(translate errors.not_enough_ram)"
+  else
+    debug "RAM size ${current_ram_size_mb}mb is greater than ${MIN_RAM_SIZE_MB}mb, continuing"
   fi
 }
 
@@ -1945,32 +1967,19 @@ is_database_exists(){
   debug "Check if database ${database} exists"
   mysql -Nse 'show databases' 2>/dev/null | tr '\n' ' ' | grep -Pq "${database}"
 }
-MIN_RAM_SIZE_MB=1500
+#
 
-assert_has_enough_ram(){
-  debug "Checking RAM size"
 
-  local current_ram_size_mb=$(get_ram_size_mb)
-  if [[ "$current_ram_size_mb" -lt "$MIN_RAM_SIZE_MB" ]]; then
-    debug "RAM size ${current_ram_size_mb}mb is less than ${MIN_RAM_SIZE_MB}mb, raising error"
-    fail "$(translate errors.not_enough_ram)"
+
+
+
+assert_apache_not_installed(){
+  if isset "$SKIP_CHECKS"; then
+    debug "SKIPPED: actual checking of httpd skipped"
   else
-    debug "RAM size ${current_ram_size_mb}mb is greater than ${MIN_RAM_SIZE_MB}mb, continuing"
-  fi
-}
-
-
-assert_not_running_under_openvz() {
-  debug "Assert we are not running under OpenVZ"
-  if is_ci_mode; then
-    debug "Detected test mode, skip OpenVZ checks"
-    return
-  fi
-
-  virtualization_type="$(hostnamectl status | grep Virtualization | awk '{print $2}')"
-  debug "Detected virtualization type: '${virtualization_type}'"
-  if isset "${virtualization_type}" && [[ "${virtualization_type}" == "openvnz" ]]; then
-    fail "Servers with OpenVZ virtualization are not supported"
+    if is_installed httpd; then
+      fail "$(translate errors.apache_installed)"
+    fi
   fi
 }
 
@@ -2064,30 +2073,11 @@ stage3(){
   detect_installed_version
 }
 
-
-get_user_vars(){
-  debug 'Read vars from user input'
-  hack_stdin_if_pipe_mode
-  print_translated "welcome"
-  get_user_var 'license_key' 'validate_presence validate_license_key validate_license'
-  get_user_db_restore_vars
-}
-
-
-get_user_db_restore_vars(){
-  if is_detected_license_edition_type_commercial; then
-    get_user_var 'db_restore_path' 'validate_file_existence validate_keitaro_dump validate_enough_space_for_dump'
-    if isset "${VARS['db_restore_path']}"; then
-      get_user_var 'db_restore_salt' 'validate_presence validate_alnumdashdot'
-    fi
-  fi
-}
-
 write_inventory_file(){
   debug "Writing inventory file: STARTED"
   create_inventory_file
   print_line_to_inventory_file "[server]"
-  print_line_to_inventory_file "localhost connection=local ansible_user=root"
+  print_line_to_inventory_file "localhost"
   print_line_to_inventory_file
   print_line_to_inventory_file "[server:vars]"
   print_line_to_inventory_file "license_ip=$(detected_license_ip)"
@@ -2096,8 +2086,6 @@ write_inventory_file(){
   print_line_to_inventory_file "db_name=${VARS['db_name']}"
   print_line_to_inventory_file "db_user=${VARS['db_user']}"
   print_line_to_inventory_file "db_password=${VARS['db_password']}"
-  print_line_to_inventory_file "db_restore_path=${VARS['db_restore_path']}"
-  print_line_to_inventory_file "db_restore_salt=${VARS['db_restore_salt']}"
   print_line_to_inventory_file "admin_login=${VARS['admin_login']}"
   print_line_to_inventory_file "admin_password=${VARS['admin_password']}"
   print_line_to_inventory_file "language=$(get_ui_lang)"
@@ -2105,6 +2093,10 @@ write_inventory_file(){
   print_line_to_inventory_file "php_engine=${VARS['php_engine']}"
   print_line_to_inventory_file "cpu_cores=$(get_cpu_cores)"
   print_line_to_inventory_file "ssh_port=${VARS['ssh_port']}"
+  if isset "${VARS['db_restore_path']}"; then
+    print_line_to_inventory_file "db_restore_path=${VARS['db_restore_path']}"
+    print_line_to_inventory_file "db_restore_salt=${VARS['db_restore_salt']}"
+  fi
   local current_ram_size_mb="$(get_ram_size_mb)"
   if is_ram_size_mb_changed; then
      local previous_ram_size_mb="${VARS['previous_ram_size_mb']:-${VARS['ram_size_mb']}}"
@@ -2153,6 +2145,25 @@ print_line_to_inventory_file() {
   echo "$line" >> "$INVENTORY_PATH"
 }
 
+
+get_user_vars(){
+  debug 'Read vars from user input'
+  hack_stdin_if_pipe_mode
+  print_translated "welcome"
+  get_user_var 'license_key' 'validate_presence validate_license_key validate_license'
+  get_user_db_restore_vars
+}
+
+
+get_user_db_restore_vars(){
+  if is_detected_license_edition_type_commercial; then
+    get_user_var 'db_restore_path' 'validate_file_existence validate_keitaro_dump validate_enough_space_for_dump'
+    if isset "${VARS['db_restore_path']}"; then
+      get_user_var 'db_restore_salt' 'validate_presence validate_alnumdashdot'
+    fi
+  fi
+}
+
 stage4(){
   debug "Starting stage 4: generate inventory file"
   if isset "$AUTO_INSTALL"; then
@@ -2188,8 +2199,9 @@ install_packages(){
     install_package epel-release
   fi
   if ! is_package_installed "$(get_ansible_package_name)"; then
-    install_package "$(get_ansible_package_name)" 
+    install_package "$(get_ansible_package_name)"
   fi
+  install_galaxy_collection "community.mysql"
 }
 
 get_ansible_package_name() {
@@ -2200,18 +2212,26 @@ get_ansible_package_name() {
   fi
 }
 
-show_credentials(){
-  print_with_color "http://$(detected_license_ip)/admin" 'light.green'
-
-  if isset "${VARS['db_restore_path']}"; then
-    echo "$(translate 'messages.successful.use_old_credentials')"
+get_ansible_galaxy_command() {
+  if [[ "$(get_centos_major_release)" == "7" ]]; then
+    echo "ansible-galaxy-3"
   else
-    colored_login=$(print_with_color "${VARS['admin_login']}" 'light.green')
-    colored_password=$(print_with_color "${VARS['admin_password']}" 'light.green')
-    echo -e "login: ${colored_login}"
-    echo -e "password: ${colored_password}"
+    echo "ansible-galaxy"
   fi
-  echo "$(translate 'messages.successful.how_to_enable_ssl')"
+}
+
+install_galaxy_collection(){
+  local collection="${1}"
+  local command="$(get_ansible_galaxy_command) collection install ${collection}"
+  debug "Installing ansible collection ${collection}"
+  run_command "${command}"
+}
+
+download_provision(){
+  debug "Download provision"
+  release_url="https://files.keitaro.io/scripts/${BRANCH}/playbook.tar.gz"
+  mkdir -p "${PROVISION_DIRECTORY}"
+  run_command "curl -fsSL ${release_url} | tar -xzC ${PROVISION_DIRECTORY}"
 }
 json2dict() {
 
@@ -2380,15 +2400,22 @@ json2dict() {
   echo "("; (tokenize | json_parse); echo ")"
 }
 
-download_provision(){
-  debug "Download provision"
-  release_url="https://files.keitaro.io/scripts/${BRANCH}/playbook.tar.gz"
-  mkdir -p "${PROVISION_DIRECTORY}"
-  run_command "curl -fsSL ${release_url} | tar -xzC ${PROVISION_DIRECTORY}"
-}
-
 show_successful_message(){
   print_with_color "$(translate 'messages.successful')" 'green'
+}
+
+show_credentials(){
+  print_with_color "http://$(detected_license_ip)/admin" 'light.green'
+
+  if isset "${VARS['db_restore_path']}"; then
+    echo "$(translate 'messages.successful.use_old_credentials')"
+  else
+    colored_login=$(print_with_color "${VARS['admin_login']}" 'light.green')
+    colored_password=$(print_with_color "${VARS['admin_password']}" 'light.green')
+    echo -e "login: ${colored_login}"
+    echo -e "password: ${colored_password}"
+  fi
+  echo "$(translate 'messages.successful.how_to_enable_ssl')"
 }
 
 ANSIBLE_TASK_HEADER="^TASK \[(.*)\].*"
@@ -2399,7 +2426,6 @@ ANSIBLE_LAST_TASK_LOG="${WORKING_DIR}/ansible_last_task.log"
 run_ansible_playbook(){
   local env="ANSIBLE_FORCE_COLOR=true"
   env="${env} ANSIBLE_CONFIG=${PROVISION_DIRECTORY}/ansible.cfg"
-  env="${env} ANSIBLE_GATHER_TIMEOUT=30"
   if [ -f "$DETECTED_PREFIX_PATH" ]; then
     env="${env} TABLES_PREFIX='$(cat "${DETECTED_PREFIX_PATH}" | head -n1)'"
     rm -f "${DETECTED_PREFIX_PATH}"
@@ -2546,7 +2572,7 @@ get_printable_fields(){
   echo "$fields"
 }
 
-stage6(){
+stage6() {
   debug "Starting stage 6: run ansible playbook"
   download_provision
   run_ansible_playbook
@@ -2558,8 +2584,10 @@ stage6(){
       signal_successful_installation
     fi
   else
+    if empty "${VARS['db_restore_path']}"; then
+      show_credentials
+    fi
     signal_successful_installation
-    show_credentials
   fi
 }
 
@@ -2593,7 +2621,7 @@ UPGRADE_CHECKPOINTS=(1.5 2.0 2.12 2.13 2.16 2.20 2.24)
 declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['create-tracker-user-and-dirs']='2.22.0'
   ['disable-ipv6']='1.0'
-  ['disable-selinux']='2.14'
+  ['disable-selinux']='2.25.0'
   ['disable-thp']='0.9'
   ['enable-firewall']='1.9'
   ['enable-repo-remi']='2.15'
@@ -2606,7 +2634,7 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['setup-journald']='2.12'
   ['setup-timezone']='0.9'
   ['tune-swap']='2.21.0'
-  ['install-php']='2.12'
+  ['install-php']='2.25.0'
   ['install-roadrunner']='2.20.4'
   ['tune-php']='2.20.4'
   ['tune-roadrunner']='2.20.4'
@@ -2695,7 +2723,7 @@ need_to_expand_with_upgrade_from_tag() {
 }
 
 is_upgrade_mode_set() {
-  [[ "${ANSIBLE_TAGS}" =~ upgrade  ]]
+  [[ "${ANSIBLE_TAGS}" =~ upgrade ]]
 }
 
 # We wrap the entire script in a big function which we only call at the very end, in order to
@@ -2709,6 +2737,7 @@ install(){
   stage2                    # make some asserts
   stage3                    # read vars from the inventory file
   if isset "$RECONFIGURE"; then
+    assert_upgrade_allowed
     assert_config_relevant_or_upgrade_running
     write_inventory_on_reconfiguration
     expand_ansible_tags_on_upgrade

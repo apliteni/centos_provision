@@ -1,0 +1,14 @@
+- name: Gather facts
+  setup:
+
+- name: Include var files
+  include_vars: '{{ item }}'
+  with_items: 
+    - vars/keitaro.yml
+    - vars/server.yml
+    - vars/ssl.yml
+    - vars/mariadb.yml
+    - vars/nginx.yml
+    - vars/php.yml
+    - vars/performance.roadrunner.yml
+    - vars/performance.yml
