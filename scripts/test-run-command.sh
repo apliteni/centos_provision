@@ -54,7 +54,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.25.0'
+RELEASE_VERSION='2.25.1'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -128,10 +128,11 @@ DICT['en.errors.run_command.fail']='There was an error evaluating current comman
 DICT['en.errors.run_command.fail_extra']=''
 DICT['en.errors.terminated']='Terminated by user'
 DICT['en.errors.unexpected']='Unexpected error'
+DICT['en.errors.cant_upgrade']='Cannot upgrade because installation process is not finished yet'
 DICT['en.messages.generating_nginx_vhost']="Generating nginx config for domain :domain:"
-DICT['ru.messages.reloading_nginx']="Reloading nginx"
-DICT['ru.messages.nginx_is_not_running']="Nginx is not running"
-DICT['ru.messages.starting_nginx']="Starting nginx"
+DICT['en.messages.reloading_nginx']="Reloading nginx"
+DICT['en.messages.nginx_is_not_running']="Nginx is not running"
+DICT['en.messages.starting_nginx']="Starting nginx"
 DICT['en.messages.skip_nginx_conf_generation']="Skip nginx config generation"
 DICT['en.messages.run_command']='Evaluating command'
 DICT['en.messages.successful']='Everything is done!'
@@ -151,7 +152,8 @@ DICT['ru.errors.upgrade_server']='Необходимо обновить конф
 DICT['ru.errors.run_command.fail']='Ошибка выполнения текущей команды'
 DICT['ru.errors.run_command.fail_extra']=''
 DICT['ru.errors.terminated']='Выполнение прервано'
-DICT['en.errors.unexpected']='Непредвиденная ошибка'
+DICT['ru.errors.unexpected']='Непредвиденная ошибка'
+DICT['ru.errors.cant_upgrade']='Невозможно запустить upgrade т.к. установка не выполнена или произошла с ошибкой'
 DICT['ru.messages.generating_nginx_vhost']="Генерируется конфигурация для сайта :domain:"
 DICT['ru.messages.reloading_nginx']="Перезагружается nginx"
 DICT['ru.messages.nginx_is_not_running']="Nginx не запущен"
@@ -810,7 +812,6 @@ ANSIBLE_LAST_TASK_LOG="${WORKING_DIR}/ansible_last_task.log"
 run_ansible_playbook(){
   local env="ANSIBLE_FORCE_COLOR=true"
   env="${env} ANSIBLE_CONFIG=${PROVISION_DIRECTORY}/ansible.cfg"
-  env="${env} ANSIBLE_GATHER_TIMEOUT=30"
   if [ -f "$DETECTED_PREFIX_PATH" ]; then
     env="${env} TABLES_PREFIX='$(cat "${DETECTED_PREFIX_PATH}" | head -n1)'"
     rm -f "${DETECTED_PREFIX_PATH}"

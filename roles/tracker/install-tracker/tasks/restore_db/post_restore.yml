@@ -1,0 +1,21 @@
+- name: Reset Keitaro cache
+  command: "{{ php_path }} bin/cli.php system:reload_cache"
+  args:
+    chdir: "{{ keitaro_app_dir }}"
+  become_user: "{{ keitaro_user }}"
+  ignore_errors: yes
+
+- name: Reset Keitaro salt
+  lineinfile:
+    path: "{{ keitaro_app_dir }}/application/config/config.ini.php"
+    regexp: '^salt'
+    line: 'salt = {{ db_restore_salt }}'
+
+- name: Migrate database
+  command: "{{ php_path }} bin/cli.php db:migrate"
+  args:
+    chdir: "{{ keitaro_app_dir }}"
+  become_user: "{{ keitaro_user }}"
+  notify:
+    - restart php-fpm
+    - restart roadrunner

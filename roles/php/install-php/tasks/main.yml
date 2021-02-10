@@ -13,6 +13,8 @@
       - "{{php_version}}-php-xml"
       - "{{php_version}}-php-pecl-zip"
       - "{{php_version}}-php-ioncube-loader"
+      - "{{php_version}}-php-gd"
+      - "{{php_version}}-php-intl"
       - fcgi
     state: installed
 
