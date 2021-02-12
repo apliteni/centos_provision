@@ -54,7 +54,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.25.1'
+RELEASE_VERSION='2.25.2'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -212,17 +212,18 @@ assert_keitaro_not_installed(){
 }
 
 is_keitaro_installed() {
+   debug "We will use new algorithm for installation check sicne ${USE_NEW_ALGORITHM_FOR_INSTALLATION_CHECK_SINCE} (incl.)"
    if should_use_new_algorithm_for_installation_check; then
-     debug "Current version is ${RELEASE_VERSION} - using new algorithm (check 'installed' flag in the inventory file)"
+     debug "Current version is ${INSTALLED_VERSION} - using new algorithm (check 'installed' flag in the inventory file)"
      isset "${VARS['installed']}"
    else
-     debug "Current version is ${RELEASE_VERSION} - using old algorithm (check '${KEITARO_LOCK_FILEPATH}' file)"
+     debug "Current version is ${INSTALLED_VERSION} - using old algorithm (check '${KEITARO_LOCK_FILEPATH}' file)"
      is_file_exist "${KEITARO_LOCK_FILEPATH}" no
    fi
 }
 
 should_use_new_algorithm_for_installation_check() {
-  (( $(as_version ${RELEASE_VERSION}) >= $(as_version ${USE_NEW_ALGORITHM_FOR_INSTALLATION_CHECK_SINCE}) ))
+  (( $(as_version ${INSTALLED_VERSION}) >= $(as_version ${USE_NEW_ALGORITHM_FOR_INSTALLATION_CHECK_SINCE}) ))
 }
 #
 
@@ -341,9 +342,14 @@ assert_config_relevant_or_upgrade_running(){
 }
 
 assert_upgrade_allowed() {
-  if is_upgrade_mode_set && ! is_keitaro_installed; then
-    debug 'Cannot upgrade because installation process is not finished yet'
-    fail "$(translate errors.cant_upgrade)"
+  if is_upgrade_mode_set; then
+    debug 'Ensuring upgrade is allowed'
+    if is_keitaro_installed; then
+      debug 'Everything looks good, running upgrade'
+    else
+      debug "Can't upgrade because installation process is not finished yet"
+      fail "$(translate errors.cant_upgrade)"
+    fi
   fi
 }
 
@@ -1629,39 +1635,6 @@ is_detected_license_edition_type_commercial() {
   [[ "${license_edition_type}" == "${LICENSE_EDITION_TYPE_COMMERCIAL}" ]]
 }
 
-is_ram_size_mb_changed() {
-  ( isset "${VARS['previous_ram_size_mb']}" && [[ "${VARS['previous_ram_size_mb']}" != "${VARS['ram_size_mb']}" ]] ) \
-      || ( isset "${VARS['ram_size_mb']}" && [[ "${VARS['ram_size_mb']}" != "$(get_ram_size_mb)" ]] )
-}
-
-
-get_var_from_config(){
-  local var="${1}"
-  local file="${2}"
-  local separator="${3}"
-  cat "$file" | \
-    grep "^${var}\\b" | \
-    grep "${separator}" | \
-    head -n1 | \
-    awk -F"${separator}" '{print $2}' | \
-    awk '{$1=$1; print}' | \
-    sed -r -e "s/^'(.*)'\$/\\1/g" -e 's/^"(.*)"$/\1/g'
-  }
-
-DETECTED_RAM_SIZE_MB=""
-
-get_ram_size_mb() {
-  if empty "${DETECTED_RAM_SIZE_MB}"; then
-    if is_ci_mode; then
-      DETECTED_RAM_SIZE_MB=2048
-    else
-      DETECTED_RAM_SIZE_MB=$((free -m | grep Mem: | awk '{print $2}') 2>/dev/null)
-    fi
-  fi
-  echo "${DETECTED_RAM_SIZE_MB}"
-}
-
-
 clean_up(){
   if [ -d "$PROVISION_DIRECTORY" ]; then
     debug "Remove ${PROVISION_DIRECTORY}"
@@ -1724,6 +1697,39 @@ get_var_from_keitaro_app_config() {
   local var="${1}"
   get_var_from_config "${var}" "${WEBAPP_ROOT}/application/config/config.ini.php" '='
 }
+
+get_var_from_config(){
+  local var="${1}"
+  local file="${2}"
+  local separator="${3}"
+  cat "$file" | \
+    grep "^${var}\\b" | \
+    grep "${separator}" | \
+    head -n1 | \
+    awk -F"${separator}" '{print $2}' | \
+    awk '{$1=$1; print}' | \
+    sed -r -e "s/^'(.*)'\$/\\1/g" -e 's/^"(.*)"$/\1/g'
+  }
+
+is_ram_size_mb_changed() {
+  ( isset "${VARS['previous_ram_size_mb']}" && [[ "${VARS['previous_ram_size_mb']}" != "${VARS['ram_size_mb']}" ]] ) \
+      || ( isset "${VARS['ram_size_mb']}" && [[ "${VARS['ram_size_mb']}" != "$(get_ram_size_mb)" ]] )
+}
+
+
+DETECTED_RAM_SIZE_MB=""
+
+get_ram_size_mb() {
+  if empty "${DETECTED_RAM_SIZE_MB}"; then
+    if is_ci_mode; then
+      DETECTED_RAM_SIZE_MB=2048
+    else
+      DETECTED_RAM_SIZE_MB=$((free -m | grep Mem: | awk '{print $2}') 2>/dev/null)
+    fi
+  fi
+  echo "${DETECTED_RAM_SIZE_MB}"
+}
+
 
 
 
@@ -1872,19 +1878,19 @@ stage1() {
   parse_options "$@"
   set_ui_lang
 }
+#
 
 
-assert_not_running_under_openvz() {
-  debug "Assert we are not running under OpenVZ"
-  if is_ci_mode; then
-    debug "Detected test mode, skip OpenVZ checks"
-    return
-  fi
 
-  virtualization_type="$(hostnamectl status | grep Virtualization | awk '{print $2}')"
-  debug "Detected virtualization type: '${virtualization_type}'"
-  if isset "${virtualization_type}" && [[ "${virtualization_type}" == "openvnz" ]]; then
-    fail "Servers with OpenVZ virtualization are not supported"
+
+
+assert_apache_not_installed(){
+  if isset "$SKIP_CHECKS"; then
+    debug "SKIPPED: actual checking of httpd skipped"
+  else
+    if is_installed httpd; then
+      fail "$(translate errors.apache_installed)"
+    fi
   fi
 }
 
@@ -1892,19 +1898,6 @@ assert_centos_distro(){
   assert_installed 'yum' 'errors.wrong_distro'
   if ! is_file_exist /etc/centos-release; then
     fail "$(translate errors.wrong_distro)" "see_logs"
-  fi
-}
-MIN_RAM_SIZE_MB=1500
-
-assert_has_enough_ram(){
-  debug "Checking RAM size"
-
-  local current_ram_size_mb=$(get_ram_size_mb)
-  if [[ "$current_ram_size_mb" -lt "$MIN_RAM_SIZE_MB" ]]; then
-    debug "RAM size ${current_ram_size_mb}mb is less than ${MIN_RAM_SIZE_MB}mb, raising error"
-    fail "$(translate errors.not_enough_ram)"
-  else
-    debug "RAM size ${current_ram_size_mb}mb is greater than ${MIN_RAM_SIZE_MB}mb, continuing"
   fi
 }
 
@@ -1967,19 +1960,32 @@ is_database_exists(){
   debug "Check if database ${database} exists"
   mysql -Nse 'show databases' 2>/dev/null | tr '\n' ' ' | grep -Pq "${database}"
 }
-#
+MIN_RAM_SIZE_MB=1500
 
+assert_has_enough_ram(){
+  debug "Checking RAM size"
 
-
-
-
-assert_apache_not_installed(){
-  if isset "$SKIP_CHECKS"; then
-    debug "SKIPPED: actual checking of httpd skipped"
+  local current_ram_size_mb=$(get_ram_size_mb)
+  if [[ "$current_ram_size_mb" -lt "$MIN_RAM_SIZE_MB" ]]; then
+    debug "RAM size ${current_ram_size_mb}mb is less than ${MIN_RAM_SIZE_MB}mb, raising error"
+    fail "$(translate errors.not_enough_ram)"
   else
-    if is_installed httpd; then
-      fail "$(translate errors.apache_installed)"
-    fi
+    debug "RAM size ${current_ram_size_mb}mb is greater than ${MIN_RAM_SIZE_MB}mb, continuing"
+  fi
+}
+
+
+assert_not_running_under_openvz() {
+  debug "Assert we are not running under OpenVZ"
+  if is_ci_mode; then
+    debug "Detected test mode, skip OpenVZ checks"
+    return
+  fi
+
+  virtualization_type="$(hostnamectl status | grep Virtualization | awk '{print $2}')"
+  debug "Detected virtualization type: '${virtualization_type}'"
+  if isset "${virtualization_type}" && [[ "${virtualization_type}" == "openvnz" ]]; then
+    fail "Servers with OpenVZ virtualization are not supported"
   fi
 }
 
@@ -2073,6 +2079,25 @@ stage3(){
   detect_installed_version
 }
 
+
+get_user_vars(){
+  debug 'Read vars from user input'
+  hack_stdin_if_pipe_mode
+  print_translated "welcome"
+  get_user_var 'license_key' 'validate_presence validate_license_key validate_license'
+  get_user_db_restore_vars
+}
+
+
+get_user_db_restore_vars(){
+  if is_detected_license_edition_type_commercial; then
+    get_user_var 'db_restore_path' 'validate_file_existence validate_keitaro_dump validate_enough_space_for_dump'
+    if isset "${VARS['db_restore_path']}"; then
+      get_user_var 'db_restore_salt' 'validate_presence validate_alnumdashdot'
+    fi
+  fi
+}
+
 write_inventory_file(){
   debug "Writing inventory file: STARTED"
   create_inventory_file
@@ -2145,25 +2170,6 @@ print_line_to_inventory_file() {
   echo "$line" >> "$INVENTORY_PATH"
 }
 
-
-get_user_vars(){
-  debug 'Read vars from user input'
-  hack_stdin_if_pipe_mode
-  print_translated "welcome"
-  get_user_var 'license_key' 'validate_presence validate_license_key validate_license'
-  get_user_db_restore_vars
-}
-
-
-get_user_db_restore_vars(){
-  if is_detected_license_edition_type_commercial; then
-    get_user_var 'db_restore_path' 'validate_file_existence validate_keitaro_dump validate_enough_space_for_dump'
-    if isset "${VARS['db_restore_path']}"; then
-      get_user_var 'db_restore_salt' 'validate_presence validate_alnumdashdot'
-    fi
-  fi
-}
-
 stage4(){
   debug "Starting stage 4: generate inventory file"
   if isset "$AUTO_INSTALL"; then
@@ -2227,11 +2233,18 @@ install_galaxy_collection(){
   run_command "${command}"
 }
 
-download_provision(){
-  debug "Download provision"
-  release_url="https://files.keitaro.io/scripts/${BRANCH}/playbook.tar.gz"
-  mkdir -p "${PROVISION_DIRECTORY}"
-  run_command "curl -fsSL ${release_url} | tar -xzC ${PROVISION_DIRECTORY}"
+show_credentials(){
+  print_with_color "http://$(detected_license_ip)/admin" 'light.green'
+
+  if isset "${VARS['db_restore_path']}"; then
+    echo "$(translate 'messages.successful.use_old_credentials')"
+  else
+    colored_login=$(print_with_color "${VARS['admin_login']}" 'light.green')
+    colored_password=$(print_with_color "${VARS['admin_password']}" 'light.green')
+    echo -e "login: ${colored_login}"
+    echo -e "password: ${colored_password}"
+  fi
+  echo "$(translate 'messages.successful.how_to_enable_ssl')"
 }
 json2dict() {
 
@@ -2400,22 +2413,15 @@ json2dict() {
   echo "("; (tokenize | json_parse); echo ")"
 }
 
-show_successful_message(){
-  print_with_color "$(translate 'messages.successful')" 'green'
+download_provision(){
+  debug "Download provision"
+  release_url="https://files.keitaro.io/scripts/${BRANCH}/playbook.tar.gz"
+  mkdir -p "${PROVISION_DIRECTORY}"
+  run_command "curl -fsSL ${release_url} | tar -xzC ${PROVISION_DIRECTORY}"
 }
 
-show_credentials(){
-  print_with_color "http://$(detected_license_ip)/admin" 'light.green'
-
-  if isset "${VARS['db_restore_path']}"; then
-    echo "$(translate 'messages.successful.use_old_credentials')"
-  else
-    colored_login=$(print_with_color "${VARS['admin_login']}" 'light.green')
-    colored_password=$(print_with_color "${VARS['admin_password']}" 'light.green')
-    echo -e "login: ${colored_login}"
-    echo -e "password: ${colored_password}"
-  fi
-  echo "$(translate 'messages.successful.how_to_enable_ssl')"
+show_successful_message(){
+  print_with_color "$(translate 'messages.successful')" 'green'
 }
 
 ANSIBLE_TASK_HEADER="^TASK \[(.*)\].*"
@@ -2650,7 +2656,7 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
 expand_ansible_tags_on_upgrade() {
   if is_upgrade_mode_set; then
     debug "Upgrade mode detected, expading ansible tags."
-    local installed_version=$(get_installed_version)
+    local installed_version=$(get_installed_version_on_upgrade)
     debug "Upgrading ${installed_version} -> ${RELEASE_VERSION}"
     expand_ansible_tags_on_full_upgrade
     expand_ansible_tags_with_tune_tag
@@ -2700,7 +2706,7 @@ expand_ansible_tags_with_install_kctl_tools_tag() {
   fi
 }
 
-get_installed_version() {
+get_installed_version_on_upgrade() {
   if [[ "${ANSIBLE_TAGS}" =~ full-upgrade ]]; then
     debug "ANSIBLE_TAGS contains full-upgrade, simulating upgrade from ${VERY_FIRST_VERSION}"
     echo ${VERY_FIRST_VERSION}
