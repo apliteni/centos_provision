@@ -65,7 +65,12 @@
     db_tracker_users_table_is_empty: "{{ db_tracker_users_exist_query.query_result == [[]] }}"
 
 - name: Create keitaro admin
-  command: "{{ php_path }} bin/cli.php admin:create {{ admin_login }} {{ admin_password }}"
+  command: |
+    {{ php_path }} bin/cli.php admin:create
+                                 --language={{ language }}
+                                 --timezone={{ timezone }}
+                                 {{ admin_login }}
+                                 {{ admin_password }}
   args:
     chdir: "{{ keitaro_app_dir }}"
   become_user: "{{ keitaro_user }}"

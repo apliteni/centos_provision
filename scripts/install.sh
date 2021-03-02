@@ -54,7 +54,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.25.2'
+RELEASE_VERSION='2.25.3'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -345,12 +345,17 @@ assert_upgrade_allowed() {
   if is_upgrade_mode_set; then
     debug 'Ensuring upgrade is allowed'
     if is_keitaro_installed; then
+      ensure_nginx_config_correct
       debug 'Everything looks good, running upgrade'
     else
       debug "Can't upgrade because installation process is not finished yet"
       fail "$(translate errors.cant_upgrade)"
     fi
   fi
+}
+
+ensure_nginx_config_correct() {
+  run_command "nginx -t" "$(translate 'messages.validate_nginx_conf')" "hide_output"
 }
 
 # Based on https://stackoverflow.com/a/53400482/612799
@@ -516,9 +521,6 @@ add_indentation(){
 
 detect_mime_type(){
   local file="${1}"
-  if ! is_installed file "yes"; then
-    install_package file > /dev/stderr
-  fi
   file --brief --mime-type "$file"
 }
 
@@ -656,6 +658,16 @@ detect_inventory_path(){
   done
   debug "Inventory file not found"
 }
+
+get_license_key_from_tracker() {
+  if is_file_exist "$vhost_path" no; then
+    local license_key=$(cat "${WEBAPP_ROOT}/var/license/key.lic")
+    if isset "${license_key}"; then
+      $VARS['license_key']="${license_key}"
+    fi
+  fi
+}
+
 
 clean_up(){
   debug 'called clean_up()'
@@ -1236,7 +1248,8 @@ to_lower(){
 
 ensure_license_valid() {
   if ! validate_license "${VARS['license_key']}"; then
-    fail "$(translate "validation_errors.validate_license")"
+    local error_message="$(translate "errors.check_license_exist" "ip=$(detect_license_ip)" "key=${VARS["license_key"]}")"
+    fail "${error_message}"
   fi
 }
 
@@ -1426,7 +1439,7 @@ build_get_chunk_command() {
   fi
 }
 
-validate_license_key() {
+validate_license_key_format() {
   local value="${1}"
   [[ "$value" =~  ^[0-9A-Z]{4}(-[0-9A-Z]{4}){3}$ ]]
 }
@@ -1483,12 +1496,6 @@ validate_presence(){
   isset "$value"
 }
 
-validate_server_ip_matches_license_ip(){
-  local value="${1}"
-  local server_ip=$(hostname -I | awk '{print $1}')
-  [[ "$value" == "$server_ip" ]]
-}
-
 validate_starts_with_latin_letter(){
   local value="${1}"
   [[ "$value" =~  ^[A-Za-z] ]]
@@ -1538,6 +1545,7 @@ INSTALLED_VERSION=""
 DICT['en.messages.keitaro_already_installed']='Keitaro is already installed'
 DICT['en.messages.check_keitaro_dump_get_tables_prefix']="Getting tables prefix from dump"
 DICT['en.messages.check_keitaro_dump_validity']="Checking SQL dump"
+DICT['en.messages.validate_nginx_conf']='Checking nginx config'
 DICT['en.messages.successful.use_old_credentials']="The database was successfully restored from the archive. Use old login data"
 DICT['en.messages.successful.how_to_enable_ssl']=$(cat <<- END
 	You can install free SSL certificates with the following command
@@ -1558,6 +1566,7 @@ DICT['en.errors.apache_installed']='You can not install Keitaro on the server wi
 DICT['en.errors.cant_detect_server_ip']="The installer couldn't detect the server IP address, please contact Keitaro support team"
 DICT['en.errors.cant_detect_license_edition']="The installer couldn't detect the your license edition, please contact Keitaro support team"
 DICT['en.errors.dump_restoring_not_available_for_trials']='Dump restoring is not avalable for trial licenses'
+DICT['en.errors.check_license_exist']='This server has IP address :ip:. Please make sure you have a license with key :key: and ip :ip: at https://keitaro.io/platform/#/licenses'
 
 DICT['en.prompts.admin_login']='Please enter Keitaro admin login'
 DICT['en.prompts.admin_password']='Please enter Keitaro admin password'
@@ -1577,13 +1586,14 @@ DICT['en.validation_errors.validate_file_existence']='The file was not found by 
 DICT['en.validation_errors.validate_keitaro_dump']='The SQL dump is broken, please specify path to correct SQL dump of Keitaro'
 DICT['en.validation_errors.validate_license']='Wrong license key or ip'
 DICT['en.validation_errors.validate_enough_space_for_dump']='Dont enough space for restore dump'
-DICT['en.validation_errors.validate_license_key']='Please enter valid license key (eg AAAA-BBBB-CCCC-DDDD)'
+DICT['en.validation_errors.validate_license_key_format']='Please enter valid license key (eg AAAA-BBBB-CCCC-DDDD)'
 DICT['en.validation_errors.validate_not_reserved_word']='You are not allowed to use yes/no/true/false as value'
 DICT['en.validation_errors.validate_starts_with_latin_letter']='The value must begin with a Latin letter'
 
 DICT['ru.messages.keitaro_already_installed']='Keitaro трекер уже установлен.'
 DICT['ru.messages.check_keitaro_dump_get_tables_prefix']="Получаем префикс таблиц из SQL дампа"
 DICT['ru.messages.check_keitaro_dump_validity']="Проверяем SQL дамп"
+DICT['ru.messages.validate_nginx_conf']='Проверяем файл конфигурации nginx'
 DICT["ru.messages.successful.use_old_credentials"]="База данных успешно восстановлена из архива. Используйте старые данные для входа в систему"
 DICT['ru.messages.successful.how_to_enable_ssl']=$(cat <<- END
 	Вы можете установить бесплатные SSL сертификаты, выполнив следующую команду:
@@ -1604,6 +1614,8 @@ DICT['ru.errors.apache_installed']="Программа установки не �
 DICT['ru.errors.cant_detect_server_ip']='Программа установки не смогла определить IP адрес сервера. Пожалуйста, обратитесь в службу технической поддержки Keitaro'
 DICT['ru.errors.cant_detect_license_edition']='Программа установки не смогла определить тип вашей лицензии. Пожалуйста, обратитесь в службу технической поддержки Keitaro'
 DICT['ru.errors.dump_restoring_not_available_for_trials']='Восстановление из дампа не доступно для пробных лицензий'
+DICT['ru.errors.check_license_exist']='Этот сервер использует IP адрес :ip:. Убедитесь, что у вас есть лицензия с ключом: key: и ip: ip: на странице https://keitaro.io/platform/#/license'
+
 DICT['ru.prompts.admin_login']='Укажите имя администратора Keitaro'
 DICT['ru.prompts.admin_password']='Укажите пароль администратора Keitaro'
 DICT['ru.prompts.db_name']='Укажите имя базы данных'
@@ -1617,7 +1629,7 @@ DICT['ru.welcome']=$(cat <<- END
 	Эта программа поможет собрать информацию необходимую для установки Keitaro на вашем сервере.
 END
 )
-DICT['ru.validation_errors.validate_license_key']='Введите корректный ключ лицензии (например AAAA-BBBB-CCCC-DDDD)'
+DICT['ru.validation_errors.validate_license_key_format']='Введите корректный ключ лицензии (например AAAA-BBBB-CCCC-DDDD)'
 DICT['ru.validation_errors.validate_alnumdashdot']='Можно использовать только латинские бувы, цифры, тире, подчёркивание и точку'
 DICT['ru.validation_errors.validate_starts_with_latin_letter']='Значение должно начинаться с латинской буквы'
 DICT['ru.validation_errors.validate_file_existence']='Файл по заданному пути не обнаружен, введите правильный путь к файлу'
@@ -1634,6 +1646,39 @@ is_detected_license_edition_type_commercial() {
   local license_edition_type=$(detected_license_edition_type ${license_ip} ${license_key})
   [[ "${license_edition_type}" == "${LICENSE_EDITION_TYPE_COMMERCIAL}" ]]
 }
+
+is_ram_size_mb_changed() {
+  ( isset "${VARS['previous_ram_size_mb']}" && [[ "${VARS['previous_ram_size_mb']}" != "${VARS['ram_size_mb']}" ]] ) \
+      || ( isset "${VARS['ram_size_mb']}" && [[ "${VARS['ram_size_mb']}" != "$(get_ram_size_mb)" ]] )
+}
+
+
+get_var_from_config(){
+  local var="${1}"
+  local file="${2}"
+  local separator="${3}"
+  cat "$file" | \
+    grep "^${var}\\b" | \
+    grep "${separator}" | \
+    head -n1 | \
+    awk -F"${separator}" '{print $2}' | \
+    awk '{$1=$1; print}' | \
+    sed -r -e "s/^'(.*)'\$/\\1/g" -e 's/^"(.*)"$/\1/g'
+  }
+
+DETECTED_RAM_SIZE_MB=""
+
+get_ram_size_mb() {
+  if empty "${DETECTED_RAM_SIZE_MB}"; then
+    if is_ci_mode; then
+      DETECTED_RAM_SIZE_MB=2048
+    else
+      DETECTED_RAM_SIZE_MB=$((free -m | grep Mem: | awk '{print $2}') 2>/dev/null)
+    fi
+  fi
+  echo "${DETECTED_RAM_SIZE_MB}"
+}
+
 
 clean_up(){
   if [ -d "$PROVISION_DIRECTORY" ]; then
@@ -1697,39 +1742,6 @@ get_var_from_keitaro_app_config() {
   local var="${1}"
   get_var_from_config "${var}" "${WEBAPP_ROOT}/application/config/config.ini.php" '='
 }
-
-get_var_from_config(){
-  local var="${1}"
-  local file="${2}"
-  local separator="${3}"
-  cat "$file" | \
-    grep "^${var}\\b" | \
-    grep "${separator}" | \
-    head -n1 | \
-    awk -F"${separator}" '{print $2}' | \
-    awk '{$1=$1; print}' | \
-    sed -r -e "s/^'(.*)'\$/\\1/g" -e 's/^"(.*)"$/\1/g'
-  }
-
-is_ram_size_mb_changed() {
-  ( isset "${VARS['previous_ram_size_mb']}" && [[ "${VARS['previous_ram_size_mb']}" != "${VARS['ram_size_mb']}" ]] ) \
-      || ( isset "${VARS['ram_size_mb']}" && [[ "${VARS['ram_size_mb']}" != "$(get_ram_size_mb)" ]] )
-}
-
-
-DETECTED_RAM_SIZE_MB=""
-
-get_ram_size_mb() {
-  if empty "${DETECTED_RAM_SIZE_MB}"; then
-    if is_ci_mode; then
-      DETECTED_RAM_SIZE_MB=2048
-    else
-      DETECTED_RAM_SIZE_MB=$((free -m | grep Mem: | awk '{print $2}') 2>/dev/null)
-    fi
-  fi
-  echo "${DETECTED_RAM_SIZE_MB}"
-}
-
 
 
 
@@ -1805,7 +1817,7 @@ parse_options(){
 
 
 ensure_license_set() {
-  ensure_valid K license_key "validate_presence validate_license_key validate_license"
+  ensure_valid K license_key "validate_presence validate_license_key_format"
 }
 
 
@@ -1878,19 +1890,19 @@ stage1() {
   parse_options "$@"
   set_ui_lang
 }
-#
 
 
+assert_not_running_under_openvz() {
+  debug "Assert we are not running under OpenVZ"
+  if is_ci_mode; then
+    debug "Detected test mode, skip OpenVZ checks"
+    return
+  fi
 
-
-
-assert_apache_not_installed(){
-  if isset "$SKIP_CHECKS"; then
-    debug "SKIPPED: actual checking of httpd skipped"
-  else
-    if is_installed httpd; then
-      fail "$(translate errors.apache_installed)"
-    fi
+  virtualization_type="$(hostnamectl status | grep Virtualization | awk '{print $2}')"
+  debug "Detected virtualization type: '${virtualization_type}'"
+  if isset "${virtualization_type}" && [[ "${virtualization_type}" == "openvnz" ]]; then
+    fail "Servers with OpenVZ virtualization are not supported"
   fi
 }
 
@@ -1898,6 +1910,19 @@ assert_centos_distro(){
   assert_installed 'yum' 'errors.wrong_distro'
   if ! is_file_exist /etc/centos-release; then
     fail "$(translate errors.wrong_distro)" "see_logs"
+  fi
+}
+MIN_RAM_SIZE_MB=1500
+
+assert_has_enough_ram(){
+  debug "Checking RAM size"
+
+  local current_ram_size_mb=$(get_ram_size_mb)
+  if [[ "$current_ram_size_mb" -lt "$MIN_RAM_SIZE_MB" ]]; then
+    debug "RAM size ${current_ram_size_mb}mb is less than ${MIN_RAM_SIZE_MB}mb, raising error"
+    fail "$(translate errors.not_enough_ram)"
+  else
+    debug "RAM size ${current_ram_size_mb}mb is greater than ${MIN_RAM_SIZE_MB}mb, continuing"
   fi
 }
 
@@ -1960,32 +1985,19 @@ is_database_exists(){
   debug "Check if database ${database} exists"
   mysql -Nse 'show databases' 2>/dev/null | tr '\n' ' ' | grep -Pq "${database}"
 }
-MIN_RAM_SIZE_MB=1500
+#
 
-assert_has_enough_ram(){
-  debug "Checking RAM size"
 
-  local current_ram_size_mb=$(get_ram_size_mb)
-  if [[ "$current_ram_size_mb" -lt "$MIN_RAM_SIZE_MB" ]]; then
-    debug "RAM size ${current_ram_size_mb}mb is less than ${MIN_RAM_SIZE_MB}mb, raising error"
-    fail "$(translate errors.not_enough_ram)"
+
+
+
+assert_apache_not_installed(){
+  if isset "$SKIP_CHECKS"; then
+    debug "SKIPPED: actual checking of httpd skipped"
   else
-    debug "RAM size ${current_ram_size_mb}mb is greater than ${MIN_RAM_SIZE_MB}mb, continuing"
-  fi
-}
-
-
-assert_not_running_under_openvz() {
-  debug "Assert we are not running under OpenVZ"
-  if is_ci_mode; then
-    debug "Detected test mode, skip OpenVZ checks"
-    return
-  fi
-
-  virtualization_type="$(hostnamectl status | grep Virtualization | awk '{print $2}')"
-  debug "Detected virtualization type: '${virtualization_type}'"
-  if isset "${virtualization_type}" && [[ "${virtualization_type}" == "openvnz" ]]; then
-    fail "Servers with OpenVZ virtualization are not supported"
+    if is_installed httpd; then
+      fail "$(translate errors.apache_installed)"
+    fi
   fi
 }
 
@@ -2079,25 +2091,6 @@ stage3(){
   detect_installed_version
 }
 
-
-get_user_vars(){
-  debug 'Read vars from user input'
-  hack_stdin_if_pipe_mode
-  print_translated "welcome"
-  get_user_var 'license_key' 'validate_presence validate_license_key validate_license'
-  get_user_db_restore_vars
-}
-
-
-get_user_db_restore_vars(){
-  if is_detected_license_edition_type_commercial; then
-    get_user_var 'db_restore_path' 'validate_file_existence validate_keitaro_dump validate_enough_space_for_dump'
-    if isset "${VARS['db_restore_path']}"; then
-      get_user_var 'db_restore_salt' 'validate_presence validate_alnumdashdot'
-    fi
-  fi
-}
-
 write_inventory_file(){
   debug "Writing inventory file: STARTED"
   create_inventory_file
@@ -2170,6 +2163,25 @@ print_line_to_inventory_file() {
   echo "$line" >> "$INVENTORY_PATH"
 }
 
+
+get_user_vars(){
+  debug 'Read vars from user input'
+  hack_stdin_if_pipe_mode
+  print_translated "welcome"
+  get_user_var 'license_key' 'validate_presence validate_license_key_format validate_license'
+  get_user_db_restore_vars
+}
+
+
+get_user_db_restore_vars(){
+  if is_detected_license_edition_type_commercial; then
+    get_user_var 'db_restore_path' 'validate_file_existence validate_keitaro_dump validate_enough_space_for_dump'
+    if isset "${VARS['db_restore_path']}"; then
+      get_user_var 'db_restore_salt' 'validate_presence validate_alnumdashdot'
+    fi
+  fi
+}
+
 stage4(){
   debug "Starting stage 4: generate inventory file"
   if isset "$AUTO_INSTALL"; then
@@ -2198,6 +2210,9 @@ upgrade_packages(){
 }
 
 install_packages(){
+  if ! is_package_installed file; then
+    install_package file
+  fi
   if ! is_package_installed tar; then
     install_package tar
   fi
@@ -2233,18 +2248,11 @@ install_galaxy_collection(){
   run_command "${command}"
 }
 
-show_credentials(){
-  print_with_color "http://$(detected_license_ip)/admin" 'light.green'
-
-  if isset "${VARS['db_restore_path']}"; then
-    echo "$(translate 'messages.successful.use_old_credentials')"
-  else
-    colored_login=$(print_with_color "${VARS['admin_login']}" 'light.green')
-    colored_password=$(print_with_color "${VARS['admin_password']}" 'light.green')
-    echo -e "login: ${colored_login}"
-    echo -e "password: ${colored_password}"
-  fi
-  echo "$(translate 'messages.successful.how_to_enable_ssl')"
+download_provision(){
+  debug "Download provision"
+  release_url="https://files.keitaro.io/scripts/${BRANCH}/playbook.tar.gz"
+  mkdir -p "${PROVISION_DIRECTORY}"
+  run_command "curl -fsSL ${release_url} | tar -xzC ${PROVISION_DIRECTORY}"
 }
 json2dict() {
 
@@ -2413,15 +2421,22 @@ json2dict() {
   echo "("; (tokenize | json_parse); echo ")"
 }
 
-download_provision(){
-  debug "Download provision"
-  release_url="https://files.keitaro.io/scripts/${BRANCH}/playbook.tar.gz"
-  mkdir -p "${PROVISION_DIRECTORY}"
-  run_command "curl -fsSL ${release_url} | tar -xzC ${PROVISION_DIRECTORY}"
-}
-
 show_successful_message(){
   print_with_color "$(translate 'messages.successful')" 'green'
+}
+
+show_credentials(){
+  print_with_color "http://$(detected_license_ip)/admin" 'light.green'
+
+  if isset "${VARS['db_restore_path']}"; then
+    echo "$(translate 'messages.successful.use_old_credentials')"
+  else
+    colored_login=$(print_with_color "${VARS['admin_login']}" 'light.green')
+    colored_password=$(print_with_color "${VARS['admin_password']}" 'light.green')
+    echo -e "login: ${colored_login}"
+    echo -e "password: ${colored_password}"
+  fi
+  echo "$(translate 'messages.successful.how_to_enable_ssl')"
 }
 
 ANSIBLE_TASK_HEADER="^TASK \[(.*)\].*"
@@ -2744,6 +2759,7 @@ install(){
   stage3                    # read vars from the inventory file
   if isset "$RECONFIGURE"; then
     assert_upgrade_allowed
+    get_license_key_from_tracker
     assert_config_relevant_or_upgrade_running
     write_inventory_on_reconfiguration
     expand_ansible_tags_on_upgrade
