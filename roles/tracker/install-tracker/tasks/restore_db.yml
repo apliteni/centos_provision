@@ -1,8 +1,3 @@
-- name: Install file utility
-  package:
-    name: file
-    state: present
-
 - name: Get mime of dump
   shell: "file '{{ db_restore_path }}' --mime-type --brief"
   args:

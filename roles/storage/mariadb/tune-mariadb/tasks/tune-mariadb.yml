@@ -1,3 +1,14 @@
+- name: Make stat for path
+  stat:
+    path: /var/log/mariadb
+  register: mariadb_log_dir_stat
+
+- name: Clear symlink if exist
+  file:
+    state: absent
+    path: /var/log/mariadb
+  when: mariadb_log_dir_stat.stat.islnk is defined and mariadb_log_dir_stat.stat.islnk
+
 - name: Create log directory
   file:
     path: /var/log/mysql
