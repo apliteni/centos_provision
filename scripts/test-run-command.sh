@@ -54,7 +54,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.25.3'
+RELEASE_VERSION='2.26.0'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -810,7 +810,9 @@ ANSIBLE_FAILURE_JSON_FILEPATH="${WORKING_DIR}/ansible_failure.json"
 ANSIBLE_LAST_TASK_LOG="${WORKING_DIR}/ansible_last_task.log"
 
 run_ansible_playbook(){
-  local env="ANSIBLE_FORCE_COLOR=true"
+  local env=""
+  env="${env} KCTL_BRANCH=${BRANCH}"
+  env="${env} ANSIBLE_FORCE_COLOR=true"
   env="${env} ANSIBLE_CONFIG=${PROVISION_DIRECTORY}/ansible.cfg"
   if [ -f "$DETECTED_PREFIX_PATH" ]; then
     env="${env} TABLES_PREFIX='$(cat "${DETECTED_PREFIX_PATH}" | head -n1)'"

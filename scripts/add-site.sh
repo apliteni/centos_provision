@@ -53,7 +53,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.25.3'
+RELEASE_VERSION='2.26.0'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -658,8 +658,8 @@ nginx_vhost_sed_expressions(){
   if ! is_file_matches "$vhost_path" "include ${vhost_override_path};" no; then
     expressions="${expressions} -e '/server.inc;/a\ \ include ${vhost_override_path};'"
   fi
-  expressions="${expressions} -e 's/listen 80 default_server/listen 80/'"
   expressions="${expressions} -e 's/server_name _/server_name ${domain}/'"
+  expressions="${expressions} -e 's/ default_server;/;/'"
   while isset "${1}"; do
     expressions="${expressions} -e '${1}'"
     shift

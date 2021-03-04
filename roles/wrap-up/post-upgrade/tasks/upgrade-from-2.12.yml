@@ -1,0 +1,14 @@
+- name: Get php-fpm SystemD units
+  shell: >
+    systemctl list-unit-files | \
+      grep -P 'php\d+-php-fpm\.service' | \
+      grep -v '{{ php_version }}-php-fpm.service' | \
+      awk -F. '{print $1}'
+  register: get_unneeded_php_fpm_services
+
+- name: Stop and disable old php-fpm
+  service:
+    name: "{{ item }}"
+    state: stopped
+    enabled: false
+  with_items: "{{ get_unneeded_php_fpm_services.stdout_lines }}"
