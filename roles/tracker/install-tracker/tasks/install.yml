@@ -3,7 +3,7 @@
 
 - include_tasks: "{{ playbook_dir }}/roles/tracker/_common/get-tracker-info/latest_tracker.yml"
   vars:
-    user_agent: "Keitaro Installer v{{ keitaro_installer_version }} PHP/{{ php_release }}"
+    user_agent: "Keitaro Installer v{{ kctl_version }} PHP/{{ php_release }}"
     request_params: "version={{ keitaro_release }}&stability=unstable&phpversion={{ php_release }}"
 
 - name: Download keitaro distribution

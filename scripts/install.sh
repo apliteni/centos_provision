@@ -54,7 +54,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.25.3'
+RELEASE_VERSION='2.26.0'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -2021,20 +2021,6 @@ setup_vars(){
   setup_default_value db_root_password "$(generate_password)"
   setup_default_value db_engine 'tokudb'
   setup_default_value php_engine "${PHP_ENGINE}"
-  setup_default_value ssh_port "$(get_ssh_port)"
-}
-
-get_ssh_port(){
-  local sshport=`echo $SSH_CLIENT | cut -d' ' -f 3`
-  if [ -z "$sshport" ]; then
-    echo "22"
-  else
-    if [ "$sshport" != "22" ]; then
-      echo "$sshport"
-    else
-      echo "22"
-    fi
-  fi
 }
 
 setup_default_value(){
@@ -2091,6 +2077,16 @@ stage3(){
   detect_installed_version
 }
 
+get_ssh_port(){
+  local ssh_port=$(echo $SSH_CLIENT | cut -d' ' -f 3)
+  if empty "${ssh_port}"; then
+    ssh_port="22"
+  fi
+  debug "Detected ssh port: ${ssh_port}"
+  echo "${ssh_port}"
+}
+
+
 write_inventory_file(){
   debug "Writing inventory file: STARTED"
   create_inventory_file
@@ -2110,7 +2106,7 @@ write_inventory_file(){
   print_line_to_inventory_file "evaluated_by_installer=yes"
   print_line_to_inventory_file "php_engine=${VARS['php_engine']}"
   print_line_to_inventory_file "cpu_cores=$(get_cpu_cores)"
-  print_line_to_inventory_file "ssh_port=${VARS['ssh_port']}"
+  print_line_to_inventory_file "ssh_port=$(get_ssh_port)"
   if isset "${VARS['db_restore_path']}"; then
     print_line_to_inventory_file "db_restore_path=${VARS['db_restore_path']}"
     print_line_to_inventory_file "db_restore_salt=${VARS['db_restore_salt']}"
@@ -2445,7 +2441,9 @@ ANSIBLE_FAILURE_JSON_FILEPATH="${WORKING_DIR}/ansible_failure.json"
 ANSIBLE_LAST_TASK_LOG="${WORKING_DIR}/ansible_last_task.log"
 
 run_ansible_playbook(){
-  local env="ANSIBLE_FORCE_COLOR=true"
+  local env=""
+  env="${env} KCTL_BRANCH=${BRANCH}"
+  env="${env} ANSIBLE_FORCE_COLOR=true"
   env="${env} ANSIBLE_CONFIG=${PROVISION_DIRECTORY}/ansible.cfg"
   if [ -f "$DETECTED_PREFIX_PATH" ]; then
     env="${env} TABLES_PREFIX='$(cat "${DETECTED_PREFIX_PATH}" | head -n1)'"
@@ -2630,7 +2628,7 @@ signal_successful_installation() {
 #     and insalled version is 2.12
 #     and we are upgrading to 2.14
 #   then ansible tags will be expanded by `upgrade-from-2.12` and `upgrade-from-2.13` tags 
-UPGRADE_CHECKPOINTS=(1.5 2.0 2.12 2.13 2.16 2.20 2.24)
+UPGRADE_CHECKPOINTS=(1.5 2.0 2.12 2.13 2.16 2.20 2.25)
 
 # If installed version less than or equal to version from array value
 # then ANSIBLE_TAGS will be expanded by appropriate tags (given from array key)
@@ -2644,14 +2642,14 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['disable-ipv6']='1.0'
   ['disable-selinux']='2.25.0'
   ['disable-thp']='0.9'
-  ['enable-firewall']='1.9'
-  ['enable-repo-remi']='2.15'
   ['increase-max-opened-files']='1.0'
   ['install-certbot']='2.23.4'
   ['install-certs']='1.0'
   ['install-chrony']='2.13'
+  ['install-firewalld']='2.25.3'
   ['install-helper-packages']='2.20'
   ['install-postfix']='2.13'
+  ['install-repo-remi']='2.15'
   ['setup-journald']='2.12'
   ['setup-timezone']='0.9'
   ['tune-swap']='2.21.0'

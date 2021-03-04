@@ -1,22 +1,22 @@
 - include: ensure_relevant_keitaro_installed.yml
 
-- include: backup_configs.yml
-  when: "'upgrade-from-2.0' in ansible_run_tags"
-
-- include: upgrade_from_1.5.yml
+- include: upgrade-from-1.5/main.yml
   when: "'upgrade-from-1.5' in ansible_run_tags"
 
-- include: upgrade_from_2.12.yml
+- include: upgrade-from-2.0/main.yml
+  when: "'upgrade-from-2.0' in ansible_run_tags"
+
+- include: upgrade-from-2.12/main.yml
   when: "'upgrade-from-2.12' in ansible_run_tags"
 
-- include: upgrade_from_2.13.yml
+- include: upgrade-from-2.13/main.yml
   when: "'upgrade-from-2.13' in ansible_run_tags"
 
-- include: upgrade_from_2.16.yml
+- include: upgrade-from-2.16/main.yml
   when: "'upgrade-from-2.16' in ansible_run_tags"
 
-- include: upgrade_from_2.20.yml
+- include: upgrade-from-2.20/main.yml
   when: "'upgrade-from-2.20' in ansible_run_tags"
 
-- include: upgrade_from_2.24.yml
-  when: "'upgrade-from-2.24' in ansible_run_tags"
+- include: upgrade-from-2.25/main.yml
+  when: "'upgrade-from-2.25' in ansible_run_tags"
