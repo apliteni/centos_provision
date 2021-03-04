@@ -15,11 +15,11 @@
     - {role: 'init/install-certbot',                       tags: 'install-certbot'}
     - {role: 'init/install-certs',                         tags: 'install-certs'}
     - {role: 'init/install-chrony',                        tags: 'install-chrony'}
-    - {role: 'init/install-firewalld',                      tags: 'install-firewalld'}
+    - {role: 'init/install-firewalld',                     tags: 'install-firewalld'}
     - {role: 'init/install-helper-packages',               tags: 'install-helper-packages'}
     - {role: 'init/install-kctl-tools',                    tags: 'install-kctl-tools'}
     - {role: 'init/install-postfix',                       tags: 'install-postfix'}
-    - {role: 'init/install-repo-remi',                      tags: 'install-repo-remi'}
+    - {role: 'init/install-repo-remi',                     tags: 'install-repo-remi'}
     - {role: 'init/setup-journald',                        tags: 'setup-journald'}
     - {role: 'init/setup-timezone',                        tags: 'setup-timezone'}
     - {role: 'init/tune-swap',                             tags: 'tune-swap,                    tune'}
