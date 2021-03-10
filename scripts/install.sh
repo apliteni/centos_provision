@@ -54,7 +54,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.27.0'
+RELEASE_VERSION='2.27.1'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -2660,7 +2660,7 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['install-mariadb']='1.17'
   ['tune-mariadb']='2.20.4'
   ['tune-redis']='2.20.4'
-  ['install-nginx']='1.0'
+  ['install-nginx']='2.27.0'
   ['tune-nginx']='2.20.4'
   ['setup-tracker']='2.23.2'
   ['upgrade-tracker']='2.12'
