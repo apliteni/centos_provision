@@ -3,13 +3,7 @@
     name: firewalld
     state: present
 
-- name: enable service firewalld and ensure it is not masked
-  systemd:
-    name: firewalld
-    enabled: yes
-    masked: no
-
-- name: Disallow Zone Drifting (to get rid of firewalld warning)
+- name: Disallow Zone Drifting to get rid of firewalld warning
   lineinfile:
     dest: /etc/firewalld/firewalld.conf
     line: AllowZoneDrifting=no
@@ -18,6 +12,7 @@
 - name: Ensure firewalld service is enabled and started
   service:
     name: firewalld
+    masked: no
     state: started
     enabled: true
 

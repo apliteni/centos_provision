@@ -29,4 +29,3 @@
     name: Renew Let's Encrypt certs
     state: absent
     user: "{{ nginx_user }}"
-
