@@ -20,5 +20,4 @@
     insertafter: '^# maxmemory '
     regexp: '^maxmemory '
     line: 'maxmemory {{ redis_memory_mb }}mb'
-  notify:
-    - restart redis
+  notify: restart redis
