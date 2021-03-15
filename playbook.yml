@@ -37,6 +37,7 @@
     - {role: 'storage/mariadb/wrap-up-db-configuration',   tags: 'wrap-up-db-configuration'}
     - {role: 'storage/redis/install-redis',                tags: 'install-redis'}
     - {role: 'storage/redis/tune-redis',                   tags: 'tune-redis,                   tune'}
+    - {role: 'storage/redis/x-upgrade-redis-configs',      tags: 'upgrade-redis-configs,        never, upgrade'}
     - {role: 'tracker/install-tracker',                    tags: 'install-tracker'}
     - {role: 'tracker/set-file-permissions',               tags: 'set-file-permissions,         always'}
     - {role: 'tracker/upgrade-tracker',                    tags: 'upgrade-tracker,              never'}
