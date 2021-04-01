@@ -54,7 +54,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.27.4'
+RELEASE_VERSION='2.27.5'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -1547,11 +1547,6 @@ DICT['en.messages.check_keitaro_dump_get_tables_prefix']="Getting tables prefix 
 DICT['en.messages.check_keitaro_dump_validity']="Checking SQL dump"
 DICT['en.messages.validate_nginx_conf']='Checking nginx config'
 DICT['en.messages.successful.use_old_credentials']="The database was successfully restored from the archive. Use old login data"
-DICT['en.messages.successful.how_to_enable_ssl']=$(cat <<- END
-	You can install free SSL certificates with the following command
-	kctl-enable-ssl -D domain1.com,domain2.com
-END
-)
 DICT['en.errors.see_logs']=$(cat <<- END
 	Installation log saved to ${LOG_PATH}. Configuration settings saved to ${INVENTORY_PATH}.
 	You can rerun \`${SCRIPT_COMMAND}\` with saved settings after resolving installation problems.
@@ -1595,11 +1590,6 @@ DICT['ru.messages.check_keitaro_dump_get_tables_prefix']="Получаем пр�
 DICT['ru.messages.check_keitaro_dump_validity']="Проверяем SQL дамп"
 DICT['ru.messages.validate_nginx_conf']='Проверяем файл конфигурации nginx'
 DICT["ru.messages.successful.use_old_credentials"]="База данных успешно восстановлена из архива. Используйте старые данные для входа в систему"
-DICT['ru.messages.successful.how_to_enable_ssl']=$(cat <<- END
-	Вы можете установить бесплатные SSL сертификаты, выполнив следующую команду:
-	kctl-enable-ssl -D domain1.com,domain2.com -L ru
-END
-)
 DICT['ru.errors.see_logs']=$(cat <<- END
 	Журнал установки сохранён в ${LOG_PATH}. Настройки сохранены в ${INVENTORY_PATH}.
 	Вы можете повторно запустить \`${SCRIPT_COMMAND}\` с этими настройками после устранения возникших проблем.
@@ -2432,7 +2422,6 @@ show_credentials(){
     echo -e "login: ${colored_login}"
     echo -e "password: ${colored_password}"
   fi
-  echo "$(translate 'messages.successful.how_to_enable_ssl')"
 }
 
 ANSIBLE_TASK_HEADER="^TASK \[(.*)\].*"
@@ -2656,14 +2645,14 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['install-php']='2.25.0'
   ['install-roadrunner']='2.20.4'
   ['tune-php']='2.20.4'
-  ['tune-roadrunner']='2.20.4'
+  ['tune-roadrunner']='2.27.4'
   ['install-mariadb']='1.17'
   ['tune-mariadb']='2.20.4'
   ['tune-redis']='2.27.3'
   ['install-nginx']='2.27.0'
-  ['tune-nginx']='2.20.4'
-  ['setup-tracker']='2.23.2'
+  ['tune-nginx']='2.27.4'
   ['upgrade-tracker']='2.12'
+  ['wrap-up-tracker-configuration']='2.27.4'
 )
 
 expand_ansible_tags_on_upgrade() {

@@ -18,7 +18,8 @@
   when:
     (custom_package is defined) or
     (get_latest_tracker_version.stdout is version(get_current_tracker_version.stdout, '>')) or
-    (get_current_php_ioc_version.stdout != php_ioc_version)
+    (get_current_php_ioc_version.stdout != php_ioc_version) or
+    ('full-upgrade' in ansible_run_tags)
    
 - name: Store previous tracker version
   set_fact:

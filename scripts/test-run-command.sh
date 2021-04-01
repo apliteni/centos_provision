@@ -54,7 +54,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.27.4'
+RELEASE_VERSION='2.27.5'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -971,7 +971,6 @@ show_credentials(){
     echo -e "login: ${colored_login}"
     echo -e "password: ${colored_password}"
   fi
-  echo "$(translate 'messages.successful.how_to_enable_ssl')"
 }
 
 show_successful_message(){

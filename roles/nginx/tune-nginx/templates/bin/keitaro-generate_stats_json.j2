@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
 KEITARO_STATS_JSON_PATH="{{ keitaro_stats_json_path }}"
-KEITARO_STATS_JSON_TMP_PATH="{{ keitaro_stats_json_path }}.tmp"
+DATETIME=$(date "+%Y%m%d%H%M%S")
+KEITARO_STATS_JSON_TMP_PATH="{{ keitaro_stats_json_path }}-${DATETIME}.tmp"
 KEITARO_USER="{{ keitaro_user }}"
 KEITARO_GROUP="{{ keitaro_group }}"
 
