@@ -55,9 +55,9 @@
     - name: "Include install-helper-packages"
       include_role:
         name: "../init/install-helper-packages"
-    - name: "Include enable-repo-remi"
+    - name: "Include install-repo-remi"
       include_role:
-        name: "../init/enable-repo-remi"
+        name: "../init/install-repo-remi"
     - name: "Include install-php"
       include_role:
         name: "install-php"

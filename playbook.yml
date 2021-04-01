@@ -40,7 +40,7 @@
     - {role: 'tracker/install-tracker',                    tags: 'install-tracker'}
     - {role: 'tracker/set-file-permissions',               tags: 'set-file-permissions,         always'}
     - {role: 'tracker/upgrade-tracker',                    tags: 'upgrade-tracker,              never'}
-    - {role: 'tracker/setup-tracker',                      tags: 'setup-tracker'}
+    - {role: 'tracker/wrap-up-tracker-configuration',      tags: 'wrap-up-tracker-configuration'}
     - {role: 'wrap-up/force-restart-services',             tags: 'force-restart-services,       always'}
     - {role: 'wrap-up/post-upgrade',                       tags: 'post-upgrade,                 never, upgrade'}
 

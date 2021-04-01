@@ -13,11 +13,11 @@ Group=keitaro
 
 Type=notify
 NotifyAccess=all
-WatchdogSec=30s
+WatchdogSec=60s
 Restart=always
-RestartSec=60s
-StartLimitInterval=5min
+RestartSec=120s
 StartLimitBurst=4
+StartLimitInterval=10min # it must be greater then RestartSec * StartLimitBurst
 StartLimitAction=reboot
 
 
