@@ -17,7 +17,8 @@ WatchdogSec=60s
 Restart=always
 RestartSec=120s
 StartLimitBurst=4
-StartLimitInterval=10min # it must be greater then RestartSec * StartLimitBurst
+# StartLimitInterval must be greater then RestartSec * StartLimitBurst
+StartLimitInterval=600
 StartLimitAction=reboot
 
 
