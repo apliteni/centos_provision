@@ -54,7 +54,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.27.6'
+RELEASE_VERSION='2.27.7'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -1207,6 +1207,25 @@ detect_license_edition_type() {
 }
 
 
+
+detect_license_expired_status() {
+  local license_key="${1}"
+
+  debug "Detecting license expired status for key ${license_key}"
+
+  if isset "$SKIP_CHECKS"; then
+    debug "SKIP: actual detecting of license type skipped, using 'not expired'"
+    license_expired_status="${LICENSE_VALID_STATUS}"
+  else
+    local url="${KEITARO_URL}/license/api/get_expiration_status?key=${license_key}"
+    debug "Getting url '${url}'"
+    local license_expired_status="$(curl -fsSL "${url}" 2>&1)"
+    debug "Done, result is '${license_expired_status}'"
+  fi
+
+  echo "${license_expired_status}"
+}
+
 detected_license_ip() {
   if isset "${DETECTED_VARS['license_ip']}"; then
     debug "License ip is already detected"
@@ -1247,8 +1266,17 @@ to_lower(){
 }
 
 ensure_license_valid() {
-  if ! validate_license "${VARS['license_key']}"; then
-    local error_message="$(translate "errors.check_license_exist" "ip=$(detect_license_ip)" "key=${VARS["license_key"]}")"
+  if isset "$RECONFIGURE"; then
+    if ! is_file_exist "${WEBAPP_ROOT}/var/license/key.lic"; then
+      fail "File ${WEBAPP_ROOT}/var/license/key.lic does not exist"
+    fi
+    local license_key=$(cat "${WEBAPP_ROOT}/var/license/key.lic")
+  else
+    local license_key="${VARS['license_key']}"
+  fi
+
+  if ! validate_license "${license_key}"; then
+    local error_message="$(translate "errors.check_license_exist" "ip=$(detect_license_ip)" "key=${license_key}")"
     fail "${error_message}"
   fi
 }
@@ -1439,6 +1467,11 @@ build_get_chunk_command() {
   fi
 }
 
+validate_license_key_is_active() {
+  local license_key="${1}"
+  [[ $(detect_license_expired_status "${license_key}") != ${LICENSE_EXPIRATION_STATUS} ]]
+}
+
 validate_license_key_format() {
   local value="${1}"
   [[ "$value" =~  ^[0-9A-Z]{4}(-[0-9A-Z]{4}){3}$ ]]
@@ -1539,6 +1572,8 @@ LICENSE_EDITION_TYPE_COMMERCIAL="commercial"
 LICENSE_EDITION_TYPE_INVALID="INVALID"
 LICENSE_EDITION_TYPES=("$LICENSE_EDITION_TYPE_TRIAL" "$LICENSE_EDITION_TYPE_COMMERCIAL" "$LICENSE_EDITION_TYPE_INVALID")
 
+LICENSE_EXPIRATION_STATUS="expired"
+LICENSE_VALID_STATUS="actual"
 INSTALLED_VERSION=""
 
 
@@ -1584,6 +1619,7 @@ DICT['en.validation_errors.validate_enough_space_for_dump']='Dont enough space f
 DICT['en.validation_errors.validate_license_key_format']='Please enter valid license key (eg AAAA-BBBB-CCCC-DDDD)'
 DICT['en.validation_errors.validate_not_reserved_word']='You are not allowed to use yes/no/true/false as value'
 DICT['en.validation_errors.validate_starts_with_latin_letter']='The value must begin with a Latin letter'
+DICT['en.validation_errors.validate_license_key_is_active']='Specified license key has expired'
 
 DICT['ru.messages.keitaro_already_installed']='Keitaro трекер уже установлен.'
 DICT['ru.messages.check_keitaro_dump_get_tables_prefix']="Получаем префикс таблиц из SQL дампа"
@@ -1606,6 +1642,7 @@ DICT['ru.errors.cant_detect_license_edition']='Программа установ
 DICT['ru.errors.dump_restoring_not_available_for_trials']='Восстановление из дампа не доступно для пробных лицензий'
 DICT['ru.errors.check_license_exist']='Этот сервер использует IP адрес :ip:. Убедитесь, что у вас есть лицензия с ключом: key: и ip: ip: на странице https://keitaro.io/platform/#/license'
 
+
 DICT['ru.prompts.admin_login']='Укажите имя администратора Keitaro'
 DICT['ru.prompts.admin_password']='Укажите пароль администратора Keitaro'
 DICT['ru.prompts.db_name']='Укажите имя базы данных'
@@ -1627,6 +1664,7 @@ DICT['ru.validation_errors.validate_keitaro_dump']='Указанный файл 
 DICT['ru.validation_errors.validate_not_reserved_word']='Запрещено использовать yes/no/true/false в качестве значения'
 DICT['ru.validation_errors.validate_license']='Неверный ключ лицензии или IP'
 DICT['ru.validation_errors.validate_enough_space_for_dump']='Недостаточно места для восстановления из дампа'
+DICT['ru.validation_errors.validate_license_key_is_active']='Срок действия указанного лицензионного ключа истек'
 
 
 
@@ -1807,7 +1845,7 @@ parse_options(){
 
 
 ensure_license_set() {
-  ensure_valid K license_key "validate_presence validate_license_key_format"
+  ensure_valid K license_key "validate_presence validate_license_key_format validate_license_key_is_active"
 }
 
 
@@ -1816,6 +1854,7 @@ ensure_license_edition_type_is_commercial() {
      fail "$(translate 'errors.dump_restoring_not_available_for_trials')"
    fi
 }
+
 
 
 help_ru(){
@@ -1986,7 +2025,7 @@ assert_not_running_under_openvz() {
 
   virtualization_type="$(hostnamectl status | grep Virtualization | awk '{print $2}')"
   debug "Detected virtualization type: '${virtualization_type}'"
-  if isset "${virtualization_type}" && [[ "${virtualization_type}" == "openvnz" ]]; then
+  if isset "${virtualization_type}" && [[ "${virtualization_type}" == "openvz" ]]; then
     fail "Servers with OpenVZ virtualization are not supported"
   fi
 }
@@ -2072,7 +2111,7 @@ get_user_vars(){
   debug 'Read vars from user input'
   hack_stdin_if_pipe_mode
   print_translated "welcome"
-  get_user_var 'license_key' 'validate_presence validate_license_key_format validate_license'
+  get_user_var 'license_key' 'validate_presence validate_license_key_format validate_license_key_is_active validate_license'
   get_user_db_restore_vars
 }
 
@@ -2601,6 +2640,7 @@ stage6() {
 
 signal_successful_installation() {
   debug "Signaling successful installation by writing 'installed' flag to the inventory file"
+  VARS['license_key']=""
   VARS['installed']=true
   VARS['installer_version']="${RELEASE_VERSION}"
   VARS['ram_size_mb']="$(get_ram_size_mb)"
@@ -2645,7 +2685,7 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['install-php']='2.25.0'
   ['install-roadrunner']='2.20.4'
   ['tune-php']='2.20.4'
-  ['tune-roadrunner']='2.27.5'
+  ['tune-roadrunner']='2.27.7'
   ['install-mariadb']='1.17'
   ['tune-mariadb']='2.20.4'
   ['tune-redis']='2.27.3'

@@ -2,7 +2,7 @@
   template:
     src: mariadb.repo.j2
     dest: /etc/yum.repos.d/mariadb.repo
-    force: no
+    force: yes
 
 - name: Install supporting libraries
   package:

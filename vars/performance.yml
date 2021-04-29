@@ -47,4 +47,4 @@ nginx_worker_connections: '4096'
 nginx_opened_files: "{{ 2 * (nginx_worker_connections|int) * (nginx_workers_count|int) }}"
 
 
-max_opened_files: "{{ 4096 + (php_opened_files|int) + (nginx_opened_files|int) + (db_open_files_limit|int) }}"
+max_opened_files: "{{ 16384 + (php_opened_files|int) + (nginx_opened_files|int) + (db_open_files_limit|int) }}"
