@@ -1,0 +1,4 @@
+# Nginx settings
+nginx_workers_count: "{{ cpu_cores }}"
+# Assume one worker can serve 4096 requests
+nginx_worker_connections: 4096

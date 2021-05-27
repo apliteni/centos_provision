@@ -1,0 +1,6 @@
+php_fpm_worker_size_mb: 50
+php_fpm_worker_max_requests: 2000
+php_fpm_workers_count: "{{ ((php_fpm_memory_mb|int) / php_fpm_worker_size_mb) | int_between(10, 300) }}"
+php_fpm_workers_idle_count_min: "{{ ((php_fpm_workers_count|int) * 0.3) | int }}"
+php_fpm_workers_idle_count_max: "{{ ((php_fpm_workers_count|int) * 0.7) | int }}"
+php_fpm_workers_start_count: "{{ ((php_fpm_workers_count|int) * 0.5) | int }}"

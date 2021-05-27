@@ -1,12 +1,3 @@
-- name: Update kernel params
-  sysctl:
-    name: "{{ item.key }}"
-    value: "{{ item.value }}"
-    state: present
-  ignore_errors: true
-  with_dict: "{{ redis_sysctl_tweaks }}"
-  notify: restart redis
-
 - name: Tune redis tcp-backlog
   lineinfile:
     dest: /etc/redis.conf
@@ -29,4 +20,3 @@
     regexp: '^maxmemory-policy '
     line: 'maxmemory-policy volatile-ttl'
   notify: restart redis
-

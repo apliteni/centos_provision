@@ -1,0 +1,7 @@
+- name: Install CentOS 7 SELinux supporting packages
+  package:
+    name:
+        - selinux-policy-targeted
+        - libselinux-python3
+        - libselinux-python
+    state: installed

@@ -1,0 +1,14 @@
+php_engine: roadrunner
+cpu_cores: 2
+ram_size_mb: 1938
+ssh_port: 22
+db_name: keitaro
+db_user: keitaro
+db_password: keitaro
+db_root_password: keitaro
+db_engine: tokudb
+license_ip: 127.0.0.1
+license_key: SOME-MOLE-CULE-KEYX
+language: en
+admin_login: admin
+admin_password: admin

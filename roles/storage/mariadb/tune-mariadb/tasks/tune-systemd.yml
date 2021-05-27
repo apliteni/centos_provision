@@ -5,7 +5,13 @@
 
 - name: Generate systemd mariadb config
   template:
-    src: "systemd/keitaro-systemd-mariadb.conf.centos{{ ansible_distribution_major_version }}.j2"
+    src: "systemd/keitaro-systemd-mariadb.conf.j2"
     dest: /etc/systemd/system/mariadb.service.d/keitaro-systemd-mariadb.conf
-  notify:
-    - restart mariadb
+  register: mariadb_systemd_configuration_generation_status
+
+- name: Reload systemd & restart mariadb
+  systemd:
+    name: mariadb
+    daemon-reload: true
+    state: restarted
+  when: mariadb_systemd_configuration_generation_status.changed

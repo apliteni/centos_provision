@@ -1,0 +1,3 @@
+sysctl_system:
+  fs.file-max: "{{ opened_files_system }}"
+  vm.overcommit_memory: 1

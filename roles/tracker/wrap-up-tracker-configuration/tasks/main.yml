@@ -1,20 +1,24 @@
-- name: Run cron.php to supress warnings in admin panel
-  command: "{{ php_path }} cron.php"
-  args:
-    chdir: "{{ keitaro_app_dir }}"
-  become_user: "{{ keitaro_user }}"
-
 - name: Update geo databases
   command: "{{ php_path }}  bin/cli.php geodbs:update_all"
   args:
     chdir: "{{ keitaro_app_dir }}"
   become_user: "{{ keitaro_user }}"
+  changed_when: false
 
 - name: Reload cache
   command: "{{ php_path}} bin/cli.php system:reload_cache"
   args:
     chdir: "{{ keitaro_app_dir }}"
   become_user: "{{ keitaro_user }}"
+  changed_when: false
+  when: not 'upgrade' in ansible_run_tags
+
+- name: Run cron.php to supress warnings in admin panel
+  command: "{{ php_path }} cron.php"
+  args:
+    chdir: "{{ keitaro_app_dir }}"
+  become_user: "{{ keitaro_user }}"
+  changed_when: false
 
 - name: Configure cron to run keitaro task every minute (4 channels)
   cron:
@@ -22,21 +26,23 @@
     name: "keitaro cron (channel {{ item }})"
     job: "CHANNEL={{ item }} {{ php_path }} {{ keitaro_app_dir }}/cron.php > /dev/null"
   loop: [1, 2, 3, 4]
-    
+
+# weekly task
 - name: Configure cron to update geo databases every week
   cron:
     user: "{{ keitaro_user }}"
     name: "update geodbs"
-    weekday: "{{ 6 | random }}"
-    hour: "{{ 23 | random }}"
-    minute: "{{ 59 | random }}"
+    weekday: "{{ box_creation_time | extract_weekday }}"
+    hour: "{{ box_creation_time | extract_hour | next_hour }}"
+    minute: "{{ box_creation_time | extract_minute | next_minute }}"
     job: "{{ php_path }} {{ keitaro_app_dir }}/bin/cli.php geodbs:update_all"
 
+# daily task
 - name: Configure cron to remove old enable-ssl logs
   cron:
     name: Remove old enable-ssl logs
-    hour: "{{ 23 | random }}"
-    minute: "{{ 59 | random }}"
+    hour: "{{ box_creation_time | extract_hour }}" 
+    minute: "{{ box_creation_time | extract_minute }}"
     job: >
       find {{ kctl_enable_ssl_logs_dir }} -mtime +{{ kctl_enable_ssl_logs_keep_for_n_days }} -type f | head -n {{ kctl_enable_ssl_logs_max_removable_batch_size }} | xargs -r rm
 

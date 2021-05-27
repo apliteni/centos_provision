@@ -1,2 +1,11 @@
-- name: configuring /etc/localtime
-  file: src=/usr/share/zoneinfo/{{ timezone }} dest=/etc/localtime state=link force=yes
+- name: Set UTC timezone
+  timezone:
+    name: "{{ timezone }}"
+  register: set_timezone
+
+- name: Restart service cron on centos also issue daemon-reload to pick up config changes
+  systemd:
+    state: restarted
+    daemon_reload: yes
+    name: crond
+  when: set_timezone.changed

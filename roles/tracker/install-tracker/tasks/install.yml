@@ -1,13 +1,8 @@
 - name: Force all notified handlers to run at this point
   meta: flush_handlers
 
-- include_tasks: "{{ playbook_dir }}/roles/tracker/_common/get-tracker-info/latest_tracker.yml"
-  vars:
-    user_agent: "Keitaro Installer v{{ kctl_version }} PHP/{{ php_release }}"
-    request_params: "version={{ keitaro_release }}&stability=unstable&phpversion={{ php_release }}"
-
-- name: Download keitaro distribution
-  include_tasks: "{{ playbook_dir }}/roles/tracker/_common/download-tracker/keitaro_distribution.yml"
+- name: Download and unpack tracker package
+  include: install/download-and-unpack-tracker-package.yml
 
 - name: Download install.php
   get_url:
@@ -20,7 +15,7 @@
     dest: "{{ keitaro_app_dir }}/var/license/key.lic"
 
 - name: Restore DB from SQL dump
-  include_tasks: "{{ playbook_dir }}/roles/tracker/install-tracker/tasks/restore_db.yml"
+  include_tasks: restore_db.yml
   when: db_restore_path is defined
 
 - name: Import database .sql files
@@ -56,7 +51,7 @@
     - restart roadrunner
 
 - name: Run post-restoring tasks
-  include_tasks: "{{ playbook_dir }}/roles/tracker/install-tracker/tasks/restore_db/post_restore.yml"
+  include_tasks: "restore_db/post_restore.yml"
   when: db_restore_path is defined
 
 - name: Check keitaro admin exist

@@ -1,0 +1,13 @@
+- name: Verify role
+  hosts: all
+  tasks:
+    - name: Get journald log dir stats
+      stat:
+        path: /var/log/journal
+      register: journald_log_path_stats
+
+    - name: Test swap file is present
+      debug:
+        var: journald_log_path_stats
+      failed_when: not journald_log_path_stats.stat.exists
+

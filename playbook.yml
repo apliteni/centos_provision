@@ -6,23 +6,22 @@
 
   roles:
     - {role: '_prepare/init',                              tags: 'init,                         always'}
-    - {role: '_prepare/print-debug-info',                  tags: 'print-debug-info,             always'}
     - {role: '_prepare/x-prepare-upgrade',                 tags: 'prepare-upgrade,              never, upgrade'}
+    - {role: 'init/010-install-packages',                  tags: 'install-packages'}
     - {role: 'init/create-tracker-user-and-dirs',          tags: 'create-tracker-user-and-dirs'}
     - {role: 'init/disable-selinux',                       tags: 'disable-selinux'}
     - {role: 'init/disable-thp',                           tags: 'disable-thp'}
-    - {role: 'init/increase-max-opened-files',             tags: 'increase-max-opened-files'}
     - {role: 'init/install-certbot',                       tags: 'install-certbot'}
     - {role: 'init/install-certs',                         tags: 'install-certs'}
     - {role: 'init/install-chrony',                        tags: 'install-chrony'}
     - {role: 'init/install-firewalld',                     tags: 'install-firewalld'}
-    - {role: 'init/install-helper-packages',               tags: 'install-helper-packages'}
     - {role: 'init/install-kctl-tools',                    tags: 'install-kctl-tools'}
     - {role: 'init/install-postfix',                       tags: 'install-postfix'}
-    - {role: 'init/install-repo-remi',                     tags: 'install-repo-remi'}
     - {role: 'init/setup-journald',                        tags: 'setup-journald'}
     - {role: 'init/setup-timezone',                        tags: 'setup-timezone'}
     - {role: 'init/tune-swap',                             tags: 'tune-swap,                    tune'}
+    - {role: 'init/tune-sysctl',                             tags: 'tune-sysctl,                    tune'}
+    - {role: 'init/install-fail2ban',                      tags: 'install-fail2ban'}
     - {role: 'nginx/install-nginx',                        tags: 'install-nginx'}
     - {role: 'nginx/tune-nginx',                           tags: 'tune-nginx,                   tune'}
     - {role: 'nginx/x-upgrade-nginx-configs',              tags: 'upgrade-nginx-configs,        never, upgrade'}
@@ -41,36 +40,5 @@
     - {role: 'tracker/set-file-permissions',               tags: 'set-file-permissions,         always'}
     - {role: 'tracker/upgrade-tracker',                    tags: 'upgrade-tracker,              never'}
     - {role: 'tracker/wrap-up-tracker-configuration',      tags: 'wrap-up-tracker-configuration'}
-    - {role: 'wrap-up/force-restart-services',             tags: 'force-restart-services,       always'}
-    - {role: 'wrap-up/post-upgrade',                       tags: 'post-upgrade,                 never, upgrade'}
+    - {role: 'wrap-up/finish-installation',                tags: 'finish-installation'}
 
-  handlers:
-    - name: restart mariadb
-      service:
-        name: mariadb
-        state: restarted
-        daemon-reload: true
-    - name: restart redis
-      service:
-        name: redis
-        state: restarted
-        daemon-reload: true
-    - name: restart php-fpm
-      service:
-        name: "{{php_version}}-php-fpm"
-        state: restarted
-        daemon-reload: true
-    - name: restart roadrunner
-      service:
-        name: roadrunner
-        state: restarted
-        daemon-reload: true
-    - name: restart nginx
-      service:
-        name: nginx
-        state: restarted
-        daemon-reload: true
-    - name: reload nginx
-      service:
-        name: nginx
-        state: reloaded

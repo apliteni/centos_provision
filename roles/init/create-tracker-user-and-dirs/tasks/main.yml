@@ -52,9 +52,6 @@
     path: "{{ ssl_root }}"
     state: directory
 
-- name: Install selinux supporting packages
-  include_tasks: "../../_common/selinux/tasks/install-supporting-packages.yml"
-
 - name: Setup limits
   pam_limits:
     domain: "{{ keitaro_user }}"

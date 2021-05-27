@@ -2,13 +2,36 @@
   setup:
 
 - name: Include var files
-  include_vars: '{{ item }}'
+  include_vars: '../../../vars/{{ item }}'
   with_items: 
-    - vars/keitaro.yml
-    - vars/server.yml
-    - vars/ssl.yml
-    - vars/mariadb.yml
-    - vars/nginx.yml
-    - vars/php.yml
-    - vars/performance.roadrunner.yml
-    - vars/performance.yml
+    - keitaro.yml
+    - server.yml
+    - ssl.yml
+    - mariadb.yml
+    - nginx.yml
+    - php.yml
+    - performance.yml
+    - performance/1-php-fpm.yml
+    - performance/2-roadrunner.yml
+    - performance/3-mariadb.yml
+    - performance/4-nginx.yml
+    - performance/5-opened-files.yml
+    - sysctl/network/parameters.yml
+    - sysctl/system/parameters.yml
+
+# We don't want to change renew job time every ansible rerun or reboot.
+# So we use box creation time which should be the same as /etc/hostname creation time
+# Also this way we make the cron job tasks idempotent.
+# https://unix.stackexchange.com/a/77563/445440
+- name: Get the box creation time
+  stat:
+    path: /etc/hostname
+  register: etc_hostname_file_info
+
+- set_fact:
+    box_creation_time: "{{ etc_hostname_file_info.stat.ctime | int }}"
+    kctl_version: "{{ __kctl_version }}"
+    swap_size_mb: "{{ __swap_size_mb }}"
+
+- name: Print debug info
+  include_tasks: print-debug-info.yml

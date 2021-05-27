@@ -4,7 +4,3 @@
     state: directory
     owner: "{{ keitaro_user }}"
 
-- name: Schedule generating stats.json job
-  cron:
-    name: "Generate {{ keitaro_stats_json_path }}"
-    job: /usr/local/bin/keitaro-generate_stats_json

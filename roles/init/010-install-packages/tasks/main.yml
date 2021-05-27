@@ -1,0 +1,28 @@
+- name: Install packages
+  package:
+    name:
+      - bind-utils
+      - git
+      - htop
+      - httpd-tools
+      - jemalloc
+      - lsof
+      - mailx
+      - nano
+      - python2
+      - rsync
+      - socat
+      - strace
+      - sudo
+      - unzip
+      - openssl
+      - screen
+    state: present
+
+- name: Install REMI repository
+  package:
+    name: "https://rpms.remirepo.net/enterprise/remi-release-{{ ansible_distribution_major_version }}.rpm"
+    disable_gpg_check: true
+
+- name: Install SELinux supporting packages
+  include_tasks: "selinux-centos{{ ansible_distribution_major_version }}.yml"

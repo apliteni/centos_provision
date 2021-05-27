@@ -1,0 +1,30 @@
+- name: Prepare
+  hosts: all
+  become: yes
+  become_method: sudo
+  tasks:
+    - set_fact:
+        molecule_prepare_yml_path: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') + '/molecule/default/prepare.yml' }}"
+
+    - local_action:
+        module: stat
+        path: "{{ molecule_prepare_yml_path }}"
+      become: no
+      register: molecule_prepare_yml_info
+
+    - name: Include init role
+      include_role:
+        name: _prepare/init
+      when: molecule_prepare_yml_info.stat.exists | default(false)
+
+    - name: Redefine handlers
+      include_role:
+        name: redefine_handlers
+      when: molecule_prepare_yml_info.stat.exists | default(false)
+
+    - debug:
+        msg: "Including {{ molecule_prepare_yml_path }}"
+
+    - name: Include current prepare.yml
+      include: "{{ molecule_prepare_yml_path }}"
+      when: molecule_prepare_yml_info.stat.exists | default(false)

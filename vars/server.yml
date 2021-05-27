@@ -1,3 +1,4 @@
 max_upload_size: 200M
-timezone: "{{ 'Europe/Moscow' if language == 'ru' else 'UTC' }}"
-swap_size: "{{ [([ansible_memtotal_mb, 1024] | max), 16384] | min }}"
+timezone: UTC
+is_ci_mode: "{{ lookup('env', 'CI') != '' }}"
+__swap_size_mb: "{{ ansible_swaptotal_mb }}"

@@ -1,15 +1,12 @@
-- name: Verify role
-  hosts: all
-  vars:
-    swap_file_path: /swap
+- hosts: all
+  vars_files: ../../defaults/main.yml
   tasks:
     - name: Get swap file stats
       stat:
-        path: "{{ swap_file_path }}"
-      register: swap_file_info
+        path: "{{ swap_path }}"
+      register: swap_path_info
 
     - name: Test swap file is present
-      debug:
-        var: swap_file_info
-      failed_when: not swap_file_info.stat.exists
+      assert:
+        that: swap_path_info.stat.exists
 

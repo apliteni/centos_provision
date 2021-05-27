@@ -1,34 +1,20 @@
-- name: Make stat for path
-  stat:
-    path: /var/log/mariadb
-  register: mariadb_log_dir_stat
-
-- name: Clear symlink if exist
-  file:
-    state: absent
-    path: /var/log/mariadb
-  when: mariadb_log_dir_stat.stat.islnk is defined and mariadb_log_dir_stat.stat.islnk
-
-- name: Create log directory
+- name: Ensure the log directory exists
   file:
     path: /var/log/mysql
     owner: mysql
     group: mysql
     state: directory
 
-- name: Create symlinks
+- name: Get stat for /var/log/mariadb
+  stat:
+    path: /var/log/mariadb
+  register: mariadb_log_dir_stat
+
+- name: Ensure there is no /var/log/mariadb directory
   file:
-    src: "{{ item.src }}"
-    dest: "{{ item.dest }}"
-    owner: mysql
-    group: mysql
-    state: link
-    force: true
-  with_items:
-    - src: mysql
-      dest: /var/log/mariadb
-    - src: mysql
-      dest: /var/lib/mariadb
+    state: absent
+    path: /var/log/mariadb
+  when: mariadb_log_dir_stat.stat.isdir | default(false)
 
 - name: Generate config files
   template:
@@ -39,6 +25,24 @@
     - keitaro-mysqld-set_default_storage_engine.cnf
     - keitaro-mysqld-configure_error_log.cnf
     - keitaro-mysqld-configure_network.cnf
-  notify: 
-    - restart mariadb
+  register: mariadb_configuration_generation_status
+
+- name: Restart MariaDB
+  systemd:
+    name: mariadb
+    state: restarted 
+  when: mariadb_configuration_generation_status.changed
+
+- name: Create symlinks
+  file:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: mysql
+    group: mysql
+    state: link
+  with_items:
+    - src: mysql
+      dest: /var/log/mariadb
+    - src: mysql
+      dest: /var/lib/mariadb
 

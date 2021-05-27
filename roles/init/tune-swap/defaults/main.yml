@@ -1,3 +1,2 @@
-swap_file_size_mb: "{{ [ansible_memtotal_mb, 8192] | min }}"
-swap_file_path: /swap
-swap_test_mode: false
+swap_path: /keitaro.swap
+swap_size_minimal_mb: "{{ [ram_size_mb, 8192] | min }}"

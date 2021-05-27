@@ -1,26 +1,20 @@
-- name: Calculate needed swap space
-  shell: free -m | grep 'Swap' | awk '{ print $2 }'
-  register: swap_get_current_size_mb_command
-  changed_when: false
-
-- name: Calculate needed swap space
+- name: Calculate swap space to add
   set_fact:
-    swap_size_to_add_mb: "{{ (swap_file_size_mb | int) - ( swap_get_current_size_mb_command.stdout | int) }}"
+    swap_size_to_add_mb: >-
+      {{ (swap_size_minimal_mb | int) - (swap_size_mb | int) }}
 
 - name: Create swap file
   shell: >
-      dd if=/dev/zero of={{ swap_file_path }} count={{ swap_size_to_add_mb }} bs=1MiB && \
-        chmod 0600 {{ swap_file_path }}
+    umask 077 && \
+    dd if=/dev/zero of={{ swap_path }} count={{ swap_size_to_add_mb }} bs=1MiB && \
+    mkswap {{ swap_path }}
   args:
-    creates: "{{ swap_file_path }}"
-
-- name: Format swap file
-  command: "mkswap {{ swap_file_path }}"
+    creates: "{{ swap_path }}"
 
 - name: Mount swap on boot
   mount:
     name: none
-    src: "{{ swap_file_path }}"
+    src: "{{ swap_path }}"
     fstype: swap
     opts: sw
     passno: '0'
@@ -29,4 +23,4 @@
 
 - name: Turn swap on
   command: swapon -a
-  when: not swap_test_mode
+  when: not is_ci_mode

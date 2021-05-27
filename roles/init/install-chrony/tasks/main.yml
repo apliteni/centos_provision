@@ -7,4 +7,4 @@
   service:
     name: chronyd
     state: started
-    enabled: true  
+    enabled: true

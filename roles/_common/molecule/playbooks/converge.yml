@@ -1,0 +1,33 @@
+- name: Converge
+  hosts: all
+  become: yes
+  become_method: sudo
+  tasks:
+    - set_fact:
+        molecule_converge_yml_path: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') + '/molecule/default/converge.yml' }}"
+
+    - include_role:
+        name: _prepare/init
+
+    - name: Redefine handlers
+      include_role:
+        name: redefine_handlers
+
+    - local_action:
+        module: stat
+        path: "{{ molecule_converge_yml_path }}"
+      become: no
+      register: molecule_converge_yml_info
+
+    - name: Include current converge.yml
+      include: "{{ molecule_converge_yml_path }}"
+      when: molecule_converge_yml_info.stat.exists | default(false)
+
+    - set_fact:
+        current_role_name: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | basename }}"
+
+    - debug:
+        msg: "Including role '{{ current_role_name }}'"
+
+    - include_role:
+        name: "{{ current_role_name }}"
