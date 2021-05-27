@@ -19,10 +19,10 @@ http:
     # worker pool configuration.
     pool:
       # number of workers to be serving.
-      numWorkers: {{ [(php_tracker_workers_count|int), 100] | min }}
+      numWorkers: {{ roadrunner_workers_count }}
 
       # maximum jobs per worker, 0 - unlimited.
-      maxJobs: {{ php_tracker_worker_max_requests }}
+      maxJobs: {{ roadrunner_worker_max_requests }}
 
       # for how long worker is allowed to be bootstrapped.
       allocateTimeout: 60

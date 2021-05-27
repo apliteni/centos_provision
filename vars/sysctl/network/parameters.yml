@@ -1,0 +1,79 @@
+# Default net.core.wmem_max is 212992, we assume it's ok for 1G RAM.
+# So we have 212992 / 1024 = 208 bites buffer size per 1M RAM.
+# We increase it up to 256 as we want to have relatively round binary numbers.
+buffer_size_per_one_mb_of_ram: 256
+
+# Network settings
+sysctl_net:
+
+  # Time to hold socket in state FIN-WAIT-2 in seconds.
+  # Default value: 60
+  net.ipv4.tcp_fin_timeout: 10
+
+  # Maximal number of TCP sockets not attached to any user file handle.
+  # Default: 8192.
+  net.ipv4.tcp_max_orphans: 65536
+
+  # How often TCP sends out keepalive messages when keepalive is enabled.
+  # Default: 2h.
+  net.ipv4.tcp_keepalive_time: 60
+
+  # It is time to kill not responding connection, after probes started.
+  # Default: 75s.
+  net.ipv4.tcp_keepalive_intvl: 15
+
+  # How many keepalive probes TCP sends out, until it decides that the connection is broken.
+  # Default: 9.
+  net.ipv4.tcp_keepalive_probes: 5
+
+  # Maximum number of packets, queued on the INPUT side.
+  # Default: 1000.
+  net.core.netdev_max_backlog: 10000
+
+  # Limit of socket listen() backlog.
+  # Defaults: 128.
+  net.core.somaxconn: 65535
+
+  # The maximum receive socket buffer size in bytes.
+  # Defaults: default: 212992.
+  net.core.rmem_max: "{{ buffer_size_per_one_mb_of_ram * ansible_memtotal_mb }}"
+
+  # The maximum send socket buffer size in bytes.
+  # Default: 212992.
+  net.core.wmem_max: "{{ buffer_size_per_one_mb_of_ram * ansible_memtotal_mb }}"
+
+  # Number of times SYNACKs for a passive TCP connection attempt will be retransmitted.
+  # Default: 5.
+  net.ipv4.tcp_synack_retries: 1
+
+  # Maximal number of remembered connection requests, which have not received an acknowledgment from connecting client.
+  # Default: 512.
+  net.ipv4.tcp_max_syn_backlog: 65535
+
+  # Enable dynamicly windows scaling.
+  # Default: 1.
+  net.ipv4.tcp_window_scaling: 1
+
+  # Ignore IPv4 ICMP redirect messages.
+  # Default: 1.
+  net.ipv4.conf.all.accept_redirects: 0
+  net.ipv4.conf.default.accept_redirects: 0
+
+  # Disable accept ICMP redirect messages only to gateways listed in the interface's current gateway list.
+  # Default: 1.
+  net.ipv4.conf.all.secure_redirects: 0
+  net.ipv4.conf.default.secure_redirects: 0
+
+
+  # SYN flood protection recomender only if high load.
+  # Default: 1.
+  net.ipv4.tcp_syncookies: "{{ '0' if (ansible_memtotal_mb >= 16384) else '1'}}"
+
+  # TCP TIME_WAIT attack protections.
+  # Default: 0.
+  net.ipv4.tcp_rfc1337: 1
+
+  # Disable Router Advertisements.
+  # Default: 1.
+  net.ipv6.conf.all.accept_ra: 0
+  net.ipv6.conf.default.accept_ra: 0

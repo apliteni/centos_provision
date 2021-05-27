@@ -1,0 +1,8 @@
+- include_tasks: run-after-install/main.yml
+  when: "'upgrade' not in ansible_run_tags"
+
+- include_tasks: run-after-upgrade/main.yml
+  when: "'upgrade' in ansible_run_tags"
+
+- include_tasks: run-always/main.yml
+

@@ -1,0 +1,8 @@
+- include_tasks: "../../../_common/get-tracker-info/latest_tracker.yml"
+  vars:
+    user_agent: "Keitaro Installer v{{ kctl_version }} PHP/{{ php_release }}"
+    request_params: "version={{ keitaro_release }}&stability=unstable&phpversion={{ php_release }}"
+
+- name: Download keitaro distribution
+  include_tasks: "../../../_common/download-tracker/keitaro_distribution.yml"
+

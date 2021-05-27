@@ -20,3 +20,6 @@
 
 - include: upgrade-from-2.26/main.yml
   when: "'upgrade-from-2.26' in ansible_run_tags"
+
+- include: upgrade-from-2.27/main.yml
+  when: "'upgrade-from-2.27' in ansible_run_tags"

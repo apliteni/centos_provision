@@ -1,17 +1,17 @@
-- name: Add MariaDB repo
+- name: Add MariaDB repos
   template:
-    src: mariadb.repo.j2
-    dest: /etc/yum.repos.d/mariadb.repo
+    src: "{{ item }}.repo.j2"
+    dest: "/etc/yum.repos.d/{{ item }}.repo"
     force: yes
+  with_items:
+    - mariadb
+    - mariadb-mirror
 
 - name: Install supporting libraries
   package:
     name:
-      - jemalloc
       - perl-DBI
       - libaio
-      - lsof
-      - rsync
       - boost-program-options
     state: installed
 
@@ -22,8 +22,7 @@
       - MariaDB-client
       - MariaDB-tokudb-engine
     state: installed
-    enablerepo: '{{ mariadb_enabled_repos["centos" + ansible_distribution_major_version] }}'
-    disablerepo: '*'
+    enablerepo: "mariadb,mariadb-mirror"
 
 - name: Install PyMySQL
   pip:

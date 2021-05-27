@@ -30,7 +30,6 @@
   include: disable-and-remove-firewall-bash.yml
   when: firewall_service_file_status.stat.exists
 
-
 - name: Check if firewall.bash rules file exists.
   stat:
     path: /etc/firewall.bash
@@ -39,4 +38,3 @@
 - name: Redefine allowed_tcp_ports variable
   include: redefine-allowed_tcp_ports-variable.yml
   when: firewall_rules_file_status.stat.exists
-

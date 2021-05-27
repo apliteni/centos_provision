@@ -1,50 +1,8 @@
-# PHP settings
-php_tracker_memory_mb: "{{ (php_memory_mb|float) * php_tracker_memory_factor }}"
-php_tracker_worker_size_mb: 25
-php_tracker_worker_max_requests: 500
-php_tracker_workers_count: "{{ ((php_tracker_memory_mb|float)/php_tracker_worker_size_mb) | round(-1, 'ceil') | int }}"
-php_tracker_min_idle_workers_count: "{{ ((php_tracker_workers_count|int) * 0.1) | int }}"
-php_tracker_max_idle_workers_count: "{{ ((php_tracker_workers_count|int) * 0.3) | int }}"
-php_tracker_start_workers_count: "{{ ((php_tracker_workers_count|int) * 0.2) | int }}"
-php_tracker_opened_files: "{{ (200 * (php_tracker_workers_count|int)) | int }}"
-
-php_nontracker_memory_factor: "{{ 1 - (php_tracker_memory_factor|float) }}"
-php_nontracker_worker_size_mb: 40
-php_nontracker_worker_max_requests: 50
-php_nontracker_memory_mb: "{{ (php_memory_mb|float) * (php_nontracker_memory_factor|float) }}"
-php_nontracker_workers_count: "{{((php_nontracker_memory_mb|float)/php_nontracker_worker_size_mb) | round(-1, 'ceil') | int}}"
-php_nontracker_min_idle_workers_count: "{{ ((php_nontracker_workers_count|int) * 0.1) | int }}"
-php_nontracker_max_idle_workers_count: "{{ ((php_nontracker_workers_count|int) * 0.3) | int }}"
-php_nontracker_start_workers_count: "{{ ((php_nontracker_workers_count|int) * 0.2) | int }}"
-php_nontracker_opened_files: "{{ (200 * (php_nontracker_workers_count|int)) | int }}"
-
-php_opened_files: "{{ (php_tracker_opened_files|int) + (php_nontracker_opened_files|int) }}"
-php_workers_count: "{{ (php_tracker_workers_count|int) + (php_nontracker_workers_count|int) }}"
-
-
-# Database settings (see DEVOPS-147)
-db_memory_1pct_kb: "{{ ((db_memory_mb|int) * 1024 / 100) | int }}"
-db_max_connections: "{{ [(( (php_workers_count | int) * 1.1) | int), 4096] | min }}"
-db_key_buffer_size_kb: "{{ 2 * (db_memory_1pct_kb|int) }}"
-db_query_cache_size_kb: "{{ 2 * (db_memory_1pct_kb|int) }}"
-db_tmp_table_size_kb: "{{ db_memory_1pct_kb|int }}"
-db_max_heap_table_size_kb: "{{ db_memory_1pct_kb|int }}"
-# per connection settings
-# join_buffer_size * connections: 10% available db memory
-db_join_buffer_size_kb: "{{ ((db_memory_1pct_kb|int) / (db_max_connections|int) * 10) | round(-2, 'ceil') | int }}"
-# table_open_cache: max_connections * 100 (amount of tables in db)
-db_table_open_cache: "{{ (db_max_connections|int) * 100 }}"
-# In general it is 2x of table_open_cache.
-db_open_files_limit: "{{ (db_table_open_cache|int) * 2 }}"
-# 75% of available db memory as main engine memory
-db_main_size_kb: "{{ (db_memory_1pct_kb|int) * 75 }}"
-
-
-# Nginx settings
-nginx_workers_count: "{{ cpu_cores }}"
-# Assume one worker can serve 4096 requests
-nginx_worker_connections: '4096'
-nginx_opened_files: "{{ 2 * (nginx_worker_connections|int) * (nginx_workers_count|int) }}"
-
-
-max_opened_files: "{{ 16384 + (php_opened_files|int) + (nginx_opened_files|int) + (db_open_files_limit|int) }}"
+# PHP-FPM: 15% RAM
+php_fpm_memory_mb: "{{ (0.15 * ansible_memtotal_mb) | int }}"
+# RoadRunner: 10% RAM
+roadrunner_memory_mb: "{{ (0.10 * ansible_memtotal_mb) | int }}"
+# Database: 35% RAM
+mariadb_memory_mb: "{{ (0.35 * ansible_memtotal_mb) | int }}"
+# Redis: 40% RAM
+redis_memory_mb: "{{ (0.40 * ansible_memtotal_mb) | int }}"

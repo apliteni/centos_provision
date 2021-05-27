@@ -1,0 +1,1 @@
+- include_tasks: on-upgrade-from-releases.yml

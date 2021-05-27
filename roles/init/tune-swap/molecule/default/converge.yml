@@ -1,11 +1,3 @@
----
-- name: Converge
-  hosts: all
-
-  vars:
-    swap_test_mode: true
-
-  tasks:
-    - name: "Include tune-swap"
-      include_role:
-        name: "tune-swap"
+- name: Redefine current swap size to force swap creation
+  set_fact:
+    swap_size_mb: "{{ (ram_size_mb / 2) | int }}"

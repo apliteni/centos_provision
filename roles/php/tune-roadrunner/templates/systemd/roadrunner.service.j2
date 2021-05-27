@@ -7,7 +7,7 @@ After=syslog.target network.target
 ExecStart={{ rr_wrapper }} start
 ExecReload={{ rr_wrapper }} reload
 WorkingDirectory=/home/keitaro
-LimitNOFILE=8000
+LimitNOFILE={{ opened_files_roadrunner }}
 User=keitaro
 Group=keitaro
 

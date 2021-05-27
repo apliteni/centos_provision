@@ -1,6 +1,4 @@
-# This role is based on https://stackoverflow.com/a/64294534/612799
----
+# Based on https://stackoverflow.com/a/64294534/612799
 - name: "[Re]create swap if its size is too small"
   include: recreate_swap.yml
-  when: ansible_swaptotal_mb < ((swap_file_size_mb | int) * 0.9)
-
+  when: (swap_size_mb | int) * 0.9 < (swap_size_minimal_mb | int)

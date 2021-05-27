@@ -1,0 +1,4 @@
+- name: Remove firewall rules file
+  file:
+    path: /etc/firewall.bash
+    state: absent

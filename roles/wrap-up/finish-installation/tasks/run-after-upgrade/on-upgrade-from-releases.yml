@@ -1,0 +1,11 @@
+- include: on-upgrade-from-release/upgrade-from-2.12.yml
+  when: "'upgrade-from-2.12' in ansible_run_tags"
+
+- include: on-upgrade-from-release/upgrade-from-2.20.yml
+  when: "'upgrade-from-2.20' in ansible_run_tags"
+
+- include: on-upgrade-from-release/upgrade-from-2.26.yml
+  when: "'upgrade-from-2.26' in ansible_run_tags"
+
+- include: on-upgrade-from-release/upgrade-from-2.27.yml
+  when: "'upgrade-from-2.27' in ansible_run_tags"

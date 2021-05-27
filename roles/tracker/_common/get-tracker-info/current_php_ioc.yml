@@ -1,3 +1,4 @@
 - name: Get current php ioc version
   shell: head -n2 /var/www/keitaro/index.php | tail -n1 | cut -f 5 -d ' '
   register: get_current_php_ioc_version
+  changed_when: false

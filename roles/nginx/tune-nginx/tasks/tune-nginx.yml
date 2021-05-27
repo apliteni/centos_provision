@@ -19,13 +19,15 @@
     - nginx/conf.d/keitaro/nontracker.inc
     - nginx/conf.d/keitaro/nontracker.php-fpm.inc
     - nginx/conf.d/keitaro/tracker.inc
-    - nginx/conf.d/keitaro/tracker.roadrunner.inc
     - nginx/conf.d/keitaro/realip.inc
+  register: nginx_configs_generation_status
 
 - name: Generate CF IP list
   command: "/usr/local/bin/keitaro-generate_cf_ip_lists {{ nginx_ip_list_cf_v4_path }} {{ nginx_ip_list_cf_v6_path }}"
+  args:
+    creates: "{{ nginx_ip_list_cf_v4_path }}"
 
-- name: Make sure local setting files exit
+- name: Make sure local setting files exist
   copy:
     content: ""
     dest: "{{ item }}"
@@ -40,12 +42,12 @@
 - name: Configure cron to update CF IP list every day
   cron:
     name: "Generate CloudFlare IP list"
-    hour: "{{ 23 | random }}"
-    minute: "{{ 59 | random }}"
+    hour: "{{ box_creation_time | extract_hour }}"
+    minute: "{{ box_creation_time | extract_minute }}"
     job: "/usr/local/bin/keitaro-generate_cf_ip_lists {{ nginx_ip_list_cf_v4_path }} {{ nginx_ip_list_cf_v6_path }}"
 
 - name: Reload nginx
   service:
     name: nginx
-    daemon-reload: true
     state: reloaded
+  when: nginx_configs_generation_status.changed

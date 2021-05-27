@@ -13,13 +13,9 @@
     group: root
     mode: 0644
   with_items:
-    - keitaro-tracker.conf
     - keitaro-nontracker.conf
   notify:
     - restart php-fpm
-
-- name: Disable php-fpm tracker pool if engine is roadrunner
-  command: mv /etc/php/php-fpm.d/keitaro-tracker.conf /etc/php/php-fpm.d/keitaro-tracker.conf.disabled
 
 - name: Tune php-fpm master
   lineinfile:
@@ -27,7 +23,7 @@
     regexp: "^;?{{ item.key }} ="
     line: "{{ item.key }} = {{ item.value }}"
   with_dict:
-    emergency_restart_threshold: "{{ php_nontracker_workers_count }}"
+    emergency_restart_threshold: "{{ php_fpm_workers_count }}"
     emergency_restart_interval: 10s
     process_control_timeout: 10s
   notify:

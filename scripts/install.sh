@@ -54,7 +54,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.27.7'
+RELEASE_VERSION='2.28.0'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -1264,6 +1264,53 @@ to_lower(){
   local string="${1}"
   echo "${string,,}"
 }
+#
+
+
+FIRST_KEITARO_TABLE_NAME="acl"
+
+detect_table_prefix(){
+  local file="${1}"
+  if empty "$file"; then
+    return ${SUCCESS_RESULT}
+  fi
+  local mime_type="$(detect_mime_type "${file}")"
+  debug "Detected mime type: ${mime_type}"
+  local get_head_chunk="$(build_get_chunk_command "${mime_type}" "${file}" "head -n 100")"
+  if empty "${get_head_chunk}"; then
+    return ${FAILURE_RESULT}
+  fi
+  local command="${get_head_chunk}"
+  command="${command} | grep -P $(build_check_table_exists_expression ".*${FIRST_KEITARO_TABLE_NAME}")"
+  command="${command} | head -n 1"
+  command="${command} | grep -oP '\`.*\`'"
+  command="${command} | sed -e 's/\`//g' -e 's/${FIRST_KEITARO_TABLE_NAME}\$//'"
+  command="(set +o pipefail && ${command})"
+  message="$(translate 'messages.check_keitaro_dump_get_tables_prefix')"
+  rm -f "${DETECTED_PREFIX_PATH}"
+  if run_command "$command" "$message" 'hide_output' 'allow_errors' '' '' "$DETECTED_PREFIX_PATH" > /dev/stderr; then
+    cat "$DETECTED_PREFIX_PATH" | head -n1
+  fi
+}
+
+
+build_check_table_exists_expression() {
+  local table="${1}"
+  echo "'^CREATE TABLE( IF NOT EXISTS)? \`${table}\`'"
+}
+
+
+build_get_chunk_command() {
+  local mime_type="${1}"
+  local file="${2}"
+  local filter="${3}"
+  if [[ "$mime_type" == 'text/plain' ]]; then
+    echo "${filter} '${file}'"
+  fi
+  if [[ "$mime_type" == 'application/x-gzip' ]]; then
+    echo "zcat '${file}' | ${filter}"
+  fi
+}
 
 ensure_license_valid() {
   if isset "$RECONFIGURE"; then
@@ -1393,78 +1440,6 @@ valid_ip_segments(){
 valid_ip_segment(){
   local ip_segment="${1}"
   [ $ip_segment -ge 0 ] && [ $ip_segment -le 255 ]
-}
-#
-
-
-FIRST_KEITARO_TABLE_NAME="acl"
-
-validate_keitaro_dump(){
-  local file="${1}"
-  if empty "$file"; then
-    return ${SUCCESS_RESULT}
-  fi
-  local mime_type="$(detect_mime_type "${file}")"
-  debug "Detected mime type: ${mime_type}"
-  local get_head_chunk="$(build_get_chunk_command "${mime_type}" "${file}" "head -n 100")"
-  if empty "${get_head_chunk}"; then
-    return ${FAILURE_RESULT}
-  fi
-  local tables_prefix="$(detect_tables_prefix "${get_head_chunk}")"
-  if empty "${tables_prefix}"; then
-    return ${FAILURE_RESULT}
-  else
-    debug "Detected tables prefix: ${tables_prefix}"
-  fi
-  if [[ "schema_version" < "${tables_prefix}${FIRST_KEITARO_TABLE_NAME}" ]]; then
-    ensure_table_dumped "$get_head_chunk" "schema_version"
-  else
-    local get_tail_chunk="$(build_get_chunk_command "${mime_type}" "${file}" "tail -n 2000")"
-    ensure_table_dumped "$get_tail_chunk" "schema_version"
-  fi
-}
-
-ensure_table_dumped(){
-  local get_table_chunk="${1}"
-  local table="${2}"
-  command="(set +o pipefail && ${get_table_chunk} | grep -qP $(build_check_table_exists_expression "$table"))"
-  message="$(translate 'messages.check_keitaro_dump_validity')"
-  run_command "${command}" "${message}" 'hide_output' 'allow_errors' > /dev/stderr
-}
-
-
-detect_tables_prefix(){
-  local get_head_chunk="${1}"
-  local command="${get_head_chunk}"
-  command="${command} | grep -P $(build_check_table_exists_expression ".*${FIRST_KEITARO_TABLE_NAME}")"
-  command="${command} | head -n 1"
-  command="${command} | grep -oP '\`.*\`'"
-  command="${command} | sed -e 's/\`//g' -e 's/${FIRST_KEITARO_TABLE_NAME}\$//'"
-  command="(set +o pipefail && ${command})"
-  message="$(translate 'messages.check_keitaro_dump_get_tables_prefix')"
-  rm -f "${DETECTED_PREFIX_PATH}"
-  if run_command "$command" "$message" 'hide_output' 'allow_errors' '' '' "$DETECTED_PREFIX_PATH" > /dev/stderr; then
-    cat "$DETECTED_PREFIX_PATH" | head -n1
-  fi
-}
-
-
-build_check_table_exists_expression() {
-  local table="${1}"
-  echo "'^CREATE TABLE( IF NOT EXISTS)? \`${table}\`'"
-}
-
-
-build_get_chunk_command() {
-  local mime_type="${1}"
-  local file="${2}"
-  local filter="${3}"
-  if [[ "$mime_type" == 'text/plain' ]]; then
-    echo "${filter} '${file}'"
-  fi
-  if [[ "$mime_type" == 'application/x-gzip' ]]; then
-    echo "zcat '${file}' | ${filter}"
-  fi
 }
 
 validate_license_key_is_active() {
@@ -1597,6 +1572,7 @@ DICT['en.errors.cant_detect_server_ip']="The installer couldn't detect the serve
 DICT['en.errors.cant_detect_license_edition']="The installer couldn't detect the your license edition, please contact Keitaro support team"
 DICT['en.errors.dump_restoring_not_available_for_trials']='Dump restoring is not avalable for trial licenses'
 DICT['en.errors.check_license_exist']='This server has IP address :ip:. Please make sure you have a license with key :key: and ip :ip: at https://keitaro.io/platform/#/licenses'
+DICT['en.errors.cant_detect_table_prefix']="The installer couldn't detect dump table prefix"
 
 DICT['en.prompts.admin_login']='Please enter Keitaro admin login'
 DICT['en.prompts.admin_password']='Please enter Keitaro admin password'
@@ -1613,7 +1589,6 @@ END
 )
 DICT['en.validation_errors.validate_alnumdashdot']='Only Latin letters, numbers, dashes, underscores and dots allowed'
 DICT['en.validation_errors.validate_file_existence']='The file was not found by the specified path, please enter the correct path to the file'
-DICT['en.validation_errors.validate_keitaro_dump']='The SQL dump is broken, please specify path to correct SQL dump of Keitaro'
 DICT['en.validation_errors.validate_license']='Wrong license key or ip'
 DICT['en.validation_errors.validate_enough_space_for_dump']='Dont enough space for restore dump'
 DICT['en.validation_errors.validate_license_key_format']='Please enter valid license key (eg AAAA-BBBB-CCCC-DDDD)'
@@ -1641,7 +1616,7 @@ DICT['ru.errors.cant_detect_server_ip']='Программа установки �
 DICT['ru.errors.cant_detect_license_edition']='Программа установки не смогла определить тип вашей лицензии. Пожалуйста, обратитесь в службу технической поддержки Keitaro'
 DICT['ru.errors.dump_restoring_not_available_for_trials']='Восстановление из дампа не доступно для пробных лицензий'
 DICT['ru.errors.check_license_exist']='Этот сервер использует IP адрес :ip:. Убедитесь, что у вас есть лицензия с ключом: key: и ip: ip: на странице https://keitaro.io/platform/#/license'
-
+DICT['ru.errors.cant_detect_table_prefix']="Программа установки не смогла определить префикс таблицы дампа"
 
 DICT['ru.prompts.admin_login']='Укажите имя администратора Keitaro'
 DICT['ru.prompts.admin_password']='Укажите пароль администратора Keitaro'
@@ -1660,7 +1635,6 @@ DICT['ru.validation_errors.validate_license_key_format']='Введите кор�
 DICT['ru.validation_errors.validate_alnumdashdot']='Можно использовать только латинские бувы, цифры, тире, подчёркивание и точку'
 DICT['ru.validation_errors.validate_starts_with_latin_letter']='Значение должно начинаться с латинской буквы'
 DICT['ru.validation_errors.validate_file_existence']='Файл по заданному пути не обнаружен, введите правильный путь к файлу'
-DICT['ru.validation_errors.validate_keitaro_dump']='Указанный файл не является дампом Keitaro или загружен не полностью. Укажите путь до корректного SQL дампа'
 DICT['ru.validation_errors.validate_not_reserved_word']='Запрещено использовать yes/no/true/false в качестве значения'
 DICT['ru.validation_errors.validate_license']='Неверный ключ лицензии или IP'
 DICT['ru.validation_errors.validate_enough_space_for_dump']='Недостаточно места для восстановления из дампа'
@@ -1837,7 +1811,7 @@ parse_options(){
   if isset "${ARGS['F']}" || isset "${ARGS['S']}"; then
     ensure_license_set
     ensure_license_edition_type_is_commercial
-    ensure_valid F db_restore_path "validate_presence validate_file_existence validate_keitaro_dump validate_enough_space_for_dump"
+    ensure_valid F db_restore_path "validate_presence validate_file_existence validate_enough_space_for_dump"
     ensure_valid S db_restore_salt "validate_presence validate_alnumdashdot"
   fi
   ensure_options_correct
@@ -2018,7 +1992,7 @@ assert_has_enough_ram(){
 
 assert_not_running_under_openvz() {
   debug "Assert we are not running under OpenVZ"
-  if is_ci_mode; then
+  if isset "$SKIP_CHECKS"; then
     debug "Detected test mode, skip OpenVZ checks"
     return
   fi
@@ -2118,9 +2092,13 @@ get_user_vars(){
 
 get_user_db_restore_vars(){
   if is_detected_license_edition_type_commercial; then
-    get_user_var 'db_restore_path' 'validate_file_existence validate_keitaro_dump validate_enough_space_for_dump'
+    get_user_var 'db_restore_path' 'validate_file_existence validate_enough_space_for_dump'
     if isset "${VARS['db_restore_path']}"; then
       get_user_var 'db_restore_salt' 'validate_presence validate_alnumdashdot'
+      tables_prefix=$(detect_table_prefix "${VARS['db_restore_path']}")
+      if empty $tables_prefix; then
+        fail "$(translate 'errors.cant_detect_table_prefix')"
+      fi
     fi
   fi
 }
@@ -2657,7 +2635,7 @@ signal_successful_installation() {
 #     and insalled version is 2.12
 #     and we are upgrading to 2.14
 #   then ansible tags will be expanded by `upgrade-from-2.12` and `upgrade-from-2.13` tags 
-UPGRADE_CHECKPOINTS=(1.5 2.0 2.12 2.13 2.16 2.20 2.26)
+UPGRADE_CHECKPOINTS=(1.5 2.0 2.12 2.13 2.16 2.20 2.26 2.27)
 
 # If installed version less than or equal to version from array value
 # then ANSIBLE_TAGS will be expanded by appropriate tags (given from array key)
@@ -2668,29 +2646,27 @@ UPGRADE_CHECKPOINTS=(1.5 2.0 2.12 2.13 2.16 2.20 2.26)
 #   then ansible tags will be expanded by `enable-swap` tag
 declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['create-tracker-user-and-dirs']='2.22.0'
-  ['disable-ipv6']='1.0'
   ['disable-selinux']='2.25.0'
   ['disable-thp']='0.9'
-  ['increase-max-opened-files']='1.0'
-  ['install-certbot']='2.23.4'
+  ['install-certbot']='2.27.7'
   ['install-certs']='1.0'
-  ['install-chrony']='2.13'
+  ['install-chrony']='2.27.7'
   ['install-firewalld']='2.25.3'
-  ['install-helper-packages']='2.20'
+  ['install-packages']='2.27.7'
   ['install-postfix']='2.13'
-  ['install-repo-remi']='2.15'
   ['setup-journald']='2.12'
   ['setup-timezone']='0.9'
-  ['tune-swap']='2.21.0'
-  ['install-php']='2.25.0'
+  ['tune-swap']='2.27.7'
+  ['install-php']='2.27.7'
   ['install-roadrunner']='2.20.4'
-  ['tune-php']='2.20.4'
+  ['tune-php']='2.27.7'
   ['tune-roadrunner']='2.27.7'
   ['install-mariadb']='1.17'
-  ['tune-mariadb']='2.20.4'
-  ['tune-redis']='2.27.3'
+  ['tune-mariadb']='2.27.7'
+  ['tune-redis']='2.27.7'
+  ['tune-sysctl']='2.27.7'
   ['install-nginx']='2.27.0'
-  ['tune-nginx']='2.27.5'
+  ['tune-nginx']='2.27.7'
   ['upgrade-tracker']='2.12'
   ['wrap-up-tracker-configuration']='2.27.4'
 )

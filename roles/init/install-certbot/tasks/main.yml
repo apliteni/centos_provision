@@ -3,9 +3,12 @@
     name: certbot
     state: installed
 
-- name: Install renew certs task
+# weekly task
+- name: Install renew certs job
   cron:
     name: Renew LE certificates
     job: /usr/bin/certbot renew --allow-subset-of-names --quiet --renew-hook "/usr/bin/systemctl reload nginx"
-    hour: "{{ 23 | random }}"
-    minute: "{{ 59 | random }}"
+    # will run on next minute of next hour of next weekday of box creation time
+    weekday: "{{ box_creation_time | extract_weekday | next_weekday(6) }}" 
+    hour: "{{ box_creation_time | extract_hour | next_hour(12) }}" 
+    minute: "{{ box_creation_time | extract_minute | next_minute(30) }}"

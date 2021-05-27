@@ -1,18 +1,17 @@
-- name: Check if swap file exists
+- name: Check if swap file exists 
   stat:
-    path: "{{ swap_file_path }}"
-  register: swap_file_check
+    path: "{{ swap_path }}"
+  register: swap_path_info
 
-- name: Try to disable and remove current swap
+- name: Set is_swap_existing variable
+  set_fact:
+    is_swap_existing: "{{ swap_file_info.stat.isreg | default(false) }}"
+
+- name: Disable and remove current swap
   include: disable_and_remove_current_swap.yml
-  when: swap_file_check.stat.exists
+  when: is_swap_existing
+  register: swap_removed
 
 - name: Create and enable new swap
   include: create_and_enable_new_swap.yml
-  when: >
-    ( 
-      swap_file_check.stat.exists 
-          and swap_removed.path.state is defined
-          and swap_removed.path.state == 'absent')
-    or (
-      not swap_file_check.stat.exists)
+  when: (not is_swap_existing) or (swap_removed.changed | default(false))

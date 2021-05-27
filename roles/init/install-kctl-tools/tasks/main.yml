@@ -10,6 +10,8 @@
     mode: "0755"
   with_items: "{{ kctl_tool_names }}"
 
+- include: setup-additional-tools.yml
+
 - name: Make symlinks
   file:
     state: link

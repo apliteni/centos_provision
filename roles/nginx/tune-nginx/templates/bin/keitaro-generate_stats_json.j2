@@ -11,3 +11,5 @@ KEITARO_GROUP="{{ keitaro_group }}"
   /usr/local/bin/keitaro-print_stats_json > "${KEITARO_STATS_JSON_TMP_PATH}" && \
   chown "${KEITARO_USER}:${KEITARO_GROUP}" "${KEITARO_STATS_JSON_TMP_PATH}" && \
   mv "${KEITARO_STATS_JSON_TMP_PATH}" "${KEITARO_STATS_JSON_PATH}"
+
+  rm -f ${KEITARO_STATS_JSON_TMP_PATH}

@@ -1,6 +1,7 @@
 - name: Check tracker database exists
   shell: mysql --skip-column-names --batch --execute "select 'ok'" {{ db_name }}
   failed_when: false
+  changed_when: false
   register: check_if_tracker_database_exists_command
 
 - include: create-user-and-database.yml
