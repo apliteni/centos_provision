@@ -1,0 +1,11 @@
+- hosts: all
+  vars_files: ../../defaults/main.yml
+  tasks:
+    - name: Get swap file stats
+      stat:
+        path: "{{ swap_path }}"
+      register: swap_path_info
+
+    - name: Test swap file is present
+      assert:
+        that: not swap_path_info.stat.exists

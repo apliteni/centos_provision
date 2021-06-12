@@ -21,6 +21,7 @@ provisioner:
     ANSIBLE_ROLES_PATH:      ../../../../../roles          # path relative to molecule scenario directory
     PLAYBOOK_ROOT:           ../../../                     # path relative to role directory
     CI:                      true
+    MOLECULE_NO_LOG:         false
   ansible_args:                                            # vars files paths relative to molecule scenario directory
     - --extra-vars=@../../../../../vars/performance.yml
     - --extra-vars=@../../../../../vars/performance/1-php-fpm.yml

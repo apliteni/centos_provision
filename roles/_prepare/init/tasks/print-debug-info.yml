@@ -2,7 +2,7 @@
     var: "{{ item }}"
   with_items:
     - ram_size_mb
-    - swap_size_mb
+    - current_swap_size_mb
     - cpu_cores
     - is_ci_mode
     - kctl_tools_branch

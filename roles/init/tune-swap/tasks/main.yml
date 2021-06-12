@@ -1,4 +1,7 @@
 # Based on https://stackoverflow.com/a/64294534/612799
+- debug:
+    msg: "current_swap_size_mb: {{ current_swap_size_mb }}, swap_size_minimal_mb: {{ swap_size_minimal_mb }}"
+
 - name: "[Re]create swap if its size is too small"
   include: recreate_swap.yml
-  when: (swap_size_mb | int) * 0.9 < (swap_size_minimal_mb | int)
+  when: (current_swap_size_mb | int)  < (swap_size_minimal_mb | int) * 0.9

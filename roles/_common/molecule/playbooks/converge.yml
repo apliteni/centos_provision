@@ -4,7 +4,7 @@
   become_method: sudo
   tasks:
     - set_fact:
-        molecule_converge_yml_path: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') + '/molecule/default/converge.yml' }}"
+        molecule_converge_yml_path: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') + '/molecule/'+ lookup('env', 'MOLECULE_SCENARIO_NAME') +'/converge.yml' }}"
 
     - include_role:
         name: _prepare/init
