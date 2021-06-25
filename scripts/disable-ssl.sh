@@ -53,7 +53,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.28.2'
+RELEASE_VERSION='2.28.3'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -1301,8 +1301,9 @@ delete_certificates(){
 
 disable_domain(){
   local domain="${1}"
+  local args="${2}"
   rm -rf /etc/nginx/conf.d/${domain}.conf;
-  run_command "/usr/bin/certbot delete --cert-name $domain" "" "hide_output" "allow_errors" "" "" "$DISABLE_SSL_LOG"
+  run_command "/usr/bin/certbot delete -n --cert-name $domain" "" "hide_output" "allow_errors" "" "" "$DISABLE_SSL_LOG"
   is_file_exist "/etc/nginx/conf.d/${domain}.conf" && is_file_exist "/etc/letsencrypt/live/$domain"
 }
 

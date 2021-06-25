@@ -53,7 +53,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.28.2'
+RELEASE_VERSION='2.28.3'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -1395,6 +1395,8 @@ generate_certificates() {
 generate_certificate_for_domain() {
   certificate_generated=${FALSE}
   certificate_error=""
+  #Clean log before start
+  clear_log_before_certificate_request "${CERTBOT_LOG}"
   initialize_additional_ssl_logging_for_domain "${domain}"
   if certificate_exists_for_domain "$domain"; then
     SUCCESSFUL_DOMAINS+=($domain)
@@ -1471,7 +1473,10 @@ tmp_ssl_log_path_for_domain() {
   local domain="${1}"
   echo "${SSL_LOG_DIR}/.${domain}.log.tmp"
 }
-
+clear_log_before_certificate_request(){
+  local log="${1}"
+  > ${log}
+}
 
 generate_vhost_ssl_enabler() {
   local domain="${1}"

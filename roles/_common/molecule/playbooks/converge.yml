@@ -4,7 +4,12 @@
   become_method: sudo
   tasks:
     - set_fact:
-        molecule_converge_yml_path: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') + '/molecule/'+ lookup('env', 'MOLECULE_SCENARIO_NAME') +'/converge.yml' }}"
+        molecule_converge_tasks_path: >-
+          {{
+            lookup('env', 'MOLECULE_PROJECT_DIRECTORY') + '/molecule/' +
+            lookup('env', 'MOLECULE_SCENARIO_NAME') + '/converge-tasks.yml'
+          }}
+        current_role_name: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | basename }}"
 
     - include_role:
         name: _prepare/init
@@ -15,16 +20,16 @@
 
     - local_action:
         module: stat
-        path: "{{ molecule_converge_yml_path }}"
+        path: "{{ molecule_converge_tasks_path }}"
       become: no
-      register: molecule_converge_yml_info
+      register: molecule_converge_tasks_info
 
-    - name: Include current converge.yml
-      include: "{{ molecule_converge_yml_path }}"
-      when: molecule_converge_yml_info.stat.exists | default(false)
+    - debug:
+        msg: "Including {{ molecule_converge_tasks_path }}"
+      when: molecule_converge_tasks_info.stat.exists | default(false)
 
-    - set_fact:
-        current_role_name: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | basename }}"
+    - include: "{{ molecule_converge_tasks_path }}"
+      when: molecule_converge_tasks_info.stat.exists | default(false)
 
     - debug:
         msg: "Including role '{{ current_role_name }}'"
