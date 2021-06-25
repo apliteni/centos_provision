@@ -1,0 +1,12 @@
+- include_role:
+    name: init/create-tracker-user-and-dirs
+- include_role:
+    name: storage/mariadb/install-mariadb
+- include_role:
+    name: storage/mariadb/tune-mariadb
+- include_role:
+    name: storage/mariadb/wrap-up-db-configuration
+- include_role:
+    name: php/install-php
+- include_role:
+    name: install-tracker

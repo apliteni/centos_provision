@@ -1,0 +1,6 @@
+# When running in molecule systemd cant start chronyd because of this error
+# "Refusing to accept PID outside of service control group, acquired through unsafe symlink chain: /run/chrony/chronyd.pid"
+- name: Create /run/crony as root to avoid error desried above
+  file:
+    path: /run/chrony
+    state: directory

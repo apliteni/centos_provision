@@ -6,7 +6,6 @@ platforms:
   - name: centos8
     image: "centos:${MOLECULE_DISTRO:-centos8}"
     dockerfile: ../../../../../roles/_common/molecule/docker/Dockerfile.j2 # path relative to molecule scenario directory
-    #pre_build_image: true
     privileged: true
     tty: true
     command: ${MOLECULE_DOCKER_COMMAND:-""}
@@ -22,22 +21,23 @@ provisioner:
     PLAYBOOK_ROOT:           ../../../                     # path relative to role directory
     CI:                      true
     MOLECULE_NO_LOG:         false
-  ansible_args:                                            # vars files paths relative to molecule scenario directory
-    - --extra-vars=@../../../../../vars/performance.yml
-    - --extra-vars=@../../../../../vars/performance/1-php-fpm.yml
-    - --extra-vars=@../../../../../vars/performance/2-roadrunner.yml
-    - --extra-vars=@../../../../../vars/performance/3-mariadb.yml
-    - --extra-vars=@../../../../../vars/performance/4-nginx.yml
-    - --extra-vars=@../../../../../vars/performance/5-opened-files.yml
-    - --extra-vars=@../../../../../vars/keitaro.yml
-    - --extra-vars=@../../../../../vars/mariadb.yml
-    - --extra-vars=@../../../../../vars/nginx.yml
-    - --extra-vars=@../../../../../vars/php.yml
-    - --extra-vars=@../../../../../vars/server.yml
-    - --extra-vars=@../../../../../vars/ssl.yml
+  ansible_args:                                            # vars files paths relative to role directory
+    - --extra-vars=@../../../vars/performance.yml
+    - --extra-vars=@../../../vars/performance/1-php-fpm.yml
+    - --extra-vars=@../../../vars/performance/2-roadrunner.yml
+    - --extra-vars=@../../../vars/performance/3-mariadb.yml
+    - --extra-vars=@../../../vars/performance/4-nginx.yml
+    - --extra-vars=@../../../vars/performance/5-opened-files.yml
+    - --extra-vars=@../../../vars/keitaro.yml
+    - --extra-vars=@../../../vars/mariadb.yml
+    - --extra-vars=@../../../vars/nginx.yml
+    - --extra-vars=@../../../vars/php.yml
+    - --extra-vars=@../../../vars/server.yml
+    - --extra-vars=@../../../vars/ssl.yml
   inventory:
     links:
       group_vars: ../../../../../roles/_common/molecule/inventory
   playbooks:
     prepare: ../../../../../roles/_common/molecule/playbooks/prepare.yml
     converge: ../../../../../roles/_common/molecule/playbooks/converge.yml
+    verify: ../../../../../roles/_common/molecule/playbooks/verify.yml

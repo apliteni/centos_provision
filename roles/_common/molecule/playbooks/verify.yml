@@ -1,0 +1,40 @@
+- name: Verify
+  hosts: all
+  become: yes
+  become_method: sudo
+  tasks:
+    - set_fact:
+        role_default_vars_path: "{{  lookup('env', 'MOLECULE_PROJECT_DIRECTORY') + '/defaults/main.yml' }}"
+        scenario_verify_tasks_path: >-
+          {{
+            lookup('env', 'MOLECULE_PROJECT_DIRECTORY') + '/molecule/' +
+            lookup('env', 'MOLECULE_SCENARIO_NAME') + '/verify-tasks.yml'
+          }}
+
+    - local_action:
+        module: stat
+        path: "{{ scenario_verify_tasks_path }}"
+      become: no
+      register: scenario_verify_tasks_path_info
+
+    - meta: end_play        
+      when: not (scenario_verify_tasks_path_info.stat.exists | default(false))
+
+    - local_action:
+        module: stat
+        path: "{{ role_default_vars_path }}"
+      become: no
+      register: role_default_vars_info
+
+        #- name: Include init role
+        #include_role:
+        #name: _prepare/init
+
+    - name: Include var files
+      include_vars: "{{ role_default_vars_path }}"
+      when: role_default_vars_info.stat.exists | default(false)
+
+    - debug:
+        msg: "Including {{ scenario_verify_tasks_path }}"
+
+    - include: "{{ scenario_verify_tasks_path }}"
