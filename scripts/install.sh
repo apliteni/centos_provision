@@ -54,7 +54,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.28.3'
+RELEASE_VERSION='2.28.4'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -1564,6 +1564,7 @@ END
 )
 DICT['en.errors.wrong_distro']='This installer works only on CentOS 7.x. Please run this program on the clean CentOS server'
 DICT['en.errors.not_enough_ram']='The size of RAM on your server should be at least 2 GB'
+DICT['en.errors.not_enough_free_disk_space']='The free disk space on your server must be at least 2 GB.'
 DICT['en.errors.keitaro_dump_invalid']='SQL dump is broken'
 DICT['en.errors.isp_manager_installed']='You can not install Keitaro on the server with ISP Manager installed. Please run this program on a clean CentOS server.'
 DICT['en.errors.vesta_cp_installed']='You can not install Keitaro on the server with Vesta CP installed. Please run this program on a clean CentOS server.'
@@ -1608,6 +1609,7 @@ END
 )
 DICT['ru.errors.wrong_distro']='Установщик Keitaro работает только в CentOS 7.x. Пожалуйста, запустите эту программу в CentOS дистрибутиве'
 DICT['ru.errors.not_enough_ram']='Размер оперативной памяти на вашем сервере должен быть не менее 2 ГБ'
+DICT['ru.errors.not_enough_free_disk_space']='Размер свобободного места на диске должен быть не менее 2 ГБ'
 DICT['ru.errors.keitaro_dump_invalid']='Указанный файл не является дампом Keitaro или загружен не полностью.'
 DICT['ru.errors.isp_manager_installed']="Программа установки не может быть запущена на серверах с установленным ISP Manager. Пожалуйста, запустите эту программу на чистом CentOS сервере."
 DICT['ru.errors.vesta_cp_installed']="Программа установки не может быть запущена на серверах с установленной Vesta CP. Пожалуйста, запустите эту программу на чистом CentOS сервере."
@@ -1743,6 +1745,10 @@ detect_inventory_variables() {
 get_var_from_keitaro_app_config() {
   local var="${1}"
   get_var_from_config "${var}" "${WEBAPP_ROOT}/application/config/config.ini.php" '='
+}
+
+get_free_disk_space_mb() {
+  (df -m | grep -e "/$" | awk '{print$4}') 2>/dev/null
 }
 
 
@@ -1928,6 +1934,19 @@ assert_has_enough_ram(){
     debug "RAM size ${current_ram_size_mb}mb is greater than ${MIN_RAM_SIZE_MB}mb, continuing"
   fi
 }
+MIN_FREE_DISK_SPACE_MB=2048
+
+assert_has_enough_free_disk_space(){
+  debug "Checking free disk spice"
+
+  local current_free_disk_space_mb=$(get_free_disk_space_mb)
+  if [[ "${current_free_disk_space_mb}" -lt "${MIN_FREE_DISK_SPACE_MB}" ]]; then
+    debug "Free disk space ${current_free_disk_space_mb}mb is less than ${MIN_FREE_DISK_SPACE_MB}mb, raising error"
+    fail "$(translate errors.not_enough_free_disk_space)"
+  else
+    debug "Free disk space ${current_free_disk_space_mb}mb is greater than ${MIN_FREE_DISK_SPACE_MB}mb, continuing"
+  fi
+}
 
 
 assert_thp_deactivatable() {
@@ -2010,6 +2029,7 @@ stage2(){
   assert_apache_not_installed
   assert_centos_distro
   assert_has_enough_ram
+  assert_has_enough_free_disk_space
   assert_not_running_under_openvz
   assert_pannels_not_installed
   assert_thp_deactivatable
