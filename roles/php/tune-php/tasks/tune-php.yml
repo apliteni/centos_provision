@@ -11,3 +11,13 @@
   notify:
     - restart php-fpm
     - restart roadrunner
+
+- name: Install SourceGuardian encoder
+  copy:
+    src: "{{ source_guardian_extension_name }}"
+    dest: "/opt/remi/{{ php_version }}/root/usr/lib64/php/modules/{{ source_guardian_extension_name }}"
+
+- name: Register SourceGuardian encoder
+  copy:
+    content: "extension={{ source_guardian_extension_name }}\n"
+    dest: /etc/php/php.d/01-sourceguardian_loader.ini

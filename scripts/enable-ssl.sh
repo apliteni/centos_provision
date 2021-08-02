@@ -53,7 +53,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.28.4'
+RELEASE_VERSION='2.28.5'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -1438,9 +1438,11 @@ initialize_additional_ssl_logging_for_domain() {
 finalize_additional_ssl_logging_for_domain() {
   local domain="${1}"
   local additional_log_path="${ADDITIONAL_LOG_PATH}"
+  local domain_ssl_log_path="$(ssl_log_path_for_domain ${domain})"
+  debug "Stop copying logs to ${additional_log_path}."
   ADDITIONAL_LOG_PATH=""
-  debug "Stop copying logs to ${additional_log_path}"
-  mv "$(tmp_ssl_log_path_for_domain ${domain})" "$(ssl_log_path_for_domain ${domain})" && \
+  debug "Moving ${additional_log_path} to ${domain_ssl_log_path}"
+  mv "${additional_log_path}" "${domain_ssl_log_path}" && \
           debug "Done" || fail "errors.unexpected" "see_logs"
 }
 
