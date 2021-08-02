@@ -54,7 +54,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.28.4'
+RELEASE_VERSION='2.28.5'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -1553,6 +1553,7 @@ INSTALLED_VERSION=""
 
 
 DICT['en.messages.keitaro_already_installed']='Keitaro is already installed'
+DICT['en.messages.installation_without_key']='Attention tracker Keitaro will be instaled without license key.'
 DICT['en.messages.check_keitaro_dump_get_tables_prefix']="Getting tables prefix from dump"
 DICT['en.messages.check_keitaro_dump_validity']="Checking SQL dump"
 DICT['en.messages.validate_nginx_conf']='Checking nginx config'
@@ -1562,7 +1563,7 @@ DICT['en.errors.see_logs']=$(cat <<- END
 	You can rerun \`${SCRIPT_COMMAND}\` with saved settings after resolving installation problems.
 END
 )
-DICT['en.errors.wrong_distro']='This installer works only on CentOS 7.x. Please run this program on the clean CentOS server'
+DICT['en.errors.wrong_distro']='This installer works only on CentOS 7.x. and 8.x. Please reinstall the operating system in the Server control panel on the hosting.'
 DICT['en.errors.not_enough_ram']='The size of RAM on your server should be at least 2 GB'
 DICT['en.errors.not_enough_free_disk_space']='The free disk space on your server must be at least 2 GB.'
 DICT['en.errors.keitaro_dump_invalid']='SQL dump is broken'
@@ -1598,6 +1599,7 @@ DICT['en.validation_errors.validate_starts_with_latin_letter']='The value must b
 DICT['en.validation_errors.validate_license_key_is_active']='Specified license key has expired'
 
 DICT['ru.messages.keitaro_already_installed']='Keitaro трекер уже установлен.'
+DICT['ru.messages.installation_without_key']='Внимание трекер Keitaro бует установлен без лицензионного ключа.'
 DICT['ru.messages.check_keitaro_dump_get_tables_prefix']="Получаем префикс таблиц из SQL дампа"
 DICT['ru.messages.check_keitaro_dump_validity']="Проверяем SQL дамп"
 DICT['ru.messages.validate_nginx_conf']='Проверяем файл конфигурации nginx'
@@ -1607,7 +1609,7 @@ DICT['ru.errors.see_logs']=$(cat <<- END
 	Вы можете повторно запустить \`${SCRIPT_COMMAND}\` с этими настройками после устранения возникших проблем.
 END
 )
-DICT['ru.errors.wrong_distro']='Установщик Keitaro работает только в CentOS 7.x. Пожалуйста, запустите эту программу в CentOS дистрибутиве'
+DICT['ru.errors.wrong_distro']='Установщик Keitaro работает только в CentOS 7.x. и 8.x. Пожалуйста переустановите операционную систему в панели управления Сервером на хостинге.'
 DICT['ru.errors.not_enough_ram']='Размер оперативной памяти на вашем сервере должен быть не менее 2 ГБ'
 DICT['ru.errors.not_enough_free_disk_space']='Размер свобободного места на диске должен быть не менее 2 ГБ'
 DICT['ru.errors.keitaro_dump_invalid']='Указанный файл не является дампом Keitaro или загружен не полностью.'
@@ -1754,7 +1756,7 @@ get_free_disk_space_mb() {
 
 
 parse_options(){
-  while getopts ":A:K:U:P:F:S:ra:t:i:k:L:l:hvpsw" option; do
+  while getopts ":A:K:U:P:F:S:ra:t:i:k:L:l:hvpswW" option; do
     argument=$OPTARG
     ARGS["${option}"]="${argument}"
     case $option in
@@ -1794,6 +1796,9 @@ parse_options(){
         ;;
       w)
         WITHOUTH_YUM_UPDATE="true"
+        ;;
+      W)
+        VARS['without_key']="true"
         ;;
       k)
         case $argument in
@@ -2037,7 +2042,9 @@ stage2(){
 
 setup_vars(){
   setup_default_value admin_login 'admin'
-  setup_default_value admin_password "$(generate_password)"
+  if empty "${VARS['without_key']}"; then
+    setup_default_value admin_password "$(generate_password)"
+  fi
   setup_default_value db_name 'keitaro'
   setup_default_value db_user 'keitaro'
   setup_default_value db_password "$(generate_password)"
@@ -2082,7 +2089,7 @@ parse_inventory(){
 parse_line_from_inventory_file(){
   local line="${1}"
   IFS="=" read var_name value <<< "$line"
-  if [[ "$var_name" != 'db_restore_path' ]]; then
+  if [[ "$var_name" != "db_restore_path" ]] && [[ "$var_name" != "without_key" ]]; then
     if empty "${VARS[$var_name]}"; then
       VARS[$var_name]=$value
       debug "# read '$var_name' from inventory"
@@ -2123,8 +2130,13 @@ write_inventory_file(){
   print_line_to_inventory_file "db_name=${VARS['db_name']}"
   print_line_to_inventory_file "db_user=${VARS['db_user']}"
   print_line_to_inventory_file "db_password=${VARS['db_password']}"
-  print_line_to_inventory_file "admin_login=${VARS['admin_login']}"
-  print_line_to_inventory_file "admin_password=${VARS['admin_password']}"
+
+  if empty "${VARS['without_key']}" ; then
+    print_line_to_inventory_file "admin_login=${VARS['admin_login']}"
+    print_line_to_inventory_file "admin_password=${VARS['admin_password']}"
+  else
+    print_line_to_inventory_file "without_key=${VARS['without_key']}"
+  fi
   print_line_to_inventory_file "language=$(get_ui_lang)"
   print_line_to_inventory_file "evaluated_by_installer=yes"
   print_line_to_inventory_file "php_engine=${VARS['php_engine']}"
@@ -2207,7 +2219,7 @@ get_user_db_restore_vars(){
 
 stage4(){
   debug "Starting stage 4: generate inventory file"
-  if isset "$AUTO_INSTALL"; then
+  if isset "$AUTO_INSTALL" || isset "${VARS['without_key']}"; then
     debug "Skip reading vars from stdin"
   else
     get_user_vars
@@ -2454,10 +2466,12 @@ show_credentials(){
   if isset "${VARS['db_restore_path']}"; then
     echo "$(translate 'messages.successful.use_old_credentials')"
   else
-    colored_login=$(print_with_color "${VARS['admin_login']}" 'light.green')
-    colored_password=$(print_with_color "${VARS['admin_password']}" 'light.green')
-    echo -e "login: ${colored_login}"
-    echo -e "password: ${colored_password}"
+    if empty "${VARS['without_key']}" && isset "${VARS['admin_password']}"; then
+      colored_login=$(print_with_color "${VARS['admin_login']}" 'light.green')
+      colored_password=$(print_with_color "${VARS['admin_password']}" 'light.green')
+      echo -e "login: ${colored_login}"
+      echo -e "password: ${colored_password}"
+    fi
   fi
 }
 
@@ -2471,6 +2485,7 @@ run_ansible_playbook(){
   env="${env} KCTL_BRANCH=${BRANCH}"
   env="${env} ANSIBLE_FORCE_COLOR=true"
   env="${env} ANSIBLE_CONFIG=${PROVISION_DIRECTORY}/ansible.cfg"
+  env="${env} WITHOUT_LICENSE_KEY=${VARS['without_key']}"
   if [ -f "$DETECTED_PREFIX_PATH" ]; then
     env="${env} TABLES_PREFIX='$(cat "${DETECTED_PREFIX_PATH}" | head -n1)'"
     rm -f "${DETECTED_PREFIX_PATH}"
@@ -2479,6 +2494,7 @@ run_ansible_playbook(){
   if isset "$ANSIBLE_TAGS"; then
     command="${command} --tags ${ANSIBLE_TAGS}"
   fi
+
   if isset "$ANSIBLE_IGNORE_TAGS"; then
     command="${command} --skip-tags ${ANSIBLE_IGNORE_TAGS}"
   fi
@@ -2679,7 +2695,7 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['tune-swap']='2.27.7'
   ['install-php']='2.27.7'
   ['install-roadrunner']='2.20.4'
-  ['tune-php']='2.28.0'
+  ['tune-php']='2.28.5'
   ['tune-roadrunner']='2.27.7'
   ['install-mariadb']='1.17'
   ['tune-mariadb']='2.27.7'
@@ -2790,7 +2806,11 @@ install(){
     assert_keitaro_not_installed
     stage4                  # get and save vars to the inventory file
   fi
-  ensure_license_valid
+  if isset "${VARS['without_key']}"; then
+    echo  "$(translate 'messages.installation_without_key')"
+  else
+    ensure_license_valid
+  fi
   stage5                    # upgrade packages and install ansible
   stage6                    # upgrade packages and run ansible playbook
 }

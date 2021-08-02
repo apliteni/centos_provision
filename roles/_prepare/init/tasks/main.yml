@@ -3,7 +3,7 @@
 
 - name: Include var files
   include_vars: '../../../vars/{{ item }}'
-  with_items: 
+  with_items:
     - keitaro.yml
     - server.yml
     - ssl.yml
@@ -32,6 +32,10 @@
     box_creation_time: "{{ etc_hostname_file_info.stat.ctime | int }}"
     kctl_version: "{{ __kctl_version }}"
     current_swap_size_mb: "{{ __current_swap_size_mb }}"
+    without_license_key: "{{ lookup('env', 'WITHOUT_LICENSE_KEY')| default(false)|bool }}"
+    
+- set_fact:
+    with_license_key: "{{ not without_license_key }}"
 
 - name: Print debug info
   include_tasks: print-debug-info.yml

@@ -54,7 +54,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.28.4'
+RELEASE_VERSION='2.28.5'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -814,6 +814,7 @@ run_ansible_playbook(){
   env="${env} KCTL_BRANCH=${BRANCH}"
   env="${env} ANSIBLE_FORCE_COLOR=true"
   env="${env} ANSIBLE_CONFIG=${PROVISION_DIRECTORY}/ansible.cfg"
+  env="${env} WITHOUT_LICENSE_KEY=${VARS['without_key']}"
   if [ -f "$DETECTED_PREFIX_PATH" ]; then
     env="${env} TABLES_PREFIX='$(cat "${DETECTED_PREFIX_PATH}" | head -n1)'"
     rm -f "${DETECTED_PREFIX_PATH}"
@@ -822,6 +823,7 @@ run_ansible_playbook(){
   if isset "$ANSIBLE_TAGS"; then
     command="${command} --tags ${ANSIBLE_TAGS}"
   fi
+
   if isset "$ANSIBLE_IGNORE_TAGS"; then
     command="${command} --skip-tags ${ANSIBLE_IGNORE_TAGS}"
   fi
@@ -966,10 +968,12 @@ show_credentials(){
   if isset "${VARS['db_restore_path']}"; then
     echo "$(translate 'messages.successful.use_old_credentials')"
   else
-    colored_login=$(print_with_color "${VARS['admin_login']}" 'light.green')
-    colored_password=$(print_with_color "${VARS['admin_password']}" 'light.green')
-    echo -e "login: ${colored_login}"
-    echo -e "password: ${colored_password}"
+    if empty "${VARS['without_key']}" && isset "${VARS['admin_password']}"; then
+      colored_login=$(print_with_color "${VARS['admin_login']}" 'light.green')
+      colored_password=$(print_with_color "${VARS['admin_password']}" 'light.green')
+      echo -e "login: ${colored_login}"
+      echo -e "password: ${colored_password}"
+    fi
   fi
 }
 

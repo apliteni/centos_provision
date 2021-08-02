@@ -33,8 +33,8 @@ echo -n "Disabling $numbers ssl configs"
 # Call kctl-disable-ssl for each domain
 while read -r domain; do
   # We must be absolutely sure that we don't delete exists domain
-  mysql -e "select count(*) from keitaro.keitaro_domains where name = '{$domain}'" \
-        | grep '1' && exit 1 && echo "Attempt to delete exists domain {$domain}"
+  mysql -e "select count(*) from ${mysql_database}.keitaro_domains where name = '${domain}'" \
+        | grep '1' && exit 1 && echo "Attempt to delete exists domain ${domain}"
 
   if [ -z "$DRY_MODE" ]; then
     kctl-disable-ssl -D "$domain"
