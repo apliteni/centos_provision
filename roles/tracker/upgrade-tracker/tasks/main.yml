@@ -13,6 +13,21 @@
     - "../_common/get-tracker-info/latest_tracker.yml"
   when: custom_package is undefined
 
+- name: Remove app files on full upgrade
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - "{{ keitaro_app_dir }}/application/Core"
+    - "{{ keitaro_app_dir }}/application/Traffic"
+    - "{{ keitaro_app_dir }}/application/Admin"
+    - "{{ keitaro_app_dir }}/application/Component"
+    - "{{ keitaro_app_dir }}/application/Cron"
+    - "{{ keitaro_app_dir }}/bin"
+    - "{{ keitaro_app_dir }}/vendor"
+    - "{{ keitaro_app_dir }}/admin"
+  when: "'full-upgrade' in ansible_run_tags"
+
 - name: Download keitaro distribution
   include_tasks: "../_common/download-tracker/keitaro_distribution.yml"
   when:
