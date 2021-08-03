@@ -5,6 +5,7 @@ keitaro_app_dir: /var/www/keitaro
 keitaro_files: https://files.keitaro.io/scripts
 keitaro_app_logs_dir: "{{ keitaro_app_dir }}/var/log"
 keitaro_app_ssl_logs_dir: "{{ keitaro_app_logs_dir }}/ssl"
+keitaro_install_php: "{{ keitaro_files }}/install-php/3.0/install.php"
 keitaro_config_dir: /etc/keitaro
 keitaro_config_backups_dir: "{{ keitaro_config_dir }}/backups"
 keitaro_stats_json_path: "{{ keitaro_app_dir }}/var/stats.json"

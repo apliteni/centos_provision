@@ -54,7 +54,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.28.6'
+RELEASE_VERSION='2.28.7'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -1553,7 +1553,6 @@ INSTALLED_VERSION=""
 
 
 DICT['en.messages.keitaro_already_installed']='Keitaro is already installed'
-DICT['en.messages.installation_without_key']='Attention tracker Keitaro will be instaled without license key.'
 DICT['en.messages.check_keitaro_dump_get_tables_prefix']="Getting tables prefix from dump"
 DICT['en.messages.check_keitaro_dump_validity']="Checking SQL dump"
 DICT['en.messages.validate_nginx_conf']='Checking nginx config'
@@ -1599,7 +1598,6 @@ DICT['en.validation_errors.validate_starts_with_latin_letter']='The value must b
 DICT['en.validation_errors.validate_license_key_is_active']='Specified license key has expired'
 
 DICT['ru.messages.keitaro_already_installed']='Keitaro трекер уже установлен.'
-DICT['ru.messages.installation_without_key']='Внимание трекер Keitaro бует установлен без лицензионного ключа.'
 DICT['ru.messages.check_keitaro_dump_get_tables_prefix']="Получаем префикс таблиц из SQL дампа"
 DICT['ru.messages.check_keitaro_dump_validity']="Проверяем SQL дамп"
 DICT['ru.messages.validate_nginx_conf']='Проверяем файл конфигурации nginx'
@@ -1652,6 +1650,39 @@ is_detected_license_edition_type_commercial() {
   local license_edition_type=$(detected_license_edition_type ${license_ip} ${license_key})
   [[ "${license_edition_type}" == "${LICENSE_EDITION_TYPE_COMMERCIAL}" ]]
 }
+
+is_ram_size_mb_changed() {
+  ( isset "${VARS['previous_ram_size_mb']}" && [[ "${VARS['previous_ram_size_mb']}" != "${VARS['ram_size_mb']}" ]] ) \
+      || ( isset "${VARS['ram_size_mb']}" && [[ "${VARS['ram_size_mb']}" != "$(get_ram_size_mb)" ]] )
+}
+
+
+get_var_from_config(){
+  local var="${1}"
+  local file="${2}"
+  local separator="${3}"
+  cat "$file" | \
+    grep "^${var}\\b" | \
+    grep "${separator}" | \
+    head -n1 | \
+    awk -F"${separator}" '{print $2}' | \
+    awk '{$1=$1; print}' | \
+    sed -r -e "s/^'(.*)'\$/\\1/g" -e 's/^"(.*)"$/\1/g'
+  }
+
+DETECTED_RAM_SIZE_MB=""
+
+get_ram_size_mb() {
+  if empty "${DETECTED_RAM_SIZE_MB}"; then
+    if is_ci_mode; then
+      DETECTED_RAM_SIZE_MB=2048
+    else
+      DETECTED_RAM_SIZE_MB=$((free -m | grep Mem: | awk '{print $2}') 2>/dev/null)
+    fi
+  fi
+  echo "${DETECTED_RAM_SIZE_MB}"
+}
+
 
 clean_up(){
   if [ -d "$PROVISION_DIRECTORY" ]; then
@@ -1716,47 +1747,14 @@ get_var_from_keitaro_app_config() {
   get_var_from_config "${var}" "${WEBAPP_ROOT}/application/config/config.ini.php" '='
 }
 
-get_var_from_config(){
-  local var="${1}"
-  local file="${2}"
-  local separator="${3}"
-  cat "$file" | \
-    grep "^${var}\\b" | \
-    grep "${separator}" | \
-    head -n1 | \
-    awk -F"${separator}" '{print $2}' | \
-    awk '{$1=$1; print}' | \
-    sed -r -e "s/^'(.*)'\$/\\1/g" -e 's/^"(.*)"$/\1/g'
-  }
-
-is_ram_size_mb_changed() {
-  ( isset "${VARS['previous_ram_size_mb']}" && [[ "${VARS['previous_ram_size_mb']}" != "${VARS['ram_size_mb']}" ]] ) \
-      || ( isset "${VARS['ram_size_mb']}" && [[ "${VARS['ram_size_mb']}" != "$(get_ram_size_mb)" ]] )
-}
-
-
 get_free_disk_space_mb() {
   (df -m | grep -e "/$" | awk '{print$4}') 2>/dev/null
 }
 
-DETECTED_RAM_SIZE_MB=""
-
-get_ram_size_mb() {
-  if empty "${DETECTED_RAM_SIZE_MB}"; then
-    if is_ci_mode; then
-      DETECTED_RAM_SIZE_MB=2048
-    else
-      DETECTED_RAM_SIZE_MB=$((free -m | grep Mem: | awk '{print $2}') 2>/dev/null)
-    fi
-  fi
-  echo "${DETECTED_RAM_SIZE_MB}"
-}
-
-
 
 
 parse_options(){
-  while getopts ":A:K:U:P:F:S:ra:t:i:k:L:l:hvpswW" option; do
+  while getopts ":A:K:U:P:F:S:ra:t:i:k:L:l:hvpsw" option; do
     argument=$OPTARG
     ARGS["${option}"]="${argument}"
     case $option in
@@ -1796,9 +1794,6 @@ parse_options(){
         ;;
       w)
         WITHOUTH_YUM_UPDATE="true"
-        ;;
-      W)
-        VARS['without_key']="true"
         ;;
       k)
         case $argument in
@@ -1904,19 +1899,19 @@ stage1() {
   parse_options "$@"
   set_ui_lang
 }
-#
 
 
-
-
-
-assert_apache_not_installed(){
+assert_not_running_under_openvz() {
+  debug "Assert we are not running under OpenVZ"
   if isset "$SKIP_CHECKS"; then
-    debug "SKIPPED: actual checking of httpd skipped"
-  else
-    if is_installed httpd; then
-      fail "$(translate errors.apache_installed)"
-    fi
+    debug "Detected test mode, skip OpenVZ checks"
+    return
+  fi
+
+  virtualization_type="$(hostnamectl status | grep Virtualization | awk '{print $2}')"
+  debug "Detected virtualization type: '${virtualization_type}'"
+  if isset "${virtualization_type}" && [[ "${virtualization_type}" == "openvz" ]]; then
+    fail "Servers with OpenVZ virtualization are not supported"
   fi
 }
 
@@ -1924,6 +1919,32 @@ assert_centos_distro(){
   assert_installed 'yum' 'errors.wrong_distro'
   if ! is_file_exist /etc/centos-release; then
     fail "$(translate errors.wrong_distro)" "see_logs"
+  fi
+}
+MIN_RAM_SIZE_MB=1500
+
+assert_has_enough_ram(){
+  debug "Checking RAM size"
+
+  local current_ram_size_mb=$(get_ram_size_mb)
+  if [[ "$current_ram_size_mb" -lt "$MIN_RAM_SIZE_MB" ]]; then
+    debug "RAM size ${current_ram_size_mb}mb is less than ${MIN_RAM_SIZE_MB}mb, raising error"
+    fail "$(translate errors.not_enough_ram)"
+  else
+    debug "RAM size ${current_ram_size_mb}mb is greater than ${MIN_RAM_SIZE_MB}mb, continuing"
+  fi
+}
+MIN_FREE_DISK_SPACE_MB=2048
+
+assert_has_enough_free_disk_space(){
+  debug "Checking free disk spice"
+
+  local current_free_disk_space_mb=$(get_free_disk_space_mb)
+  if [[ "${current_free_disk_space_mb}" -lt "${MIN_FREE_DISK_SPACE_MB}" ]]; then
+    debug "Free disk space ${current_free_disk_space_mb}mb is less than ${MIN_FREE_DISK_SPACE_MB}mb, raising error"
+    fail "$(translate errors.not_enough_free_disk_space)"
+  else
+    debug "Free disk space ${current_free_disk_space_mb}mb is greater than ${MIN_FREE_DISK_SPACE_MB}mb, continuing"
   fi
 }
 
@@ -1951,19 +1972,6 @@ assert_thp_deactivatable() {
 
 are_thp_sys_files_existing() {
   is_file_exist "/sys/kernel/mm/transparent_hugepage/enabled" && is_file_exist "/sys/kernel/mm/transparent_hugepage/defrag"
-}
-MIN_FREE_DISK_SPACE_MB=2048
-
-assert_has_enough_free_disk_space(){
-  debug "Checking free disk spice"
-
-  local current_free_disk_space_mb=$(get_free_disk_space_mb)
-  if [[ "${current_free_disk_space_mb}" -lt "${MIN_FREE_DISK_SPACE_MB}" ]]; then
-    debug "Free disk space ${current_free_disk_space_mb}mb is less than ${MIN_FREE_DISK_SPACE_MB}mb, raising error"
-    fail "$(translate errors.not_enough_free_disk_space)"
-  else
-    debug "Free disk space ${current_free_disk_space_mb}mb is greater than ${MIN_FREE_DISK_SPACE_MB}mb, continuing"
-  fi
 }
 
 assert_pannels_not_installed(){
@@ -1999,32 +2007,19 @@ is_database_exists(){
   debug "Check if database ${database} exists"
   mysql -Nse 'show databases' 2>/dev/null | tr '\n' ' ' | grep -Pq "${database}"
 }
-MIN_RAM_SIZE_MB=1500
-
-assert_has_enough_ram(){
-  debug "Checking RAM size"
-
-  local current_ram_size_mb=$(get_ram_size_mb)
-  if [[ "$current_ram_size_mb" -lt "$MIN_RAM_SIZE_MB" ]]; then
-    debug "RAM size ${current_ram_size_mb}mb is less than ${MIN_RAM_SIZE_MB}mb, raising error"
-    fail "$(translate errors.not_enough_ram)"
-  else
-    debug "RAM size ${current_ram_size_mb}mb is greater than ${MIN_RAM_SIZE_MB}mb, continuing"
-  fi
-}
+#
 
 
-assert_not_running_under_openvz() {
-  debug "Assert we are not running under OpenVZ"
+
+
+
+assert_apache_not_installed(){
   if isset "$SKIP_CHECKS"; then
-    debug "Detected test mode, skip OpenVZ checks"
-    return
-  fi
-
-  virtualization_type="$(hostnamectl status | grep Virtualization | awk '{print $2}')"
-  debug "Detected virtualization type: '${virtualization_type}'"
-  if isset "${virtualization_type}" && [[ "${virtualization_type}" == "openvz" ]]; then
-    fail "Servers with OpenVZ virtualization are not supported"
+    debug "SKIPPED: actual checking of httpd skipped"
+  else
+    if is_installed httpd; then
+      fail "$(translate errors.apache_installed)"
+    fi
   fi
 }
 
@@ -2042,9 +2037,7 @@ stage2(){
 
 setup_vars(){
   setup_default_value admin_login 'admin'
-  if empty "${VARS['without_key']}"; then
-    setup_default_value admin_password "$(generate_password)"
-  fi
+  setup_default_value admin_password "$(generate_password)"
   setup_default_value db_name 'keitaro'
   setup_default_value db_user 'keitaro'
   setup_default_value db_password "$(generate_password)"
@@ -2089,7 +2082,7 @@ parse_inventory(){
 parse_line_from_inventory_file(){
   local line="${1}"
   IFS="=" read var_name value <<< "$line"
-  if [[ "$var_name" != "db_restore_path" ]] && [[ "$var_name" != "without_key" ]]; then
+  if [[ "$var_name" != 'db_restore_path' ]]; then
     if empty "${VARS[$var_name]}"; then
       VARS[$var_name]=$value
       debug "# read '$var_name' from inventory"
@@ -2105,29 +2098,6 @@ stage3(){
   read_inventory
   setup_vars
   detect_installed_version
-}
-
-
-get_user_vars(){
-  debug 'Read vars from user input'
-  hack_stdin_if_pipe_mode
-  print_translated "welcome"
-  get_user_var 'license_key' 'validate_presence validate_license_key_format validate_license_key_is_active validate_license'
-  get_user_db_restore_vars
-}
-
-
-get_user_db_restore_vars(){
-  if is_detected_license_edition_type_commercial; then
-    get_user_var 'db_restore_path' 'validate_file_existence validate_enough_space_for_dump'
-    if isset "${VARS['db_restore_path']}"; then
-      get_user_var 'db_restore_salt' 'validate_presence validate_alnumdashdot'
-      tables_prefix=$(detect_table_prefix "${VARS['db_restore_path']}")
-      if empty $tables_prefix; then
-        fail "$(translate 'errors.cant_detect_table_prefix')"
-      fi
-    fi
-  fi
 }
 
 get_ssh_port(){
@@ -2153,13 +2123,8 @@ write_inventory_file(){
   print_line_to_inventory_file "db_name=${VARS['db_name']}"
   print_line_to_inventory_file "db_user=${VARS['db_user']}"
   print_line_to_inventory_file "db_password=${VARS['db_password']}"
-
-  if empty "${VARS['without_key']}" ; then
-    print_line_to_inventory_file "admin_login=${VARS['admin_login']}"
-    print_line_to_inventory_file "admin_password=${VARS['admin_password']}"
-  else
-    print_line_to_inventory_file "without_key=${VARS['without_key']}"
-  fi
+  print_line_to_inventory_file "admin_login=${VARS['admin_login']}"
+  print_line_to_inventory_file "admin_password=${VARS['admin_password']}"
   print_line_to_inventory_file "language=$(get_ui_lang)"
   print_line_to_inventory_file "evaluated_by_installer=yes"
   print_line_to_inventory_file "php_engine=${VARS['php_engine']}"
@@ -2217,9 +2182,32 @@ print_line_to_inventory_file() {
   echo "$line" >> "$INVENTORY_PATH"
 }
 
+
+get_user_vars(){
+  debug 'Read vars from user input'
+  hack_stdin_if_pipe_mode
+  print_translated "welcome"
+  get_user_var 'license_key' 'validate_presence validate_license_key_format validate_license_key_is_active validate_license'
+  get_user_db_restore_vars
+}
+
+
+get_user_db_restore_vars(){
+  if is_detected_license_edition_type_commercial; then
+    get_user_var 'db_restore_path' 'validate_file_existence validate_enough_space_for_dump'
+    if isset "${VARS['db_restore_path']}"; then
+      get_user_var 'db_restore_salt' 'validate_presence validate_alnumdashdot'
+      tables_prefix=$(detect_table_prefix "${VARS['db_restore_path']}")
+      if empty $tables_prefix; then
+        fail "$(translate 'errors.cant_detect_table_prefix')"
+      fi
+    fi
+  fi
+}
+
 stage4(){
   debug "Starting stage 4: generate inventory file"
-  if isset "$AUTO_INSTALL" || isset "${VARS['without_key']}"; then
+  if isset "$AUTO_INSTALL"; then
     debug "Skip reading vars from stdin"
   else
     get_user_vars
@@ -2283,19 +2271,11 @@ install_galaxy_collection(){
   run_command "${command}"
 }
 
-show_credentials(){
-  print_with_color "http://$(detected_license_ip)/admin" 'light.green'
-
-  if isset "${VARS['db_restore_path']}"; then
-    echo "$(translate 'messages.successful.use_old_credentials')"
-  else
-    if empty "${VARS['without_key']}" && isset "${VARS['admin_password']}"; then
-      colored_login=$(print_with_color "${VARS['admin_login']}" 'light.green')
-      colored_password=$(print_with_color "${VARS['admin_password']}" 'light.green')
-      echo -e "login: ${colored_login}"
-      echo -e "password: ${colored_password}"
-    fi
-  fi
+download_provision(){
+  debug "Download provision"
+  release_url="https://files.keitaro.io/scripts/${BRANCH}/playbook.tar.gz"
+  mkdir -p "${PROVISION_DIRECTORY}"
+  run_command "curl -fsSL ${release_url} | tar -xzC ${PROVISION_DIRECTORY}"
 }
 json2dict() {
 
@@ -2464,15 +2444,21 @@ json2dict() {
   echo "("; (tokenize | json_parse); echo ")"
 }
 
-download_provision(){
-  debug "Download provision"
-  release_url="https://files.keitaro.io/scripts/${BRANCH}/playbook.tar.gz"
-  mkdir -p "${PROVISION_DIRECTORY}"
-  run_command "curl -fsSL ${release_url} | tar -xzC ${PROVISION_DIRECTORY}"
-}
-
 show_successful_message(){
   print_with_color "$(translate 'messages.successful')" 'green'
+}
+
+show_credentials(){
+  print_with_color "http://$(detected_license_ip)/admin" 'light.green'
+
+  if isset "${VARS['db_restore_path']}"; then
+    echo "$(translate 'messages.successful.use_old_credentials')"
+  else
+    colored_login=$(print_with_color "${VARS['admin_login']}" 'light.green')
+    colored_password=$(print_with_color "${VARS['admin_password']}" 'light.green')
+    echo -e "login: ${colored_login}"
+    echo -e "password: ${colored_password}"
+  fi
 }
 
 ANSIBLE_TASK_HEADER="^TASK \[(.*)\].*"
@@ -2485,7 +2471,6 @@ run_ansible_playbook(){
   env="${env} KCTL_BRANCH=${BRANCH}"
   env="${env} ANSIBLE_FORCE_COLOR=true"
   env="${env} ANSIBLE_CONFIG=${PROVISION_DIRECTORY}/ansible.cfg"
-  env="${env} WITHOUT_LICENSE_KEY=${VARS['without_key']}"
   if [ -f "$DETECTED_PREFIX_PATH" ]; then
     env="${env} TABLES_PREFIX='$(cat "${DETECTED_PREFIX_PATH}" | head -n1)'"
     rm -f "${DETECTED_PREFIX_PATH}"
@@ -2494,7 +2479,6 @@ run_ansible_playbook(){
   if isset "$ANSIBLE_TAGS"; then
     command="${command} --tags ${ANSIBLE_TAGS}"
   fi
-
   if isset "$ANSIBLE_IGNORE_TAGS"; then
     command="${command} --skip-tags ${ANSIBLE_IGNORE_TAGS}"
   fi
@@ -2805,11 +2789,7 @@ install(){
     assert_keitaro_not_installed
     stage4                  # get and save vars to the inventory file
   fi
-  if isset "${VARS['without_key']}"; then
-    echo  "$(translate 'messages.installation_without_key')"
-  else
-    ensure_license_valid
-  fi
+  ensure_license_valid
   stage5                    # upgrade packages and install ansible
   stage6                    # upgrade packages and run ansible playbook
 }

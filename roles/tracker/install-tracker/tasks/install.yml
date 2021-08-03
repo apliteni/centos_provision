@@ -4,68 +4,65 @@
 - name: Download and unpack tracker package
   include: install/download-and-unpack-tracker-package.yml
 
+- name: Download install.php
+  get_url:
+    url: "{{ keitaro_install_php }}"
+    dest: "{{ keitaro_app_dir }}/install.php"
+
 - name: Create key.lic file with license key
-  command: "{{ php_path }} bin/cli.php system:set_license_key {{ license_key }}"
-  args:
-    chdir: "{{ keitaro_app_dir }}"
-    creates:  "{{ keitaro_app_dir }}/var/license/key.lic"
-  become_user: "{{ keitaro_user }}"
-  when: with_license_key
+  template:
+    src: key.lic.j2
+    dest: "{{ keitaro_app_dir }}/var/license/key.lic"
 
 - name: Restore DB from SQL dump
   include_tasks: restore_db.yml
   when: db_restore_path is defined
 
-- name: Check keitaro shcema exist
-  community.mysql.mysql_query:
-    login_db: keitaro
-    query: SELECT table_name FROM information_schema.tables WHERE table_schema = 'keitaro' AND table_name = 'keitaro_users';
-  register: db_tracker_schema_exist_query
+- name: Make temporary copy of schema.sql
+  copy:
+    src: "{{ keitaro_database_schema }}"
+    dest: "{{ keitaro_database_schema_temp_file }}"
+    remote_src: true
 
-- name: Define db_tracker_users_table_is_empty helper variable
-  set_fact:
-    db_tracker_schema_is_empty: "{{ db_tracker_schema_exist_query.query_result == [[]] }}"
+- name: Change schema.sql engine to TokuDB
+  replace:
+    path: "{{ keitaro_database_schema_temp_file }}"
+    regexp: "ENGINE=InnoDB"
+    replace: "ENGINE={{ db_engine }}"
 
-- block:
-  - name: Make temporary copy of schema.sql
-    copy:
-      src: "{{ keitaro_database_schema }}"
-      dest: "{{ keitaro_database_schema_temp_file }}"
-      remote_src: true
+- name: Import database .sql files
+  community.mysql.mysql_db:
+    state: import
+    name: "{{ db_name }}"
+    target: "{{ item }}"
+  with_items:
+    - "{{ keitaro_database_schema_temp_file }}"
+    - "{{ keitaro_database_data }}"
+  when: db_restore_path is not defined
 
-  - name: Change schema.sql engine to TokuDB
-    replace:
-      path: "{{ keitaro_database_schema_temp_file }}"
-      regexp: "ENGINE=InnoDB"
-      replace: "ENGINE={{ db_engine }}"
+- name: Remove unneeded schema temp file
+  file:
+    path: "{{ keitaro_database_schema_temp_file }}"
+    state: absent
 
-  - name: Import database .sql files
-    community.mysql.mysql_db:
-      state: import
-      name: "{{ db_name }}"
-      target: "{{ item }}"
-    with_items:
-      - "{{ keitaro_database_schema_temp_file }}"
-      - "{{ keitaro_database_data }}"
-    when: db_restore_path is not defined
-
-  - name: Remove unneeded schema temp file
-    file:
-      path: "{{ keitaro_database_schema_temp_file }}"
-      state: absent
-  when: db_tracker_schema_is_empty
-
-
-- name: Run cli.php for generate config
-  command: "{{ php_path }} bin/cli.php system:generate_config"
-  environment:
-    LICENSE_IP: "{{ license_ip }}"
-    MARIADB_USERNAME: "{{ db_user }}"
-    MARIADB_DB: "{{ db_name }}"
-    MARIADB_PASSWORD: "{{ db_password }}"
+- name: Run install.php with args
+  command: |
+    {{ php_path }} install.php install
+                               --ip={{ license_ip }}
+                               --db-user={{ db_user }}
+                               --db-name={{ db_name }}
+                               --db-password={{ db_password }}
+                               --draft-storage=redis
+                               --cache-storage=files
+                               --force-tokudb
+                               --without-schema
+                               --without-admin
+                               --without-geodbs
+                               --without-tracker
+                               --without-key
+                               --language={{ language }}
   args:
     chdir: "{{ keitaro_app_dir }}"
-    creates:  "application/config/config.ini.php"
   become_user: "{{ keitaro_user }}"
   notify:
     - restart roadrunner
@@ -94,7 +91,7 @@
   args:
     chdir: "{{ keitaro_app_dir }}"
   become_user: "{{ keitaro_user }}"
-  when: db_restore_path is not defined and db_tracker_users_table_is_empty and with_license_key
+  when: db_restore_path is not defined and db_tracker_users_table_is_empty
 
 - name: Remove install.php
   file:
