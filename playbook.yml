@@ -37,8 +37,8 @@
     - {role: 'storage/redis/install-redis',                tags: 'install-redis'}
     - {role: 'storage/redis/tune-redis',                   tags: 'tune-redis,                   tune'}
     - {role: 'tracker/install-tracker',                    tags: 'install-tracker'}
-    - {role: 'tracker/set-file-permissions',               tags: 'set-file-permissions,         always'}
     - {role: 'tracker/upgrade-tracker',                    tags: 'upgrade-tracker,              never'}
+    - {role: 'tracker/set-file-permissions',               tags: 'set-file-permissions,         always'}
     - {role: 'tracker/wrap-up-tracker-configuration',      tags: 'wrap-up-tracker-configuration'}
     - {role: 'wrap-up/finish-installation',                tags: 'finish-installation'}
 
