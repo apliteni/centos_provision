@@ -25,8 +25,3 @@
   stat: 
     path: /usr/local/bin/roadrunner
   register: roadrunner
-
-- name: Create roadrunner configuration directory
-  file:
-    path: "{{ rr_config_dir }}"
-    state: directory

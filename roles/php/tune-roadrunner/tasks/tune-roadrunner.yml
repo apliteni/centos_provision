@@ -1,3 +1,8 @@
+- name: Create roadrunner configuration directory
+  file:
+    path: "{{ rr_config_dir }}"
+    state: directory
+
 - name: Generate roadrunner config
   template:
     src: roadrunner/roadrunner.yml.j2
