@@ -9,9 +9,10 @@
     dest: /etc/systemd/system/nginx.service.d/keitaro-systemd-nginx.conf
   register: systemd_nginx_config_generation_status
 
-- name: Restart nginx
+- name: Restart nginx and reload nginx systemd unit config
   systemd:
     name: nginx
     state: restarted
     daemon-reload: true
   when: systemd_nginx_config_generation_status.changed
+
