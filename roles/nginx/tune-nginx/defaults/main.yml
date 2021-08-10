@@ -1,5 +1,5 @@
 nginx_vhost_path: /etc/nginx/conf.d
-nginx_pidfile: /var/run/nginx.pid
+nginx_pidfile: /run/nginx.pid
 nginx_error_log: "{{ nginx_log_dir }}/error.log"
 nginx_error_log_format: warn
 nginx_access_log_options: buffer=16k flush=5s
