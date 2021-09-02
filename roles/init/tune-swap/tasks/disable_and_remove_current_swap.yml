@@ -1,29 +1,29 @@
 - name: Check if swap file exists
   stat:
-    path: "{{ tune_swap_swap_file_path }}"
-  register: tune_swap_swap_file_info
+    path: "{{ swap_path }}"
+  register: swap_file_info
 
 - name: Check if swap is enabled
-  shell: 'swapon --show | grep {{ tune_swap_swap_file_path }}'
-  when: tune_swap_swap_file_exists
-  register: tune_swap_check_swap_enabled_result
+  shell: 'swapon --show | grep "^{{ swap_path }}\s"'
+  when: file_exists
+  register: check_swap_enabled_result
   changed_when: false
   failed_when: false
 
 - name: Try to disable swap
-  command: 'swapoff {{ tune_swap_swap_file_path }}'
-  when: tune_swap_swap_file_exists and tune_swap_check_swap_enabled_result.rc == 0
-  register: tune_swap_swap_disabled_result
-  changed_when: tune_swap_swap_disabled_result.rc == 0
+  command: 'swapoff {{ swap_path }}'
+  when: file_exists and check_swap_enabled_result.rc == 0
+  register: disabled_result
+  changed_when: disabled_result.rc == 0
   failed_when: false
 
 - set_fact:
-    tune_swap_can_remove_swap: "{{ tune_swap_swap_file_exists and (tune_swap_swap_disabled_result.rc == 0 | default(true)) }}"
+    can_remove_swap: "{{ file_exists and (check_swap_enabled_result.rc != 0 or disabled_result.rc == 0 ) }}"
 
 - name: Remove the swap file
   file:
-    path: '{{ tune_swap_swap_file_path }}'
+    path: '{{ swap_path }}'
     state: absent
-  when: tune_swap_can_remove_swap
-  register: tune_swap_swap_removed
+  when: can_remove_swap
+  register: swap_removed
 

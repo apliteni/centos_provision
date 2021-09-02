@@ -1,3 +1,4 @@
 - set_fact:
     ram_size_mb: 9000
     current_swap_size_mb: 0
+    available_space_in_mb: 49510

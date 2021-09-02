@@ -22,6 +22,6 @@
 - name: Allow keitaro user to run kctl tools
   copy:
     content: |
-      Cmnd_Alias KCTL_TOOLS = /opt/keitaro/bin/kctl-enable-ssl *, /opt/keitaro/bin/kctl-disable-ssl *
+      Cmnd_Alias KCTL_TOOLS = /opt/keitaro/bin/kctl-enable-ssl *, /opt/keitaro/bin/kctl-disable-ssl * , /opt/keitaro/bin/kctl upgrade
       {{ keitaro_user }} ALL=(ALL) NOPASSWD: KCTL_TOOLS
     dest: /etc/sudoers.d/99-allow-keitaro-user-to-run-kctl-tools

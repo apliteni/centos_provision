@@ -1,7 +1,3 @@
-- name: Calculate swap space to add
-  set_fact:
-    swap_size_to_add_mb: "{{ (swap_size_minimal_mb | int) - (current_swap_size_mb | int) }}"
-
 - debug:
     msg: "swap_size_to_add_mb: {{ swap_size_to_add_mb }}"
 

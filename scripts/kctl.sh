@@ -46,9 +46,22 @@ is_ci_mode() {
 is_pipe_mode(){
   [ "${SELF_NAME}" == 'bash' ]
 }
+TOOL_NAME='kctl'
 
+assert_caller_root(){
+  debug 'Ensure script has been running by root'
+  if isset "$SKIP_CHECKS"; then
+    debug "SKIP: actual checking of current user"
+  else
+    if [[ "$EUID" == "$ROOT_UID" ]]; then
+      debug 'OK: current user is root'
+    else
+      debug 'NOK: current user is not root'
+      fail "$(translate errors.must_be_root)"
+    fi
+  fi
+}
 
-TOOL_NAME='test-run-command'
 
 SELF_NAME=${0}
 
@@ -176,80 +189,13 @@ DICT['ru.validation_errors.validate_absence']='Значение не должн�
 DICT['ru.validation_errors.validate_presence']='Введите значение'
 DICT['ru.validation_errors.validate_yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
 
-#
-
-
-
-
-
-
-set_ui_lang(){
-  if empty "$UI_LANG"; then
-    UI_LANG=$(detect_language)
-    if empty "$UI_LANG"; then
-      UI_LANG="en"
-    fi
-  fi
-  debug "Language: ${UI_LANG}"
-}
-
-
-detect_language(){
-  detect_language_from_vars "$LC_ALL" "$LC_MESSAGES" "$LANG"
-}
-
-
-detect_language_from_vars(){
-  while [[ ${#} -gt 0 ]]; do
-    if isset "${1}"; then
-      detect_language_from_var "${1}"
-      break
-    fi
-    shift
-  done
-}
-
-
-detect_language_from_var(){
-  local lang_value="${1}"
-  if [[ "$lang_value" =~ ^ru_[[:alpha:]]+\.UTF-8$ ]]; then
-    echo ru
-  else
-    echo en
-  fi
-}
-
-
-get_ui_lang(){
-  if empty "$UI_LANG"; then
-    set_ui_lang
-  fi
-  echo "$UI_LANG"
-}
-
-
-translate(){
-  local key="${1}"
-  local i18n_key=$(get_ui_lang).$key
-  message="${DICT[$i18n_key]}"
-  while isset "${2}"; do
-    message=$(interpolate "${message}" "${2}")
-    shift
-  done
-  echo "$message"
-}
-
-
-interpolate(){
-  local string="${1}"
-  local substitution="${2}"
-  IFS="=" read name value <<< "${substitution}"
-  string="${string//:${name}:/${value}}"
-  echo "${string}"
-}
-
 add_indentation(){
   sed -r "s/^/$INDENTATION_SPACES/g"
+}
+
+detect_mime_type(){
+  local file="${1}"
+  file --brief --mime-type "$file"
 }
 
 force_utf8_input(){
@@ -264,6 +210,71 @@ force_utf8_input(){
   fi
 }
 
+
+get_user_var(){
+  local var_name="${1}"
+  local validation_methods="${2}"
+  print_prompt_help "$var_name"
+  while true; do
+    print_prompt "$var_name"
+    value="$(read_stdin)"
+    debug "$var_name: got value '${value}'"
+    if ! empty "$value"; then
+      VARS[$var_name]="${value}"
+    fi
+    error=$(get_error "${var_name}" "$validation_methods")
+    if isset "$error"; then
+      debug "$var_name: validation error - '${error}'"
+      print_prompt_error "$error"
+      VARS[$var_name]=''
+    else
+      if [[ "$validation_methods" =~ 'validate_yes_no' ]]; then
+        transform_to_yes_no "$var_name"
+      fi
+      debug "  ${var_name}=${VARS[${var_name}]}"
+      break
+    fi
+  done
+}
+hack_stdin_if_pipe_mode(){
+  if is_pipe_mode; then
+    debug 'Detected pipe bash mode. Stdin hack enabled'
+    hack_stdin
+  else
+    debug "Can't detect pipe bash mode. Stdin hack disabled"
+  fi
+}
+
+
+hack_stdin(){
+  exec 3<&1
+}
+print_prompt_error(){
+  local error_key="${1}"
+  error=$(translate "validation_errors.$error_key")
+  print_with_color "*** ${error}" 'red'
+}
+
+print_prompt_help(){
+  local var_name="${1}"
+  print_translated "prompts.$var_name.help"
+}
+#
+
+
+
+
+
+print_prompt(){
+  local var_name="${1}"
+  prompt=$(translate "prompts.$var_name")
+  prompt="$(print_with_color "$prompt" 'bold')"
+  if ! empty ${VARS[$var_name]}; then
+    prompt="$prompt [${VARS[$var_name]}]"
+  fi
+  echo -en "$prompt > "
+}
+
 read_stdin(){
   if is_pipe_mode; then
     read -r -u 3 variable
@@ -271,6 +282,24 @@ read_stdin(){
     read -r variable
   fi
   echo "$variable"
+}
+
+get_error(){
+  local var_name="${1}"
+  local validation_methods_string="${2}"
+  local value="${VARS[$var_name]}"
+  local error=""
+  read -ra validation_methods <<< "$validation_methods_string"
+  for validation_method in "${validation_methods[@]}"; do
+    if ! eval "${validation_method} '${value}'"; then
+      debug "${var_name}: '${value}' invalid for ${validation_method} validator"
+      error="${validation_method}"
+      break
+    else
+      debug "${var_name}: '${value}' valid for ${validation_method} validator"
+    fi
+  done
+  echo "${error}"
 }
 
 clean_up(){
@@ -297,16 +326,135 @@ fail() {
   clean_up
   exit ${FAILURE_RESULT}
 }
+#
 
-init() {
-  init_kctl
-  force_utf8_input
-  debug "Starting init stage: log basic info"
-  debug "Command: ${SCRIPT_COMMAND}"
-  debug "Script version: ${RELEASE_VERSION}"
-  debug "User ID: "$EUID""
-  debug "Current date time: $(date +'%Y-%m-%d %H:%M:%S %:z')"
-  trap on_exit SIGHUP SIGINT SIGTERM
+
+
+
+common_parse_options(){
+  local option="${1}"
+  local argument="${2}"
+  case $option in
+    l|L)
+      case $argument in
+        en)
+          UI_LANG=en
+          ;;
+        ru)
+          UI_LANG=ru
+          ;;
+        *)
+          print_err "-L: language '$argument' is not supported"
+          exit ${FAILURE_RESULT}
+          ;;
+      esac
+      ;;
+    v)
+      version
+      ;;
+    h)
+      help
+      ;;
+    s)
+      SKIP_CHECKS=true
+      ;;
+    p)
+      PRESERVE_RUNNING=true
+      ;;
+    *)
+      wrong_options
+      ;;
+  esac
+}
+
+
+help(){
+  if [[ $(get_ui_lang) == 'ru' ]]; then
+    usage_ru_header
+    help_ru
+    help_ru_common
+  else
+    usage_en_header
+    help_en
+    help_en_common
+  fi
+  exit ${SUCCESS_RESULT}
+}
+
+
+usage(){
+  if [[ $(get_ui_lang) == 'ru' ]]; then
+    usage_ru
+  else
+    usage_en
+  fi
+  exit ${FAILURE_RESULT}
+}
+
+
+version(){
+  echo "${SCRIPT_NAME} v${RELEASE_VERSION}"
+  exit ${SUCCESS_RESULT}
+}
+
+
+wrong_options(){
+  WRONG_OPTIONS="wrong_options"
+}
+
+
+ensure_options_correct(){
+  if isset "${WRONG_OPTIONS}"; then
+    usage
+  fi
+}
+
+
+usage_ru(){
+  usage_ru_header
+  print_err "Попробуйте '${SCRIPT_NAME} -h' для большей информации."
+  print_err
+}
+
+
+usage_en(){
+  usage_en_header
+  print_err "Try '${SCRIPT_NAME} -h' for more information."
+  print_err
+}
+
+
+usage_ru_header(){
+  print_err "Использование: "$SCRIPT_NAME" [OPTION]..."
+}
+
+
+usage_en_header(){
+  print_err "Usage: "$SCRIPT_NAME" [OPTION]..."
+}
+
+
+help_ru_common(){
+  print_err "Интернационализация:"
+  print_err "  -L LANGUAGE              задать язык - en или ru соответсвенно для английского или русского языка"
+  print_err
+  print_err "Разное:"
+  print_err "  -h                       показать эту справку выйти"
+  print_err
+  print_err "  -v                       показать версию и выйти"
+  print_err
+}
+
+
+help_en_common(){
+  print_err "Internationalization:"
+  print_err "  -L LANGUAGE              set language - either en or ru for English and Russian appropriately"
+  print_err
+  print_err "Miscellaneous:"
+  print_err "  -h                       display this help text and exit"
+  print_err
+  print_err "  -v                       display version information and exit"
+  print_err
 }
 
 LOGS_TO_KEEP=5
@@ -364,6 +512,17 @@ create_log() {
 
 delete_old_logs() {
   find "${LOG_DIR}" -name "${LOG_FILENAME}-*" | sort | head -n -${LOGS_TO_KEEP} | xargs rm -f
+}
+
+init() {
+  init_kctl
+  force_utf8_input
+  debug "Starting init stage: log basic info"
+  debug "Command: ${SCRIPT_COMMAND}"
+  debug "Script version: ${RELEASE_VERSION}"
+  debug "User ID: "$EUID""
+  debug "Current date time: $(date +'%Y-%m-%d %H:%M:%S %:z')"
+  trap on_exit SIGHUP SIGINT SIGTERM
 }
 
 log_and_print_err(){
@@ -635,374 +794,206 @@ remove_current_command(){
   rmdir $(dirname "$current_command_script")
 }
 
-
-download_provision(){
-  debug "Download provision"
-  release_url="https://files.keitaro.io/scripts/${BRANCH}/playbook.tar.gz"
-  mkdir -p "${PROVISION_DIRECTORY}"
-  run_command "curl -fsSL ${release_url} | tar -xzC ${PROVISION_DIRECTORY}"
+start_or_reload_nginx(){
+  if is_file_exist "/run/nginx.pid" || is_ci_mode; then
+    debug "Nginx is started, reloading"
+    run_command "nginx -s reload" "$(translate 'messages.reloading_nginx')" 'hide_output'
+  else
+    debug "Nginx is not running, starting"
+    print_with_color "$(translate 'messages.nginx_is_not_running')" "yellow"
+    run_command "systemctl start nginx" "$(translate 'messages.starting_nginx')" 'hide_output'
+  fi
 }
-json2dict() {
 
-  throw() {
-    echo "$*" >&2
-    exit 1
-  }
 
-  BRIEF=1               # Brief. Combines 'Leaf only' and 'Prune empty' options.
-  LEAFONLY=0            # Leaf only. Only show leaf nodes, which stops data duplication.
-  PRUNE=0               # Prune empty. Exclude fields with empty values.
-  NO_HEAD=0             # No-head. Do not show nodes that have no path (lines that start with []).
-  NORMALIZE_SOLIDUS=0   # Remove escaping of the solidus symbol (straight slash)
+translate(){
+  local key="${1}"
+  local i18n_key=$(get_ui_lang).$key
+  message="${DICT[$i18n_key]}"
+  while isset "${2}"; do
+    message=$(interpolate "${message}" "${2}")
+    shift
+  done
+  echo "$message"
+}
 
-  awk_egrep () {
-    local pattern_string=$1
 
-    gawk '{
-      while ($0) {
-        start=match($0, pattern);
-        token=substr($0, start, RLENGTH);
-        print token;
-        $0=substr($0, start+RLENGTH);
-      }
-    }' pattern="$pattern_string"
-  }
+interpolate(){
+  local string="${1}"
+  local substitution="${2}"
+  IFS="=" read name value <<< "${substitution}"
+  string="${string//:${name}:/${value}}"
+  echo "${string}"
+}
+#
 
-  tokenize () {
-    local GREP
-    local ESCAPE
-    local CHAR
 
-    if echo "test string" | egrep -ao --color=never "test" >/dev/null 2>&1
-    then
-      GREP='egrep -ao --color=never'
-    else
-      GREP='egrep -ao'
+
+
+
+
+set_ui_lang(){
+  if empty "$UI_LANG"; then
+    UI_LANG=$(detect_language)
+    if empty "$UI_LANG"; then
+      UI_LANG="en"
     fi
+  fi
+  debug "Language: ${UI_LANG}"
+}
 
-    if echo "test string" | egrep -o "test" >/dev/null 2>&1
-    then
-      ESCAPE='(\\[^u[:cntrl:]]|\\u[0-9a-fA-F]{4})'
-      CHAR='[^[:cntrl:]"\\]'
-    else
-      GREP=awk_egrep
-      ESCAPE='(\\\\[^u[:cntrl:]]|\\u[0-9a-fA-F]{4})'
-      CHAR='[^[:cntrl:]"\\\\]'
+
+detect_language(){
+  detect_language_from_vars "$LC_ALL" "$LC_MESSAGES" "$LANG"
+}
+
+
+detect_language_from_vars(){
+  while [[ ${#} -gt 0 ]]; do
+    if isset "${1}"; then
+      detect_language_from_var "${1}"
+      break
     fi
-
-    local STRING="\"$CHAR*($ESCAPE$CHAR*)*\""
-    local NUMBER='-?(0|[1-9][0-9]*)([.][0-9]*)?([eE][+-]?[0-9]*)?'
-    local KEYWORD='null|false|true'
-    local SPACE='[[:space:]]+'
-
-    # Force zsh to expand $A into multiple words
-    local is_wordsplit_disabled=$(unsetopt 2>/dev/null | grep -c '^shwordsplit$')
-    if [ $is_wordsplit_disabled != 0 ]; then setopt shwordsplit; fi
-    $GREP "$STRING|$NUMBER|$KEYWORD|$SPACE|." | egrep -v "^$SPACE$"
-    if [ $is_wordsplit_disabled != 0 ]; then unsetopt shwordsplit; fi
-  }
-
-  parse_array () {
-    local index=0
-    local ary=''
-    read -r token
-    case "$token" in
-      ']') ;;
-      *)
-        while :
-        do
-          parse_value "$1" "[$index]"
-          index=$((index+1))
-          ary="$ary""$value"
-          read -r token
-          case "$token" in
-            ']') break ;;
-            ',') ary="$ary," ;;
-            *) throw "EXPECTED , or ] GOT ${token:-EOF}" ;;
-          esac
-          read -r token
-        done
-        ;;
-    esac
-    [ "$BRIEF" -eq 0 ] && value=$(printf '[%s]' "$ary") || value=
-    :
-  }
-
-  parse_object () {
-    local key
-    local obj=''
-    read -r token
-    case "$token" in
-      '}') ;;
-      *)
-        while :
-        do
-          case "$token" in
-            '"'*'"') key=$token ;;
-            *) throw "EXPECTED string GOT ${token:-EOF}" ;;
-          esac
-          read -r token
-          case "$token" in
-            ':') ;;
-            *) throw "EXPECTED : GOT ${token:-EOF}" ;;
-          esac
-          read -r token
-          local json_key=${key//\"}
-          parse_value "$1" "$json_key" "."
-          obj="$obj$key:$value"
-          read -r token
-          case "$token" in
-            '}') break ;;
-            ',') obj="$obj," ;;
-            *) throw "EXPECTED , or } GOT ${token:-EOF}" ;;
-          esac
-          read -r token
-        done
-      ;;
-    esac
-    [ "$BRIEF" -eq 0 ] && value=$(printf '{%s}' "$obj") || value=
-    :
-  }
-
-  parse_value () {
-    local jpath="${1:+$1$3}$2" isleaf=0 isempty=0 print=0
-    case "$token" in
-      '{') parse_object "$jpath" ;;
-      '[') parse_array  "$jpath" ;;
-      # At this point, the only valid single-character tokens are digits.
-      ''|[!0-9]) throw "EXPECTED value GOT ${token:-EOF}" ;;
-      *) value=$token
-        # if asked, replace solidus ("\/") in json strings with normalized value: "/"
-        [ "$NORMALIZE_SOLIDUS" -eq 1 ] && value=$(echo "$value" | sed 's#\\/#/#g')
-        isleaf=1
-        [ "$value" = '""' ] && isempty=1
-        ;;
-    esac
-    [ "$value" = '' ] && return
-    [ "$NO_HEAD" -eq 1 ] && [ -z "$jpath" ] && return
-
-    [ "$LEAFONLY" -eq 0 ] && [ "$PRUNE" -eq 0 ] && print=1
-    [ "$LEAFONLY" -eq 1 ] && [ "$isleaf" -eq 1 ] && [ $PRUNE -eq 0 ] && print=1
-    [ "$LEAFONLY" -eq 0 ] && [ "$PRUNE" -eq 1 ] && [ "$isempty" -eq 0 ] && print=1
-    [ "$LEAFONLY" -eq 1 ] && [ "$isleaf" -eq 1 ] && \
-      [ $PRUNE -eq 1 ] && [ $isempty -eq 0 ] && print=1
-    [ "$print" -eq 1 ] && [ "$value" != 'null' ] && print_value "$jpath" "$value"
-    #printf "['%s']=%s " "$jpath" "$value"
-    :
-  }
-
-  print_value() {
-    local jpath="$1" value="$2"
-    printf "['%s']=%s " "$jpath" "$value"
-  }
-
-  json_parse () {
-    read -r token
-    parse_value
-    read -r token
-    case "$token" in
-      '') ;;
-      *) throw "EXPECTED EOF GOT $token" ;;
-    esac
-  }
-
-  echo "("; (tokenize | json_parse); echo ")"
+    shift
+  done
 }
 
-ANSIBLE_TASK_HEADER="^TASK \[(.*)\].*"
-ANSIBLE_TASK_FAILURE_HEADER="^(fatal|failed): "
-ANSIBLE_FAILURE_JSON_FILEPATH="${WORKING_DIR}/ansible_failure.json"
-ANSIBLE_LAST_TASK_LOG="${WORKING_DIR}/ansible_last_task.log"
 
-run_ansible_playbook(){
-  local env=""
-  env="${env} KCTL_BRANCH=${BRANCH}"
-  env="${env} ANSIBLE_FORCE_COLOR=true"
-  env="${env} ANSIBLE_CONFIG=${PROVISION_DIRECTORY}/ansible.cfg"
-  env="${env} WITHOUT_LICENSE_KEY=${VARS['without_key']}"
-  if [ -f "$DETECTED_PREFIX_PATH" ]; then
-    env="${env} TABLES_PREFIX='$(cat "${DETECTED_PREFIX_PATH}" | head -n1)'"
-    rm -f "${DETECTED_PREFIX_PATH}"
-  fi
-  local command="${env} $(get_ansible_playbook_command) -vvv -i ${INVENTORY_PATH} ${PROVISION_DIRECTORY}/playbook.yml"
-  if isset "$ANSIBLE_TAGS"; then
-    command="${command} --tags ${ANSIBLE_TAGS}"
-  fi
-
-  if isset "$ANSIBLE_IGNORE_TAGS"; then
-    command="${command} --skip-tags ${ANSIBLE_IGNORE_TAGS}"
-  fi
-  run_command "${command}" '' '' '' '' 'print_ansible_fail_message'
-}
-
-get_ansible_playbook_command() {
-  if [[ "$(get_centos_major_release)" == "7" ]]; then
-    echo "ansible-playbook-3"
+detect_language_from_var(){
+  local lang_value="${1}"
+  if [[ "$lang_value" =~ ^ru_[[:alpha:]]+\.UTF-8$ ]]; then
+    echo ru
   else
-    echo "ansible-playbook"
+    echo en
   fi
 }
 
-print_ansible_fail_message(){
-  local current_command_script="${1}"
-  if ansible_task_found; then
-    debug "Found last ansible task"
-    print_tail_content_of "$CURRENT_COMMAND_ERROR_LOG"
-    cat "$CURRENT_COMMAND_OUTPUT_LOG" | remove_text_before_last_pattern_occurence "$ANSIBLE_TASK_HEADER" > "$ANSIBLE_LAST_TASK_LOG"
-    print_ansible_last_task_info
-    print_ansible_last_task_external_info
-    rm "$ANSIBLE_LAST_TASK_LOG"
-  else
-    print_common_fail_message "$current_command_script"
+
+get_ui_lang(){
+  if empty "$UI_LANG"; then
+    set_ui_lang
   fi
+  echo "$UI_LANG"
 }
 
-ansible_task_found(){
-  grep -qE "$ANSIBLE_TASK_HEADER" "$CURRENT_COMMAND_OUTPUT_LOG"
+kctl_doctor(){
+  kctl_install "full-upgrade" "kctl-doctor.log"
 }
 
-print_ansible_last_task_info(){
-  echo "Task info:"
-  head -n2 "$ANSIBLE_LAST_TASK_LOG" | sed -r 's/\*+$//g' | add_indentation
-}
-
-print_ansible_last_task_external_info(){
-  if ansible_task_failure_found; then
-    debug "Found last ansible failure"
-    cat "$ANSIBLE_LAST_TASK_LOG" \
-      | keep_json_only \
-      > "$ANSIBLE_FAILURE_JSON_FILEPATH"
+kctl_downgrade() {
+  local rollback_version="${1}"
+  if empty "${rollback_version}"; then
+    fail "$(translate errors.rollback_version_is_empty)" "see_logs"
+  elif (( $(as_version "${rollback_version}") <  $(as_version "${MIN_ROLLBACK_VERSION}") )); then
+    fail "$(translate errors.rollback_version_is_incorrect)"
   fi
-  print_ansible_task_module_info
-  rm "$ANSIBLE_FAILURE_JSON_FILEPATH"
+
+  kctl_install "full-upgrade" "kctl-downgrade.log" "-a '${rollback_version}'"
 }
 
-ansible_task_failure_found(){
-  grep -qP "$ANSIBLE_TASK_FAILURE_HEADER" "$ANSIBLE_LAST_TASK_LOG"
+kctl_install() {
+  local tags="${1}" 
+  local log_file_name="${2}"
+  local extra_options=${3}
+  local log_file_path="${KCTL_LOG_DIR}/${log_file_name}"
+  debug "Run command: curl -fsSL4 '${KEITARO_URL}/install.sh' | bash -s -- -rt '${tags}'  -o '${log_file_path}'"
+  curl -fsSL4 "${KEITARO_URL}/install.sh" | bash -s -- -rt "${tags}"  -o "${log_file_path}" ${extra_options}
 }
 
-
-keep_json_only(){
-  # The json with error is inbuilt into text. The structure of text is about:
-  #
-  # TASK [$ROLE_NAME : "$TASK_NAME"] *******
-  # task path: /path/to/task/file.yml:$LINE
-  # .....
-  # fatal: [localhost]: FAILED! => {
-  #     .....
-  #     failure JSON
-  #     .....
-  # }
-  # .....
-  #
-  # So, first remove all before "fatal: [localhost]: FAILED! => {" line
-  # then replace first line to just '{'
-  # then remove all after '}'
-  sed -n -r "/${ANSIBLE_TASK_FAILURE_HEADER}/,\$p" \
-    | sed '1c{' \
-    | sed -e '/^}$/q'
-  }
-
-remove_text_before_last_pattern_occurence(){
-  local pattern="${1}"
-  sed -n -r "H;/${pattern}/h;\${g;p;}"
+kctl_upgrade(){
+  kctl_install "upgrade" "kctl-upgrade.log"
 }
 
-print_ansible_task_module_info(){
-  declare -A   json
-  eval "json=$(cat "$ANSIBLE_FAILURE_JSON_FILEPATH" | json2dict)" 2>/dev/null
-  ansible_module="${json['invocation.module_name']}"
-  if isset "${json['invocation.module_name']}"; then
-    echo "Ansible module: ${json['invocation.module_name']}"
-  fi
-  if isset "${json['msg']}"; then
-    print_field_content "Field 'msg'" "${json['msg']}"
-  fi
-  if need_print_stdout_stderr "$ansible_module" "${json['stdout']}" "${json['stderr']}"; then
-    print_field_content "Field 'stdout'" "${json['stdout']}"
-    print_field_content "Field 'stderr'" "${json['stderr']}"
-  fi
-  if need_print_full_json "$ansible_module" "${json['stdout']}" "${json['stderr']}" "${json['msg']}"; then
-    print_content_of "$ANSIBLE_FAILURE_JSON_FILEPATH"
-  fi
+show_help(){
+  echo "Keitaro kctl-upgrade util"
+  echo ""
+  echo "Usage:
+   kctl upgrade             - for tracker upgrade
+   kctl doctor              - for tracker  full upgrade
+   kctl downgrade <version> - for tracker rollback to version"
 }
 
-print_field_content(){
-  local field_caption="${1}"
-  local field_content="${2}"
-  if empty "${field_content}"; then
-    echo "${field_caption} is empty"
-  else
-    echo "${field_caption}:"
-    echo -e "${field_content}" | fold -s -w $((${COLUMNS:-80} - ${INDENTATION_LENGTH})) | add_indentation
-  fi
-}
+MIN_ROLLBACK_VERSION='9.13.0'
+declare -A DICT
 
-need_print_stdout_stderr(){
-  local ansible_module="${1}"
-  local stdout="${2}"
-  local stderr="${3}"
-  isset "${stdout}"
-  local is_stdout_set=$?
-  isset "${stderr}"
-  local is_stderr_set=$?
-  [[ "$ansible_module" == 'cmd' || ${is_stdout_set} == ${SUCCESS_RESULT} || ${is_stderr_set} == ${SUCCESS_RESULT} ]]
-}
+DICT['en.errors.rollback_version_is_empty']='Rollback version not specified'
+DICT['en.errors.rollback_version_is_incorrect']="Version can't be less than ${MIN_ROLLBACK_VERSION}"
+DICT['en.errors.see_logs']="Evaluating log saved to ${LOG_PATH}. Please rerun ${TOOL_NAME} ${@} after resolving problems."
 
-need_print_full_json(){
-  local ansible_module="${1}"
-  local stdout="${2}"
-  local stderr="${3}"
-  local msg="${4}"
-  need_print_stdout_stderr "$ansible_module" "$stdout" "$stderr"
-  local need_print_output_fields=$?
-  isset "$msg"
-  is_msg_set=$?
-  [[ ${need_print_output_fields} != ${SUCCESS_RESULT} && ${is_msg_set} != ${SUCCESS_RESULT}  ]]
-}
+DICT['ru.errors.rollback_version_is_empty']='Не указана версия для отката'
+DICT['ru.errors.rollback_version_is_incorrect']="Версия не может быть ниже ${MIN_ROLLBACK_VERSION}"
+DICT['ru.errors.see_logs']="Журнал выполнения сохранён в ${LOG_PATH}. Пожалуйста запустите ${TOOL_NAME} ${@} после устранения возникших проблем."
 
-get_printable_fields(){
-  local ansible_module="${1}"
-  local fields="${2}"
-  echo "$fields"
-}
-
-show_credentials(){
-  print_with_color "http://$(detected_license_ip)/admin" 'light.green'
-
-  if isset "${VARS['db_restore_path']}"; then
-    echo "$(translate 'messages.successful.use_old_credentials')"
-  else
-    if empty "${VARS['without_key']}" && isset "${VARS['admin_password']}"; then
-      colored_login=$(print_with_color "${VARS['admin_login']}" 'light.green')
-      colored_password=$(print_with_color "${VARS['admin_password']}" 'light.green')
-      echo -e "login: ${colored_login}"
-      echo -e "password: ${colored_password}"
+detect_installed_version(){
+  if empty "${INSTALLED_VERSION}"; then
+    detect_inventory_path
+    if isset "${DETECTED_INVENTORY_PATH}"; then
+      INSTALLED_VERSION=$(grep "^installer_version=" ${DETECTED_INVENTORY_PATH} | sed s/^installer_version=//g)
+      debug "Got installer_version='${INSTALLED_VERSION}' from ${DETECTED_INVENTORY_PATH}"
+    fi
+    if empty ${INSTALLED_VERSION}; then
+      debug "Couldn't detect installer_version, resetting to ${VERY_FIRST_VERSION}"
+      INSTALLED_VERSION="${VERY_FIRST_VERSION}"
     fi
   fi
 }
 
-show_successful_message(){
-  print_with_color "$(translate 'messages.successful')" 'green'
+detect_inventory_path(){
+  debug "Detecting inventory path"
+  paths=("${INVENTORY_PATH}" /root/.keitaro/installer_config .keitaro/installer_config /root/hosts.txt hosts.txt)
+  for path in "${paths[@]}"; do
+    if [[ -f "${path}" ]]; then
+      DETECTED_INVENTORY_PATH="${path}"
+      debug "Inventory found - ${DETECTED_INVENTORY_PATH}"
+      return
+    fi
+  done
+  debug "Inventory file not found"
 }
 
+# Based on https://stackoverflow.com/a/53400482/612799
+#
+# Use:
+#   (( $(as_version 1.2.3.4) >= $(as_version 1.2.3.3) )) && echo "yes" || echo "no"
+#
+# Version number should contain from 1 to 4 parts (3 dots) and each part should contain from 1 to 3 digits
+#
+AS_VERSION__MAX_DIGITS_PER_PART=3
+AS_VERSION__PART_REGEX="[[:digit:]]{1,${AS_VERSION__MAX_DIGITS_PER_PART}}"
+AS_VERSION__PARTS_TO_KEEP=4
+AS_VERSION__REGEX="(${AS_VERSION__PART_REGEX}\.){1,${AS_VERSION__PARTS_TO_KEEP}}"
 
-# We wrap the entire script in a big function which we only call at the very end, in order to
-# protect against the possibility of the connection dying mid-script. This protects us against
-# the problem described in this blog post:
-#   http://blog.existentialize.com/dont-pipe-to-your-shell.html
-
-test_run_command(){
-  local command="${1}"
-  local message="${2}"
-  local hide_output="${3}"
-  local allow_errors="${4}"
-  local run_as="${5}"
-  local failed_logs_filter="${6}"
-  UI_LANG=en
-  init
-  run_command "${command}" "${message}" "${hide_output}" "${allow_errors}" "${run_as}" "${failed_logs_filter}"
+as_version() {
+  local version_string="${1}"
+  # Expand version string by adding `.` to the end to simplify logic
+  local expanded_version_string="${version_string}."
+  if [[ ${expanded_version_string} =~ ^${AS_VERSION__REGEX}$ ]]; then
+    printf "1%03d%03d%03d%03d" ${expanded_version_string//./ }
+  else
+    printf "1%03d%03d%03d%03d" ''
+  fi
 }
 
+as_minor_version() {
+  local version_string="${1}"
+  local version_number=$(as_version "${version_string}")
+  local meaningful_version_length=$(( 1 + 2*AS_VERSION__MAX_DIGITS_PER_PART ))
+  local zeroes_length=$(( 1 + AS_VERSION__PARTS_TO_KEEP * AS_VERSION__MAX_DIGITS_PER_PART - meaningful_version_length ))
+  local meaningful_version=${version_number:0:${meaningful_version_length}}
+  printf "%d%0${zeroes_length}d" "${meaningful_version}"
+}
 
-test_run_command "${1}" "${2}" "${3}" "${4}" "${5}" "${6}"
+action="${1}"
+assert_caller_root
+init "$@"
+
+if [[ "${action}" == "upgrade" ]]; then
+  kctl_upgrade
+elif [[ "${action}" == "doctor" ]]; then
+  kctl_doctor
+elif [[ "${action}" == "downgrade" ]]; then
+  rollback_version="${2}"
+  kctl_downgrade "${rollback_version}"
+else
+  show_help
+fi

@@ -44,11 +44,13 @@ is_pipe_mode(){
   [ "${SELF_NAME}" == 'bash' ]
 }
 
+TOOL_NAME='kctl-fail2ban'
+
 SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.28.9'
+RELEASE_VERSION='2.28.10'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -77,6 +79,7 @@ WORKING_DIR="${ROOT_PREFIX}/var/tmp/keitaro"
 
 LOG_DIR="${ROOT_PREFIX}/var/log/keitaro"
 SSL_LOG_DIR="${LOG_DIR}/ssl"
+
 LOG_FILENAME="${TOOL_NAME}.log"
 LOG_PATH="${LOG_DIR}/${LOG_FILENAME}"
 

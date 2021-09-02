@@ -53,7 +53,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.28.9'
+RELEASE_VERSION='2.28.10'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -82,6 +82,7 @@ WORKING_DIR="${ROOT_PREFIX}/var/tmp/keitaro"
 
 LOG_DIR="${ROOT_PREFIX}/var/log/keitaro"
 SSL_LOG_DIR="${LOG_DIR}/ssl"
+
 LOG_FILENAME="${TOOL_NAME}.log"
 LOG_PATH="${LOG_DIR}/${LOG_FILENAME}"
 
@@ -128,6 +129,7 @@ DICT['en.errors.run_command.fail_extra']=''
 DICT['en.errors.terminated']='Terminated by user'
 DICT['en.errors.unexpected']='Unexpected error'
 DICT['en.errors.cant_upgrade']='Cannot upgrade because installation process is not finished yet'
+DICT['en.certbot_errors.another_proccess']="Another certbot process is already running"
 DICT['en.messages.generating_nginx_vhost']="Generating nginx config for domain :domain:"
 DICT['en.messages.reloading_nginx']="Reloading nginx"
 DICT['en.messages.nginx_is_not_running']="Nginx is not running"
@@ -143,6 +145,7 @@ DICT['en.validation_errors.validate_domains_list']=$(cat <<-END
 END
 )
 DICT['en.validation_errors.validate_presence']='Please enter value'
+DICT['en.validation_errors.validate_absence']='Should not be specified'
 DICT['en.validation_errors.validate_yes_no']='Please answer "yes" or "no"'
 
 DICT['ru.errors.program_failed']='ОШИБКА ВЫПОЛНЕНИЯ ПРОГРАММЫ'
@@ -153,6 +156,7 @@ DICT['ru.errors.run_command.fail_extra']=''
 DICT['ru.errors.terminated']='Выполнение прервано'
 DICT['ru.errors.unexpected']='Непредвиденная ошибка'
 DICT['ru.errors.cant_upgrade']='Невозможно запустить upgrade т.к. установка не выполнена или произошла с ошибкой'
+DICT['ru.certbot_errors.another_proccess']="Другой процесс certbot уже запущен"
 DICT['ru.messages.generating_nginx_vhost']="Генерируется конфигурация для сайта :domain:"
 DICT['ru.messages.reloading_nginx']="Перезагружается nginx"
 DICT['ru.messages.nginx_is_not_running']="Nginx не запущен"
@@ -167,6 +171,7 @@ DICT['ru.validation_errors.validate_domains_list']=$(cat <<-END
 	Домены длиной более 64 символов не поддерживаются.
 END
 )
+DICT['ru.validation_errors.validate_absence']='Значение не должно быть задано'
 DICT['ru.validation_errors.validate_presence']='Введите значение'
 DICT['ru.validation_errors.validate_yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
 
@@ -178,6 +183,7 @@ SSL_CERT_PATH="${SSL_ROOT}/cert.pem"
 SSL_PRIVKEY_PATH="${SSL_ROOT}/privkey.pem"
 CERT_DOMAINS_PATH="${WORKING_DIR}/ssl_enabler_cert_domains"
 CERTBOT_LOG="${WORKING_DIR}/ssl_enabler_cerbot.log"
+CERTBOT_LOCK_FILE="/var/lib/letsencrypt/.certbot.lock"
 SSL_ENABLER_ERRORS_LOG="${WORKING_DIR}/ssl_enabler_errors.log"
 FORCE_ISSUING_CERTS=''
 DICT['en.prompts.ssl_domains']='Please enter domains separated by comma without spaces'
@@ -215,7 +221,19 @@ DICT['ru.messages.ssl_not_enabled_for_domains']="SSL сертификаты не
 DICT['ru.warnings.nginx_config_exists_for_domain']="nginx конфигурация уже существует"
 DICT['ru.warnings.certificate_exists_for_domain']="сертификат уже существует"
 DICT['ru.warnings.skip_nginx_config_generation']="пропускаем генерацию конфигурации nginx"
+# Check if lock file exist
+#https://certbot.eff.org/docs/using.html#id5
+#
+assert_that_another_certbot_process_not_runing() {
+  debug
+  if [ -f "${CERTBOT_LOCK_FILE}" ]; then
+    debug "Find lock file, raise error"
+    fail "$(translate 'certbot_errors.another_proccess')"
+  else
+    debug "another certbot proccess not running"
+  fi
 
+}
 
 assert_caller_root(){
   debug 'Ensure script has been running by root'
@@ -1355,6 +1373,7 @@ help_en(){
 stage2(){
   debug "Starting stage 2: make some asserts"
   assert_caller_root
+  assert_that_another_certbot_process_not_runing
   detect_installed_version
   run_obsolete_tool_version_if_need
 }
@@ -1563,4 +1582,3 @@ enable_ssl(){
 }
 
 enable_ssl "$@"
-
