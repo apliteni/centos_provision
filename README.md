@@ -5,7 +5,7 @@ This repository contains a bash installer and an Ansible playbook to provision n
 ## Compatibility
  - CentOS 7
  - CentOS 8
- 
+
 ## Install Keitaro with bash installer
 
 Connect to your CentOS server and run as root
@@ -33,11 +33,11 @@ run as root
 
 # Delete SSL certificates
 
-In case, when you need to remove SSL certificate from domain of your site, you can use our special script which will delete SSL certificate and domain. Script will take domain name as parameter. To delete ssl certificate, you can use following command: 
+In case, when you need to remove SSL certificate from domain of your site, you can use our special script which will delete SSL certificate and domain. Script will take domain name as parameter. To delete ssl certificate, you can use following command:
 
     kctl-disable-ssl -D domain1.com,domain2.com
 
-Where domain1.com - name of your domain, which you want to revoke and delete it's certificate. All certificates and their files, their keys, and configuration files of nginx of selected domain will be deleted (located in /etc/nginx/conf.d/). 
+Where domain1.com - name of your domain, which you want to revoke and delete it's certificate. All certificates and their files, their keys, and configuration files of nginx of selected domain will be deleted (located in /etc/nginx/conf.d/).
 
 
 ## Add custom php site (optional)
@@ -55,7 +55,7 @@ In order to use Russian locale run as root
 
 ## Developing
 
-Source files placed in the scripts/ dir. After making changes you should assemble affected tools. 
+Source files placed in the scripts/ dir. After making changes you should assemble affected tools.
 From the scripts/ directory use one of the following commands:
 
     # Build and test
@@ -76,16 +76,16 @@ From the scripts/ directory use one of the following commands:
 
 ## Release (through CI/CD)
 
-Change version in file `RELEASE_VERSION`, commit changes. 
+Change version in file `RELEASE_VERSION`, commit changes.
 
 Create a MR or push it to master:
-    
+
     git push origin master
-    
+
 ## Release (manual)
 
 After making changes ans pushing them into the master branch you should update release tags (from the root repo dir)
-   
+
     make release
 
 This command reads current release from RELEASE_VERSION file (eg. X.Y) and associate vX.Y tag and release-X.Y branch with current commit
@@ -104,3 +104,7 @@ This command reads current release from RELEASE_VERSION file (eg. X.Y) and assoc
 or ignore
 
     kctl-install -i tag3,tag4
+
+### How to install without license key
+
+    curl keitaro.io/install.sh | bash -s -- -W

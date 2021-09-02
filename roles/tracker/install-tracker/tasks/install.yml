@@ -63,6 +63,7 @@
     MARIADB_USERNAME: "{{ db_user }}"
     MARIADB_DB: "{{ db_name }}"
     MARIADB_PASSWORD: "{{ db_password }}"
+    SALT: "{{ salt }}"
   args:
     chdir: "{{ keitaro_app_dir }}"
     creates:  "application/config/config.ini.php"

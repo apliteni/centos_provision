@@ -9,7 +9,7 @@
     state: "started"
     daemon_reload: yes
 
-- name: Create fail2ban config dirrectory
+- name: Create fail2ban config directory
   file:
     dest: "{{ keitaro_config_dir }}/fail2ban/"
     state: "directory"

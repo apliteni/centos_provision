@@ -1,6 +1,6 @@
 - name: Get latest tracker version
   shell: >
-    curl -fsSL  -A "{{ user_agent }}" "{{ keitaro_url }}/license/api/checkUpdate?installation_method=approved&{{ request_params }}" | \
+    curl -fsSL  -A "{{ user_agent }}" "{{ keitaro_url }}/license/api/checkUpdate?kctl_version={{ kctl_version }}&installation_method=approved&{{ request_params }}" | \
         awk -F '::' '{print $2}'
   register: get_latest_tracker_version
   changed_when: false

@@ -54,7 +54,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.28.9'
+RELEASE_VERSION='2.28.10'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -83,6 +83,7 @@ WORKING_DIR="${ROOT_PREFIX}/var/tmp/keitaro"
 
 LOG_DIR="${ROOT_PREFIX}/var/log/keitaro"
 SSL_LOG_DIR="${LOG_DIR}/ssl"
+
 LOG_FILENAME="${TOOL_NAME}.log"
 LOG_PATH="${LOG_DIR}/${LOG_FILENAME}"
 
@@ -129,6 +130,7 @@ DICT['en.errors.run_command.fail_extra']=''
 DICT['en.errors.terminated']='Terminated by user'
 DICT['en.errors.unexpected']='Unexpected error'
 DICT['en.errors.cant_upgrade']='Cannot upgrade because installation process is not finished yet'
+DICT['en.certbot_errors.another_proccess']="Another certbot process is already running"
 DICT['en.messages.generating_nginx_vhost']="Generating nginx config for domain :domain:"
 DICT['en.messages.reloading_nginx']="Reloading nginx"
 DICT['en.messages.nginx_is_not_running']="Nginx is not running"
@@ -144,6 +146,7 @@ DICT['en.validation_errors.validate_domains_list']=$(cat <<-END
 END
 )
 DICT['en.validation_errors.validate_presence']='Please enter value'
+DICT['en.validation_errors.validate_absence']='Should not be specified'
 DICT['en.validation_errors.validate_yes_no']='Please answer "yes" or "no"'
 
 DICT['ru.errors.program_failed']='ОШИБКА ВЫПОЛНЕНИЯ ПРОГРАММЫ'
@@ -154,6 +157,7 @@ DICT['ru.errors.run_command.fail_extra']=''
 DICT['ru.errors.terminated']='Выполнение прервано'
 DICT['ru.errors.unexpected']='Непредвиденная ошибка'
 DICT['ru.errors.cant_upgrade']='Невозможно запустить upgrade т.к. установка не выполнена или произошла с ошибкой'
+DICT['ru.certbot_errors.another_proccess']="Другой процесс certbot уже запущен"
 DICT['ru.messages.generating_nginx_vhost']="Генерируется конфигурация для сайта :domain:"
 DICT['ru.messages.reloading_nginx']="Перезагружается nginx"
 DICT['ru.messages.nginx_is_not_running']="Nginx не запущен"
@@ -168,6 +172,7 @@ DICT['ru.validation_errors.validate_domains_list']=$(cat <<-END
 	Домены длиной более 64 символов не поддерживаются.
 END
 )
+DICT['ru.validation_errors.validate_absence']='Значение не должно быть задано'
 DICT['ru.validation_errors.validate_presence']='Введите значение'
 DICT['ru.validation_errors.validate_yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
 
@@ -224,6 +229,19 @@ is_keitaro_installed() {
 
 should_use_new_algorithm_for_installation_check() {
   (( $(as_version ${INSTALLED_VERSION}) >= $(as_version ${USE_NEW_ALGORITHM_FOR_INSTALLATION_CHECK_SINCE}) ))
+}
+# Check if lock file exist
+#https://certbot.eff.org/docs/using.html#id5
+#
+assert_that_another_certbot_process_not_runing() {
+  debug
+  if [ -f "${CERTBOT_LOCK_FILE}" ]; then
+    debug "Find lock file, raise error"
+    fail "$(translate 'certbot_errors.another_proccess')"
+  else
+    debug "another certbot proccess not running"
+  fi
+
 }
 #
 
@@ -1357,6 +1375,12 @@ get_error(){
   echo "${error}"
 }
 
+
+validate_absence(){
+  local value="${1}"
+  empty "$value"
+}
+
 validate_alnumdashdot(){
   local value="${1}"
   [[ "$value" =~  ^([0-9A-Za-z_\.\-]+)$ ]]
@@ -1653,6 +1677,12 @@ is_detected_license_edition_type_commercial() {
   [[ "${license_edition_type}" == "${LICENSE_EDITION_TYPE_COMMERCIAL}" ]]
 }
 
+is_ram_size_mb_changed() {
+  ( isset "${VARS['previous_ram_size_mb']}" && [[ "${VARS['previous_ram_size_mb']}" != "${VARS['ram_size_mb']}" ]] ) \
+      || ( isset "${VARS['ram_size_mb']}" && [[ "${VARS['ram_size_mb']}" != "$(get_ram_size_mb)" ]] )
+}
+
+
 get_var_from_config(){
   local var="${1}"
   local file="${2}"
@@ -1666,13 +1696,17 @@ get_var_from_config(){
     sed -r -e "s/^'(.*)'\$/\\1/g" -e 's/^"(.*)"$/\1/g'
   }
 
-get_free_disk_space_mb() {
-  (df -m | grep -e "/$" | awk '{print$4}') 2>/dev/null
-}
+DETECTED_RAM_SIZE_MB=""
 
-is_ram_size_mb_changed() {
-  ( isset "${VARS['previous_ram_size_mb']}" && [[ "${VARS['previous_ram_size_mb']}" != "${VARS['ram_size_mb']}" ]] ) \
-      || ( isset "${VARS['ram_size_mb']}" && [[ "${VARS['ram_size_mb']}" != "$(get_ram_size_mb)" ]] )
+get_ram_size_mb() {
+  if empty "${DETECTED_RAM_SIZE_MB}"; then
+    if is_ci_mode; then
+      DETECTED_RAM_SIZE_MB=2048
+    else
+      DETECTED_RAM_SIZE_MB=$((free -m | grep Mem: | awk '{print $2}') 2>/dev/null)
+    fi
+  fi
+  echo "${DETECTED_RAM_SIZE_MB}"
 }
 
 
@@ -1739,42 +1773,21 @@ get_var_from_keitaro_app_config() {
   get_var_from_config "${var}" "${WEBAPP_ROOT}/application/config/config.ini.php" '='
 }
 
-DETECTED_RAM_SIZE_MB=""
-
-get_ram_size_mb() {
-  if empty "${DETECTED_RAM_SIZE_MB}"; then
-    if is_ci_mode; then
-      DETECTED_RAM_SIZE_MB=2048
-    else
-      DETECTED_RAM_SIZE_MB=$((free -m | grep Mem: | awk '{print $2}') 2>/dev/null)
-    fi
-  fi
-  echo "${DETECTED_RAM_SIZE_MB}"
+get_free_disk_space_mb() {
+  (df -m | grep -e "/$" | awk '{print$4}') 2>/dev/null
 }
 
 
 
-
 parse_options(){
-  while getopts ":A:K:U:P:F:S:ra:t:i:k:L:l:hvpswW" option; do
+  while getopts ":K:F:S:ra:t:i:k:L:l:o:hvpswW" option; do
     argument=$OPTARG
     ARGS["${option}"]="${argument}"
     case $option in
-      A)
-        echo "Ignoring -A parameter"
-        ;;
       K)
         AUTO_INSTALL="true"
         VARS['license_key']=$argument
         ensure_license_set
-        ;;
-      U)
-        VARS['admin_login']=$argument
-        ensure_valid U admin_login "validate_alnumdashdot validate_not_reserved_word validate_starts_with_latin_letter"
-        ;;
-      P)
-        VARS['admin_password']=$argument
-        ensure_valid P admin_password "validate_alnumdashdot validate_not_reserved_word"
         ;;
       F)
         VARS['db_restore_path']=$argument
@@ -1802,7 +1815,7 @@ parse_options(){
         ;;
       k)
         case $argument in
-          8|9)
+          9)
             KEITARO_RELEASE=$argument
             ;;
           *)
@@ -1811,20 +1824,23 @@ parse_options(){
             ;;
         esac
         ;;
+      o)
+        LOG_PATH="${argument}"
+        ;;
       *)
         common_parse_options "$option" "$argument"
         ;;
     esac
   done
-  if isset "${ARGS['U']}" || isset "${ARGS['P']}"; then
-    ensure_license_set
-  fi
   if isset "${ARGS['F']}" || isset "${ARGS['S']}"; then
     ensure_license_set
     ensure_license_edition_type_is_commercial
     ensure_valid F db_restore_path "validate_presence validate_file_existence validate_enough_space_for_dump"
     ensure_valid S db_restore_salt "validate_presence validate_alnumdashdot"
   fi
+  if isset "${VARS['without_key']}" || [ "${RECONFIGURE}" == 'true' ]; then
+    ensure_license_key_absent
+  fi 
   ensure_options_correct
 }
 
@@ -1833,18 +1849,19 @@ ensure_license_set() {
   ensure_valid K license_key "validate_presence validate_license_key_format validate_license_key_is_active"
 }
 
-
 ensure_license_edition_type_is_commercial() {
    if ! is_detected_license_edition_type_commercial; then
      fail "$(translate 'errors.dump_restoring_not_available_for_trials')"
    fi
 }
 
-
+ensure_license_key_absent() {
+  ensure_valid K license_key "validate_absence"
+}
 
 help_ru(){
   print_err "$SCRIPT_NAME уставливает и настраивает Keitaro"
-  print_err "Пример: "$SCRIPT_NAME" -L ru -K AAAA-BBBB-CCCC-DDDD -U some_username -P some_password"
+  print_err "Пример: "$SCRIPT_NAME" -L ru -K AAAA-BBBB-CCCC-DDDD"
   print_err
   print_err "Автоматизация:"
   print_err "  -K LICENSE_KEY           задать ключ лицензии"
@@ -1853,9 +1870,7 @@ help_ru(){
   print_err
   print_err "  -S SALT                  задать salt при восстановлении из дампа (обязательно наличие -F и -K)"
   print_err
-  print_err "  -U ADMIN_USER            задать имя администратора (обязательно наличие -K)"
-  print_err
-  print_err "  -P ADMIN_PASSWORD        задать пароль администратора (обязательно наличие -K)"
+  print_err "  -W                       установка без ключа (несовместимо с -K)"
   print_err
   print_err "  -r                       включить режим переконфигурации (несовместимо с -K)"
   print_err
@@ -1866,14 +1881,18 @@ help_ru(){
   print_err
   print_err "  -i TAGS                  задать список игнорируемых ansible-playbook тегов, TAGS=tag1[,tag2...]"
   print_err
-  print_err "  -k RELEASE               задать релиз Keitaro, поддерживается 8 и 9"
+  print_err "  -k RELEASE               задать релиз Keitaro, поддерживается 9"
+  print_err
+  print_err "  -o output                задать полный путь вывода лога  инсталятора"
+  print_err
+  print_err '  -w                       не запускать `yum upgrade`'
   print_err
 }
 
 
 help_en(){
   print_err "$SCRIPT_NAME installs and configures Keitaro"
-  print_err "Example: "$SCRIPT_NAME" -L en -K AAAA-BBBB-CCCC-DDDD -U some_username -P some_password"
+  print_err "Example: "$SCRIPT_NAME" -L en -K AAAA-BBBB-CCCC-DDDD"
   print_err
   print_err "Script automation:"
   print_err "  -K LICENSE_KEY           set license key"
@@ -1882,9 +1901,7 @@ help_en(){
   print_err
   print_err "  -S SALT                  set salt for dump restoring (-F and -K should be specified)"
   print_err
-  print_err "  -U ADMIN_USER            set admin user name (-K should be specified)"
-  print_err
-  print_err "  -P ADMIN_PASSWORD        set admin password (-K should be specified)"
+  print_err "  -W                       install tracker without license key (incompatible with -K)"
   print_err
   print_err "  -r                       enables reconfiguration mode (incompatible with -K)"
   print_err
@@ -1895,7 +1912,13 @@ help_en(){
   print_err
   print_err "  -i TAGS                  set ansible-playbook ignore tags, TAGS=tag1[,tag2...]"
   print_err
-  print_err "  -k RELEASE               set Keitaro release, 8 and 9 are only valid values"
+  print_err "  -k RELEASE               set Keitaro release, 9 is only valid value"
+  print_err
+  print_err "  -o output                sset the full path of the installer log output"
+  print_err
+  print_err "  -k RELEASE               set Keitaro release, 9 is the only one valid value"
+  print_err
+  print_err '  -w                       do not run `yum upgrade`'
   print_err
 }
 
@@ -1905,38 +1928,26 @@ stage1() {
   set_ui_lang
 }
 
-assert_pannels_not_installed(){
+
+assert_not_running_under_openvz() {
+  debug "Assert we are not running under OpenVZ"
   if isset "$SKIP_CHECKS"; then
-    debug "SKIPPED: actual checking of panels skipped"
-  else
-    if is_installed mysql; then
-      assert_isp_manager_not_installed
-      assert_vesta_cp_not_installed
-    fi
+    debug "Detected test mode, skip OpenVZ checks"
+    return
+  fi
+
+  virtualization_type="$(hostnamectl status | grep Virtualization | awk '{print $2}')"
+  debug "Detected virtualization type: '${virtualization_type}'"
+  if isset "${virtualization_type}" && [[ "${virtualization_type}" == "openvz" ]]; then
+    fail "Servers with OpenVZ virtualization are not supported"
   fi
 }
 
-
-assert_isp_manager_not_installed(){
-  if is_database_exists roundcube; then
-    debug "ISP Manager database detected"
-    fail "$(translate errors.isp_manager_installed)"
+assert_centos_distro(){
+  assert_installed 'yum' 'errors.wrong_distro'
+  if ! is_file_exist /etc/centos-release; then
+    fail "$(translate errors.wrong_distro)" "see_logs"
   fi
-}
-
-
-assert_vesta_cp_not_installed(){
-  if is_database_exists admin_default; then
-    debug "Vesta CP database detected"
-    fail "$(translate errors.vesta_cp_installed)"
-  fi
-}
-
-
-is_database_exists(){
-  local database="${1}"
-  debug "Check if database ${database} exists"
-  mysql -Nse 'show databases' 2>/dev/null | tr '\n' ' ' | grep -Pq "${database}"
 }
 MIN_RAM_SIZE_MB=1500
 
@@ -1949,28 +1960,6 @@ assert_has_enough_ram(){
     fail "$(translate errors.not_enough_ram)"
   else
     debug "RAM size ${current_ram_size_mb}mb is greater than ${MIN_RAM_SIZE_MB}mb, continuing"
-  fi
-}
-
-assert_centos_distro(){
-  assert_installed 'yum' 'errors.wrong_distro'
-  if ! is_file_exist /etc/centos-release; then
-    fail "$(translate errors.wrong_distro)" "see_logs"
-  fi
-}
-#
-
-
-
-
-
-assert_apache_not_installed(){
-  if isset "$SKIP_CHECKS"; then
-    debug "SKIPPED: actual checking of httpd skipped"
-  else
-    if is_installed httpd; then
-      fail "$(translate errors.apache_installed)"
-    fi
   fi
 }
 MIN_FREE_DISK_SPACE_MB=2048
@@ -2013,18 +2002,52 @@ are_thp_sys_files_existing() {
   is_file_exist "/sys/kernel/mm/transparent_hugepage/enabled" && is_file_exist "/sys/kernel/mm/transparent_hugepage/defrag"
 }
 
-
-assert_not_running_under_openvz() {
-  debug "Assert we are not running under OpenVZ"
+assert_pannels_not_installed(){
   if isset "$SKIP_CHECKS"; then
-    debug "Detected test mode, skip OpenVZ checks"
-    return
+    debug "SKIPPED: actual checking of panels skipped"
+  else
+    if is_installed mysql; then
+      assert_isp_manager_not_installed
+      assert_vesta_cp_not_installed
+    fi
   fi
+}
 
-  virtualization_type="$(hostnamectl status | grep Virtualization | awk '{print $2}')"
-  debug "Detected virtualization type: '${virtualization_type}'"
-  if isset "${virtualization_type}" && [[ "${virtualization_type}" == "openvz" ]]; then
-    fail "Servers with OpenVZ virtualization are not supported"
+
+assert_isp_manager_not_installed(){
+  if is_database_exists roundcube; then
+    debug "ISP Manager database detected"
+    fail "$(translate errors.isp_manager_installed)"
+  fi
+}
+
+
+assert_vesta_cp_not_installed(){
+  if is_database_exists admin_default; then
+    debug "Vesta CP database detected"
+    fail "$(translate errors.vesta_cp_installed)"
+  fi
+}
+
+
+is_database_exists(){
+  local database="${1}"
+  debug "Check if database ${database} exists"
+  mysql -Nse 'show databases' 2>/dev/null | tr '\n' ' ' | grep -Pq "${database}"
+}
+#
+
+
+
+
+
+assert_apache_not_installed(){
+  if isset "$SKIP_CHECKS"; then
+    debug "SKIPPED: actual checking of httpd skipped"
+  else
+    if is_installed httpd; then
+      fail "$(translate errors.apache_installed)"
+    fi
   fi
 }
 
@@ -2038,6 +2061,36 @@ stage2(){
   assert_not_running_under_openvz
   assert_pannels_not_installed
   assert_thp_deactivatable
+}
+
+setup_vars(){
+  setup_default_value admin_login 'admin'
+  if empty "${VARS['without_key']}"; then
+    setup_default_value admin_password "$(generate_password)"
+  fi
+  setup_default_value db_name 'keitaro'
+  setup_default_value db_user 'keitaro'
+  setup_default_value db_password "$(generate_password)"
+  setup_default_value db_root_password "$(generate_password)"
+  setup_default_value db_engine 'tokudb'
+  setup_default_value php_engine "${PHP_ENGINE}"
+  setup_default_value salt "$(dbus-uuidgen)"
+}
+
+setup_default_value(){
+  local var_name="${1}"
+  local default_value="${2}"
+  if empty "${VARS[${var_name}]}"; then
+    debug "VARS['${var_name}'] is empty, set to '${default_value}'"
+    VARS[${var_name}]=$default_value
+  else
+    debug "VARS['${var_name}'] is set to '${VARS[$var_name]}'"
+  fi
+}
+
+generate_password(){
+  local PASSWORD_LENGTH=16
+  LC_ALL=C tr -cd '[:alnum:]' < /dev/urandom | head -c${PASSWORD_LENGTH}
 }
 
 read_inventory(){
@@ -2071,35 +2124,6 @@ parse_line_from_inventory_file(){
   fi
 }
 
-setup_vars(){
-  setup_default_value admin_login 'admin'
-  if empty "${VARS['without_key']}"; then
-    setup_default_value admin_password "$(generate_password)"
-  fi
-  setup_default_value db_name 'keitaro'
-  setup_default_value db_user 'keitaro'
-  setup_default_value db_password "$(generate_password)"
-  setup_default_value db_root_password "$(generate_password)"
-  setup_default_value db_engine 'tokudb'
-  setup_default_value php_engine "${PHP_ENGINE}"
-}
-
-setup_default_value(){
-  local var_name="${1}"
-  local default_value="${2}"
-  if empty "${VARS[${var_name}]}"; then
-    debug "VARS['${var_name}'] is empty, set to '${default_value}'"
-    VARS[${var_name}]=$default_value
-  else
-    debug "VARS['${var_name}'] is set to '${VARS[$var_name]}'"
-  fi
-}
-
-generate_password(){
-  local PASSWORD_LENGTH=16
-  LC_ALL=C tr -cd '[:alnum:]' < /dev/urandom | head -c${PASSWORD_LENGTH}
-}
-
 stage3(){
   debug "Starting stage 3: read values from inventory file"
   read_inventory
@@ -2130,6 +2154,7 @@ write_inventory_file(){
   print_line_to_inventory_file "db_name=${VARS['db_name']}"
   print_line_to_inventory_file "db_user=${VARS['db_user']}"
   print_line_to_inventory_file "db_password=${VARS['db_password']}"
+  print_line_to_inventory_file "salt=${VARS['salt']}"
 
   if empty "${VARS['without_key']}" ; then
     print_line_to_inventory_file "admin_login=${VARS['admin_login']}"
@@ -2661,6 +2686,7 @@ signal_successful_installation() {
   VARS['previous_ram_size_mb']="${VARS['ram_size_mb']}"
   VARS['db_restore_path']=""
   VARS['db_restore_salt']=""
+  VARS['salt']=""
   write_inventory_file
 }
 
