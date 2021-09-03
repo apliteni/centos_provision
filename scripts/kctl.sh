@@ -67,7 +67,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.28.10'
+RELEASE_VERSION='2.28.11'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -302,10 +302,6 @@ get_error(){
   echo "${error}"
 }
 
-clean_up(){
-  debug 'called clean_up()'
-}
-
 debug() {
   local message="${1}"
   echo "$message" >> "${LOG_PATH}"
@@ -314,147 +310,15 @@ debug() {
   fi
 }
 
-fail() {
-  local message="${1}"
-  local see_logs="${2}"
-  log_and_print_err "*** $(translate errors.program_failed) ***"
-  log_and_print_err "$message"
-  if isset "$see_logs"; then
-    log_and_print_err "$(translate errors.see_logs)"
-  fi
-  print_err
-  clean_up
-  exit ${FAILURE_RESULT}
-}
-#
-
-
-
-
-common_parse_options(){
-  local option="${1}"
-  local argument="${2}"
-  case $option in
-    l|L)
-      case $argument in
-        en)
-          UI_LANG=en
-          ;;
-        ru)
-          UI_LANG=ru
-          ;;
-        *)
-          print_err "-L: language '$argument' is not supported"
-          exit ${FAILURE_RESULT}
-          ;;
-      esac
-      ;;
-    v)
-      version
-      ;;
-    h)
-      help
-      ;;
-    s)
-      SKIP_CHECKS=true
-      ;;
-    p)
-      PRESERVE_RUNNING=true
-      ;;
-    *)
-      wrong_options
-      ;;
-  esac
-}
-
-
-help(){
-  if [[ $(get_ui_lang) == 'ru' ]]; then
-    usage_ru_header
-    help_ru
-    help_ru_common
-  else
-    usage_en_header
-    help_en
-    help_en_common
-  fi
-  exit ${SUCCESS_RESULT}
-}
-
-
-usage(){
-  if [[ $(get_ui_lang) == 'ru' ]]; then
-    usage_ru
-  else
-    usage_en
-  fi
-  exit ${FAILURE_RESULT}
-}
-
-
-version(){
-  echo "${SCRIPT_NAME} v${RELEASE_VERSION}"
-  exit ${SUCCESS_RESULT}
-}
-
-
-wrong_options(){
-  WRONG_OPTIONS="wrong_options"
-}
-
-
-ensure_options_correct(){
-  if isset "${WRONG_OPTIONS}"; then
-    usage
-  fi
-}
-
-
-usage_ru(){
-  usage_ru_header
-  print_err "Попробуйте '${SCRIPT_NAME} -h' для большей информации."
-  print_err
-}
-
-
-usage_en(){
-  usage_en_header
-  print_err "Try '${SCRIPT_NAME} -h' for more information."
-  print_err
-}
-
-
-usage_ru_header(){
-  print_err "Использование: "$SCRIPT_NAME" [OPTION]..."
-}
-
-
-usage_en_header(){
-  print_err "Usage: "$SCRIPT_NAME" [OPTION]..."
-}
-
-
-help_ru_common(){
-  print_err "Интернационализация:"
-  print_err "  -L LANGUAGE              задать язык - en или ru соответсвенно для английского или русского языка"
-  print_err
-  print_err "Разное:"
-  print_err "  -h                       показать эту справку выйти"
-  print_err
-  print_err "  -v                       показать версию и выйти"
-  print_err
-}
-
-
-help_en_common(){
-  print_err "Internationalization:"
-  print_err "  -L LANGUAGE              set language - either en or ru for English and Russian appropriately"
-  print_err
-  print_err "Miscellaneous:"
-  print_err "  -h                       display this help text and exit"
-  print_err
-  print_err "  -v                       display version information and exit"
-  print_err
+init() {
+  init_kctl
+  force_utf8_input
+  debug "Starting init stage: log basic info"
+  debug "Command: ${SCRIPT_COMMAND}"
+  debug "Script version: ${RELEASE_VERSION}"
+  debug "User ID: "$EUID""
+  debug "Current date time: $(date +'%Y-%m-%d %H:%M:%S %:z')"
+  trap on_exit SIGHUP SIGINT SIGTERM
 }
 
 LOGS_TO_KEEP=5
@@ -512,297 +376,6 @@ create_log() {
 
 delete_old_logs() {
   find "${LOG_DIR}" -name "${LOG_FILENAME}-*" | sort | head -n -${LOGS_TO_KEEP} | xargs rm -f
-}
-
-init() {
-  init_kctl
-  force_utf8_input
-  debug "Starting init stage: log basic info"
-  debug "Command: ${SCRIPT_COMMAND}"
-  debug "Script version: ${RELEASE_VERSION}"
-  debug "User ID: "$EUID""
-  debug "Current date time: $(date +'%Y-%m-%d %H:%M:%S %:z')"
-  trap on_exit SIGHUP SIGINT SIGTERM
-}
-
-log_and_print_err(){
-  local message="${1}"
-  print_err "$message" 'red'
-  debug "$message"
-}
-
-on_exit(){
-  debug "Terminated by user"
-  echo
-  clean_up
-  fail "$(translate 'errors.terminated')"
-}
-
-print_content_of(){
-  local filepath="${1}"
-  if [ -f "$filepath" ]; then
-    if [ -s "$filepath" ]; then
-      echo "Content of '${filepath}':"
-      cat "$filepath" | add_indentation
-    else
-      debug "File '${filepath}' is empty"
-    fi
-  else
-    debug "Can't show '${filepath}' content - file does not exist"
-  fi
-}
-
-print_err(){
-  local message="${1}"
-  local color="${2}"
-  print_with_color "$message" "$color" >&2
-}
-#
-
-
-
-
-
-print_translated(){
-  local key="${1}"
-  message=$(translate "${key}")
-  if ! empty "$message"; then
-    echo "$message"
-  fi
-}
-
-declare -A COLOR_CODE
-
-COLOR_CODE['bold']=1
-
-COLOR_CODE['default']=39
-COLOR_CODE['red']=31
-COLOR_CODE['green']=32
-COLOR_CODE['yellow']=33
-COLOR_CODE['blue']=34
-COLOR_CODE['magenta']=35
-COLOR_CODE['cyan']=36
-COLOR_CODE['grey']=90
-COLOR_CODE['light.red']=91
-COLOR_CODE['light.green']=92
-COLOR_CODE['light.yellow']=99
-COLOR_CODE['light.blue']=94
-COLOR_CODE['light.magenta']=95
-COLOR_CODE['light.cyan']=96
-COLOR_CODE['light.grey']=37
-
-RESET_FORMATTING='\e[0m'
-
-print_with_color(){
-  local message="${1}"
-  local color="${2}"
-  if ! empty "$color"; then
-    escape_sequence="\e[${COLOR_CODE[$color]}m"
-    echo -e "${escape_sequence}${message}${RESET_FORMATTING}"
-  else
-    echo "$message"
-  fi
-}
-
-REMOVE_COLORS_SED_REGEX="s/\x1b\[([0-9]{1,3}(;[0-9]{1,3}){,2})?[mGK]//g"
-
-run_command(){
-  local command="${1}"
-  local message="${2}"
-  local hide_output="${3}"
-  local allow_errors="${4}"
-  local run_as="${5}"
-  local print_fail_message_method="${6}"
-  local output_log="${7}"
-  debug "Evaluating command: ${command}"
-  if empty "$message"; then
-    run_command_message=$(print_with_color "$(translate 'messages.run_command')" 'blue')
-    message="$run_command_message \`$command\`"
-  else
-    message=$(print_with_color "${message}" 'blue')
-  fi
-  if isset "$hide_output"; then
-    echo -en "${message} . "
-  else
-    echo -e "${message}"
-  fi
-  if isset "$PRESERVE_RUNNING"; then
-    print_command_status "$command" 'SKIPPED' 'yellow' "$hide_output"
-    debug "Actual running disabled"
-  else
-    really_run_command "${command}" "${hide_output}" "${allow_errors}" "${run_as}" \
-        "${print_fail_message_method}" "${output_log}"
-      fi
-    }
-
-
-print_command_status(){
-  local command="${1}"
-  local status="${2}"
-  local color="${3}"
-  local hide_output="${4}"
-  debug "Command result: ${status}"
-  if isset "$hide_output"; then
-    if [[ "$hide_output" =~ (uncolored_yes_no) ]]; then
-      print_uncolored_yes_no "$status"
-    else
-      print_with_color "$status" "$color"
-    fi
-  fi
-}
-
-
-print_uncolored_yes_no(){
-  local status="${1}"
-  if [[ "$status" == "NOK" ]]; then
-    echo "NO"
-  else
-    echo "YES"
-  fi
-}
-
-
-
-really_run_command(){
-  local command="${1}"
-  local hide_output="${2}"
-  local allow_errors="${3}"
-  local run_as="${4}"
-  local print_fail_message_method="${5}"
-  local output_log="${6}"
-  local current_command_script=$(save_command_script "${command}" "${run_as}")
-  local evaluated_command=$(command_run_as "${current_command_script}" "${run_as}")
-  evaluated_command=$(unbuffer_streams "${evaluated_command}")
-  evaluated_command=$(save_command_logs "${evaluated_command}" "${output_log}")
-  evaluated_command=$(hide_command_output "${evaluated_command}" "${hide_output}")
-  debug "Real command: ${evaluated_command}"
-  if ! eval "${evaluated_command}"; then
-    print_command_status "${command}" 'NOK' 'red' "${hide_output}"
-    if isset "$allow_errors"; then
-      remove_current_command "$current_command_script"
-      return ${FAILURE_RESULT}
-    else
-      fail_message=$(print_current_command_fail_message "$print_fail_message_method" "$current_command_script")
-      remove_current_command "$current_command_script"
-      fail "${fail_message}" "see_logs"
-    fi
-  else
-    print_command_status "$command" 'OK' 'green' "$hide_output"
-    remove_current_command "$current_command_script"
-  fi
-}
-
-
-command_run_as(){
-  local command="${1}"
-  local run_as="${2}"
-  if isset "$run_as"; then
-    echo "sudo -u '${run_as}' bash -c '${command}'"
-  else
-    echo "bash ${command}"
-  fi
-}
-
-
-unbuffer_streams(){
-  local command="${1}"
-  echo "stdbuf -i0 -o0 -e0 ${command}"
-}
-
-
-save_command_logs(){
-  local evaluated_command="${1}"
-  local output_log="${2}"
-  local remove_colors="sed -r -e '${REMOVE_COLORS_SED_REGEX}'"
-  save_output_log="tee -i ${CURRENT_COMMAND_OUTPUT_LOG} | tee -ia >(${remove_colors} >> ${LOG_PATH})"
-  save_error_log="tee -i ${CURRENT_COMMAND_ERROR_LOG} | tee -ia >(${remove_colors} >> ${LOG_PATH})"
-  if isset "${output_log}"; then
-    save_output_log="${save_output_log} | tee -ia ${output_log}"
-    save_error_log="${save_error_log} | tee -ia ${output_log}"
-  fi
-  echo "((${evaluated_command}) 2> >(${save_error_log}) > >(${save_output_log}))"
-}
-
-
-remove_colors_from_file(){
-  local file="${1}"
-  debug "Removing colors from file ${file}"
-  sed -r -e "${REMOVE_COLORS_SED_REGEX}" -i "$file"
-}
-
-
-hide_command_output(){
-  local command="${1}"
-  local hide_output="${2}"
-  if isset "$hide_output"; then
-    echo "${command} > /dev/null"
-  else
-    echo "${command}"
-  fi
-}
-
-
-save_command_script(){
-  local command="${1}"
-  local run_as="${2}"
-  local current_command_dir=$(mktemp -d)
-  if isset "$run_as"; then
-    chown "$run_as" "$current_command_dir"
-  fi
-  local current_command_script="${current_command_dir}/${CURRENT_COMMAND_SCRIPT_NAME}"
-  echo '#!/usr/bin/env bash' > "${current_command_script}"
-  echo 'set -o pipefail' >> "${current_command_script}"
-  echo -e "${command}" >> "${current_command_script}"
-  debug "$(print_content_of ${current_command_script})"
-  echo "${current_command_script}"
-}
-
-
-print_current_command_fail_message(){
-  local print_fail_message_method="${1}"
-  local current_command_script="${2}"
-  remove_colors_from_file "${CURRENT_COMMAND_OUTPUT_LOG}"
-  remove_colors_from_file "${CURRENT_COMMAND_ERROR_LOG}"
-  if empty "$print_fail_message_method"; then
-    print_fail_message_method="print_common_fail_message"
-  fi
-  local fail_message_header=$(translate 'errors.run_command.fail')
-  local fail_message=$(eval "$print_fail_message_method" "$current_command_script")
-  echo -e "${fail_message_header}\n${fail_message}"
-}
-
-
-print_common_fail_message(){
-  local current_command_script="${1}"
-  print_content_of ${current_command_script}
-  print_tail_content_of "${CURRENT_COMMAND_OUTPUT_LOG}"
-  print_tail_content_of "${CURRENT_COMMAND_ERROR_LOG}"
-}
-
-
-print_tail_content_of(){
-  local file="${1}"
-  MAX_LINES_COUNT=20
-  print_content_of "${file}" |  tail -n "$MAX_LINES_COUNT"
-}
-
-
-remove_current_command(){
-  local current_command_script="${1}"
-  debug "Removing current command script and logs"
-  rm -f "$CURRENT_COMMAND_OUTPUT_LOG" "$CURRENT_COMMAND_ERROR_LOG" "$current_command_script"
-  rmdir $(dirname "$current_command_script")
-}
-
-start_or_reload_nginx(){
-  if is_file_exist "/run/nginx.pid" || is_ci_mode; then
-    debug "Nginx is started, reloading"
-    run_command "nginx -s reload" "$(translate 'messages.reloading_nginx')" 'hide_output'
-  else
-    debug "Nginx is not running, starting"
-    print_with_color "$(translate 'messages.nginx_is_not_running')" "yellow"
-    run_command "systemctl start nginx" "$(translate 'messages.starting_nginx')" 'hide_output'
-  fi
 }
 
 
@@ -904,6 +477,10 @@ kctl_upgrade(){
   kctl_install "upgrade" "kctl-upgrade.log"
 }
 
+on_exit(){
+  exit 1
+}
+
 show_help(){
   echo "Keitaro kctl-upgrade util"
   echo ""
@@ -923,6 +500,10 @@ DICT['en.errors.see_logs']="Evaluating log saved to ${LOG_PATH}. Please rerun ${
 DICT['ru.errors.rollback_version_is_empty']='Не указана версия для отката'
 DICT['ru.errors.rollback_version_is_incorrect']="Версия не может быть ниже ${MIN_ROLLBACK_VERSION}"
 DICT['ru.errors.see_logs']="Журнал выполнения сохранён в ${LOG_PATH}. Пожалуйста запустите ${TOOL_NAME} ${@} после устранения возникших проблем."
+
+on_exit(){
+  exit 1
+}
 
 detect_installed_version(){
   if empty "${INSTALLED_VERSION}"; then
@@ -984,8 +565,8 @@ as_minor_version() {
 }
 
 action="${1}"
-assert_caller_root
 init "$@"
+assert_caller_root
 
 if [[ "${action}" == "upgrade" ]]; then
   kctl_upgrade
