@@ -35,8 +35,8 @@ values() {
 }
 
 last () {
-  [[ ! -n $1 ]] && return 1;
-  echo "$(eval "echo \${$1[@]:(-1)}")"
+  [[ -z $1 ]] && return 1;
+  eval "${$1[@]:(-1)}"
 }
 
 is_ci_mode() {
@@ -53,7 +53,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.28.11'
+RELEASE_VERSION='2.28.12'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -598,7 +598,7 @@ get_vhost_generating_commands(){
   fi
   sed_expressions="$(nginx_vhost_sed_expressions "${vhost_path}" "${vhost_override_path}" "${@}")"
   commands+=("sed -i ${sed_expressions} ${vhost_path}")
-  echo "$(join_by " && " "${commands[@]}")"
+  join_by " && " "${commands[@]}"
 }
 
 
