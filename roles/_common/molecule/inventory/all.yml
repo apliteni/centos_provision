@@ -13,4 +13,6 @@ language: en
 admin_login: admin
 admin_password: admin
 installer_version: 2.28.0
+ch_password: admin
 salt: 529b31c5c2eadb99378ca5ed612e2349
+big_data_engine: mariadb

@@ -1,0 +1,40 @@
+- name: Remove certbot-auto dist
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - /opt/eff.org/certbot
+    - /usr/local/bin/certbot
+
+- name: Remove old mysql conf files 
+  file:
+    path: "/etc/my.cnf.d/{{ item }}"
+    state: absent
+  with_items:
+    - keitaro-mysqld-error_log.cnf
+    - keitaro-mysqld-log_slow_queries.cnf
+    - network.cnf
+
+- name: Enable IPv6 in kernel
+  include: enable-ipv6-in-kernel.yml
+
+- name: Enable IPv6 in nginx
+  include: enable-ipv6-in-nginx.yml
+
+- name: Check if firewall service exists.
+  stat:
+    path: /etc/systemd/system/firewall.service
+  register: firewall_service_file_status
+
+- name: Disable and remove the firewall service.
+  include: disable-and-remove-firewall-bash.yml
+  when: firewall_service_file_status.stat.exists
+
+- name: Check if firewall.bash rules file exists.
+  stat:
+    path: /etc/firewall.bash
+  register: firewall_rules_file_status
+
+- name: Redefine allowed_tcp_ports variable
+  include: redefine-allowed_tcp_ports-variable.yml
+  when: firewall_rules_file_status.stat.exists

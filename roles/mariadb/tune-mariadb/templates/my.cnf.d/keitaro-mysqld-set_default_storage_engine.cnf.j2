@@ -1,0 +1,7 @@
+# Default storage engine
+#
+# {{ ansible_managed }}
+
+[mysqld]
+default_storage_engine = {{ db_engine }}
+default_tmp_storage_engine = {{ db_engine }}

@@ -54,7 +54,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.28.12'
+RELEASE_VERSION='2.29.0'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -407,6 +407,12 @@ as_minor_version() {
   local meaningful_version=${version_number:0:${meaningful_version_length}}
   printf "%d%0${zeroes_length}d" "${meaningful_version}"
 }
+detect_db_engine() {
+  local sql="SELECT lower(engine) FROM information_schema.tables WHERE table_name = 'keitaro_clicks'"
+  local db_engine=$(mysql ${VARS['db_name']} -se "${sql} 2>/dev/null")
+  debug "Detected engine from keitaro_clicks table - '${db_engine}'"
+  echo "${db_engine}"
+}
 
 detect_installed_version(){
   if empty "${INSTALLED_VERSION}"; then
@@ -433,6 +439,13 @@ get_centos_major_release() {
   echo "${CENTOS_MAJOR_RELEASE}"
 }
 
+installed_version_has_db_engine_bug() {
+  (( $(as_version ${INSTALLED_VERSION}) <= $(as_version "1.5.0") )) || \
+    (
+      (( $(as_version ${INSTALLED_VERSION}) >= $(as_version "2.23.0") )) && \
+      (( $(as_version ${INSTALLED_VERSION}) < $(as_version "2.29.0") ))
+    )
+}
 
 is_compatible_with_current_release() {
   [[ "${RELEASE_VERSION}" == "${INSTALLED_VERSION}" ]]
@@ -675,6 +688,29 @@ detect_inventory_path(){
     fi
   done
   debug "Inventory file not found"
+}
+
+fix_db_engine() {
+  debug "Detected installer with version ${INSTALLER_VERSION} which possibly set wrong db_engine"
+  local detected_db_engine=$(detect_db_engine)
+  debug "Detected engine - '${detected_db_engine}', engine in the inventory - '${VARS['db_engine']}'"
+  if decteted_db_engine_doesnt_match_inventory "${detected_db_engine}"; then
+    debug "Detected engine and engine in the inventory are not matching, reconfiguring"
+    VARS['db_engine']="${detected_db_engine}"
+    write_inventory_file
+    ANSIBLE_TAGS="${ANSIBLE_TAGS},tune-mariadb"
+  else
+    debug "Everything looks good, don't need to reconfigure db engine"
+  fi
+}
+
+
+decteted_db_engine_doesnt_match_inventory() {
+  local detected_db_engine="${1}"
+  [[
+    ("${detected_db_engine}" == "innodb" || "${detected_db_engine}" == "tokudb") &&
+            "${detected_db_engine}" != "${VARS['db_engine']}"
+  ]]
 }
 
 KEITARO_KEY_LIC_FILEPATH="${WEBAPP_ROOT}/var/license/key.lic"
@@ -1678,6 +1714,39 @@ is_detected_license_edition_type_commercial() {
   [[ "${license_edition_type}" == "${LICENSE_EDITION_TYPE_COMMERCIAL}" ]]
 }
 
+is_ram_size_mb_changed() {
+  ( isset "${VARS['previous_ram_size_mb']}" && [[ "${VARS['previous_ram_size_mb']}" != "${VARS['ram_size_mb']}" ]] ) \
+      || ( isset "${VARS['ram_size_mb']}" && [[ "${VARS['ram_size_mb']}" != "$(get_ram_size_mb)" ]] )
+}
+
+
+get_var_from_config(){
+  local var="${1}"
+  local file="${2}"
+  local separator="${3}"
+  cat "$file" | \
+    grep "^${var}\\b" | \
+    grep "${separator}" | \
+    head -n1 | \
+    awk -F"${separator}" '{print $2}' | \
+    awk '{$1=$1; print}' | \
+    sed -r -e "s/^'(.*)'\$/\\1/g" -e 's/^"(.*)"$/\1/g'
+  }
+
+DETECTED_RAM_SIZE_MB=""
+
+get_ram_size_mb() {
+  if empty "${DETECTED_RAM_SIZE_MB}"; then
+    if is_ci_mode; then
+      DETECTED_RAM_SIZE_MB=2048
+    else
+      DETECTED_RAM_SIZE_MB=$((free -m | grep Mem: | awk '{print $2}') 2>/dev/null)
+    fi
+  fi
+  echo "${DETECTED_RAM_SIZE_MB}"
+}
+
+
 clean_up(){
   if [ -d "$PROVISION_DIRECTORY" ]; then
     debug "Remove ${PROVISION_DIRECTORY}"
@@ -1741,42 +1810,9 @@ get_var_from_keitaro_app_config() {
   get_var_from_config "${var}" "${WEBAPP_ROOT}/application/config/config.ini.php" '='
 }
 
-get_var_from_config(){
-  local var="${1}"
-  local file="${2}"
-  local separator="${3}"
-  cat "$file" | \
-    grep "^${var}\\b" | \
-    grep "${separator}" | \
-    head -n1 | \
-    awk -F"${separator}" '{print $2}' | \
-    awk '{$1=$1; print}' | \
-    sed -r -e "s/^'(.*)'\$/\\1/g" -e 's/^"(.*)"$/\1/g'
-  }
-
-is_ram_size_mb_changed() {
-  ( isset "${VARS['previous_ram_size_mb']}" && [[ "${VARS['previous_ram_size_mb']}" != "${VARS['ram_size_mb']}" ]] ) \
-      || ( isset "${VARS['ram_size_mb']}" && [[ "${VARS['ram_size_mb']}" != "$(get_ram_size_mb)" ]] )
-}
-
-
 get_free_disk_space_mb() {
   (df -m | grep -e "/$" | awk '{print$4}') 2>/dev/null
 }
-
-DETECTED_RAM_SIZE_MB=""
-
-get_ram_size_mb() {
-  if empty "${DETECTED_RAM_SIZE_MB}"; then
-    if is_ci_mode; then
-      DETECTED_RAM_SIZE_MB=2048
-    else
-      DETECTED_RAM_SIZE_MB=$((free -m | grep Mem: | awk '{print $2}') 2>/dev/null)
-    fi
-  fi
-  echo "${DETECTED_RAM_SIZE_MB}"
-}
-
 
 
 
@@ -1928,19 +1964,19 @@ stage1() {
   parse_options "$@"
   set_ui_lang
 }
-#
 
 
-
-
-
-assert_apache_not_installed(){
+assert_not_running_under_openvz() {
+  debug "Assert we are not running under OpenVZ"
   if isset "$SKIP_CHECKS"; then
-    debug "SKIPPED: actual checking of httpd skipped"
-  else
-    if is_installed httpd; then
-      fail "$(translate errors.apache_installed)"
-    fi
+    debug "Detected test mode, skip OpenVZ checks"
+    return
+  fi
+
+  virtualization_type="$(hostnamectl status | grep Virtualization | awk '{print $2}')"
+  debug "Detected virtualization type: '${virtualization_type}'"
+  if isset "${virtualization_type}" && [[ "${virtualization_type}" == "openvz" ]]; then
+    fail "Servers with OpenVZ virtualization are not supported"
   fi
 }
 
@@ -1948,6 +1984,32 @@ assert_centos_distro(){
   assert_installed 'yum' 'errors.wrong_distro'
   if ! is_file_exist /etc/centos-release; then
     fail "$(translate errors.wrong_distro)" "see_logs"
+  fi
+}
+MIN_RAM_SIZE_MB=1500
+
+assert_has_enough_ram(){
+  debug "Checking RAM size"
+
+  local current_ram_size_mb=$(get_ram_size_mb)
+  if [[ "$current_ram_size_mb" -lt "$MIN_RAM_SIZE_MB" ]]; then
+    debug "RAM size ${current_ram_size_mb}mb is less than ${MIN_RAM_SIZE_MB}mb, raising error"
+    fail "$(translate errors.not_enough_ram)"
+  else
+    debug "RAM size ${current_ram_size_mb}mb is greater than ${MIN_RAM_SIZE_MB}mb, continuing"
+  fi
+}
+MIN_FREE_DISK_SPACE_MB=2048
+
+assert_has_enough_free_disk_space(){
+  debug "Checking free disk spice"
+
+  local current_free_disk_space_mb=$(get_free_disk_space_mb)
+  if [[ "${current_free_disk_space_mb}" -lt "${MIN_FREE_DISK_SPACE_MB}" ]]; then
+    debug "Free disk space ${current_free_disk_space_mb}mb is less than ${MIN_FREE_DISK_SPACE_MB}mb, raising error"
+    fail "$(translate errors.not_enough_free_disk_space)"
+  else
+    debug "Free disk space ${current_free_disk_space_mb}mb is greater than ${MIN_FREE_DISK_SPACE_MB}mb, continuing"
   fi
 }
 
@@ -1975,19 +2037,6 @@ assert_thp_deactivatable() {
 
 are_thp_sys_files_existing() {
   is_file_exist "/sys/kernel/mm/transparent_hugepage/enabled" && is_file_exist "/sys/kernel/mm/transparent_hugepage/defrag"
-}
-MIN_FREE_DISK_SPACE_MB=2048
-
-assert_has_enough_free_disk_space(){
-  debug "Checking free disk spice"
-
-  local current_free_disk_space_mb=$(get_free_disk_space_mb)
-  if [[ "${current_free_disk_space_mb}" -lt "${MIN_FREE_DISK_SPACE_MB}" ]]; then
-    debug "Free disk space ${current_free_disk_space_mb}mb is less than ${MIN_FREE_DISK_SPACE_MB}mb, raising error"
-    fail "$(translate errors.not_enough_free_disk_space)"
-  else
-    debug "Free disk space ${current_free_disk_space_mb}mb is greater than ${MIN_FREE_DISK_SPACE_MB}mb, continuing"
-  fi
 }
 
 assert_pannels_not_installed(){
@@ -2023,32 +2072,19 @@ is_database_exists(){
   debug "Check if database ${database} exists"
   mysql -Nse 'show databases' 2>/dev/null | tr '\n' ' ' | grep -Pq "${database}"
 }
-MIN_RAM_SIZE_MB=1500
-
-assert_has_enough_ram(){
-  debug "Checking RAM size"
-
-  local current_ram_size_mb=$(get_ram_size_mb)
-  if [[ "$current_ram_size_mb" -lt "$MIN_RAM_SIZE_MB" ]]; then
-    debug "RAM size ${current_ram_size_mb}mb is less than ${MIN_RAM_SIZE_MB}mb, raising error"
-    fail "$(translate errors.not_enough_ram)"
-  else
-    debug "RAM size ${current_ram_size_mb}mb is greater than ${MIN_RAM_SIZE_MB}mb, continuing"
-  fi
-}
+#
 
 
-assert_not_running_under_openvz() {
-  debug "Assert we are not running under OpenVZ"
+
+
+
+assert_apache_not_installed(){
   if isset "$SKIP_CHECKS"; then
-    debug "Detected test mode, skip OpenVZ checks"
-    return
-  fi
-
-  virtualization_type="$(hostnamectl status | grep Virtualization | awk '{print $2}')"
-  debug "Detected virtualization type: '${virtualization_type}'"
-  if isset "${virtualization_type}" && [[ "${virtualization_type}" == "openvz" ]]; then
-    fail "Servers with OpenVZ virtualization are not supported"
+    debug "SKIPPED: actual checking of httpd skipped"
+  else
+    if is_installed httpd; then
+      fail "$(translate errors.apache_installed)"
+    fi
   fi
 }
 
@@ -2072,9 +2108,11 @@ setup_vars(){
   setup_default_value db_name 'keitaro'
   setup_default_value db_user 'keitaro'
   setup_default_value db_password "$(generate_password)"
+  setup_default_value ch_password "$(generate_password)"
   setup_default_value db_root_password "$(generate_password)"
   setup_default_value db_engine 'tokudb'
   setup_default_value php_engine "${PHP_ENGINE}"
+  setup_default_value big_data_engine 'mariadb'
   setup_default_value salt "$(dbus-uuidgen)"
 }
 
@@ -2132,29 +2170,6 @@ stage3(){
   detect_installed_version
 }
 
-
-get_user_vars(){
-  debug 'Read vars from user input'
-  hack_stdin_if_pipe_mode
-  print_translated "welcome"
-  get_user_var 'license_key' 'validate_presence validate_license_key_format validate_license_key_is_active validate_license'
-  get_user_db_restore_vars
-}
-
-
-get_user_db_restore_vars(){
-  if is_detected_license_edition_type_commercial; then
-    get_user_var 'db_restore_path' 'validate_file_existence validate_enough_space_for_dump'
-    if isset "${VARS['db_restore_path']}"; then
-      get_user_var 'db_restore_salt' 'validate_presence validate_alnumdashdot'
-      tables_prefix=$(detect_table_prefix "${VARS['db_restore_path']}")
-      if empty $tables_prefix; then
-        fail "$(translate 'errors.cant_detect_table_prefix')"
-      fi
-    fi
-  fi
-}
-
 get_ssh_port(){
   local ssh_port=$(echo $SSH_CLIENT | cut -d' ' -f 3)
   if empty "${ssh_port}"; then
@@ -2178,6 +2193,7 @@ write_inventory_file(){
   print_line_to_inventory_file "db_name=${VARS['db_name']}"
   print_line_to_inventory_file "db_user=${VARS['db_user']}"
   print_line_to_inventory_file "db_password=${VARS['db_password']}"
+  print_line_to_inventory_file "ch_password=${VARS['ch_password']}"
   print_line_to_inventory_file "salt=${VARS['salt']}"
 
   if empty "${VARS['without_key']}" ; then
@@ -2211,6 +2227,7 @@ write_inventory_file(){
   if isset "${VARS['db_engine']}"; then
     print_line_to_inventory_file "db_engine=${VARS['db_engine']}"
   fi
+  print_line_to_inventory_file "big_data_engine=${VARS['big_data_engine']}"
   if isset "$KEITARO_RELEASE"; then
     print_line_to_inventory_file "kversion=$KEITARO_RELEASE"
   fi
@@ -2241,6 +2258,29 @@ print_line_to_inventory_file() {
   local line="${1}"
   debug "  '$line'"
   echo "$line" >> "$INVENTORY_PATH"
+}
+
+
+get_user_vars(){
+  debug 'Read vars from user input'
+  hack_stdin_if_pipe_mode
+  print_translated "welcome"
+  get_user_var 'license_key' 'validate_presence validate_license_key_format validate_license_key_is_active validate_license'
+  get_user_db_restore_vars
+}
+
+
+get_user_db_restore_vars(){
+  if is_detected_license_edition_type_commercial; then
+    get_user_var 'db_restore_path' 'validate_file_existence validate_enough_space_for_dump'
+    if isset "${VARS['db_restore_path']}"; then
+      get_user_var 'db_restore_salt' 'validate_presence validate_alnumdashdot'
+      tables_prefix=$(detect_table_prefix "${VARS['db_restore_path']}")
+      if empty $tables_prefix; then
+        fail "$(translate 'errors.cant_detect_table_prefix')"
+      fi
+    fi
+  fi
 }
 
 stage4(){
@@ -2309,19 +2349,11 @@ install_galaxy_collection(){
   run_command "${command}"
 }
 
-show_credentials(){
-  print_with_color "http://$(detected_license_ip)/admin" 'light.green'
-
-  if isset "${VARS['db_restore_path']}"; then
-    translate 'messages.successful.use_old_credentials'
-  else
-    if empty "${VARS['without_key']}" && isset "${VARS['admin_password']}"; then
-      colored_login=$(print_with_color "${VARS['admin_login']}" 'light.green')
-      colored_password=$(print_with_color "${VARS['admin_password']}" 'light.green')
-      echo -e "login: ${colored_login}"
-      echo -e "password: ${colored_password}"
-    fi
-  fi
+download_provision(){
+  debug "Download provision"
+  release_url="https://files.keitaro.io/scripts/${BRANCH}/playbook.tar.gz"
+  mkdir -p "${PROVISION_DIRECTORY}"
+  run_command "curl -fsSL ${release_url} | tar -xzC ${PROVISION_DIRECTORY}"
 }
 json2dict() {
 
@@ -2490,15 +2522,23 @@ json2dict() {
   echo "("; (tokenize | json_parse); echo ")"
 }
 
-download_provision(){
-  debug "Download provision"
-  release_url="https://files.keitaro.io/scripts/${BRANCH}/playbook.tar.gz"
-  mkdir -p "${PROVISION_DIRECTORY}"
-  run_command "curl -fsSL ${release_url} | tar -xzC ${PROVISION_DIRECTORY}"
-}
-
 show_successful_message(){
   print_with_color "$(translate 'messages.successful')" 'green'
+}
+
+show_credentials(){
+  print_with_color "http://$(detected_license_ip)/admin" 'light.green'
+
+  if isset "${VARS['db_restore_path']}"; then
+    translate 'messages.successful.use_old_credentials'
+  else
+    if empty "${VARS['without_key']}" && isset "${VARS['admin_password']}"; then
+      colored_login=$(print_with_color "${VARS['admin_login']}" 'light.green')
+      colored_password=$(print_with_color "${VARS['admin_password']}" 'light.green')
+      echo -e "login: ${colored_login}"
+      echo -e "password: ${colored_password}"
+    fi
+  fi
 }
 
 ANSIBLE_TASK_HEADER="^TASK \[(.*)\].*"
@@ -2691,15 +2731,6 @@ signal_successful_installation() {
   write_inventory_file
 }
 
-# If installed version less than or equal to version from checkpoint 
-# then ANSIBLE_TAGS will be expanded by upgrade-from-x.y tag
-# Example: 
-#   when UPGRADE_CHECKPOINTS=(1.5 2.0 2.12 2.13)
-#     and insalled version is 2.12
-#     and we are upgrading to 2.14
-#   then ansible tags will be expanded by `upgrade-from-2.12` and `upgrade-from-2.13` tags 
-UPGRADE_CHECKPOINTS=(1.5 2.0 2.12 2.13 2.16 2.20 2.26 2.27)
-
 # If installed version less than or equal to version from array value
 # then ANSIBLE_TAGS will be expanded by appropriate tags (given from array key)
 # Example: 
@@ -2721,10 +2752,11 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['setup-timezone']='0.9'
   ['tune-swap']='2.27.7'
   ['install-php']='2.28.5'
+  ['install-roadrunner']='2.20.4'
   ['tune-php']='2.28.5'
   ['tune-roadrunner']='2.27.7'
   ['install-mariadb']='1.17'
-  ['tune-mariadb']='2.27.7'
+  ['tune-mariadb']='2.28.12'
   ['tune-redis']='2.27.7'
   ['tune-sysctl']='2.27.7'
   ['install-nginx']='2.27.0'
@@ -2740,7 +2772,6 @@ expand_ansible_tags_on_upgrade() {
     debug "Upgrading ${installed_version} -> ${RELEASE_VERSION}"
     expand_ansible_tags_on_full_upgrade
     expand_ansible_tags_with_tune_tag
-    expand_ansible_tags_with_upgrade_from_tags ${installed_version}
     expand_ansible_tags_with_role_tags ${installed_version}
     expand_ansible_tags_with_install_kctl_tools_tag ${installed_version}
     debug "ANSIBLE_TAGS is set to ${ANSIBLE_TAGS}"
@@ -2758,15 +2789,6 @@ expand_ansible_tags_with_tune_tag() {
     debug 'RAM size was changed recently, force tuning'
     ANSIBLE_TAGS="${ANSIBLE_TAGS},tune"
   fi
-}
-
-expand_ansible_tags_with_upgrade_from_tags() {
-  local installed_version=${1}
-  for checkpoint_version in "${UPGRADE_CHECKPOINTS[@]}"; do
-    if need_to_expand_with_upgrade_from_tag ${installed_version} ${checkpoint_version}; then
-      ANSIBLE_TAGS="${ANSIBLE_TAGS},upgrade-from-${checkpoint_version}"
-    fi
-  done
 }
 
 expand_ansible_tags_with_role_tags() {
@@ -2795,19 +2817,6 @@ get_installed_version_on_upgrade() {
   fi
 }
 
-need_to_expand_with_upgrade_from_tag() {
-  local installed_version=${1}
-  local checkpoint_version=${2}
-  local checkpoint_minor_version="$(as_minor_version ${checkpoint_version})"
-  local installed_minor_version="$(as_minor_version ${installed_version})"
-  local current_installer_minor_version="$(as_minor_version ${RELEASE_VERSION})"
-  (( ${checkpoint_minor_version} > ${installed_minor_version} )) || \
-  ( \
-    [[ ${checkpoint_minor_version} == ${installed_minor_version} ]] && \
-      (( ${checkpoint_minor_version} < ${current_installer_minor_version} )) \
-  )
-}
-
 is_upgrade_mode_set() {
   [[ "${ANSIBLE_TAGS}" =~ upgrade ]]
 }
@@ -2828,6 +2837,11 @@ install(){
     assert_config_relevant_or_upgrade_running
     write_inventory_on_reconfiguration
     expand_ansible_tags_on_upgrade
+    if installed_version_has_db_engine_bug; then
+      fix_db_engine
+    else
+      debug "Current kctl version ${INSTALLED_VERSION} doesn't have db engine problems"
+    fi
   else
     assert_keitaro_not_installed
     stage4                  # get and save vars to the inventory file

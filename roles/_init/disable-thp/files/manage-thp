@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# Enable/disable Linux transparent huge pages, to improve redis/mysql performance.
+
+case "${1}" in
+  enable)
+    echo "Enabling Transparent Huge Pages."
+    flag_value="always"
+    ;;
+  disable)
+    echo "Disabling Transparent Huge Pages."
+    flag_value="never"
+    ;;
+  *)
+    echo "Usage: $(basename "${0}") {enable|disable}"
+    exit 1
+    ;;
+esac
+
+set_flag() {
+  local kernel_param_file="/sys/kernel/mm/transparent_hugepage/${1}"
+  if [ -f  "${kernel_param_file}" ]; then
+    echo "${flag_value}" > "${kernel_param_file}"
+  else
+    echo "File ${kernel_param_file} doesn't exist"
+    exit 1
+  fi
+}
+
+set_flag enabled
+set_flag defrag
+
+echo "All done"
+
+

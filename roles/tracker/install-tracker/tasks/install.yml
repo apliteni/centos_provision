@@ -4,14 +4,6 @@
 - name: Download and unpack tracker package
   include: install/download-and-unpack-tracker-package.yml
 
-- name: Create key.lic file with license key
-  command: "{{ php_path }} bin/cli.php system:set_license_key {{ license_key }}"
-  args:
-    chdir: "{{ keitaro_app_dir }}"
-    creates:  "{{ keitaro_app_dir }}/var/license/key.lic"
-  become_user: "{{ keitaro_user }}"
-  when: with_license_key
-
 - name: Restore DB from SQL dump
   include_tasks: restore_db.yml
   when: db_restore_path is defined
@@ -55,7 +47,6 @@
       state: absent
   when: db_tracker_schema_is_empty
 
-
 - name: Run cli.php for generate config
   command: "{{ php_path }} bin/cli.php system:generate_config"
   environment:
@@ -70,6 +61,14 @@
   become_user: "{{ keitaro_user }}"
   notify:
     - restart roadrunner
+
+- name: Create key.lic file with license key
+  command: "{{ php_path }} bin/cli.php system:set_license_key {{ license_key }}"
+  args:
+    chdir: "{{ keitaro_app_dir }}"
+    creates:  "{{ keitaro_app_dir }}/var/license/key.lic"
+  become_user: "{{ keitaro_user }}"
+  when: with_license_key
 
 - name: Run post-restoring tasks
   include_tasks: "restore_db/post_restore.yml"
@@ -96,3 +95,17 @@
     chdir: "{{ keitaro_app_dir }}"
   become_user: "{{ keitaro_user }}"
   when: db_restore_path is not defined and db_tracker_users_table_is_empty and with_license_key
+
+- name: Use CH for keitaro tracker
+  shell: "{{ php_path }} bin/cli.php ch_db:setup --config {{ keitaro_config_ini_php_path }}"
+  args:
+    chdir: "{{ keitaro_app_dir }}"
+  become_user: "{{ keitaro_user }}"
+  when: big_data_engine == 'clickhouse'
+
+- name: Turn up Rbooster
+  lineinfile:
+    path: "{{ keitaro_config_ini_php_path }}"
+    regexp: ^rbooster =
+    line: "rbooster = true"
+  when: big_data_engine == 'clickhouse'

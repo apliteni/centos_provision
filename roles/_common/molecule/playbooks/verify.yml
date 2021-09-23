@@ -20,15 +20,15 @@
     - meta: end_play        
       when: not (scenario_verify_tasks_path_info.stat.exists | default(false))
 
+    - name: Include init role
+      include_role:
+        name: _init/_init
+
     - local_action:
         module: stat
         path: "{{ role_default_vars_path }}"
       become: no
       register: role_default_vars_info
-
-        #- name: Include init role
-        #include_role:
-        #name: _prepare/init
 
     - name: Include var files
       include_vars: "{{ role_default_vars_path }}"

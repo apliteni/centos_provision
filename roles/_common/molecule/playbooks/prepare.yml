@@ -19,7 +19,7 @@
 
     - name: Include init role
       include_role:
-        name: _prepare/init
+        name: _init/_init
       when: molecule_prepare_yml_info.stat.exists | default(false)
 
     - name: Redefine handlers

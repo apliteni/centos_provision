@@ -1,0 +1,40 @@
+- debug:
+    var: "{{ item }}"
+  with_items:
+    - ram_size_mb
+    - current_swap_size_mb
+    - cpu_cores
+    - is_ci_mode
+    - kctl_tools_branch
+    - kctl_version
+    - keitaro_user
+    - php_fpm_memory_mb
+    - php_fpm_worker_size_mb
+    - php_fpm_worker_max_requests
+    - php_fpm_workers_count
+    - php_fpm_workers_idle_count_max
+    - php_fpm_workers_idle_count_min
+    - php_fpm_workers_start_count
+    - roadrunner_memory_mb
+    - roadrunner_worker_size_mb
+    - roadrunner_worker_max_requests
+    - roadrunner_workers_count
+    - mariadb_memory_mb
+    - mariadb_memory_1pct
+    - mariadb_max_connections
+    - mariadb_key_buffer_size_kb
+    - mariadb_query_cache_size_kb
+    - mariadb_tmp_table_size_kb
+    - mariadb_max_heap_table_size_kb
+    - mariadb_main_size_kb
+    - mariadb_join_buffer_size_kb
+    - mariadb_table_open_cache
+    - redis_memory_mb
+    - nginx_workers_count
+    - nginx_worker_connections
+    - opened_files_mariadb
+    - opened_files_nginx
+    - opened_files_php_fpm
+    - opened_files_roadrunner
+    - opened_files_system
+    - box_creation_time

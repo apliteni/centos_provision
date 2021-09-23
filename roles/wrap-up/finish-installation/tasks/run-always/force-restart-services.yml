@@ -6,3 +6,4 @@
     - restart php-fpm
     - restart roadrunner
     - restart redis
+  changed_when: false

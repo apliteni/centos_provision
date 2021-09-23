@@ -2,20 +2,21 @@ keitaro_user: keitaro
 keitaro_group: keitaro
 keitaro_home: /home/keitaro
 keitaro_app_dir: /var/www/keitaro
-keitaro_files: https://files.keitaro.io/scripts
+keitaro_files: https://files.keitaro.io
 keitaro_app_logs_dir: "{{ keitaro_app_dir }}/var/log"
 keitaro_app_ssl_logs_dir: "{{ keitaro_app_logs_dir }}/ssl"
 keitaro_config_dir: /etc/keitaro
-keitaro_config_backups_dir: "{{ keitaro_config_dir }}/backups"
 keitaro_stats_json_path: "{{ keitaro_app_dir }}/var/stats.json"
 keitaro_watch_list: "{{ keitaro_app_dir }}/application/data/watch_list.txt"
+keitaro_config_ini_php_path: "{{ keitaro_app_dir }}/application/config/config.ini.php"
 keitaro_logrotate_common_period: 5
 keitaro_logrotate_nginx_period: 14
 keitaro_release: 9
 keitaro_url: "https://keitaro.io"
 keitaro_database_schema: "{{ keitaro_app_dir }}/application/data/schema.sql"
 keitaro_database_data: "{{ keitaro_app_dir }}/application/data/data.sql"
-keitaro_mysql_fast_import: "{{ keitaro_files }}/mysql/fast-import"
+keitaro_mysql_fast_import: "{{ keitaro_files }}/scripts/mysql/fast-import"
+keitaro_ch_migrator: "{{ keitaro_files }}/migrators/bin/ch-migrator"
 
 kctl_root: /opt/keitaro
 kctl_bin_dir: "{{ kctl_root }}/bin"

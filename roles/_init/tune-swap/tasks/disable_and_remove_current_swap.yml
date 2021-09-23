@@ -1,0 +1,29 @@
+- name: Check if swap file exists
+  stat:
+    path: "{{ swap_path }}"
+  register: swap_file_info
+
+- name: Check if swap is enabled
+  shell: 'swapon --show | grep "^{{ swap_path }}\s"'
+  when: file_exists
+  register: check_swap_enabled_result
+  changed_when: false
+  failed_when: false
+
+- name: Try to disable swap
+  command: 'swapoff {{ swap_path }}'
+  when: file_exists and check_swap_enabled_result.rc == 0
+  register: disabled_result
+  changed_when: disabled_result.rc == 0
+  failed_when: false
+
+- set_fact:
+    can_remove_swap: "{{ file_exists and (check_swap_enabled_result.rc != 0 or disabled_result.rc == 0 ) }}"
+
+- name: Remove the swap file
+  file:
+    path: '{{ swap_path }}'
+    state: absent
+  when: can_remove_swap
+  register: swap_removed
+

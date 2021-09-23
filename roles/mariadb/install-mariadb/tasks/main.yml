@@ -1,0 +1,37 @@
+- name: Add MariaDB repos
+  template:
+    src: "{{ item }}.repo.j2"
+    dest: "/etc/yum.repos.d/{{ item }}.repo"
+    force: yes
+  with_items:
+    - mariadb
+    - mariadb-mirror
+
+- name: Install supporting libraries
+  package:
+    name:
+      - perl-DBI
+      - libaio
+      - boost-program-options
+    state: installed
+
+- name: Install MariaDB packages
+  package:
+    name:
+      - MariaDB-server-10.3.29
+      - MariaDB-client-10.3.29
+      - MariaDB-tokudb-engine-10.3.29
+    state: installed
+    enablerepo: "mariadb,mariadb-mirror"
+
+- name: Install PyMySQL
+  pip:
+    name: pymysql
+    state: present
+    executable: pip3
+
+- name: Ensure mariadb service is started
+  service:
+    name: mariadb
+    state: started
+    enabled: yes
