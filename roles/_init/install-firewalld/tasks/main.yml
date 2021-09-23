@@ -1,0 +1,25 @@
+- name: Ensure firewalld is installed
+  yum:
+    name: firewalld
+    state: present
+
+- name: Disallow Zone Drifting to get rid of firewalld warning
+  lineinfile:
+    dest: /etc/firewalld/firewalld.conf
+    line: AllowZoneDrifting=no
+    regexp: ^AllowZoneDrifting=yes
+
+- name: Ensure firewalld service is enabled and started
+  service:
+    name: firewalld
+    masked: no
+    state: started
+    enabled: true
+
+- name: Allow firewalld ports
+  firewalld:
+    port: "{{ item }}/tcp"
+    permanent: yes
+    immediate: yes
+    state: enabled
+  with_items: "{{ firewall_allowed_tcp_ports }}"

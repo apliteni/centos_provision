@@ -5,40 +5,38 @@
   become_method: sudo
 
   roles:
-    - {role: '_prepare/init',                              tags: 'init,                         always'}
-    - {role: '_prepare/x-prepare-upgrade',                 tags: 'prepare-upgrade,              never, upgrade'}
-    - {role: 'init/010-install-packages',                  tags: 'install-packages'}
-    - {role: 'init/create-tracker-user-and-dirs',          tags: 'create-tracker-user-and-dirs'}
-    - {role: 'init/disable-selinux',                       tags: 'disable-selinux'}
-    - {role: 'init/disable-thp',                           tags: 'disable-thp'}
-    - {role: 'init/install-certbot',                       tags: 'install-certbot'}
-    - {role: 'init/install-certs',                         tags: 'install-certs'}
-    - {role: 'init/install-chrony',                        tags: 'install-chrony'}
-    - {role: 'init/install-firewalld',                     tags: 'install-firewalld'}
-    - {role: 'init/install-kctl-tools',                    tags: 'install-kctl-tools'}
-    - {role: 'init/install-postfix',                       tags: 'install-postfix'}
-    - {role: 'init/setup-journald',                        tags: 'setup-journald'}
-    - {role: 'init/setup-timezone',                        tags: 'setup-timezone'}
-    - {role: 'init/tune-swap',                             tags: 'tune-swap,                    tune'}
-    - {role: 'init/tune-sysctl',                             tags: 'tune-sysctl,                    tune'}
-    - {role: 'init/install-fail2ban',                      tags: 'install-fail2ban'}
-    - {role: 'nginx/install-nginx',                        tags: 'install-nginx'}
-    - {role: 'nginx/tune-nginx',                           tags: 'tune-nginx,                   tune'}
-    - {role: 'nginx/x-upgrade-nginx-configs',              tags: 'upgrade-nginx-configs,        never, upgrade'}
-    - {role: 'php/install-php',                            tags: 'install-php'}
-    - {role: 'php/install-roadrunner',                     tags: 'install-roadrunner'}
-    - {role: 'php/tune-php',                               tags: 'tune-php,                     tune'}
-    - {role: 'php/tune-roadrunner',                        tags: 'tune-roadrunner,              tune'}
-    - {role: 'storage/clickhouse/x-install-clickhouse',    tags: 'install-clickhouse,           never'}
-    - {role: 'storage/mariadb/_x-prepare-mariadb-upgrade', tags: 'prepare-mariadb-upgrade,      never, upgrade'}
-    - {role: 'storage/mariadb/install-mariadb',            tags: 'install-mariadb'}
-    - {role: 'storage/mariadb/tune-mariadb',               tags: 'tune-mariadb,                 tune'}
-    - {role: 'storage/mariadb/wrap-up-db-configuration',   tags: 'wrap-up-db-configuration'}
-    - {role: 'storage/redis/install-redis',                tags: 'install-redis'}
-    - {role: 'storage/redis/tune-redis',                   tags: 'tune-redis,                   tune'}
-    - {role: 'tracker/install-tracker',                    tags: 'install-tracker'}
-    - {role: 'tracker/upgrade-tracker',                    tags: 'upgrade-tracker,              never'}
-    - {role: 'tracker/set-file-permissions',               tags: 'set-file-permissions,         always'}
-    - {role: 'tracker/wrap-up-tracker-configuration',      tags: 'wrap-up-tracker-configuration'}
-    - {role: 'wrap-up/finish-installation',                tags: 'finish-installation'}
-
+    - {role: '_init/_init',                                 tags: 'init,                        always'}
+    - {role: '_init/_install-packages',                     tags: 'install-packages'}
+    - {role: '_init/_prepare-upgrade',                      tags: 'prepare-upgrade'}
+    - {role: '_init/create-tracker-user-and-dirs',          tags: 'create-tracker-user-and-dirs'}
+    - {role: '_init/disable-selinux',                       tags: 'disable-selinux'}
+    - {role: '_init/disable-thp',                           tags: 'disable-thp'}
+    - {role: '_init/install-certbot',                       tags: 'install-certbot'}
+    - {role: '_init/install-certs',                         tags: 'install-certs'}
+    - {role: '_init/install-chrony',                        tags: 'install-chrony'}
+    - {role: '_init/install-fail2ban',                      tags: 'install-fail2ban'}
+    - {role: '_init/install-firewalld',                     tags: 'install-firewalld'}
+    - {role: '_init/install-kctl-tools',                    tags: 'install-kctl-tools'}
+    - {role: '_init/install-postfix',                       tags: 'install-postfix'}
+    - {role: '_init/setup-journald',                        tags: 'setup-journald'}
+    - {role: '_init/setup-timezone',                        tags: 'setup-timezone'}
+    - {role: '_init/tune-swap',                             tags: 'tune-swap,                    tune'}
+    - {role: '_init/tune-sysctl',                           tags: 'tune-sysctl,                  tune'}
+    - {role: 'clickhouse/install-clickhouse',               tags: 'install-clickhouse'}
+    - {role: 'mariadb/install-mariadb',                     tags: 'install-mariadb'}
+    - {role: 'mariadb/tune-mariadb',                        tags: 'tune-mariadb,                 tune'}
+    - {role: 'mariadb/wrap-up-db-configuration',            tags: 'wrap-up-db-configuration'}
+    - {role: 'nginx/install-nginx',                         tags: 'install-nginx'}
+    - {role: 'nginx/tune-nginx',                            tags: 'tune-nginx,                   tune'}
+    - {role: 'php/install-php',                             tags: 'install-php'}
+    - {role: 'php/install-roadrunner',                      tags: 'install-roadrunner'}
+    - {role: 'php/tune-php',                                tags: 'tune-php,                     tune'}
+    - {role: 'php/tune-roadrunner',                         tags: 'tune-roadrunner,              tune'}
+    - {role: 'redis/install-redis',                         tags: 'install-redis'}
+    - {role: 'clickhouse/install-clickhouse',               tags: 'install-clickhouse'}
+    - {role: 'redis/tune-redis',                            tags: 'tune-redis,                   tune'}
+    - {role: 'tracker/install-tracker',                     tags: 'install-tracker'}
+    - {role: 'tracker/upgrade-tracker',                     tags: 'upgrade-tracker,              never'}
+    - {role: 'tracker/set-file-permissions',                tags: 'set-file-permissions,         always'}
+    - {role: 'tracker/wrap-up-tracker-configuration',       tags: 'wrap-up-tracker-configuration'}
+    - {role: 'wrap-up/finish-installation',                 tags: 'finish-installation'}

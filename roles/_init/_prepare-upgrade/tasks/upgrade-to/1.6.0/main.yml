@@ -1,0 +1,4 @@
+- name: Remove old log directory
+  file:
+    path: /var/log/mariadb
+    state: absent

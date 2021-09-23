@@ -1,0 +1,9 @@
+- name: Tune logroatate
+  include: tune-logrotate.yml
+
+- name: Tune redis
+  include: tune-redis.yml
+
+- name: Tune systemd
+  include: tune-systemd.yml
+

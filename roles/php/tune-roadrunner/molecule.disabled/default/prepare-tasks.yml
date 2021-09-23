@@ -1,7 +1,7 @@
 - include_role:
-    name: init/create-tracker-user-and-dirs
+    name: _init/create-tracker-user-and-dirs
 - include_role:
-    name: storage/redis/install-redis
+    name: redis/install-redis
 - include_role:
     name: install-roadrunner
 - include_tasks: ../../../tracker/install-tracker/tasks/install/download-and-unpack-tracker-package.yml

@@ -4,32 +4,29 @@
   become_method: sudo
   tasks:
     - set_fact:
-        molecule_converge_tasks_path: >-
-          {{
-            lookup('env', 'MOLECULE_PROJECT_DIRECTORY') + '/molecule/' +
-            lookup('env', 'MOLECULE_SCENARIO_NAME') + '/converge-tasks.yml'
-          }}
+        scenario_converge_tasks_path: "{{ lookup('env', 'MOLECULE_SCENARIO_DIRECTORY') + '/converge-tasks.yml' }}"
         current_role_name: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | basename }}"
 
     - include_role:
-        name: _prepare/init
+        name: _init/_init
 
     - name: Redefine handlers
       include_role:
         name: redefine_handlers
 
-    - local_action:
+    - name: Check if converge-tasks.yml is present
+      local_action:
         module: stat
-        path: "{{ molecule_converge_tasks_path }}"
+        path: "{{ scenario_converge_tasks_path }}"
       become: no
-      register: molecule_converge_tasks_info
+      register: scenario_converge_tasks_info
 
     - debug:
-        msg: "Including {{ molecule_converge_tasks_path }}"
-      when: molecule_converge_tasks_info.stat.exists | default(false)
+        msg: "Including {{ scenario_converge_tasks_path }}"
+      when: scenario_converge_tasks_info.stat.exists | default(false)
 
-    - include: "{{ molecule_converge_tasks_path }}"
-      when: molecule_converge_tasks_info.stat.exists | default(false)
+    - include: "{{ scenario_converge_tasks_path }}"
+      when: scenario_converge_tasks_info.stat.exists | default(false)
 
     - debug:
         msg: "Including role '{{ current_role_name }}'"

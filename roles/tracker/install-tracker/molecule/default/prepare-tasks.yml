@@ -1,10 +1,12 @@
 - include_role:
-    name: init/create-tracker-user-and-dirs
+    name: _init/create-tracker-user-and-dirs
 - include_role:
-    name: storage/mariadb/install-mariadb
+    name: mariadb/install-mariadb
 - include_role:
-    name: storage/mariadb/tune-mariadb
+    name: mariadb/tune-mariadb
 - include_role:
-    name: storage/mariadb/wrap-up-db-configuration
+    name: mariadb/wrap-up-db-configuration
 - include_role:
     name: php/install-php
+- include_role:
+      name: clickhouse/install-clickhouse

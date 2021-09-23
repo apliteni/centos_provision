@@ -1,0 +1,15 @@
+[INCLUDES]
+before = keitaro-filter-options.conf
+
+[Definition]
+
+
+failregex = ^<HOST> \- \S+ \[\] \"<http_methods> \/<path_blacklist> \S+\" 404 \d+ "[^"]*" "[^"]*[^"]*" .+$
+            ^<HOST> \- \S+ \[\] \"<http_methods>.*" 404 \d+ "[^"]*" \".*<useragent_blacklist>.*\" "[^"]*" .+$
+
+ignoreregex = ^<HOST> \- \S+ \[\] \"<http_methods> <path_whitelist> \S+\" 404 \d+ "[^"]*" "[^"]*[^"]*" .+$
+              ^<HOST> \- \S+ \[\] \"<http_methods>.*" 404 \d+ "[^"]*" \".*<useragent_whitelist>.*\" "[^"]*" .+$
+
+datepattern = {^LN-BEG}%%ExY(?P<_sep>[-/.])%%m(?P=_sep)%%d[T ]%%H:%%M:%%S(?:[.,]%%f)?(?:\s*%%z)?
+              ^[^\[]*\[({DATE})
+              {^LN-BEG}

@@ -1,0 +1,8 @@
+journald_parameters:
+  - name: "Storage"
+    value: "persistent"
+  - name: "SystemMaxUse"
+    value: "500M"
+  - name: "MaxFileSec"
+    value: "1week"
+journald_log_path: /var/log/journal

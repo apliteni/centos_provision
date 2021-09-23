@@ -1,0 +1,2 @@
+mariadb_bind_address: '127.0.0.1'
+mariadb_error_log_filepath: /var/log/mysql/error.log

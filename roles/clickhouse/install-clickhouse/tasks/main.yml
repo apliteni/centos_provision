@@ -1,0 +1,2 @@
+- include: install-clickhouse.yml
+  when: big_data_engine == 'clickhouse'

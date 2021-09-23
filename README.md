@@ -53,6 +53,16 @@ In order to use Russian locale run as root
 
     kctl-add-site -D domain.com -R /var/www/domain.com -L ru
 
+## Run from mysql to clickhouse migrator
+
+Run from the server terminal:
+
+    kctl-ch-migrator --prefix keitaro_ --ms-host localhost --ms-db keitaro --ms-user keitaro --ms-password mysql_password --ch-host localhost --ch-user keitaro --ch-password clickhouse_password --ch-db keitaro
+
+For get mysql and clickhouse password run:
+
+    cat /etc/keitaro/config/inventory
+
 ## Developing
 
 Source files placed in the scripts/ dir. After making changes you should assemble affected tools.

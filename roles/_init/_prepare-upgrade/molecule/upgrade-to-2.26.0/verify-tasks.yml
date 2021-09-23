@@ -1,0 +1,28 @@
+- name: Get new cert file stats
+  stat:
+    path: /etc/keitaro/ssl/cert.pem
+  register: new_cert_path_info
+
+- name: Test new cert file is present
+  assert:
+    that: new_cert_path_info.stat.exists
+
+- name: Get old cert file stats
+  stat:
+    path: /etc/nginx/ssl/cert.pem
+  register: old_cert_path_info
+
+- name: Test old cert file is not present
+  assert:
+    that: not old_cert_path_info.stat.exists
+
+- name: Get root's cron spool file stats
+  stat:
+    path: /var/spool/cron/root
+  register: spool_cron_root
+
+- name: Test root's cron spool file is empty
+  assert:
+    that: spool_cron_root.stat.size == 0
+
+

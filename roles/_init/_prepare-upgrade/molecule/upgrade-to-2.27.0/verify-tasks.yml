@@ -1,0 +1,35 @@
+- name: Get old files stats
+  stat:
+    path: "{{ item }}"
+  with_items:
+    - /opt/eff.org/certbot
+    - /usr/local/bin/certbot
+    - /etc/my.cnf.d/keitaro-mysqld-error_log.cnf
+    - /etc/my.cnf.d/network.cnf
+  register: old_files_stats
+
+- name: Test old files does not exist
+  assert:
+    that: not item.stat.exists
+  with_items: "{{ old_files_stats.results }}"
+
+- name: Test ipv6 is enabled in kernel
+  shell: >
+    [[ $(sysctl net.ipv6.conf.all.disable_ipv6) =~ '0' ]] && \
+      [[ $(sysctl net.ipv6.conf.default.disable_ipv6) =~ '0' ]]
+  
+- name: Test ipv6 is enabled in keitaro ipv4 only nginx config
+  shell: >
+    grep -F 'listen [::]:80;' /etc/nginx/conf.d/keitaro.conf && \
+      grep -F 'listen [::]:443 ssl;' /etc/nginx/conf.d/keitaro.conf
+
+- name: Test ipv6 is not occurring twice in keitaro with already enabled ipv6 nginx config
+  shell: >
+    [[ $(grep -F '[::]:80;' /etc/nginx/conf.d/keitaro_ipv6.conf | wc -l) == '1' ]]
+
+- name: Test ipv6 is not enabled in nginx for non keitaro generated files
+  shell: >
+    [[ $(grep -FL 'listen [::]' /etc/nginx/conf.d/*.conf) == '/etc/nginx/conf.d/not_a_keitaro.conf' ]]
+     
+
+

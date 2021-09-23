@@ -1,0 +1,14 @@
+- set_fact:
+    list_ipv4_keitaro_generated_configs_command: "grep -LF '[::]'  {{ nginx_conf_path }}/*.conf | xargs grep -lP '^#.*Keitaro'"
+
+- name: List of the ssl .conf files and store it in register
+  shell: "{{ list_ipv4_keitaro_generated_configs_command }}"
+  register: list_ipv4_keitaro_generated_configs_command_result
+  changed_when: false
+  failed_when: false
+
+- name: Add ipv6 support
+  shell: |-
+    {{ list_ipv4_keitaro_generated_configs_command }} | \
+      xargs sed -i -r -e '/listen 80/a \  listen [::]:80;' -e '/listen 443/a \  listen [::]:443 ssl;'
+  when: list_ipv4_keitaro_generated_configs_command_result.stdout != ""

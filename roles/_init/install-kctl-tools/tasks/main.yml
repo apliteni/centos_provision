@@ -1,0 +1,27 @@
+- name: Make bin dir
+  file:
+    state: directory
+    path: "{{ kctl_bin_dir }}"
+
+- name: Install tools
+  get_url:
+    url: "{{ kctl_tools_url }}/{{ item }}.sh"
+    dest: "{{ kctl_bin_dir }}/kctl-{{ item }}"
+    mode: "0755"
+  with_items: "{{ kctl_tool_names }}"
+
+- include: setup-additional-tools.yml
+
+- name: Make symlinks
+  file:
+    state: link
+    src: "{{ kctl_bin_dir }}/kctl-{{ item }}"
+    dest: "/usr/local/bin/kctl-{{ item }}"
+  with_items: "{{ kctl_tool_names }}"
+
+- name: Allow keitaro user to run kctl tools
+  copy:
+    content: |
+      Cmnd_Alias KCTL_TOOLS = /opt/keitaro/bin/kctl-enable-ssl *, /opt/keitaro/bin/kctl-disable-ssl * , /opt/keitaro/bin/kctl upgrade
+      {{ keitaro_user }} ALL=(ALL) NOPASSWD: KCTL_TOOLS
+    dest: /etc/sudoers.d/99-allow-keitaro-user-to-run-kctl-tools

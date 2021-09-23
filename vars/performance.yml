@@ -2,7 +2,9 @@
 php_fpm_memory_mb: "{{ (0.15 * ansible_memtotal_mb) | int }}"
 # RoadRunner: 10% RAM
 roadrunner_memory_mb: "{{ (0.10 * ansible_memtotal_mb) | int }}"
-# Database: 35% RAM
-mariadb_memory_mb: "{{ (0.35 * ansible_memtotal_mb) | int }}"
 # Redis: 40% RAM
 redis_memory_mb: "{{ (0.40 * ansible_memtotal_mb) | int }}"
+# Database: 10% RAM
+mariadb_memory_mb: "{{ (0.10 * ansible_memtotal_mb) | int }}"
+# ClickHouse / MariaDB main size: 25% RAM
+big_data_engine_mb: "{{ (0.25 * ansible_memtotal_mb) | int }}"

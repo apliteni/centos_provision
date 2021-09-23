@@ -1,0 +1,25 @@
+- name: Delete slow query logs
+  file:
+    state: absent
+    path: /var/log/mysql/slow_queries.log
+
+- set_fact:
+    keitaro_stats_json_dir: "{{ keitaro_stats_json_path | dirname }}"
+    keitaro_stats_json_tmp_file_name: "{{ keitaro_stats_json_path | basename }}-*.tmp"
+
+- name: Find and delete temporary stats.json
+  command: "find {{ keitaro_stats_json_dir }} -maxdepth 1 -type f -name '{{ keitaro_stats_json_tmp_file_name }}' -print -delete"
+  register: temporary_stats_json
+  changed_when: "temporary_stats_json.stdout_lines != []"
+
+- name: Check that the /swap exists
+  stat:
+    path: /swap
+  register: stat_swap_file_result
+
+- name: Remove old swap record from fstab
+  lineinfile:
+    dest: "/etc/fstab"
+    regexp: '^/swap\s'
+    state: absent
+  when: not stat_swap_file_result.stat.exists

@@ -1,0 +1,22 @@
+- name: add Clickhouse repository
+  template:
+    src: Altinity-ClickHouse.repo
+    dest: /etc/yum.repos.d
+
+- name: Install by YUM | Install Clickhouse
+  yum:
+    name: "{{ item }}"
+    state: present
+    enablerepo: Altinity-ClickHouse
+  with_items: "{{ clickhouse_package }}"
+
+- name: Replace users config
+  template:
+    src: users.j2
+    dest: "{{ clickhouse_config_path }}/users.xml"
+  notify: restart clickhouse
+
+- name: Start service clickhouse-server if not started
+  service:
+    name: clickhouse-server
+    state: started

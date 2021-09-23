@@ -1,0 +1,45 @@
+- name: Gather facts
+  setup:
+
+- name: Include var files
+  include_vars: '../../../vars/{{ item }}'
+  with_items:
+    - keitaro.yml
+    - server.yml
+    - ssl.yml
+    - mariadb.yml
+    - nginx.yml
+    - click-house.yml
+    - php.yml
+    - performance.yml
+    - performance/1-php-fpm.yml
+    - performance/2-roadrunner.yml
+    - performance/3-mariadb.yml
+    - performance/4-nginx.yml
+    - performance/5-click-house.yml
+    - performance/9-opened-files.yml
+    - sysctl/network/parameters.yml
+    - sysctl/system/parameters.yml
+
+# We don't want to change renew job time every ansible rerun or reboot.
+# So we use box creation time which should be the same as /etc/hostname creation time
+# Also this way we make the cron job tasks idempotent.
+# https://unix.stackexchange.com/a/77563/445440
+- name: Get the box creation time
+  stat:
+    path: /etc/hostname
+  register: etc_hostname_file_info
+
+- set_fact:
+    box_creation_time: "{{ etc_hostname_file_info.stat.ctime | int }}"
+    kctl_version: "{{ __kctl_version }}"
+    kctl_installed_version: "{{ installer_version }}"
+    kctl_tags: "{{ ansible_run_tags }}"
+    current_swap_size_mb: "{{ __current_swap_size_mb }}"
+    without_license_key: "{{ lookup('env', 'WITHOUT_LICENSE_KEY')| default(false)|bool }}"
+    
+- set_fact:
+    with_license_key: "{{ not without_license_key }}"
+
+- name: Print debug info
+  include_tasks: print-debug-info.yml

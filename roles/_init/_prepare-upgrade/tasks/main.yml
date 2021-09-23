@@ -1,0 +1,12 @@
+- name: Ensure relevant Keitaro is installed
+  shell: >
+    grep -P "'{{ keitaro_release }}\..*'" {{ keitaro_app_dir }}/version.php || \
+      (echo "Upgrade Keitaro to {{ keitaro_release }}.x version before running this tool" > /dev/stderr && false)
+  changed_when: false
+  when: kctl_tags is with_upgrade_tag
+
+- include_tasks: "{{ upgrade_checkpoint_path }}"
+  loop_control:
+    loop_var: upgrade_checkpoint_path
+  with_upgrade_checkpoints: 'tasks/upgrade-to'
+
