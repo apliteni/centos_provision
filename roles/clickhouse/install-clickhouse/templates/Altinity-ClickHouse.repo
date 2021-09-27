@@ -1,5 +1,5 @@
 [altinity_clickhouse]
-name=altinity_clickhouse
+name=Altinity - ClickHouse repo
 baseurl=https://packagecloud.io/altinity/clickhouse/el/7/$basearch
 repo_gpgcheck=1
 gpgcheck=0

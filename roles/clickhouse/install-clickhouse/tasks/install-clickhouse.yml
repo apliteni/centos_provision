@@ -5,10 +5,9 @@
 
 - name: Install by YUM | Install Clickhouse
   yum:
-    name: "{{ item }}"
+    name: "{{ clickhouse_package }}"
     state: present
-    enablerepo: Altinity-ClickHouse
-  with_items: "{{ clickhouse_package }}"
+    enablerepo: altinity_clickhouse
 
 - name: Replace users config
   template:
