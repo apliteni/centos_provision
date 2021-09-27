@@ -54,7 +54,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.29.0'
+RELEASE_VERSION='2.29.1'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -1217,7 +1217,7 @@ remove_current_command(){
 }
 
 start_or_reload_nginx(){
-  if is_file_exist "/run/nginx.pid" || is_ci_mode; then
+  if (is_file_exist "/run/nginx.pid" && [[ -s "/run/nginx.pid" ]]) || is_ci_mode; then
     debug "Nginx is started, reloading"
     run_command "nginx -s reload" "$(translate 'messages.reloading_nginx')" 'hide_output'
   else
