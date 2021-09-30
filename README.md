@@ -118,3 +118,16 @@ or ignore
 ### How to install without license key
 
     curl keitaro.io/install.sh | bash -s -- -W
+
+### How to upgrade tracker
+
+    kctl upgrade
+
+### How to downgrade tracker
+
+    kctl downgrade <version>
+    Example: kctl downgrade 9.13
+
+### How to repair  tracker or start fill upgrade
+
+    kctl doctor
