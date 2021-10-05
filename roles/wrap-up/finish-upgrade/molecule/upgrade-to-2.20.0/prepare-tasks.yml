@@ -1,0 +1,14 @@
+- name: Install php73-php-fpm
+  package:
+    name: php73-php-fpm
+    state: installed
+
+- name: Start php73-php-fpm
+  service:
+    name: php73-php-fpm
+    state: started
+
+- name: Start php74-php-fpm
+  service:
+    name: php74-php-fpm
+    state: started

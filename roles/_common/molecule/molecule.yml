@@ -3,8 +3,8 @@ dependency:
 driver:
   name: docker
 platforms:
-  - name: centos8
-    image: "centos:${MOLECULE_DISTRO:-centos8}"
+  - name: centos-stream8
+    image: "quay.io/centos/centos:stream8"
     dockerfile: ../../../../../roles/_common/molecule/docker/Dockerfile.j2 # path relative to molecule scenario directory
     privileged: true
     tty: true

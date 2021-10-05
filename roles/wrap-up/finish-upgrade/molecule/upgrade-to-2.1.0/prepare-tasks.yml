@@ -1,0 +1,8 @@
+- include_role:
+    name: _init/create-tracker-user-and-dirs
+
+- include_role:
+    name: nginx/install-nginx
+
+- include_role:
+    name: nginx/tune-nginx
