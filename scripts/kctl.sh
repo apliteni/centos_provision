@@ -67,7 +67,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.29.2'
+RELEASE_VERSION='2.29.3'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -489,6 +489,8 @@ show_help(){
    kctl doctor              - for tracker  full upgrade
    kctl downgrade <version> - for tracker rollback to version"
 }
+
+MIN_ROLLBACK_VERSION='9.13.0'
 declare -A DICT
 
 DICT['en.errors.rollback_version_is_empty']='Rollback version not specified'
@@ -498,8 +500,6 @@ DICT['en.errors.see_logs']="Evaluating log saved to ${LOG_PATH}. Please rerun ${
 DICT['ru.errors.rollback_version_is_empty']='Не указана версия для отката'
 DICT['ru.errors.rollback_version_is_incorrect']="Версия не может быть ниже ${MIN_ROLLBACK_VERSION}"
 DICT['ru.errors.see_logs']="Журнал выполнения сохранён в ${LOG_PATH}. Пожалуйста запустите ${TOOL_NAME} ${@} после устранения возникших проблем."
-
-MIN_ROLLBACK_VERSION='9.13.0'
 
 on_exit(){
   exit 1

@@ -7,7 +7,7 @@
   roles:
     - {role: '_init/_init',                                 tags: 'init,                        always'}
     - {role: '_init/_install-packages',                     tags: 'install-packages'}
-    - {role: '_init/_prepare-upgrade',                      tags: 'prepare-upgrade'}
+    - {role: '_init/_prepare-upgrade',                      tags: 'prepare-upgrade,             upgrade'}
     - {role: '_init/create-tracker-user-and-dirs',          tags: 'create-tracker-user-and-dirs'}
     - {role: '_init/disable-selinux',                       tags: 'disable-selinux'}
     - {role: '_init/disable-thp',                           tags: 'disable-thp'}
@@ -37,6 +37,8 @@
     - {role: 'redis/tune-redis',                            tags: 'tune-redis,                   tune'}
     - {role: 'tracker/install-tracker',                     tags: 'install-tracker'}
     - {role: 'tracker/upgrade-tracker',                     tags: 'upgrade-tracker,              never'}
-    - {role: 'tracker/set-file-permissions',                tags: 'set-file-permissions,         always'}
+    - {role: 'tracker/set-permissions',                     tags: 'set-permissions,              always'}
     - {role: 'tracker/wrap-up-tracker-configuration',       tags: 'wrap-up-tracker-configuration'}
     - {role: 'wrap-up/finish-installation',                 tags: 'finish-installation'}
+    - {role: 'wrap-up/finish-upgrade',                      tags: 'finish-upgrade,               upgrade'}
+    - {role: 'wrap-up/run-final-steps',                     tags: 'run-final-steps,              always'}

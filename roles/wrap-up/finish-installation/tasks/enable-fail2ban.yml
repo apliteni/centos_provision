@@ -1,0 +1,4 @@
+- name: Enable Fail2ban Jail
+  command: "/usr/local/bin/kctl-fail2ban enable"
+  changed_when: false
+  when: "'upgrade' not in ansible_run_tags"
