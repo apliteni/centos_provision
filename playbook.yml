@@ -11,9 +11,9 @@
     - {role: '_init/create-tracker-user-and-dirs',          tags: 'create-tracker-user-and-dirs'}
     - {role: '_init/disable-selinux',                       tags: 'disable-selinux'}
     - {role: '_init/disable-thp',                           tags: 'disable-thp'}
-    - {role: '_init/install-certbot',                       tags: 'install-certbot'}
     - {role: '_init/install-certs',                         tags: 'install-certs'}
     - {role: '_init/install-chrony',                        tags: 'install-chrony'}
+    - {role: '_init/install-docker',                        tags: 'install-docker'}
     - {role: '_init/install-fail2ban',                      tags: 'install-fail2ban'}
     - {role: '_init/install-firewalld',                     tags: 'install-firewalld'}
     - {role: '_init/install-kctl-tools',                    tags: 'install-kctl-tools'}

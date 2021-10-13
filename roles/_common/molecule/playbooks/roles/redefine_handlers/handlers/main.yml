@@ -1,15 +1,27 @@
 - name: restart roadrunner
   debug:
-    msg: handle 'restart roadrunner' event 
+    msg: handle 'restart roadrunner' event
 
 - name: restart mariadb
   debug:
-    msg: handle 'restart mariadb' event 
+    msg: handle 'restart mariadb' event
 
 - name: restart redis
   debug:
-    msg: handle 'restart redis' event 
+    msg: handle 'restart redis' event
 
 - name: restart nginx
   debug:
-    msg: handle 'restart nginx' event 
+    msg: handle 'restart nginx' event
+
+- name: restart docker
+  debug:
+    msg: handle 'restart docker' event
+
+- name: restart php-fpm
+  debug:
+    msg: handle 'restart php-fpm' event
+
+- name: restart clickhouse
+  debug:
+    msg: handle 'restart clickhouse' event

@@ -59,8 +59,31 @@
     chdir: "{{ keitaro_app_dir }}"
     creates:  "application/config/config.ini.php"
   become_user: "{{ keitaro_user }}"
+  when: big_data_engine == 'mariadb'
   notify:
     - restart roadrunner
+    - restart php-fpm
+
+- name: Run cli.php for generate config
+  command: "{{ php_path }} bin/cli.php system:generate_config --force"
+  environment:
+    LICENSE_IP: "{{ license_ip }}"
+    MARIADB_USERNAME: "{{ db_user }}"
+    MARIADB_DB: "{{ db_name }}"
+    MARIADB_PASSWORD: "{{ db_password }}"
+    SALT: "{{ salt }}"
+    CH_HOST: "{{ ch_host }}"
+    CH_PORT_HTTP: "{{ ch_port }}"
+    CH_DB: "{{ ch_name }}"
+    CH_USER: "{{ ch_user }}"
+    CH_PASSWORD: "{{ ch_password }}"
+  args:
+    chdir: "{{ keitaro_app_dir }}"
+  become_user: "{{ keitaro_user }}"
+  when: big_data_engine == 'clickhouse'
+  notify:
+    - restart roadrunner
+    - restart php-fpm
 
 - name: Create key.lic file with license key
   command: "{{ php_path }} bin/cli.php system:set_license_key {{ license_key }}"

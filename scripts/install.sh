@@ -54,7 +54,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.29.3'
+RELEASE_VERSION='2.29.4'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -100,6 +100,8 @@ SCRIPT_NAME="kctl-${TOOL_NAME}"
 CURRENT_COMMAND_OUTPUT_LOG="${WORKING_DIR}/current_command.output.log"
 CURRENT_COMMAND_ERROR_LOG="${WORKING_DIR}/current_command.error.log"
 CURRENT_COMMAND_SCRIPT_NAME="current_command.sh"
+
+CERTBOT_PREFERRED_CHAIN="ISRG Root X1"
 
 INDENTATION_LENGTH=2
 INDENTATION_SPACES=$(printf "%${INDENTATION_LENGTH}s")
@@ -223,7 +225,7 @@ is_keitaro_installed() {
      isset "${VARS['installed']}"
    else
      debug "Current version is ${INSTALLED_VERSION} - using old algorithm (check '${KEITARO_LOCK_FILEPATH}' file)"
-     is_file_exist "${KEITARO_LOCK_FILEPATH}" no
+     is_file_existing "${KEITARO_LOCK_FILEPATH}" no
    fi
 }
 
@@ -270,35 +272,13 @@ is_directory_exist(){
     return ${FAILURE_RESULT}
   fi
 }
-
-is_file_exist(){
-  local file="${1}"
-  local result_on_skip="${2}"
-  debug "Checking ${file} file existence"
-  if isset "$SKIP_CHECKS"; then
-    debug "SKIP: actual check of ${file} file existence disabled"
-    if [[ "$result_on_skip" == "no" ]]; then
-      debug "NO: simulate ${file} file does not exist"
-      return ${FAILURE_RESULT}
-    fi
-    debug "YES: simulate ${file} file exists"
-    return ${SUCCESS_RESULT}
-  fi
-  if [ -f "${file}" ]; then
-    debug "YES: ${file} file exists"
-    return ${SUCCESS_RESULT}
-  else
-    debug "NO: ${file} file does not exist"
-    return ${FAILURE_RESULT}
-  fi
-}
 #
 
 
 
 
 
-is_file_matches(){
+is_file_content_matching(){
   local file="${1}"
   local pattern="${2}"
   local result_on_skip="${3}"
@@ -317,6 +297,28 @@ is_file_matches(){
     return ${SUCCESS_RESULT}
   else
     debug "NO: ${file} file does not match '${pattern}"
+    return ${FAILURE_RESULT}
+  fi
+}
+
+is_file_existing(){
+  local file="${1}"
+  local result_on_skip="${2}"
+  debug "Checking ${file} file existence"
+  if isset "$SKIP_CHECKS"; then
+    debug "SKIP: actual check of ${file} file existence disabled"
+    if [[ "$result_on_skip" == "no" ]]; then
+      debug "NO: simulate ${file} file does not exist"
+      return ${FAILURE_RESULT}
+    fi
+    debug "YES: simulate ${file} file exists"
+    return ${SUCCESS_RESULT}
+  fi
+  if [ -f "${file}" ]; then
+    debug "YES: ${file} file exists"
+    return ${SUCCESS_RESULT}
+  else
+    debug "NO: ${file} file does not exist"
     return ${FAILURE_RESULT}
   fi
 }
@@ -716,7 +718,7 @@ decteted_db_engine_doesnt_match_inventory() {
 KEITARO_KEY_LIC_FILEPATH="${WEBAPP_ROOT}/var/license/key.lic"
 
 get_license_key_from_tracker() {
-  if is_file_exist "${KEITARO_KEY_LIC_FILEPATH}"; then
+  if is_file_existing "${KEITARO_KEY_LIC_FILEPATH}"; then
     local license_key=$(cat "${KEITARO_KEY_LIC_FILEPATH}")
     if isset "${license_key}"; then
       VARS['license_key']="${license_key}"
@@ -883,7 +885,7 @@ LOGS_TO_KEEP=5
 
 init_kctl() {
   init_kctl_dirs_and_links
-  init_log
+  init_log "${LOG_PATH}"
 }
 
 init_kctl_dirs_and_links() {
@@ -902,7 +904,7 @@ init_kctl_dirs_and_links() {
 }
 
 create_kctl_dirs_and_links() {
-  mkdir -p ${INVENTORY_DIR} ${KCTL_BIN_DIR} ${WORKING_DIR} &&
+  mkdir -p ${LOG_DIR} ${SSL_LOG_DIR} ${INVENTORY_DIR} ${KCTL_BIN_DIR} ${WORKING_DIR} &&
     chmod 0700 ${ETC_DIR} &&
     ln -s ${ETC_DIR} ${KCTL_ETC_DIR} &&
     ln -s ${LOG_DIR} ${KCTL_LOG_DIR} &&
@@ -910,31 +912,39 @@ create_kctl_dirs_and_links() {
 }
 
 init_log() {
-  save_previous_log
-  create_log
-  delete_old_logs
+  local log_path="${1}"
+  save_previous_log "${log_path}"
+  delete_old_logs "${log_path}"
+  create_log "${log_path}"
 }
 
 save_previous_log() {
-  if [[ -f "${LOG_PATH}" ]]; then
-    local log_timestamp=$(date -r "${LOG_PATH}" +"%Y%m%d%H%M%S")
-    mv "${LOG_PATH}" "${LOG_PATH}-${log_timestamp}"
-  fi
-}
-
-create_log() {
-  mkdir -p ${LOG_DIR}
-  mkdir -p ${SSL_LOG_DIR}
-  if [[ "${TOOL_NAME}" == "install" ]] && ! is_ci_mode; then
-    (umask 066 && touch "${LOG_PATH}")
-  else
-    touch "${LOG_PATH}"
+  local log_path="${1}"
+  local previous_log_timestamp
+  if [[ -f "${log_path}" ]]; then
+    previous_log_timestamp=$(date -r "${log_path}" +"%Y%m%d%H%M%S")
+    mv "${log_path}" "${log_path}-${previous_log_timestamp}"
   fi
 }
 
 delete_old_logs() {
-  find "${LOG_DIR}" -name "${LOG_FILENAME}-*" | sort | head -n -${LOGS_TO_KEEP} | xargs rm -f
+  local log_path="${1}"
+  local log_dir
+  local log_filename
+  log_dir="$(dirname "${log_filepath}")"
+  log_filename="$(basename "${log_filepath}")"
+  find "${log_dir}" -name "${log_filename}-*" | sort | head -n -${LOGS_TO_KEEP} | xargs rm -f
 }
+
+create_log() {
+  local log_path="${1}"
+  if [[ "${TOOL_NAME}" == "install" ]] && ! is_ci_mode; then
+    (umask 066 && touch "${log_path}")
+  else
+    touch "${log_path}"
+  fi
+}
+
 
 init() {
   init_kctl
@@ -1217,7 +1227,7 @@ remove_current_command(){
 }
 
 start_or_reload_nginx(){
-  if (is_file_exist "/run/nginx.pid" && [[ -s "/run/nginx.pid" ]]) || is_ci_mode; then
+  if (is_file_existing "/run/nginx.pid" && [[ -s "/run/nginx.pid" ]]) || is_ci_mode; then
     debug "Nginx is started, reloading"
     run_command "nginx -s reload" "$(translate 'messages.reloading_nginx')" 'hide_output'
   else
@@ -1369,7 +1379,7 @@ build_get_chunk_command() {
 
 ensure_license_valid() {
   if isset "$RECONFIGURE"; then
-    if ! is_file_exist "${WEBAPP_ROOT}/var/license/key.lic"; then
+    if ! is_file_existing "${WEBAPP_ROOT}/var/license/key.lic"; then
       fail "File ${WEBAPP_ROOT}/var/license/key.lic does not exist"
     fi
     local license_key=$(cat "${WEBAPP_ROOT}/var/license/key.lic")
@@ -1714,12 +1724,6 @@ is_detected_license_edition_type_commercial() {
   [[ "${license_edition_type}" == "${LICENSE_EDITION_TYPE_COMMERCIAL}" ]]
 }
 
-is_ram_size_mb_changed() {
-  ( isset "${VARS['previous_ram_size_mb']}" && [[ "${VARS['previous_ram_size_mb']}" != "${VARS['ram_size_mb']}" ]] ) \
-      || ( isset "${VARS['ram_size_mb']}" && [[ "${VARS['ram_size_mb']}" != "$(get_ram_size_mb)" ]] )
-}
-
-
 get_var_from_config(){
   local var="${1}"
   local file="${2}"
@@ -1733,17 +1737,13 @@ get_var_from_config(){
     sed -r -e "s/^'(.*)'\$/\\1/g" -e 's/^"(.*)"$/\1/g'
   }
 
-DETECTED_RAM_SIZE_MB=""
+get_free_disk_space_mb() {
+  (df -m | grep -e "/$" | awk '{print$4}') 2>/dev/null
+}
 
-get_ram_size_mb() {
-  if empty "${DETECTED_RAM_SIZE_MB}"; then
-    if is_ci_mode; then
-      DETECTED_RAM_SIZE_MB=2048
-    else
-      DETECTED_RAM_SIZE_MB=$((free -m | grep Mem: | awk '{print $2}') 2>/dev/null)
-    fi
-  fi
-  echo "${DETECTED_RAM_SIZE_MB}"
+is_ram_size_mb_changed() {
+  ( isset "${VARS['previous_ram_size_mb']}" && [[ "${VARS['previous_ram_size_mb']}" != "${VARS['ram_size_mb']}" ]] ) \
+      || ( isset "${VARS['ram_size_mb']}" && [[ "${VARS['ram_size_mb']}" != "$(get_ram_size_mb)" ]] )
 }
 
 
@@ -1810,9 +1810,19 @@ get_var_from_keitaro_app_config() {
   get_var_from_config "${var}" "${WEBAPP_ROOT}/application/config/config.ini.php" '='
 }
 
-get_free_disk_space_mb() {
-  (df -m | grep -e "/$" | awk '{print$4}') 2>/dev/null
+DETECTED_RAM_SIZE_MB=""
+
+get_ram_size_mb() {
+  if empty "${DETECTED_RAM_SIZE_MB}"; then
+    if is_ci_mode; then
+      DETECTED_RAM_SIZE_MB=2048
+    else
+      DETECTED_RAM_SIZE_MB=$((free -m | grep Mem: | awk '{print $2}') 2>/dev/null)
+    fi
+  fi
+  echo "${DETECTED_RAM_SIZE_MB}"
 }
+
 
 
 
@@ -1965,26 +1975,38 @@ stage1() {
   set_ui_lang
 }
 
-
-assert_not_running_under_openvz() {
-  debug "Assert we are not running under OpenVZ"
+assert_pannels_not_installed(){
   if isset "$SKIP_CHECKS"; then
-    debug "Detected test mode, skip OpenVZ checks"
-    return
-  fi
-
-  virtualization_type="$(hostnamectl status | grep Virtualization | awk '{print $2}')"
-  debug "Detected virtualization type: '${virtualization_type}'"
-  if isset "${virtualization_type}" && [[ "${virtualization_type}" == "openvz" ]]; then
-    fail "Servers with OpenVZ virtualization are not supported"
+    debug "SKIPPED: actual checking of panels skipped"
+  else
+    if is_installed mysql; then
+      assert_isp_manager_not_installed
+      assert_vesta_cp_not_installed
+    fi
   fi
 }
 
-assert_centos_distro(){
-  assert_installed 'yum' 'errors.wrong_distro'
-  if ! is_file_exist /etc/centos-release; then
-    fail "$(translate errors.wrong_distro)" "see_logs"
+
+assert_isp_manager_not_installed(){
+  if is_database_exists roundcube; then
+    debug "ISP Manager database detected"
+    fail "$(translate errors.isp_manager_installed)"
   fi
+}
+
+
+assert_vesta_cp_not_installed(){
+  if is_database_exists admin_default; then
+    debug "Vesta CP database detected"
+    fail "$(translate errors.vesta_cp_installed)"
+  fi
+}
+
+
+is_database_exists(){
+  local database="${1}"
+  debug "Check if database ${database} exists"
+  mysql -Nse 'show databases' 2>/dev/null | tr '\n' ' ' | grep -Pq "${database}"
 }
 MIN_RAM_SIZE_MB=1500
 
@@ -1997,6 +2019,28 @@ assert_has_enough_ram(){
     fail "$(translate errors.not_enough_ram)"
   else
     debug "RAM size ${current_ram_size_mb}mb is greater than ${MIN_RAM_SIZE_MB}mb, continuing"
+  fi
+}
+
+assert_centos_distro(){
+  assert_installed 'yum' 'errors.wrong_distro'
+  if ! is_file_existing /etc/centos-release; then
+    fail "$(translate errors.wrong_distro)" "see_logs"
+  fi
+}
+#
+
+
+
+
+
+assert_apache_not_installed(){
+  if isset "$SKIP_CHECKS"; then
+    debug "SKIPPED: actual checking of httpd skipped"
+  else
+    if is_installed httpd; then
+      fail "$(translate errors.apache_installed)"
+    fi
   fi
 }
 MIN_FREE_DISK_SPACE_MB=2048
@@ -2036,55 +2080,21 @@ assert_thp_deactivatable() {
 }
 
 are_thp_sys_files_existing() {
-  is_file_exist "/sys/kernel/mm/transparent_hugepage/enabled" && is_file_exist "/sys/kernel/mm/transparent_hugepage/defrag"
+  is_file_existing "/sys/kernel/mm/transparent_hugepage/enabled" && is_file_existing "/sys/kernel/mm/transparent_hugepage/defrag"
 }
 
-assert_pannels_not_installed(){
+
+assert_not_running_under_openvz() {
+  debug "Assert we are not running under OpenVZ"
   if isset "$SKIP_CHECKS"; then
-    debug "SKIPPED: actual checking of panels skipped"
-  else
-    if is_installed mysql; then
-      assert_isp_manager_not_installed
-      assert_vesta_cp_not_installed
-    fi
+    debug "Detected test mode, skip OpenVZ checks"
+    return
   fi
-}
 
-
-assert_isp_manager_not_installed(){
-  if is_database_exists roundcube; then
-    debug "ISP Manager database detected"
-    fail "$(translate errors.isp_manager_installed)"
-  fi
-}
-
-
-assert_vesta_cp_not_installed(){
-  if is_database_exists admin_default; then
-    debug "Vesta CP database detected"
-    fail "$(translate errors.vesta_cp_installed)"
-  fi
-}
-
-
-is_database_exists(){
-  local database="${1}"
-  debug "Check if database ${database} exists"
-  mysql -Nse 'show databases' 2>/dev/null | tr '\n' ' ' | grep -Pq "${database}"
-}
-#
-
-
-
-
-
-assert_apache_not_installed(){
-  if isset "$SKIP_CHECKS"; then
-    debug "SKIPPED: actual checking of httpd skipped"
-  else
-    if is_installed httpd; then
-      fail "$(translate errors.apache_installed)"
-    fi
+  virtualization_type="$(hostnamectl status | grep Virtualization | awk '{print $2}')"
+  debug "Detected virtualization type: '${virtualization_type}'"
+  if isset "${virtualization_type}" && [[ "${virtualization_type}" == "openvz" ]]; then
+    fail "Servers with OpenVZ virtualization are not supported"
   fi
 }
 
@@ -2098,38 +2108,6 @@ stage2(){
   assert_not_running_under_openvz
   assert_pannels_not_installed
   assert_thp_deactivatable
-}
-
-setup_vars(){
-  setup_default_value admin_login 'admin'
-  if empty "${VARS['without_key']}"; then
-    setup_default_value admin_password "$(generate_password)"
-  fi
-  setup_default_value db_name 'keitaro'
-  setup_default_value db_user 'keitaro'
-  setup_default_value db_password "$(generate_password)"
-  setup_default_value ch_password "$(generate_password)"
-  setup_default_value db_root_password "$(generate_password)"
-  setup_default_value db_engine 'tokudb'
-  setup_default_value php_engine "${PHP_ENGINE}"
-  setup_default_value big_data_engine 'mariadb'
-  setup_default_value salt "$(dbus-uuidgen)"
-}
-
-setup_default_value(){
-  local var_name="${1}"
-  local default_value="${2}"
-  if empty "${VARS[${var_name}]}"; then
-    debug "VARS['${var_name}'] is empty, set to '${default_value}'"
-    VARS[${var_name}]=$default_value
-  else
-    debug "VARS['${var_name}'] is set to '${VARS[$var_name]}'"
-  fi
-}
-
-generate_password(){
-  local PASSWORD_LENGTH=16
-  LC_ALL=C tr -cd '[:alnum:]' < /dev/urandom | head -c${PASSWORD_LENGTH}
 }
 
 read_inventory(){
@@ -2161,6 +2139,38 @@ parse_line_from_inventory_file(){
     fi
     debug "  "$var_name"=${VARS[$var_name]}"
   fi
+}
+
+setup_vars(){
+  setup_default_value admin_login 'admin'
+  if empty "${VARS['without_key']}"; then
+    setup_default_value admin_password "$(generate_password)"
+  fi
+  setup_default_value db_name 'keitaro'
+  setup_default_value db_user 'keitaro'
+  setup_default_value db_password "$(generate_password)"
+  setup_default_value ch_password "$(generate_password)"
+  setup_default_value db_root_password "$(generate_password)"
+  setup_default_value db_engine 'tokudb'
+  setup_default_value php_engine "${PHP_ENGINE}"
+  setup_default_value big_data_engine "${KCTL_BIG_DATA_ENGINE:-mariadb}"
+  setup_default_value salt "$(dbus-uuidgen)"
+}
+
+setup_default_value(){
+  local var_name="${1}"
+  local default_value="${2}"
+  if empty "${VARS[${var_name}]}"; then
+    debug "VARS['${var_name}'] is empty, set to '${default_value}'"
+    VARS[${var_name}]=$default_value
+  else
+    debug "VARS['${var_name}'] is set to '${VARS[$var_name]}'"
+  fi
+}
+
+generate_password(){
+  local PASSWORD_LENGTH=16
+  LC_ALL=C tr -cd '[:alnum:]' < /dev/urandom | head -c${PASSWORD_LENGTH}
 }
 
 stage3(){
@@ -2303,9 +2313,9 @@ upgrade_packages(){
   if empty "$WITHOUTH_YUM_UPDATE"; then
     debug "Upgrading packages"
     if [[ "$(get_centos_major_release)" == "7" ]]; then
-      run_command "yum update -y"
+      run_command "yum update -x MariaDB-* -y"
     else
-      run_command "yum update -y --nobest"
+      run_command "yum update -x MariaDB-* -y --nobest"
     fi
   fi
 }
@@ -2743,9 +2753,9 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['create-tracker-user-and-dirs']='2.22.0'
   ['disable-selinux']='2.25.0'
   ['disable-thp']='0.9'
-  ['install-certbot']='2.27.7'
   ['install-certs']='1.0'
   ['install-chrony']='2.27.7'
+  ['install-docker']='2.29.3'
   ['install-firewalld']='2.25.3'
   ['install-packages']='2.27.7'
   ['install-postfix']='2.13'

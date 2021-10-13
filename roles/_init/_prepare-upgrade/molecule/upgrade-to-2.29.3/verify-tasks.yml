@@ -13,5 +13,3 @@
 
 - name: Test /etc/fstab doesn't contain /swap entry
   shell: '[[ "$(grep ^/swap /etc/fstab)" == "" ]]'
-
-

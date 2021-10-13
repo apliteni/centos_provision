@@ -54,7 +54,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.29.3'
+RELEASE_VERSION='2.29.4'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -100,6 +100,8 @@ SCRIPT_NAME="kctl-${TOOL_NAME}"
 CURRENT_COMMAND_OUTPUT_LOG="${WORKING_DIR}/current_command.output.log"
 CURRENT_COMMAND_ERROR_LOG="${WORKING_DIR}/current_command.error.log"
 CURRENT_COMMAND_SCRIPT_NAME="current_command.sh"
+
+CERTBOT_PREFERRED_CHAIN="ISRG Root X1"
 
 INDENTATION_LENGTH=2
 INDENTATION_SPACES=$(printf "%${INDENTATION_LENGTH}s")
@@ -313,7 +315,7 @@ LOGS_TO_KEEP=5
 
 init_kctl() {
   init_kctl_dirs_and_links
-  init_log
+  init_log "${LOG_PATH}"
 }
 
 init_kctl_dirs_and_links() {
@@ -332,7 +334,7 @@ init_kctl_dirs_and_links() {
 }
 
 create_kctl_dirs_and_links() {
-  mkdir -p ${INVENTORY_DIR} ${KCTL_BIN_DIR} ${WORKING_DIR} &&
+  mkdir -p ${LOG_DIR} ${SSL_LOG_DIR} ${INVENTORY_DIR} ${KCTL_BIN_DIR} ${WORKING_DIR} &&
     chmod 0700 ${ETC_DIR} &&
     ln -s ${ETC_DIR} ${KCTL_ETC_DIR} &&
     ln -s ${LOG_DIR} ${KCTL_LOG_DIR} &&
@@ -340,31 +342,39 @@ create_kctl_dirs_and_links() {
 }
 
 init_log() {
-  save_previous_log
-  create_log
-  delete_old_logs
+  local log_path="${1}"
+  save_previous_log "${log_path}"
+  delete_old_logs "${log_path}"
+  create_log "${log_path}"
 }
 
 save_previous_log() {
-  if [[ -f "${LOG_PATH}" ]]; then
-    local log_timestamp=$(date -r "${LOG_PATH}" +"%Y%m%d%H%M%S")
-    mv "${LOG_PATH}" "${LOG_PATH}-${log_timestamp}"
-  fi
-}
-
-create_log() {
-  mkdir -p ${LOG_DIR}
-  mkdir -p ${SSL_LOG_DIR}
-  if [[ "${TOOL_NAME}" == "install" ]] && ! is_ci_mode; then
-    (umask 066 && touch "${LOG_PATH}")
-  else
-    touch "${LOG_PATH}"
+  local log_path="${1}"
+  local previous_log_timestamp
+  if [[ -f "${log_path}" ]]; then
+    previous_log_timestamp=$(date -r "${log_path}" +"%Y%m%d%H%M%S")
+    mv "${log_path}" "${log_path}-${previous_log_timestamp}"
   fi
 }
 
 delete_old_logs() {
-  find "${LOG_DIR}" -name "${LOG_FILENAME}-*" | sort | head -n -${LOGS_TO_KEEP} | xargs rm -f
+  local log_path="${1}"
+  local log_dir
+  local log_filename
+  log_dir="$(dirname "${log_filepath}")"
+  log_filename="$(basename "${log_filepath}")"
+  find "${log_dir}" -name "${log_filename}-*" | sort | head -n -${LOGS_TO_KEEP} | xargs rm -f
 }
+
+create_log() {
+  local log_path="${1}"
+  if [[ "${TOOL_NAME}" == "install" ]] && ! is_ci_mode; then
+    (umask 066 && touch "${log_path}")
+  else
+    touch "${log_path}"
+  fi
+}
+
 
 log_and_print_err(){
   local message="${1}"

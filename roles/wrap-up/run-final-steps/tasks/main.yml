@@ -1,2 +1,14 @@
-- include_tasks:  force-restart-services.yml
-- include_tasks:  schedule-generating-stats-json.yml
+- name: Force service restarts
+  shell: /bin/true
+  notify:
+    - restart mariadb
+    - restart nginx
+    - restart php-fpm
+    - restart redis
+    - restart roadrunner
+  changed_when: "'molecule-notest' not in ansible_skip_tags"
+
+- name: Schedule generating stats.json job
+  cron:
+    name: "Generate {{ keitaro_stats_json_path }}"
+    job: /usr/local/bin/keitaro-generate_stats_json
