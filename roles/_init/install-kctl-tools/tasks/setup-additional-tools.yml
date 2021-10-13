@@ -16,6 +16,7 @@
     url: "{{ item.value.url }}"
     dest: "{{ kctl_bin_dir }}/{{ item.value.name }}"
     mode: "0755"
+    force: true
   with_dict: "{{ kctl_additional_name_list }}"
 
 - name: Make symlinks

@@ -1,0 +1,12 @@
+- name: Ensure correct renewal files contains preferred_chain option
+  lineinfile:
+    path: "/etc/letsencrypt/renewal/{{ item }}"
+    regexp: '^preferred_chain = ISRG Root X1'
+    state: absent
+  check_mode: yes
+  register: result
+  failed_when: not result.found
+  with_items:
+    - with_correct_preferred_chain.conf
+    - with_incorrect_preferred_chain.conf
+    - without_preferred_chain.conf

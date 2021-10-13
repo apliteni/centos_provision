@@ -1,11 +1,8 @@
 - name: Add MariaDB repos
   template:
-    src: "{{ item }}.repo.j2"
-    dest: "/etc/yum.repos.d/{{ item }}.repo"
+    src: "mariadb.repo.j2"
+    dest: "/etc/yum.repos.d/mariadb.repo"
     force: yes
-  with_items:
-    - mariadb
-    - mariadb-mirror
 
 - name: Install supporting libraries
   package:
@@ -22,7 +19,7 @@
       - MariaDB-client-10.3.29
       - MariaDB-tokudb-engine-10.3.29
     state: installed
-    enablerepo: "mariadb,mariadb-mirror"
+    enablerepo: "mariadb"
 
 - name: Install PyMySQL
   pip:

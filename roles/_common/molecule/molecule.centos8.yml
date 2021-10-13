@@ -1,0 +1,32 @@
+dependency:
+  enabled: false
+driver:
+  name: docker
+platforms:
+  - name: centos-stream8
+    image: "quay.io/centos/centos:stream8"
+    # path relative to molecule scenario directory
+    dockerfile: ../../../../../roles/_common/molecule/docker/Dockerfile.centos8.j2 
+    privileged: true
+    tty: true
+    command: ${MOLECULE_DOCKER_COMMAND:-""}
+    environment:
+      container: docker
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+provisioner:
+  name: ansible
+  env:
+    ANSIBLE_CONFIG:          ../../../ansible.cfg          # path relative to role directory
+    PLAYBOOK_ROOT:           ../../../../                  # path relative to converge.yml
+    ANSIBLE_ROLES_PATH:      ../../../../../roles          # path relative to molecule scenario directory
+    ANSIBLE_FILTER_PLUGINS:  ../../../../../plugins/filter # path relative to molecule scenario directory
+    CI:                      true
+    MOLECULE_NO_LOG:         false
+  inventory:
+    links:
+      group_vars: ../../../../../roles/_common/molecule/inventory
+  playbooks:
+    prepare: ../../../../../roles/_common/molecule/playbooks/prepare.yml
+    converge: ../../../../../roles/_common/molecule/playbooks/converge.yml
+    verify: ../../../../../roles/_common/molecule/playbooks/verify.yml
