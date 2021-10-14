@@ -1,33 +1,7 @@
-# The only way to install repo from remote file is using shell/command module
-# https://stackoverflow.com/a/56607831/612799
-- name: Install docker-ce yum repository
-  shell: "{{ yum_config_manager_command }} --add-repo={{ docker_ce_repo_url }}"
-  args:
-    creates: "/etc/yum.repos.d/{{ docker_ce_repo_url | basename }}"
-    warn: false
-
-- name: Install docker
+- name: Install podman-docker
   package:
-    name: docker-ce
+    name: podman-docker
     state: installed
-
-- name: Install python's docker supporting library
-  pip:
-    name: docker
-    state: present
-    executable: pip3
-
-- name: Run docker and enable on boot
-  service:
-    name: docker
-    state: started
-    enabled: true
-
-- name: Restart docker to fix network issues
-  service:
-    name: docker
-    state: restarted
-  changed_when: false
 
 - name: Create letsencrypt mountable dirs
   file:
@@ -39,9 +13,6 @@
     - /var/log/letsencrypt
 
 - name: Pull certbot image
-  docker_image:
+  containers.podman.podman_image:
     name: certbot/certbot
-    source: pull
-  vars:
-    ansible_python_interpreter: "/usr/bin/python3"
 

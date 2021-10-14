@@ -8,6 +8,7 @@
     url: "{{ kctl_tools_url }}/{{ item }}.sh"
     dest: "{{ kctl_bin_dir }}/kctl-{{ item }}"
     mode: "0755"
+    force: "yes"
   with_items: "{{ kctl_tool_names }}"
 
 - include: setup-additional-tools.yml

@@ -936,7 +936,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.29.4'
+RELEASE_VERSION='2.29.5'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -1092,7 +1092,9 @@ kctl_fix_le_certs_2021_09_30_issues() {
 
 
 get_live_certificate_filepaths(){
-  find /etc/letsencrypt/live/ -name fullchain.pem | xargs readlink -f
+  if [[ -d /etc/letsencrypt/live/ ]]; then
+    find /etc/letsencrypt/live/ -name fullchain.pem -print0 | xargs -0 readlink -f
+  fi
 }
 
 

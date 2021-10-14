@@ -2,4 +2,3 @@ max_upload_size: 200M
 timezone: UTC
 is_ci_mode: "{{ lookup('env', 'CI') != '' }}"
 __current_swap_size_mb: "{{ ansible_swaptotal_mb }}"
-yum_config_manager_command: "{{ 'yum config-manager' if ansible_distribution_major_version == '8' else 'yum-config-manager' }}"
