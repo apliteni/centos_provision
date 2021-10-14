@@ -3,22 +3,25 @@
     name: certbot
     state: absent
 
-- name: Build list of renewalparams needed to fix
-  shell: grep -L 'preferred_chain = ISRG Root X1' /etc/letsencrypt/renewal/*.conf
-  register: renewal_params_without_correct_preferred_chain
-  # `grep -L` exits with rc = 0 if there is matched files and with rc = 1 if there is no matched files
-  # otherwise it returns rc differs than 0 and 1
-  failed_when: renewal_params_without_correct_preferred_chain.rc != 0 and
-               renewal_params_without_correct_preferred_chain.rc != 1
-  changed_when: false
+- name: Find renewal file list
+  find:
+    paths: "/etc/letsencrypt/renewal/"
+    patterns: "*.conf"
+  register: renewal_files
 
-- name: Set preferred chain
-  shell: 
-    grep -L 'preferred_chain = ISRG Root X1' /etc/letsencrypt/renewal/*.conf | \
-      sed -i -e /preferred_chain/d -e '/\[renewalparams\]/apreferred_chain = ISRG Root X1' /etc/letsencrypt/renewal/*.conf
-  when: renewal_params_without_correct_preferred_chain.stdout != ''
+- block:
+  - name: Build list of renewalparams needed to fix
+    shell: grep -L 'preferred_chain = ISRG Root X1' /etc/letsencrypt/renewal/*.conf
+    register: renewal_params_without_correct_preferred_chain
+    # `grep -L` exits with rc = 0 if there is matched files and with rc = 1 if there is no matched files
+    # otherwise it returns rc differs than 0 and 1
+    failed_when: renewal_params_without_correct_preferred_chain.rc != 0 and
+                 renewal_params_without_correct_preferred_chain.rc != 1
+    changed_when: false
 
-- name: Remove unneeded mariadb-mirror.repo
-  file:
-    dest: "/etc/yum.repos.d/mariadb-mirror.repo"
-    state: absent
+  - name: Set preferred chain
+    shell:
+      grep -L 'preferred_chain = ISRG Root X1' /etc/letsencrypt/renewal/*.conf | \
+        sed -i -e /preferred_chain/d -e '/\[renewalparams\]/apreferred_chain = ISRG Root X1' /etc/letsencrypt/renewal/*.conf
+    when: renewal_params_without_correct_preferred_chain.stdout != ''
+  when: renewal_files.matched|int > 0
