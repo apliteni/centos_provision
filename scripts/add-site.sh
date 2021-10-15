@@ -53,7 +53,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.29.6'
+RELEASE_VERSION='2.29.7'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -769,7 +769,7 @@ save_previous_log() {
 }
 
 delete_old_logs() {
-  local log_path="${1}"
+  local log_filepath="${1}"
   local log_dir
   local log_filename
   log_dir="$(dirname "${log_filepath}")"

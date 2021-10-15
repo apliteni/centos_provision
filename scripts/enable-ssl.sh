@@ -53,7 +53,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.29.6'
+RELEASE_VERSION='2.29.7'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -802,7 +802,7 @@ save_previous_log() {
 }
 
 delete_old_logs() {
-  local log_path="${1}"
+  local log_filepath="${1}"
   local log_dir
   local log_filename
   log_dir="$(dirname "${log_filepath}")"
@@ -1489,7 +1489,7 @@ finalize_additional_ssl_logging_for_domain() {
   debug "Stop copying logs to ${additional_log_path}."
   ADDITIONAL_LOG_PATH=""
   debug "Moving ${additional_log_path} to ${domain_ssl_log_path}"
-  if $(mv "${additional_log_path}" "${domain_ssl_log_path}");then
+  if mv "${additional_log_path}" "${domain_ssl_log_path}"; then
     debug "Done"
   else
     fail "errors.unexpected" "see_logs"
@@ -1524,6 +1524,7 @@ tmp_ssl_log_path_for_domain() {
   local domain="${1}"
   echo "${SSL_LOG_DIR}/.${domain}.log.tmp"
 }
+
 clear_log_before_certificate_request(){
   local log="${1}"
   > ${log}

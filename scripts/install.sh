@@ -54,7 +54,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.29.6'
+RELEASE_VERSION='2.29.7'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -928,7 +928,7 @@ save_previous_log() {
 }
 
 delete_old_logs() {
-  local log_path="${1}"
+  local log_filepath="${1}"
   local log_dir
   local log_filename
   log_dir="$(dirname "${log_filepath}")"
@@ -1724,29 +1724,6 @@ is_detected_license_edition_type_commercial() {
   [[ "${license_edition_type}" == "${LICENSE_EDITION_TYPE_COMMERCIAL}" ]]
 }
 
-get_var_from_config(){
-  local var="${1}"
-  local file="${2}"
-  local separator="${3}"
-  cat "$file" | \
-    grep "^${var}\\b" | \
-    grep "${separator}" | \
-    head -n1 | \
-    awk -F"${separator}" '{print $2}' | \
-    awk '{$1=$1; print}' | \
-    sed -r -e "s/^'(.*)'\$/\\1/g" -e 's/^"(.*)"$/\1/g'
-  }
-
-get_free_disk_space_mb() {
-  (df -m | grep -e "/$" | awk '{print$4}') 2>/dev/null
-}
-
-is_ram_size_mb_changed() {
-  ( isset "${VARS['previous_ram_size_mb']}" && [[ "${VARS['previous_ram_size_mb']}" != "${VARS['ram_size_mb']}" ]] ) \
-      || ( isset "${VARS['ram_size_mb']}" && [[ "${VARS['ram_size_mb']}" != "$(get_ram_size_mb)" ]] )
-}
-
-
 clean_up(){
   if [ -d "$PROVISION_DIRECTORY" ]; then
     debug "Remove ${PROVISION_DIRECTORY}"
@@ -1808,6 +1785,29 @@ detect_inventory_variables() {
 get_var_from_keitaro_app_config() {
   local var="${1}"
   get_var_from_config "${var}" "${WEBAPP_ROOT}/application/config/config.ini.php" '='
+}
+
+get_var_from_config(){
+  local var="${1}"
+  local file="${2}"
+  local separator="${3}"
+  cat "$file" | \
+    grep "^${var}\\b" | \
+    grep "${separator}" | \
+    head -n1 | \
+    awk -F"${separator}" '{print $2}' | \
+    awk '{$1=$1; print}' | \
+    sed -r -e "s/^'(.*)'\$/\\1/g" -e 's/^"(.*)"$/\1/g'
+  }
+
+is_ram_size_mb_changed() {
+  ( isset "${VARS['previous_ram_size_mb']}" && [[ "${VARS['previous_ram_size_mb']}" != "${VARS['ram_size_mb']}" ]] ) \
+      || ( isset "${VARS['ram_size_mb']}" && [[ "${VARS['ram_size_mb']}" != "$(get_ram_size_mb)" ]] )
+}
+
+
+get_free_disk_space_mb() {
+  (df -m | grep -e "/$" | awk '{print$4}') 2>/dev/null
 }
 
 DETECTED_RAM_SIZE_MB=""
@@ -1974,6 +1974,67 @@ stage1() {
   parse_options "$@"
   set_ui_lang
 }
+#
+
+
+
+
+
+assert_apache_not_installed(){
+  if isset "$SKIP_CHECKS"; then
+    debug "SKIPPED: actual checking of httpd skipped"
+  else
+    if is_installed httpd; then
+      fail "$(translate errors.apache_installed)"
+    fi
+  fi
+}
+
+assert_centos_distro(){
+  assert_installed 'yum' 'errors.wrong_distro'
+  if ! is_file_existing /etc/centos-release; then
+    fail "$(translate errors.wrong_distro)" "see_logs"
+  fi
+}
+
+
+assert_thp_deactivatable() {
+  debug "Checking if it is possible to disable THP"
+  if is_ci_mode; then
+    debug "Skip actual checking"
+    return
+  fi
+  if are_thp_sys_files_existing; then
+    debug "There are THP files in /sys fs, checking for ability to disable THP" 
+    echo never > /sys/kernel/mm/transparent_hugepage/enabled
+    echo never > /sys/kernel/mm/transparent_hugepage/defrag
+    thp_enabled="$(cat /sys/kernel/mm/transparent_hugepage/enabled)"
+    if [ "$thp_enabled" == "always madvise [never]" ]; then
+      debug "OK, THP was successfully disabled"
+    else
+      fail "Can't disable Transparent Huge Pages" 
+    fi
+  else
+    debug "There are no THP files in /sys fs, continuing installation process" 
+  fi
+}
+
+are_thp_sys_files_existing() {
+  is_file_existing "/sys/kernel/mm/transparent_hugepage/enabled" && is_file_existing "/sys/kernel/mm/transparent_hugepage/defrag"
+}
+MIN_FREE_DISK_SPACE_MB=2048
+
+assert_has_enough_free_disk_space(){
+  debug "Checking free disk spice"
+
+  local current_free_disk_space_mb=$(get_free_disk_space_mb)
+  if [[ "${current_free_disk_space_mb}" -lt "${MIN_FREE_DISK_SPACE_MB}" ]]; then
+    debug "Free disk space ${current_free_disk_space_mb}mb is less than ${MIN_FREE_DISK_SPACE_MB}mb, raising error"
+    fail "$(translate errors.not_enough_free_disk_space)"
+  else
+    debug "Free disk space ${current_free_disk_space_mb}mb is greater than ${MIN_FREE_DISK_SPACE_MB}mb, continuing"
+  fi
+}
 
 assert_pannels_not_installed(){
   if isset "$SKIP_CHECKS"; then
@@ -2022,67 +2083,6 @@ assert_has_enough_ram(){
   fi
 }
 
-assert_centos_distro(){
-  assert_installed 'yum' 'errors.wrong_distro'
-  if ! is_file_existing /etc/centos-release; then
-    fail "$(translate errors.wrong_distro)" "see_logs"
-  fi
-}
-#
-
-
-
-
-
-assert_apache_not_installed(){
-  if isset "$SKIP_CHECKS"; then
-    debug "SKIPPED: actual checking of httpd skipped"
-  else
-    if is_installed httpd; then
-      fail "$(translate errors.apache_installed)"
-    fi
-  fi
-}
-MIN_FREE_DISK_SPACE_MB=2048
-
-assert_has_enough_free_disk_space(){
-  debug "Checking free disk spice"
-
-  local current_free_disk_space_mb=$(get_free_disk_space_mb)
-  if [[ "${current_free_disk_space_mb}" -lt "${MIN_FREE_DISK_SPACE_MB}" ]]; then
-    debug "Free disk space ${current_free_disk_space_mb}mb is less than ${MIN_FREE_DISK_SPACE_MB}mb, raising error"
-    fail "$(translate errors.not_enough_free_disk_space)"
-  else
-    debug "Free disk space ${current_free_disk_space_mb}mb is greater than ${MIN_FREE_DISK_SPACE_MB}mb, continuing"
-  fi
-}
-
-
-assert_thp_deactivatable() {
-  debug "Checking if it is possible to disable THP"
-  if is_ci_mode; then
-    debug "Skip actual checking"
-    return
-  fi
-  if are_thp_sys_files_existing; then
-    debug "There are THP files in /sys fs, checking for ability to disable THP" 
-    echo never > /sys/kernel/mm/transparent_hugepage/enabled
-    echo never > /sys/kernel/mm/transparent_hugepage/defrag
-    thp_enabled="$(cat /sys/kernel/mm/transparent_hugepage/enabled)"
-    if [ "$thp_enabled" == "always madvise [never]" ]; then
-      debug "OK, THP was successfully disabled"
-    else
-      fail "Can't disable Transparent Huge Pages" 
-    fi
-  else
-    debug "There are no THP files in /sys fs, continuing installation process" 
-  fi
-}
-
-are_thp_sys_files_existing() {
-  is_file_existing "/sys/kernel/mm/transparent_hugepage/enabled" && is_file_existing "/sys/kernel/mm/transparent_hugepage/defrag"
-}
-
 
 assert_not_running_under_openvz() {
   debug "Assert we are not running under OpenVZ"
@@ -2108,37 +2108,6 @@ stage2(){
   assert_not_running_under_openvz
   assert_pannels_not_installed
   assert_thp_deactivatable
-}
-
-read_inventory(){
-  detect_inventory_path
-  if isset "${DETECTED_INVENTORY_PATH}"; then
-    parse_inventory "${DETECTED_INVENTORY_PATH}"
-  fi
-}
-
-parse_inventory(){
-  local file="${1}"
-  debug "Found inventory file ${file}, reading defaults from it"
-  while IFS="" read -r line; do
-    if [[ "$line" =~ = ]]; then
-      parse_line_from_inventory_file "$line"
-    fi
-  done < "${file}"
-}
-
-parse_line_from_inventory_file(){
-  local line="${1}"
-  IFS="=" read var_name value <<< "$line"
-  if [[ "$var_name" != "db_restore_path" ]] && [[ "$var_name" != "without_key" ]]; then
-    if empty "${VARS[$var_name]}"; then
-      VARS[$var_name]=$value
-      debug "# read '$var_name' from inventory"
-    else
-      debug "# $var_name is set from options, skip inventory value"
-    fi
-    debug "  "$var_name"=${VARS[$var_name]}"
-  fi
 }
 
 setup_vars(){
@@ -2173,11 +2142,65 @@ generate_password(){
   LC_ALL=C tr -cd '[:alnum:]' < /dev/urandom | head -c${PASSWORD_LENGTH}
 }
 
+read_inventory(){
+  detect_inventory_path
+  if isset "${DETECTED_INVENTORY_PATH}"; then
+    parse_inventory "${DETECTED_INVENTORY_PATH}"
+  fi
+}
+
+parse_inventory(){
+  local file="${1}"
+  debug "Found inventory file ${file}, reading defaults from it"
+  while IFS="" read -r line; do
+    if [[ "$line" =~ = ]]; then
+      parse_line_from_inventory_file "$line"
+    fi
+  done < "${file}"
+}
+
+parse_line_from_inventory_file(){
+  local line="${1}"
+  IFS="=" read var_name value <<< "$line"
+  if [[ "$var_name" != "db_restore_path" ]] && [[ "$var_name" != "without_key" ]]; then
+    if empty "${VARS[$var_name]}"; then
+      VARS[$var_name]=$value
+      debug "# read '$var_name' from inventory"
+    else
+      debug "# $var_name is set from options, skip inventory value"
+    fi
+    debug "  "$var_name"=${VARS[$var_name]}"
+  fi
+}
+
 stage3(){
   debug "Starting stage 3: read values from inventory file"
   read_inventory
   setup_vars
   detect_installed_version
+}
+
+
+get_user_vars(){
+  debug 'Read vars from user input'
+  hack_stdin_if_pipe_mode
+  print_translated "welcome"
+  get_user_var 'license_key' 'validate_presence validate_license_key_format validate_license_key_is_active validate_license'
+  get_user_db_restore_vars
+}
+
+
+get_user_db_restore_vars(){
+  if is_detected_license_edition_type_commercial; then
+    get_user_var 'db_restore_path' 'validate_file_existence validate_enough_space_for_dump'
+    if isset "${VARS['db_restore_path']}"; then
+      get_user_var 'db_restore_salt' 'validate_presence validate_alnumdashdot'
+      tables_prefix=$(detect_table_prefix "${VARS['db_restore_path']}")
+      if empty $tables_prefix; then
+        fail "$(translate 'errors.cant_detect_table_prefix')"
+      fi
+    fi
+  fi
 }
 
 get_ssh_port(){
@@ -2270,29 +2293,6 @@ print_line_to_inventory_file() {
   echo "$line" >> "$INVENTORY_PATH"
 }
 
-
-get_user_vars(){
-  debug 'Read vars from user input'
-  hack_stdin_if_pipe_mode
-  print_translated "welcome"
-  get_user_var 'license_key' 'validate_presence validate_license_key_format validate_license_key_is_active validate_license'
-  get_user_db_restore_vars
-}
-
-
-get_user_db_restore_vars(){
-  if is_detected_license_edition_type_commercial; then
-    get_user_var 'db_restore_path' 'validate_file_existence validate_enough_space_for_dump'
-    if isset "${VARS['db_restore_path']}"; then
-      get_user_var 'db_restore_salt' 'validate_presence validate_alnumdashdot'
-      tables_prefix=$(detect_table_prefix "${VARS['db_restore_path']}")
-      if empty $tables_prefix; then
-        fail "$(translate 'errors.cant_detect_table_prefix')"
-      fi
-    fi
-  fi
-}
-
 stage4(){
   debug "Starting stage 4: generate inventory file"
   if isset "$AUTO_INSTALL" || isset "${VARS['without_key']}"; then
@@ -2360,11 +2360,19 @@ install_galaxy_collection(){
   run_command "${command}"
 }
 
-download_provision(){
-  debug "Download provision"
-  release_url="https://files.keitaro.io/scripts/${BRANCH}/playbook.tar.gz"
-  mkdir -p "${PROVISION_DIRECTORY}"
-  run_command "curl -fsSL ${release_url} | tar -xzC ${PROVISION_DIRECTORY}"
+show_credentials(){
+  print_with_color "http://$(detected_license_ip)/admin" 'light.green'
+
+  if isset "${VARS['db_restore_path']}"; then
+    translate 'messages.successful.use_old_credentials'
+  else
+    if empty "${VARS['without_key']}" && isset "${VARS['admin_password']}"; then
+      colored_login=$(print_with_color "${VARS['admin_login']}" 'light.green')
+      colored_password=$(print_with_color "${VARS['admin_password']}" 'light.green')
+      echo -e "login: ${colored_login}"
+      echo -e "password: ${colored_password}"
+    fi
+  fi
 }
 json2dict() {
 
@@ -2533,23 +2541,15 @@ json2dict() {
   echo "("; (tokenize | json_parse); echo ")"
 }
 
-show_successful_message(){
-  print_with_color "$(translate 'messages.successful')" 'green'
+download_provision(){
+  debug "Download provision"
+  release_url="https://files.keitaro.io/scripts/${BRANCH}/playbook.tar.gz"
+  mkdir -p "${PROVISION_DIRECTORY}"
+  run_command "curl -fsSL ${release_url} | tar -xzC ${PROVISION_DIRECTORY}"
 }
 
-show_credentials(){
-  print_with_color "http://$(detected_license_ip)/admin" 'light.green'
-
-  if isset "${VARS['db_restore_path']}"; then
-    translate 'messages.successful.use_old_credentials'
-  else
-    if empty "${VARS['without_key']}" && isset "${VARS['admin_password']}"; then
-      colored_login=$(print_with_color "${VARS['admin_login']}" 'light.green')
-      colored_password=$(print_with_color "${VARS['admin_password']}" 'light.green')
-      echo -e "login: ${colored_login}"
-      echo -e "password: ${colored_password}"
-    fi
-  fi
+show_successful_message(){
+  print_with_color "$(translate 'messages.successful')" 'green'
 }
 
 ANSIBLE_TASK_HEADER="^TASK \[(.*)\].*"
