@@ -53,7 +53,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.29.7'
+RELEASE_VERSION='2.29.8'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -315,7 +315,7 @@ build_certbot_command() {
   if is_ci_mode; then
     echo "/usr/bin/certbot"
   else
-    echo "/usr/bin/docker run --rm -it $(dockerized_certbot_volumes) certbot/certbot"
+    echo "/usr/bin/docker run --network host --rm -it $(dockerized_certbot_volumes) certbot/certbot"
   fi
 }
 
@@ -1354,7 +1354,7 @@ disable_domain(){
 
   rm -rf /etc/nginx/conf.d/${domain}.conf;
   certbot_command="$(build_certbot_command) delete -n --cert-name $domain"
-  run_command "${certbot_command}" "hide_output" "allow_errors" "" "" "$DISABLE_SSL_LOG"
+  run_command "${certbot_command}" "" "hide_output" "allow_errors" "" "" "$DISABLE_SSL_LOG"
 
   is_file_existing "/etc/nginx/conf.d/${domain}.conf" && is_file_existing "/etc/letsencrypt/live/$domain"
 }

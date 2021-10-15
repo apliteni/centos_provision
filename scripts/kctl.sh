@@ -222,7 +222,7 @@ build_certbot_command() {
   if is_ci_mode; then
     echo "/usr/bin/certbot"
   else
-    echo "/usr/bin/docker run --rm -it $(dockerized_certbot_volumes) certbot/certbot"
+    echo "/usr/bin/docker run --network host --rm -it $(dockerized_certbot_volumes) certbot/certbot"
   fi
 }
 
@@ -936,7 +936,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.29.7'
+RELEASE_VERSION='2.29.8'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -1144,12 +1144,12 @@ kctl_renew_certificates() {
   local log_path="${LOG_DIR}/${TOOL_NAME}-renew-certificates.log"
   local command
 
-  command="/usr/bin/docker run -it --rm $(dockerized_certbot_volumes) certbot/certbot renew ${renew_args}"
+  command="$(build_certbot_command) renew ${renew_args}"
   LOG_PATH="${log_path}"
   init_log "${log_path}"
 
   debug "Renewing certificates"
-  if run_command "${command}" "" 'hide_output' 'allow_errors' > /dev/null; then
+  if run_command "${command}" "${message}" 'hide_output' 'allow_errors' > /dev/null; then
     if is_file_existing "${successfully_renewed_flag_filepath}"; then
       debug "Some certificates have been renewed. Removing flag file ${successfully_renewed_flag_filepath} and reloading nginx"
       command="rm -f '${successfully_renewed_flag_filepath}' && systemctl reload nginx"
@@ -1177,6 +1177,10 @@ show_help(){
    kctl renew-certificates  - renews LE certificates
    kctl downgrade <version> - downgrades tracker to version"
 }
+
+MIN_ROLLBACK_VERSION='9.13.0'
+CURRENT_DATETIME=$(date +%Y%m%d%H%M)
+PEM_SPLITTER="-----BEGIN CERTIFICATE-----"
 declare -A DICT
 
 DICT['en.errors.rollback_version_is_empty']='Rollback version not specified'
@@ -1189,10 +1193,6 @@ DICT['ru.errors.rollback_version_is_empty']='Не указана версия д
 DICT['ru.errors.rollback_version_is_incorrect']="Версия не может быть ниже ${MIN_ROLLBACK_VERSION}"
 DICT['ru.errors.see_logs']="Журнал выполнения сохранён в ${LOG_PATH}. Пожалуйста запустите ${TOOL_NAME} ${@} после устранения возникших проблем."
 DICT['ru.errors.invalid_options']="Неправильный параметр ${1}. Используйте 'kctl help' чтобы узнать подробнее"
-
-MIN_ROLLBACK_VERSION='9.13.0'
-CURRENT_DATETIME=$(date +%Y%m%d%H%M)
-PEM_SPLITTER="-----BEGIN CERTIFICATE-----"
 
 on_exit(){
   exit 1
