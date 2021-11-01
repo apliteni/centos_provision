@@ -54,7 +54,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.29.8'
+RELEASE_VERSION='2.29.9'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -198,7 +198,7 @@ assert_installed(){
   local program="${1}"
   local error="${2}"
   if ! is_installed "$program"; then
-    fail "$(translate ${error})" "see_logs"
+    fail "$(translate "${error}")" "see_logs"
   fi
 }
 
@@ -212,7 +212,7 @@ assert_keitaro_not_installed(){
     print_err "$(translate messages.keitaro_already_installed)" 'yellow'
     show_credentials
     clean_up
-    exit ${KEITARO_ALREADY_INSTALLED_RESULT}
+    exit "${KEITARO_ALREADY_INSTALLED_RESULT}"
   else
     debug 'OK: keitaro is not installed yet'
   fi
@@ -230,7 +230,7 @@ is_keitaro_installed() {
 }
 
 should_use_new_algorithm_for_installation_check() {
-  (( $(as_version ${INSTALLED_VERSION}) >= $(as_version ${USE_NEW_ALGORITHM_FOR_INSTALLATION_CHECK_SINCE}) ))
+  (( $(as_version "${INSTALLED_VERSION}") >= $(as_version "${USE_NEW_ALGORITHM_FOR_INSTALLATION_CHECK_SINCE}") ))
 }
 # Check if lock file exist
 #https://certbot.eff.org/docs/using.html#id5
@@ -395,7 +395,8 @@ as_version() {
   # Expand version string by adding `.` to the end to simplify logic
   local expanded_version_string="${version_string}."
   if [[ ${expanded_version_string} =~ ^${AS_VERSION__REGEX}$ ]]; then
-    printf "1%03d%03d%03d%03d" ${expanded_version_string//./ }
+
+    echo "${expanded_version_string//./ }"|xargs printf '1%03d%03d%03d%03d'
   else
     printf "1%03d%03d%03d%03d" ''
   fi
@@ -411,7 +412,7 @@ as_minor_version() {
 }
 detect_db_engine() {
   local sql="SELECT lower(engine) FROM information_schema.tables WHERE table_name = 'keitaro_clicks'"
-  local db_engine="$(mysql ${VARS['db_name']} -se "${sql}" 2>/dev/null)"
+  local db_engine="$(mysql "${VARS['db_name']}" -se "${sql}" 2>/dev/null)"
   debug "Detected engine from keitaro_clicks table - '${db_engine}'"
   echo "${db_engine}"
 }
@@ -420,10 +421,10 @@ detect_installed_version(){
   if empty "${INSTALLED_VERSION}"; then
     detect_inventory_path
     if isset "${DETECTED_INVENTORY_PATH}"; then
-      INSTALLED_VERSION=$(grep "^installer_version=" ${DETECTED_INVENTORY_PATH} | sed s/^installer_version=//g)
+      INSTALLED_VERSION=$(grep "^installer_version=" "${DETECTED_INVENTORY_PATH}" | sed s/^installer_version=//g)
       debug "Got installer_version='${INSTALLED_VERSION}' from ${DETECTED_INVENTORY_PATH}"
     fi
-    if empty ${INSTALLED_VERSION}; then
+    if empty "${INSTALLED_VERSION}"; then
       debug "Couldn't detect installer_version, resetting to ${VERY_FIRST_VERSION}"
       INSTALLED_VERSION="${VERY_FIRST_VERSION}"
     fi
@@ -628,7 +629,7 @@ print_prompt(){
   local var_name="${1}"
   prompt=$(translate "prompts.$var_name")
   prompt="$(print_with_color "$prompt" 'bold')"
-  if ! empty ${VARS[$var_name]}; then
+  if ! empty "${VARS[$var_name]}"; then
     prompt="$prompt [${VARS[$var_name]}]"
   fi
   echo -en "$prompt > "
@@ -849,12 +850,12 @@ usage_en(){
 
 
 usage_ru_header(){
-  print_err "Использование: "$SCRIPT_NAME" [OPTION]..."
+  print_err "Использование: $SCRIPT_NAME [OPTION]..."
 }
 
 
 usage_en_header(){
-  print_err "Usage: "$SCRIPT_NAME" [OPTION]..."
+  print_err "Usage: $SCRIPT_NAME [OPTION]..."
 }
 
 
@@ -889,14 +890,14 @@ init_kctl() {
 }
 
 init_kctl_dirs_and_links() {
-  if [[ ! -d ${KCTL_ROOT} ]]; then
+  if [[ ! -d "${KCTL_ROOT}" ]]; then
     if ! create_kctl_dirs_and_links; then
       echo "Can't create keitaro directories" >&2
       exit 1
     fi
   fi
-  if [[ ! -d ${WORKING_DIR} ]]; then
-    if ! mkdir -p ${WORKING_DIR}; then
+  if [[ ! -d "${WORKING_DIR}" ]]; then
+    if ! mkdir -p "${WORKING_DIR}"; then
       echo "Can't create keitaro working directory ${WORKING_DIR}" >&2
       exit 1
     fi
@@ -904,11 +905,11 @@ init_kctl_dirs_and_links() {
 }
 
 create_kctl_dirs_and_links() {
-  mkdir -p ${LOG_DIR} ${SSL_LOG_DIR} ${INVENTORY_DIR} ${KCTL_BIN_DIR} ${WORKING_DIR} &&
-    chmod 0700 ${ETC_DIR} &&
-    ln -s ${ETC_DIR} ${KCTL_ETC_DIR} &&
-    ln -s ${LOG_DIR} ${KCTL_LOG_DIR} &&
-    ln -s ${WORKING_DIR} ${KCTL_WORKING_DIR}
+  mkdir -p "${LOG_DIR}" "${SSL_LOG_DIR}" "${INVENTORY_DIR}" "${KCTL_BIN_DIR}" "${WORKING_DIR}" &&
+    chmod 0700 "${ETC_DIR}" &&
+    ln -s "${ETC_DIR}" "${KCTL_ETC_DIR}" &&
+    ln -s "${LOG_DIR}" "${KCTL_LOG_DIR}" &&
+    ln -s "${WORKING_DIR}" "${KCTL_WORKING_DIR}"
 }
 
 init_log() {
@@ -944,7 +945,6 @@ create_log() {
     touch "${log_path}"
   fi
 }
-
 
 init() {
   init_kctl
@@ -1185,7 +1185,7 @@ save_command_script(){
   echo '#!/usr/bin/env bash' > "${current_command_script}"
   echo 'set -o pipefail' >> "${current_command_script}"
   echo -e "${command}" >> "${current_command_script}"
-  debug "$(print_content_of ${current_command_script})"
+  debug "$(print_content_of "${current_command_script}")"
   echo "${current_command_script}"
 }
 
@@ -1206,7 +1206,7 @@ print_current_command_fail_message(){
 
 print_common_fail_message(){
   local current_command_script="${1}"
-  print_content_of ${current_command_script}
+  print_content_of "${current_command_script}"
   print_tail_content_of "${CURRENT_COMMAND_OUTPUT_LOG}"
   print_tail_content_of "${CURRENT_COMMAND_ERROR_LOG}"
 }
@@ -1400,7 +1400,7 @@ ensure_valid() {
   error="$(get_error "${var_name}" "${validation_methods}")"
   if isset "$error"; then
     print_err "-${option}: $(translate "validation_errors.${error}" "value=${VARS[$var_name]}")"
-    exit ${FAILURE_RESULT}
+    exit "${FAILURE_RESULT}"
   fi
 }
 
@@ -1500,17 +1500,18 @@ validate_ip(){
 
 valid_ip_segments(){
   local ip="${1}"
-  local segments="${ip//./ }"
-  for segment in "$segments"; do
-    if ! valid_ip_segment $segment; then
-      return ${FAILURE_RESULT}
+  local segments
+  IFS='.' read -r -a segments <<< "${ip}"
+  for segment in "${segments[@]}"; do
+    if ! valid_ip_segment "${segment}"; then
+      return "${FAILURE_RESULT}"
     fi
   done
 }
 
 valid_ip_segment(){
   local ip_segment="${1}"
-  [ $ip_segment -ge 0 ] && [ $ip_segment -le 255 ]
+  [ "$ip_segment" -ge 0 ] && [ "$ip_segment" -le 255 ]
 }
 
 validate_license_key_is_active() {
@@ -1609,6 +1610,8 @@ validate_yes_no(){
 
 
 PROVISION_DIRECTORY="centos_provision"
+PROVISION_BIN_DIRECTORY="../bin"
+PLAYBOOK_DIRECTORY="${PROVISION_DIRECTORY}/playbook"
 KEITARO_ALREADY_INSTALLED_RESULT=2
 PHP_ENGINE=${PHP_ENGINE:-roadrunner}
 DETECTED_PREFIX_PATH="${WORKING_DIR}/detected_prefix"
@@ -1720,9 +1723,15 @@ DICT['ru.validation_errors.validate_license_key_is_active']='Срок дейст
 is_detected_license_edition_type_commercial() {
   local license_ip="$(detected_license_ip)"
   local license_key="${VARS['license_key']}"
-  local license_edition_type=$(detected_license_edition_type ${license_ip} ${license_key})
+  local license_edition_type=$(detected_license_edition_type "${license_ip}" "${license_key}")
   [[ "${license_edition_type}" == "${LICENSE_EDITION_TYPE_COMMERCIAL}" ]]
 }
+
+is_ram_size_mb_changed() {
+  ( isset "${VARS['previous_ram_size_mb']}" && [[ "${VARS['previous_ram_size_mb']}" != "${VARS['ram_size_mb']}" ]] ) \
+      || ( isset "${VARS['ram_size_mb']}" && [[ "${VARS['ram_size_mb']}" != "$(get_ram_size_mb)" ]] )
+}
+
 
 get_var_from_config(){
   local var="${1}"
@@ -1737,13 +1746,17 @@ get_var_from_config(){
     sed -r -e "s/^'(.*)'\$/\\1/g" -e 's/^"(.*)"$/\1/g'
   }
 
-get_free_disk_space_mb() {
-  (df -m | grep -e "/$" | awk '{print$4}') 2>/dev/null
-}
+DETECTED_RAM_SIZE_MB=""
 
-is_ram_size_mb_changed() {
-  ( isset "${VARS['previous_ram_size_mb']}" && [[ "${VARS['previous_ram_size_mb']}" != "${VARS['ram_size_mb']}" ]] ) \
-      || ( isset "${VARS['ram_size_mb']}" && [[ "${VARS['ram_size_mb']}" != "$(get_ram_size_mb)" ]] )
+get_ram_size_mb() {
+  if empty "${DETECTED_RAM_SIZE_MB}"; then
+    if is_ci_mode; then
+      DETECTED_RAM_SIZE_MB=2048
+    else
+      DETECTED_RAM_SIZE_MB=$((free -m | grep Mem: | awk '{print $2}') 2>/dev/null)
+    fi
+  fi
+  echo "${DETECTED_RAM_SIZE_MB}"
 }
 
 
@@ -1810,19 +1823,9 @@ get_var_from_keitaro_app_config() {
   get_var_from_config "${var}" "${WEBAPP_ROOT}/application/config/config.ini.php" '='
 }
 
-DETECTED_RAM_SIZE_MB=""
-
-get_ram_size_mb() {
-  if empty "${DETECTED_RAM_SIZE_MB}"; then
-    if is_ci_mode; then
-      DETECTED_RAM_SIZE_MB=2048
-    else
-      DETECTED_RAM_SIZE_MB=$((free -m | grep Mem: | awk '{print $2}') 2>/dev/null)
-    fi
-  fi
-  echo "${DETECTED_RAM_SIZE_MB}"
+get_free_disk_space_mb() {
+  (df -m | grep -e "/$" | awk '{print$4}') 2>/dev/null
 }
-
 
 
 
@@ -1975,38 +1978,26 @@ stage1() {
   set_ui_lang
 }
 
-assert_pannels_not_installed(){
+
+assert_not_running_under_openvz() {
+  debug "Assert we are not running under OpenVZ"
   if isset "$SKIP_CHECKS"; then
-    debug "SKIPPED: actual checking of panels skipped"
-  else
-    if is_installed mysql; then
-      assert_isp_manager_not_installed
-      assert_vesta_cp_not_installed
-    fi
+    debug "Detected test mode, skip OpenVZ checks"
+    return
+  fi
+
+  virtualization_type="$(hostnamectl status | grep Virtualization | awk '{print $2}')"
+  debug "Detected virtualization type: '${virtualization_type}'"
+  if isset "${virtualization_type}" && [[ "${virtualization_type}" == "openvz" ]]; then
+    fail "Servers with OpenVZ virtualization are not supported"
   fi
 }
 
-
-assert_isp_manager_not_installed(){
-  if is_database_exists roundcube; then
-    debug "ISP Manager database detected"
-    fail "$(translate errors.isp_manager_installed)"
+assert_centos_distro(){
+  assert_installed 'yum' 'errors.wrong_distro'
+  if ! is_file_existing /etc/centos-release; then
+    fail "$(translate errors.wrong_distro)" "see_logs"
   fi
-}
-
-
-assert_vesta_cp_not_installed(){
-  if is_database_exists admin_default; then
-    debug "Vesta CP database detected"
-    fail "$(translate errors.vesta_cp_installed)"
-  fi
-}
-
-
-is_database_exists(){
-  local database="${1}"
-  debug "Check if database ${database} exists"
-  mysql -Nse 'show databases' 2>/dev/null | tr '\n' ' ' | grep -Pq "${database}"
 }
 MIN_RAM_SIZE_MB=1500
 
@@ -2019,28 +2010,6 @@ assert_has_enough_ram(){
     fail "$(translate errors.not_enough_ram)"
   else
     debug "RAM size ${current_ram_size_mb}mb is greater than ${MIN_RAM_SIZE_MB}mb, continuing"
-  fi
-}
-
-assert_centos_distro(){
-  assert_installed 'yum' 'errors.wrong_distro'
-  if ! is_file_existing /etc/centos-release; then
-    fail "$(translate errors.wrong_distro)" "see_logs"
-  fi
-}
-#
-
-
-
-
-
-assert_apache_not_installed(){
-  if isset "$SKIP_CHECKS"; then
-    debug "SKIPPED: actual checking of httpd skipped"
-  else
-    if is_installed httpd; then
-      fail "$(translate errors.apache_installed)"
-    fi
   fi
 }
 MIN_FREE_DISK_SPACE_MB=2048
@@ -2083,18 +2052,52 @@ are_thp_sys_files_existing() {
   is_file_existing "/sys/kernel/mm/transparent_hugepage/enabled" && is_file_existing "/sys/kernel/mm/transparent_hugepage/defrag"
 }
 
-
-assert_not_running_under_openvz() {
-  debug "Assert we are not running under OpenVZ"
+assert_pannels_not_installed(){
   if isset "$SKIP_CHECKS"; then
-    debug "Detected test mode, skip OpenVZ checks"
-    return
+    debug "SKIPPED: actual checking of panels skipped"
+  else
+    if is_installed mysql; then
+      assert_isp_manager_not_installed
+      assert_vesta_cp_not_installed
+    fi
   fi
+}
 
-  virtualization_type="$(hostnamectl status | grep Virtualization | awk '{print $2}')"
-  debug "Detected virtualization type: '${virtualization_type}'"
-  if isset "${virtualization_type}" && [[ "${virtualization_type}" == "openvz" ]]; then
-    fail "Servers with OpenVZ virtualization are not supported"
+
+assert_isp_manager_not_installed(){
+  if is_database_exists roundcube; then
+    debug "ISP Manager database detected"
+    fail "$(translate errors.isp_manager_installed)"
+  fi
+}
+
+
+assert_vesta_cp_not_installed(){
+  if is_database_exists admin_default; then
+    debug "Vesta CP database detected"
+    fail "$(translate errors.vesta_cp_installed)"
+  fi
+}
+
+
+is_database_exists(){
+  local database="${1}"
+  debug "Check if database ${database} exists"
+  mysql -Nse 'show databases' 2>/dev/null | tr '\n' ' ' | grep -Pq "${database}"
+}
+#
+
+
+
+
+
+assert_apache_not_installed(){
+  if isset "$SKIP_CHECKS"; then
+    debug "SKIPPED: actual checking of httpd skipped"
+  else
+    if is_installed httpd; then
+      fail "$(translate errors.apache_installed)"
+    fi
   fi
 }
 
@@ -2108,37 +2111,6 @@ stage2(){
   assert_not_running_under_openvz
   assert_pannels_not_installed
   assert_thp_deactivatable
-}
-
-read_inventory(){
-  detect_inventory_path
-  if isset "${DETECTED_INVENTORY_PATH}"; then
-    parse_inventory "${DETECTED_INVENTORY_PATH}"
-  fi
-}
-
-parse_inventory(){
-  local file="${1}"
-  debug "Found inventory file ${file}, reading defaults from it"
-  while IFS="" read -r line; do
-    if [[ "$line" =~ = ]]; then
-      parse_line_from_inventory_file "$line"
-    fi
-  done < "${file}"
-}
-
-parse_line_from_inventory_file(){
-  local line="${1}"
-  IFS="=" read var_name value <<< "$line"
-  if [[ "$var_name" != "db_restore_path" ]] && [[ "$var_name" != "without_key" ]]; then
-    if empty "${VARS[$var_name]}"; then
-      VARS[$var_name]=$value
-      debug "# read '$var_name' from inventory"
-    else
-      debug "# $var_name is set from options, skip inventory value"
-    fi
-    debug "  "$var_name"=${VARS[$var_name]}"
-  fi
 }
 
 setup_vars(){
@@ -2173,6 +2145,37 @@ generate_password(){
   LC_ALL=C tr -cd '[:alnum:]' < /dev/urandom | head -c${PASSWORD_LENGTH}
 }
 
+read_inventory(){
+  detect_inventory_path
+  if isset "${DETECTED_INVENTORY_PATH}"; then
+    parse_inventory "${DETECTED_INVENTORY_PATH}"
+  fi
+}
+
+parse_inventory(){
+  local file="${1}"
+  debug "Found inventory file ${file}, reading defaults from it"
+  while IFS="" read -r line; do
+    if [[ "$line" =~ = ]]; then
+      parse_line_from_inventory_file "$line"
+    fi
+  done < "${file}"
+}
+
+parse_line_from_inventory_file(){
+  local line="${1}"
+  IFS="=" read var_name value <<< "$line"
+  if [[ "$var_name" != "db_restore_path" ]] && [[ "$var_name" != "without_key" ]]; then
+    if empty "${VARS[$var_name]}"; then
+      VARS[$var_name]=$value
+      debug "# read '$var_name' from inventory"
+    else
+      debug "# $var_name is set from options, skip inventory value"
+    fi
+    debug "  $var_name=${VARS[$var_name]}"
+  fi
+}
+
 stage3(){
   debug "Starting stage 3: read values from inventory file"
   read_inventory
@@ -2181,14 +2184,13 @@ stage3(){
 }
 
 get_ssh_port(){
-  local ssh_port=$(echo $SSH_CLIENT | cut -d' ' -f 3)
+  local ssh_port=$(echo "${SSH_CLIENT}" | cut -d' ' -f 3)
   if empty "${ssh_port}"; then
     ssh_port="22"
   fi
   debug "Detected ssh port: ${ssh_port}"
   echo "${ssh_port}"
 }
-
 
 write_inventory_file(){
   debug "Writing inventory file: STARTED"
@@ -2286,7 +2288,7 @@ get_user_db_restore_vars(){
     if isset "${VARS['db_restore_path']}"; then
       get_user_var 'db_restore_salt' 'validate_presence validate_alnumdashdot'
       tables_prefix=$(detect_table_prefix "${VARS['db_restore_path']}")
-      if empty $tables_prefix; then
+      if empty "${tables_prefix}"; then
         fail "$(translate 'errors.cant_detect_table_prefix')"
       fi
     fi
@@ -2298,8 +2300,10 @@ stage4(){
   if isset "$AUTO_INSTALL" || isset "${VARS['without_key']}"; then
     debug "Skip reading vars from stdin"
   else
+    debug "Starting stage 4: Get user vars"
     get_user_vars
   fi
+  debug "Starting stage 4: write inventory file"
   write_inventory_file
 }
 
@@ -2362,7 +2366,7 @@ install_galaxy_collection(){
 
 download_provision(){
   debug "Download provision"
-  release_url="https://files.keitaro.io/scripts/${BRANCH}/playbook.tar.gz"
+  release_url="https://files.keitaro.io/scripts/${BRANCH}/kctl.tar.gz"
   mkdir -p "${PROVISION_DIRECTORY}"
   run_command "curl -fsSL ${release_url} | tar -xzC ${PROVISION_DIRECTORY}"
 }
@@ -2397,14 +2401,14 @@ json2dict() {
     local ESCAPE
     local CHAR
 
-    if echo "test string" | egrep -ao --color=never "test" >/dev/null 2>&1
+    if echo "test string" | grep -ao -E --color=never "test" >/dev/null 2>&1
     then
-      GREP='egrep -ao --color=never'
+      GREP='grep -ao -E --color=never'
     else
-      GREP='egrep -ao'
+      GREP='grep -ao -E'
     fi
 
-    if echo "test string" | egrep -o "test" >/dev/null 2>&1
+    if echo "test string" | grep -o -E "test" >/dev/null 2>&1
     then
       ESCAPE='(\\[^u[:cntrl:]]|\\u[0-9a-fA-F]{4})'
       CHAR='[^[:cntrl:]"\\]'
@@ -2421,9 +2425,9 @@ json2dict() {
 
     # Force zsh to expand $A into multiple words
     local is_wordsplit_disabled=$(unsetopt 2>/dev/null | grep -c '^shwordsplit$')
-    if [ $is_wordsplit_disabled != 0 ]; then setopt shwordsplit; fi
-    $GREP "$STRING|$NUMBER|$KEYWORD|$SPACE|." | egrep -v "^$SPACE$"
-    if [ $is_wordsplit_disabled != 0 ]; then unsetopt shwordsplit; fi
+    if [ "$is_wordsplit_disabled" != 0 ]; then setopt shwordsplit; fi
+    $GREP "$STRING|$NUMBER|$KEYWORD|$SPACE|." | grep -v -E "^$SPACE$"
+    if [ "$is_wordsplit_disabled" != 0 ]; then unsetopt shwordsplit; fi
   }
 
   parse_array () {
@@ -2497,7 +2501,7 @@ json2dict() {
       ''|[!0-9]) throw "EXPECTED value GOT ${token:-EOF}" ;;
       *) value=$token
         # if asked, replace solidus ("\/") in json strings with normalized value: "/"
-        [ "$NORMALIZE_SOLIDUS" -eq 1 ] && value=$(echo "$value" | sed 's#\\/#/#g')
+        [ "$NORMALIZE_SOLIDUS" -eq 1 ] && value="${value//\\}"
         isleaf=1
         [ "$value" = '""' ] && isempty=1
         ;;
@@ -2561,13 +2565,15 @@ run_ansible_playbook(){
   local env=""
   env="${env} KCTL_BRANCH=${BRANCH}"
   env="${env} ANSIBLE_FORCE_COLOR=true"
-  env="${env} ANSIBLE_CONFIG=${PROVISION_DIRECTORY}/ansible.cfg"
+  env="${env} ANSIBLE_CONFIG=${PLAYBOOK_DIRECTORY}/ansible.cfg"
   env="${env} WITHOUT_LICENSE_KEY=${VARS['without_key']}"
+  env="${env} PROVISION_BIN_DIRECTORY=${PROVISION_BIN_DIRECTORY}"
+
   if [ -f "$DETECTED_PREFIX_PATH" ]; then
     env="${env} TABLES_PREFIX='$(cat "${DETECTED_PREFIX_PATH}" | head -n1)'"
     rm -f "${DETECTED_PREFIX_PATH}"
   fi
-  local command="${env} $(get_ansible_playbook_command) -vvv -i ${INVENTORY_PATH} ${PROVISION_DIRECTORY}/playbook.yml"
+  local command="${env} $(get_ansible_playbook_command) -vvv -i ${INVENTORY_PATH} ${PLAYBOOK_DIRECTORY}/playbook.yml"
   if isset "$ANSIBLE_TAGS"; then
     command="${command} --tags ${ANSIBLE_TAGS}"
   fi
@@ -2745,7 +2751,7 @@ signal_successful_installation() {
 
 # If installed version less than or equal to version from array value
 # then ANSIBLE_TAGS will be expanded by appropriate tags (given from array key)
-# Example: 
+# Example:
 #   when REPLAY_ROLE_TAGS_ON_UPGRADE_FROM=( ['init']='1.0' ['enable-swap']='2.0' )
 #     and insalled version is 2.0
 #     and we are upgrading to 2.14
@@ -2759,7 +2765,7 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['install-docker']='2.29.4'
   ['install-firewalld']='2.25.3'
   ['install-packages']='2.27.7'
-  ['install-postfix']='2.13'
+  ['install-postfix']='2.29.8'
   ['setup-journald']='2.12'
   ['setup-timezone']='0.9'
   ['tune-swap']='2.27.7'
@@ -2768,7 +2774,7 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['tune-php']='2.28.5'
   ['tune-roadrunner']='2.27.7'
   ['install-mariadb']='1.17'
-  ['tune-mariadb']='2.28.12'
+  ['tune-mariadb']='2.29.8'
   ['tune-redis']='2.27.7'
   ['tune-sysctl']='2.27.7'
   ['install-nginx']='2.27.0'
@@ -2784,8 +2790,8 @@ expand_ansible_tags_on_upgrade() {
     debug "Upgrading ${installed_version} -> ${RELEASE_VERSION}"
     expand_ansible_tags_on_full_upgrade
     expand_ansible_tags_with_tune_tag
-    expand_ansible_tags_with_role_tags ${installed_version}
-    expand_ansible_tags_with_install_kctl_tools_tag ${installed_version}
+    expand_ansible_tags_with_role_tags "${installed_version}"
+    expand_ansible_tags_with_install_kctl_tools_tag "${installed_version}"
     debug "ANSIBLE_TAGS is set to ${ANSIBLE_TAGS}"
   fi
 }
@@ -2807,7 +2813,7 @@ expand_ansible_tags_with_role_tags() {
   local installed_version=${1}
   for role_tag in ${!REPLAY_ROLE_TAGS_SINCE[@]}; do
     replay_role_tag_since=${REPLAY_ROLE_TAGS_SINCE[${role_tag}]}
-    if (( $(as_version ${installed_version}) <= $(as_version ${replay_role_tag_since}) )); then
+    if (( $(as_version "${installed_version}") <= $(as_version "${replay_role_tag_since}") )); then
       ANSIBLE_TAGS="${ANSIBLE_TAGS},${role_tag}"
     fi
   done
@@ -2815,7 +2821,7 @@ expand_ansible_tags_with_role_tags() {
 
 expand_ansible_tags_with_install_kctl_tools_tag() {
   local installed_version=${1}
-  if (( $(as_version ${installed_version}) < $(as_version ${RELEASE_VERSION}) )); then
+  if (( $(as_version "${installed_version}") < $(as_version "${RELEASE_VERSION}") )); then
     ANSIBLE_TAGS="${ANSIBLE_TAGS},install-kctl-tools"
   fi
 }
@@ -2825,7 +2831,7 @@ get_installed_version_on_upgrade() {
     debug "ANSIBLE_TAGS contains full-upgrade, simulating upgrade from ${VERY_FIRST_VERSION}"
     echo ${VERY_FIRST_VERSION}
   else
-    echo ${INSTALLED_VERSION}
+    echo "${INSTALLED_VERSION}"
   fi
 }
 

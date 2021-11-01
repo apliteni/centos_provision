@@ -2,8 +2,9 @@
     vars_to_display:
       - box_creation_time
       - cpu_cores
-      - current_swap_size_mb
       - is_ci_mode
+      - kctl_ansible_hostname
+      - kctl_ansible_swaptotal_mb
       - kctl_tools_branch
       - kctl_version
       - keitaro_user

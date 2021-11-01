@@ -2,7 +2,7 @@
   meta: flush_handlers
 
 - name: Download and unpack tracker package
-  include: install/download-and-unpack-tracker-package.yml
+  include_tasks: "../../../_shared/install-package.yml"
 
 - name: Restore DB from SQL dump
   include_tasks: restore_db.yml
@@ -77,6 +77,16 @@
     CH_DB: "{{ ch_name }}"
     CH_USER: "{{ ch_user }}"
     CH_PASSWORD: "{{ ch_password }}"
+  args:
+    chdir: "{{ keitaro_app_dir }}"
+  become_user: "{{ keitaro_user }}"
+  when: big_data_engine == 'clickhouse'
+  notify:
+    - restart roadrunner
+    - restart php-fpm
+
+- name: Switch tracker to use clickhouse data engine
+  command: "{{ php_path }} bin/cli.php system:set_setting data_storage clickhouse"
   args:
     chdir: "{{ keitaro_app_dir }}"
   become_user: "{{ keitaro_user }}"

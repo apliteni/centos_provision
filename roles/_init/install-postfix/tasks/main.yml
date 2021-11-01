@@ -3,25 +3,27 @@
     name: postfix
     state: present
 
+- set_fact:
+    hostname_ending: "{{ kctl_ansible_hostname.split('.') | last }}"
+
+- set_fact:
+    hostname_ending_first_letter: "{{ hostname_ending | lower | regex_search('[a-z]') }}"
+
+- set_fact:
+    hostname_ending_contains_letter: "{{ hostname_ending_first_letter != '' }}"
+
+- set_fact:
+    postfix_hostname: "{{ kctl_ansible_hostname if hostname_ending_contains_letter else kctl_ansible_hostname + 'a' }}"
+
 - name: Update Postfix configuration.
   lineinfile:
     dest: /etc/postfix/main.cf
-    line: "{{ item.name }} = {{ item.value }}"
-    regexp: "^{{ item.name }} ="
-  with_items:
-    - name: inet_interfaces
-      value: localhost
-    - name: inet_protocols
-      value: ipv4
-  notify: restart postfix
-
-- set_fact:
-    hostname_check: "{{ ansible_hostname | regex_search('^[0-9]+$') }}"
-
-- name: Change hostname if it contains only digits
-  shell: "hostname {{ ansible_hostname }}a"
-  when: hostname_check != ''
-  notify: restart postfix
+    line: "{{ item.key }} = {{ item.value }}"
+    regexp: "^{{ item.key }} ="
+  with_dict:
+    inet_interfaces: localhost
+    inet_protocols: ipv4
+    myhostname: "{{ postfix_hostname }}"
 
 - name: Start postfix and enable it at boot.
   service:
@@ -34,3 +36,4 @@
     dest: /etc/aliases
     line: "{{ keitaro_user }}: root"
   notify: apply changing mail aliases
+  changed_when: false

@@ -1,0 +1,20 @@
+- set_fact:
+    expected_postfix_hostname: 123a
+
+- name: Get postfix runtime config
+  shell: postconf | grep ^myhostname
+  register: postfix_runtime_config
+
+- name: Ensure postfix runtime config contains expected host name
+  assert:
+    that: postfix_runtime_config.stdout is match("myhostname = " + expected_postfix_hostname)
+
+- name: Ensure postfix config file contains expected host name
+  lineinfile:
+    path: "/etc/postfix/main.cf"
+    line: 'myhostname = {{ expected_postfix_hostname }}'
+    state: present
+  check_mode: yes
+  register: result
+  failed_when: result is changed
+

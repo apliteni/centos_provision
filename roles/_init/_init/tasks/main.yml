@@ -35,7 +35,6 @@
     kctl_version: "{{ __kctl_version }}"
     kctl_installed_version: "{{ installer_version }}"
     kctl_tags: "{{ ansible_run_tags }}"
-    current_swap_size_mb: "{{ __current_swap_size_mb }}"
     without_license_key: "{{ lookup('env', 'WITHOUT_LICENSE_KEY')| default(false)|bool }}"
     
 - set_fact:

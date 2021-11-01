@@ -53,7 +53,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.29.8'
+RELEASE_VERSION='2.29.9'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -256,7 +256,7 @@ assert_installed(){
   local program="${1}"
   local error="${2}"
   if ! is_installed "$program"; then
-    fail "$(translate ${error})" "see_logs"
+    fail "$(translate "${error}")" "see_logs"
   fi
 }
 
@@ -372,7 +372,8 @@ as_version() {
   # Expand version string by adding `.` to the end to simplify logic
   local expanded_version_string="${version_string}."
   if [[ ${expanded_version_string} =~ ^${AS_VERSION__REGEX}$ ]]; then
-    printf "1%03d%03d%03d%03d" ${expanded_version_string//./ }
+
+    echo "${expanded_version_string//./ }"|xargs printf '1%03d%03d%03d%03d'
   else
     printf "1%03d%03d%03d%03d" ''
   fi
@@ -391,10 +392,10 @@ detect_installed_version(){
   if empty "${INSTALLED_VERSION}"; then
     detect_inventory_path
     if isset "${DETECTED_INVENTORY_PATH}"; then
-      INSTALLED_VERSION=$(grep "^installer_version=" ${DETECTED_INVENTORY_PATH} | sed s/^installer_version=//g)
+      INSTALLED_VERSION=$(grep "^installer_version=" "${DETECTED_INVENTORY_PATH}" | sed s/^installer_version=//g)
       debug "Got installer_version='${INSTALLED_VERSION}' from ${DETECTED_INVENTORY_PATH}"
     fi
-    if empty ${INSTALLED_VERSION}; then
+    if empty "${INSTALLED_VERSION}"; then
       debug "Couldn't detect installer_version, resetting to ${VERY_FIRST_VERSION}"
       INSTALLED_VERSION="${VERY_FIRST_VERSION}"
     fi
@@ -608,7 +609,7 @@ print_prompt(){
   local var_name="${1}"
   prompt=$(translate "prompts.$var_name")
   prompt="$(print_with_color "$prompt" 'bold')"
-  if ! empty ${VARS[$var_name]}; then
+  if ! empty "${VARS[$var_name]}"; then
     prompt="$prompt [${VARS[$var_name]}]"
   fi
   echo -en "$prompt > "
@@ -636,7 +637,7 @@ read_stdin(){
 generate_vhost(){
   local domain="${1}"
   shift
-  debug "Generate vhost by ${TOOL_NAME} for domain "$domain""
+  debug "Generate vhost by ${TOOL_NAME} for domain $domain"
   local vhost_path="$(get_vhost_path "$domain")"
   if nginx_vhost_already_processed "$vhost_path"; then
     print_with_color "$(translate 'messages.skip_nginx_conf_generation')" "yellow"
@@ -763,14 +764,14 @@ init_kctl() {
 }
 
 init_kctl_dirs_and_links() {
-  if [[ ! -d ${KCTL_ROOT} ]]; then
+  if [[ ! -d "${KCTL_ROOT}" ]]; then
     if ! create_kctl_dirs_and_links; then
       echo "Can't create keitaro directories" >&2
       exit 1
     fi
   fi
-  if [[ ! -d ${WORKING_DIR} ]]; then
-    if ! mkdir -p ${WORKING_DIR}; then
+  if [[ ! -d "${WORKING_DIR}" ]]; then
+    if ! mkdir -p "${WORKING_DIR}"; then
       echo "Can't create keitaro working directory ${WORKING_DIR}" >&2
       exit 1
     fi
@@ -778,11 +779,11 @@ init_kctl_dirs_and_links() {
 }
 
 create_kctl_dirs_and_links() {
-  mkdir -p ${LOG_DIR} ${SSL_LOG_DIR} ${INVENTORY_DIR} ${KCTL_BIN_DIR} ${WORKING_DIR} &&
-    chmod 0700 ${ETC_DIR} &&
-    ln -s ${ETC_DIR} ${KCTL_ETC_DIR} &&
-    ln -s ${LOG_DIR} ${KCTL_LOG_DIR} &&
-    ln -s ${WORKING_DIR} ${KCTL_WORKING_DIR}
+  mkdir -p "${LOG_DIR}" "${SSL_LOG_DIR}" "${INVENTORY_DIR}" "${KCTL_BIN_DIR}" "${WORKING_DIR}" &&
+    chmod 0700 "${ETC_DIR}" &&
+    ln -s "${ETC_DIR}" "${KCTL_ETC_DIR}" &&
+    ln -s "${LOG_DIR}" "${KCTL_LOG_DIR}" &&
+    ln -s "${WORKING_DIR}" "${KCTL_WORKING_DIR}"
 }
 
 init_log() {
@@ -818,7 +819,6 @@ create_log() {
     touch "${log_path}"
   fi
 }
-
 
 log_and_print_err(){
   local message="${1}"
@@ -1059,7 +1059,7 @@ save_command_script(){
   echo '#!/usr/bin/env bash' > "${current_command_script}"
   echo 'set -o pipefail' >> "${current_command_script}"
   echo -e "${command}" >> "${current_command_script}"
-  debug "$(print_content_of ${current_command_script})"
+  debug "$(print_content_of "${current_command_script}")"
   echo "${current_command_script}"
 }
 
@@ -1080,7 +1080,7 @@ print_current_command_fail_message(){
 
 print_common_fail_message(){
   local current_command_script="${1}"
-  print_content_of ${current_command_script}
+  print_content_of "${current_command_script}"
   print_tail_content_of "${CURRENT_COMMAND_OUTPUT_LOG}"
   print_tail_content_of "${CURRENT_COMMAND_ERROR_LOG}"
 }
@@ -1198,12 +1198,12 @@ usage_en(){
 
 
 usage_ru_header(){
-  print_err "Использование: "$SCRIPT_NAME" [OPTION]..."
+  print_err "Использование: $SCRIPT_NAME [OPTION]..."
 }
 
 
 usage_en_header(){
-  print_err "Usage: "$SCRIPT_NAME" [OPTION]..."
+  print_err "Usage: $SCRIPT_NAME [OPTION]..."
 }
 
 
@@ -1250,7 +1250,7 @@ ensure_valid() {
   error="$(get_error "${var_name}" "${validation_methods}")"
   if isset "$error"; then
     print_err "-${option}: $(translate "validation_errors.${error}" "value=${VARS[$var_name]}")"
-    exit ${FAILURE_RESULT}
+    exit "${FAILURE_RESULT}"
   fi
 }
 
@@ -1476,7 +1476,7 @@ generate_certificate_for_domain() {
 
 initialize_additional_ssl_logging_for_domain() {
   local domain="${1}"
-  local additional_log_path="$(tmp_ssl_log_path_for_domain ${domain})"
+  local additional_log_path="$(tmp_ssl_log_path_for_domain "${domain}")"
   echo -n > "${additional_log_path}"
   debug "Start copying logs to ${additional_log_path}"
   ADDITIONAL_LOG_PATH="${additional_log_path}"
@@ -1485,7 +1485,7 @@ initialize_additional_ssl_logging_for_domain() {
 finalize_additional_ssl_logging_for_domain() {
   local domain="${1}"
   local additional_log_path="${ADDITIONAL_LOG_PATH}"
-  local domain_ssl_log_path="$(ssl_log_path_for_domain ${domain})"
+  local domain_ssl_log_path="$(ssl_log_path_for_domain "${domain}")"
   debug "Stop copying logs to ${additional_log_path}."
   ADDITIONAL_LOG_PATH=""
   debug "Moving ${additional_log_path} to ${domain_ssl_log_path}"
@@ -1527,7 +1527,7 @@ tmp_ssl_log_path_for_domain() {
 
 clear_log_before_certificate_request(){
   local log="${1}"
-  > ${log}
+  > "${log}"
 }
 
 generate_vhost_ssl_enabler() {
@@ -1579,7 +1579,7 @@ print_not_enabled_domains(){
 recognize_error() {
   local certbot_log="${1}"
   local key="unknown_error"
-  debug "$(print_content_of ${certbot_log})"
+  debug "$(print_content_of "${certbot_log}")"
   if grep -q '^There were too many requests' "${certbot_log}"; then
     key="too_many_requests"
   else
