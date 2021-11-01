@@ -1,2 +1,2 @@
 mariadb_version: "10.3"
-mariadb_bind_address: "localhost"
+mariadb_bind_address: "127.0.0.1"

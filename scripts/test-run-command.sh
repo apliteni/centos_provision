@@ -54,7 +54,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.29.8'
+RELEASE_VERSION='2.29.9'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -319,14 +319,14 @@ init_kctl() {
 }
 
 init_kctl_dirs_and_links() {
-  if [[ ! -d ${KCTL_ROOT} ]]; then
+  if [[ ! -d "${KCTL_ROOT}" ]]; then
     if ! create_kctl_dirs_and_links; then
       echo "Can't create keitaro directories" >&2
       exit 1
     fi
   fi
-  if [[ ! -d ${WORKING_DIR} ]]; then
-    if ! mkdir -p ${WORKING_DIR}; then
+  if [[ ! -d "${WORKING_DIR}" ]]; then
+    if ! mkdir -p "${WORKING_DIR}"; then
       echo "Can't create keitaro working directory ${WORKING_DIR}" >&2
       exit 1
     fi
@@ -334,11 +334,11 @@ init_kctl_dirs_and_links() {
 }
 
 create_kctl_dirs_and_links() {
-  mkdir -p ${LOG_DIR} ${SSL_LOG_DIR} ${INVENTORY_DIR} ${KCTL_BIN_DIR} ${WORKING_DIR} &&
-    chmod 0700 ${ETC_DIR} &&
-    ln -s ${ETC_DIR} ${KCTL_ETC_DIR} &&
-    ln -s ${LOG_DIR} ${KCTL_LOG_DIR} &&
-    ln -s ${WORKING_DIR} ${KCTL_WORKING_DIR}
+  mkdir -p "${LOG_DIR}" "${SSL_LOG_DIR}" "${INVENTORY_DIR}" "${KCTL_BIN_DIR}" "${WORKING_DIR}" &&
+    chmod 0700 "${ETC_DIR}" &&
+    ln -s "${ETC_DIR}" "${KCTL_ETC_DIR}" &&
+    ln -s "${LOG_DIR}" "${KCTL_LOG_DIR}" &&
+    ln -s "${WORKING_DIR}" "${KCTL_WORKING_DIR}"
 }
 
 init_log() {
@@ -374,7 +374,6 @@ create_log() {
     touch "${log_path}"
   fi
 }
-
 
 log_and_print_err(){
   local message="${1}"
@@ -604,7 +603,7 @@ save_command_script(){
   echo '#!/usr/bin/env bash' > "${current_command_script}"
   echo 'set -o pipefail' >> "${current_command_script}"
   echo -e "${command}" >> "${current_command_script}"
-  debug "$(print_content_of ${current_command_script})"
+  debug "$(print_content_of "${current_command_script}")"
   echo "${current_command_script}"
 }
 
@@ -625,7 +624,7 @@ print_current_command_fail_message(){
 
 print_common_fail_message(){
   local current_command_script="${1}"
-  print_content_of ${current_command_script}
+  print_content_of "${current_command_script}"
   print_tail_content_of "${CURRENT_COMMAND_OUTPUT_LOG}"
   print_tail_content_of "${CURRENT_COMMAND_ERROR_LOG}"
 }
@@ -648,7 +647,7 @@ remove_current_command(){
 
 download_provision(){
   debug "Download provision"
-  release_url="https://files.keitaro.io/scripts/${BRANCH}/playbook.tar.gz"
+  release_url="https://files.keitaro.io/scripts/${BRANCH}/kctl.tar.gz"
   mkdir -p "${PROVISION_DIRECTORY}"
   run_command "curl -fsSL ${release_url} | tar -xzC ${PROVISION_DIRECTORY}"
 }
@@ -683,14 +682,14 @@ json2dict() {
     local ESCAPE
     local CHAR
 
-    if echo "test string" | egrep -ao --color=never "test" >/dev/null 2>&1
+    if echo "test string" | grep -ao -E --color=never "test" >/dev/null 2>&1
     then
-      GREP='egrep -ao --color=never'
+      GREP='grep -ao -E --color=never'
     else
-      GREP='egrep -ao'
+      GREP='grep -ao -E'
     fi
 
-    if echo "test string" | egrep -o "test" >/dev/null 2>&1
+    if echo "test string" | grep -o -E "test" >/dev/null 2>&1
     then
       ESCAPE='(\\[^u[:cntrl:]]|\\u[0-9a-fA-F]{4})'
       CHAR='[^[:cntrl:]"\\]'
@@ -707,9 +706,9 @@ json2dict() {
 
     # Force zsh to expand $A into multiple words
     local is_wordsplit_disabled=$(unsetopt 2>/dev/null | grep -c '^shwordsplit$')
-    if [ $is_wordsplit_disabled != 0 ]; then setopt shwordsplit; fi
-    $GREP "$STRING|$NUMBER|$KEYWORD|$SPACE|." | egrep -v "^$SPACE$"
-    if [ $is_wordsplit_disabled != 0 ]; then unsetopt shwordsplit; fi
+    if [ "$is_wordsplit_disabled" != 0 ]; then setopt shwordsplit; fi
+    $GREP "$STRING|$NUMBER|$KEYWORD|$SPACE|." | grep -v -E "^$SPACE$"
+    if [ "$is_wordsplit_disabled" != 0 ]; then unsetopt shwordsplit; fi
   }
 
   parse_array () {
@@ -783,7 +782,7 @@ json2dict() {
       ''|[!0-9]) throw "EXPECTED value GOT ${token:-EOF}" ;;
       *) value=$token
         # if asked, replace solidus ("\/") in json strings with normalized value: "/"
-        [ "$NORMALIZE_SOLIDUS" -eq 1 ] && value=$(echo "$value" | sed 's#\\/#/#g')
+        [ "$NORMALIZE_SOLIDUS" -eq 1 ] && value="${value//\\}"
         isleaf=1
         [ "$value" = '""' ] && isempty=1
         ;;
@@ -828,13 +827,15 @@ run_ansible_playbook(){
   local env=""
   env="${env} KCTL_BRANCH=${BRANCH}"
   env="${env} ANSIBLE_FORCE_COLOR=true"
-  env="${env} ANSIBLE_CONFIG=${PROVISION_DIRECTORY}/ansible.cfg"
+  env="${env} ANSIBLE_CONFIG=${PLAYBOOK_DIRECTORY}/ansible.cfg"
   env="${env} WITHOUT_LICENSE_KEY=${VARS['without_key']}"
+  env="${env} PROVISION_BIN_DIRECTORY=${PROVISION_BIN_DIRECTORY}"
+
   if [ -f "$DETECTED_PREFIX_PATH" ]; then
     env="${env} TABLES_PREFIX='$(cat "${DETECTED_PREFIX_PATH}" | head -n1)'"
     rm -f "${DETECTED_PREFIX_PATH}"
   fi
-  local command="${env} $(get_ansible_playbook_command) -vvv -i ${INVENTORY_PATH} ${PROVISION_DIRECTORY}/playbook.yml"
+  local command="${env} $(get_ansible_playbook_command) -vvv -i ${INVENTORY_PATH} ${PLAYBOOK_DIRECTORY}/playbook.yml"
   if isset "$ANSIBLE_TAGS"; then
     command="${command} --tags ${ANSIBLE_TAGS}"
   fi

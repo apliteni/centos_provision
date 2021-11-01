@@ -1,0 +1,8 @@
+# We have to prepare things in converge steps because redefined vars are not shared across molecule stages
+
+- set_fact:
+    kctl_ansible_hostname: "123"
+
+- name: Call set_hostname() via bash to ensure postfix will detect redefined hostname
+  shell: "hostname {{ kctl_ansible_hostname }}"
+  changed_when: false

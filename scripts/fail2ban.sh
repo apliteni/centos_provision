@@ -50,7 +50,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.29.8'
+RELEASE_VERSION='2.29.9'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -140,7 +140,7 @@ disable_jail(){
       exit 1
     fi;
   else
-    rm -f ${FAIL2BAN_JAIL_DIR}/${JAIL_FILENAME}
+    rm -f "${FAIL2BAN_JAIL_DIR}/${JAIL_FILENAME}"
   fi;
 }
 
@@ -157,14 +157,14 @@ enable_jail(){
       exit 1
     fi;
   else
-    ln -s ${ETC_DIR}/fail2ban/${JAIL_FILENAME} ${FAIL2BAN_JAIL_DIR}/${JAIL_FILENAME}
+    ln -s "${ETC_DIR}/fail2ban/${JAIL_FILENAME}" "${FAIL2BAN_JAIL_DIR}/${JAIL_FILENAME}"
   fi;
 
 }
 
 reload_file2ban(){
   debug "Reload file2ban"
-  systemctl reload ${FAIL2BAN_SERVICE}
+  systemctl reload "${FAIL2BAN_SERVICE}"
 }
 
 return_fail2ban_status(){

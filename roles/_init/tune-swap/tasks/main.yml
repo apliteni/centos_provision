@@ -1,6 +1,6 @@
 # Based on https://stackoverflow.com/a/64294534/612799
 - debug:
-    msg: "current_swap_size_mb: {{ current_swap_size_mb }}, swap_size_minimal_mb: {{ swap_size_minimal_mb }}"
+    msg: "swap_size_minimal_mb: {{ swap_size_minimal_mb }}"
 
 - set_fact:
     kctl_root_mount_point: "{{ ansible_mounts | first }}"
@@ -14,7 +14,7 @@
     available_space: "{{ kctl_root_mount_point.size_available }}"
 
 - set_fact:
-    available_space_in_mb: "{{ (available_space|float / 1000000) | round | int }}"
+    available_space_in_mb: "{{ ( (available_space|float) / 1000000) | round | int }}"
 
 - debug:
     msg: "test current available space {{ available_space_in_mb }}"
@@ -23,6 +23,6 @@
 - name: "[Re]create swap if its size is too small"
   include: recreate_swap.yml
   when:
-    (current_swap_size_mb | int) < (swap_size_minimal_mb | int) * 0.9 and
+    (kctl_ansible_swaptotal_mb | int) < (swap_size_minimal_mb | int) * 0.9 and
     (available_space_in_mb | int) > (swap_size_to_add_mb | int) + space_for_packages | int
   failed_when: available_space_in_mb < swap_size_to_add_mb + space_for_packages

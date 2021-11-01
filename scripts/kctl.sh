@@ -67,7 +67,7 @@ assert_installed(){
   local program="${1}"
   local error="${2}"
   if ! is_installed "$program"; then
-    fail "$(translate ${error})" "see_logs"
+    fail "$(translate "${error}")" "see_logs"
   fi
 }
 
@@ -81,7 +81,7 @@ assert_keitaro_not_installed(){
     print_err "$(translate messages.keitaro_already_installed)" 'yellow'
     show_credentials
     clean_up
-    exit ${KEITARO_ALREADY_INSTALLED_RESULT}
+    exit "${KEITARO_ALREADY_INSTALLED_RESULT}"
   else
     debug 'OK: keitaro is not installed yet'
   fi
@@ -99,7 +99,7 @@ is_keitaro_installed() {
 }
 
 should_use_new_algorithm_for_installation_check() {
-  (( $(as_version ${INSTALLED_VERSION}) >= $(as_version ${USE_NEW_ALGORITHM_FOR_INSTALLATION_CHECK_SINCE}) ))
+  (( $(as_version "${INSTALLED_VERSION}") >= $(as_version "${USE_NEW_ALGORITHM_FOR_INSTALLATION_CHECK_SINCE}") ))
 }
 # Check if lock file exist
 #https://certbot.eff.org/docs/using.html#id5
@@ -388,7 +388,7 @@ print_prompt(){
   local var_name="${1}"
   prompt=$(translate "prompts.$var_name")
   prompt="$(print_with_color "$prompt" 'bold')"
-  if ! empty ${VARS[$var_name]}; then
+  if ! empty "${VARS[$var_name]}"; then
     prompt="$prompt [${VARS[$var_name]}]"
   fi
   echo -en "$prompt > "
@@ -526,12 +526,12 @@ usage_en(){
 
 
 usage_ru_header(){
-  print_err "Использование: "$SCRIPT_NAME" [OPTION]..."
+  print_err "Использование: $SCRIPT_NAME [OPTION]..."
 }
 
 
 usage_en_header(){
-  print_err "Usage: "$SCRIPT_NAME" [OPTION]..."
+  print_err "Usage: $SCRIPT_NAME [OPTION]..."
 }
 
 
@@ -566,14 +566,14 @@ init_kctl() {
 }
 
 init_kctl_dirs_and_links() {
-  if [[ ! -d ${KCTL_ROOT} ]]; then
+  if [[ ! -d "${KCTL_ROOT}" ]]; then
     if ! create_kctl_dirs_and_links; then
       echo "Can't create keitaro directories" >&2
       exit 1
     fi
   fi
-  if [[ ! -d ${WORKING_DIR} ]]; then
-    if ! mkdir -p ${WORKING_DIR}; then
+  if [[ ! -d "${WORKING_DIR}" ]]; then
+    if ! mkdir -p "${WORKING_DIR}"; then
       echo "Can't create keitaro working directory ${WORKING_DIR}" >&2
       exit 1
     fi
@@ -581,11 +581,11 @@ init_kctl_dirs_and_links() {
 }
 
 create_kctl_dirs_and_links() {
-  mkdir -p ${LOG_DIR} ${SSL_LOG_DIR} ${INVENTORY_DIR} ${KCTL_BIN_DIR} ${WORKING_DIR} &&
-    chmod 0700 ${ETC_DIR} &&
-    ln -s ${ETC_DIR} ${KCTL_ETC_DIR} &&
-    ln -s ${LOG_DIR} ${KCTL_LOG_DIR} &&
-    ln -s ${WORKING_DIR} ${KCTL_WORKING_DIR}
+  mkdir -p "${LOG_DIR}" "${SSL_LOG_DIR}" "${INVENTORY_DIR}" "${KCTL_BIN_DIR}" "${WORKING_DIR}" &&
+    chmod 0700 "${ETC_DIR}" &&
+    ln -s "${ETC_DIR}" "${KCTL_ETC_DIR}" &&
+    ln -s "${LOG_DIR}" "${KCTL_LOG_DIR}" &&
+    ln -s "${WORKING_DIR}" "${KCTL_WORKING_DIR}"
 }
 
 init_log() {
@@ -621,7 +621,6 @@ create_log() {
     touch "${log_path}"
   fi
 }
-
 
 init() {
   init_kctl
@@ -862,7 +861,7 @@ save_command_script(){
   echo '#!/usr/bin/env bash' > "${current_command_script}"
   echo 'set -o pipefail' >> "${current_command_script}"
   echo -e "${command}" >> "${current_command_script}"
-  debug "$(print_content_of ${current_command_script})"
+  debug "$(print_content_of "${current_command_script}")"
   echo "${current_command_script}"
 }
 
@@ -883,7 +882,7 @@ print_current_command_fail_message(){
 
 print_common_fail_message(){
   local current_command_script="${1}"
-  print_content_of ${current_command_script}
+  print_content_of "${current_command_script}"
   print_tail_content_of "${CURRENT_COMMAND_OUTPUT_LOG}"
   print_tail_content_of "${CURRENT_COMMAND_ERROR_LOG}"
 }
@@ -936,7 +935,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.29.8'
+RELEASE_VERSION='2.29.9'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -1064,16 +1063,27 @@ kctl_doctor(){
   kctl_install "full-upgrade" "kctl-doctor.log"
 }
 
+MIN_ROLLBACK_VERSION='9.13.0'
+
 kctl_downgrade() {
   local rollback_version="${1}"
   if empty "${rollback_version}"; then
     fail "$(translate errors.rollback_version_is_empty)" "see_logs"
-  elif (( $(as_version "${rollback_version}") <  $(as_version "${MIN_ROLLBACK_VERSION}") )); then
+  elif is_rollback_version_valid "${rollback_version}"; then
     fail "$(translate errors.rollback_version_is_incorrect)"
   fi
 
   kctl_install "upgrade,upgrade-tracker" "kctl-downgrade.log" "-a '${rollback_version}'"
 }
+
+is_rollback_version_valid() {
+  local rollback_version="${1}"
+  [[ "${rollback_version}" == "lastest-stable" ]] ||
+     (( $(as_version "${rollback_version}") <  $(as_version "${MIN_ROLLBACK_VERSION}") ))
+}
+
+PEM_SPLITTER="-----BEGIN CERTIFICATE-----"
+
 kctl_fix_le_certs_2021_09_30_issues() {
   local live_certificate_filepaths
   local temporary_dir
@@ -1102,7 +1112,7 @@ backup_certificate(){
   local certificate_path="${1}"
   local domain_name
   local backup_directory
-  domain_name=$(basename $(dirname ${certificate_path}))
+  domain_name=$(basename $(dirname "${certificate_path}"))
   backup_directory="/etc/keitaro/backups/letsencrypt/${CURRENT_DATETIME}/${domain_name}"
 
   mkdir -p "${backup_directory}"
@@ -1115,7 +1125,7 @@ backup_certificate(){
 is_last_certificate_issued_by_x3() {
   local certificate_path="${1}"
   local chain_content
-  chain_content="$(< ${certificate_path})"
+  chain_content="$(< "${certificate_path}")"
   local last_certificate_content="${PEM_SPLITTER}${chain_content##*${PEM_SPLITTER}}"
   echo "$last_certificate_content" | openssl x509 -text | grep 'Issuer' | grep 'DST Root CA X3' -q
 }
@@ -1124,18 +1134,18 @@ is_last_certificate_issued_by_x3() {
 remove_last_certificate_from_chain() {
   local certificate_path="${1}"
   local certificate_chain_content
-  certificate_chain_content="$(< ${certificate_path})"
+  certificate_chain_content="$(< "${certificate_path}")"
   local certificate_chain_wo_x3_content="${certificate_chain_content%${PEM_SPLITTER}*}"
   echo "${certificate_chain_wo_x3_content}" > "${certificate_path}"
 }
 
 kctl_install() {
-  local tags="${1}" 
+  local tags="${1}"
   local log_file_name="${2}"
   local extra_options=${3}
   local log_file_path="${KCTL_LOG_DIR}/${log_file_name}"
   debug "Run command: curl -fsSL4 '${KEITARO_URL}/install.sh' | bash -s -- -rt '${tags}'  -o '${log_file_path}'"
-  curl -fsSL4 "${KEITARO_URL}/install.sh" | bash -s -- -rt "${tags}"  -o "${log_file_path}" ${extra_options}
+  curl -fsSL4 "${KEITARO_URL}/install.sh" | bash -s -- -rt "${tags}"  -o "${log_file_path}" "${extra_options}"
 }
 kctl_renew_certificates() {
   local successfully_renewed_flag_filepath="/var/lib/letsencrypt/.renewed"
@@ -1160,16 +1170,8 @@ kctl_renew_certificates() {
   fi
 }
 
-kctl_upgrade(){
-  kctl_install "upgrade" "kctl-upgrade.log"
-}
-
-on_exit(){
-  exit 1
-}
-
-show_help(){
-  echo "KCTL - Keitaro management tool"
+kctl_show_help(){
+  echo "kctl - Keitaro management tool"
   echo ""
   echo "Usage:
    kctl upgrade             - upgrades system & tracker
@@ -1178,9 +1180,19 @@ show_help(){
    kctl downgrade <version> - downgrades tracker to version"
 }
 
-MIN_ROLLBACK_VERSION='9.13.0'
-CURRENT_DATETIME=$(date +%Y%m%d%H%M)
-PEM_SPLITTER="-----BEGIN CERTIFICATE-----"
+kctl_show_version(){
+  echo "kctl v${RELEASE_VERSION}"
+}
+
+kctl_upgrade(){
+  kctl_install "upgrade" "kctl-upgrade.log"
+}
+
+on_exit(){
+  exit 1
+}
+
+CURRENT_DATETIME="$(date +%Y%m%d%H%M)"
 declare -A DICT
 
 DICT['en.errors.rollback_version_is_empty']='Rollback version not specified'
@@ -1202,10 +1214,10 @@ detect_installed_version(){
   if empty "${INSTALLED_VERSION}"; then
     detect_inventory_path
     if isset "${DETECTED_INVENTORY_PATH}"; then
-      INSTALLED_VERSION=$(grep "^installer_version=" ${DETECTED_INVENTORY_PATH} | sed s/^installer_version=//g)
+      INSTALLED_VERSION=$(grep "^installer_version=" "${DETECTED_INVENTORY_PATH}" | sed s/^installer_version=//g)
       debug "Got installer_version='${INSTALLED_VERSION}' from ${DETECTED_INVENTORY_PATH}"
     fi
-    if empty ${INSTALLED_VERSION}; then
+    if empty "${INSTALLED_VERSION}"; then
       debug "Couldn't detect installer_version, resetting to ${VERY_FIRST_VERSION}"
       INSTALLED_VERSION="${VERY_FIRST_VERSION}"
     fi
@@ -1242,7 +1254,8 @@ as_version() {
   # Expand version string by adding `.` to the end to simplify logic
   local expanded_version_string="${version_string}."
   if [[ ${expanded_version_string} =~ ^${AS_VERSION__REGEX}$ ]]; then
-    printf "1%03d%03d%03d%03d" ${expanded_version_string//./ }
+
+    echo "${expanded_version_string//./ }"|xargs printf '1%03d%03d%03d%03d'
   else
     printf "1%03d%03d%03d%03d" ''
   fi
@@ -1269,7 +1282,7 @@ case "${action}" in
     kctl_doctor
     ;;
   "downgrade")
-    rollback_version="${2}"
+    rollback_version="${2:-latest-stable}"
     kctl_downgrade "${rollback_version}"
     ;;
   "renew-certificates")
@@ -1279,8 +1292,11 @@ case "${action}" in
     kctl_fix_le_certs_2021_09_30_issues
     ;;
   help)
-    show_help
-  ;;
+    kctl_show_help
+    ;;
+  version)
+    kctl_show_version
+    ;;
   *)
     fail "$(translate errors.invalid_options)"
 esac
