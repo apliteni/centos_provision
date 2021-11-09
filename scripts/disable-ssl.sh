@@ -53,7 +53,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.29.9'
+RELEASE_VERSION='2.29.11'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -1376,6 +1376,7 @@ show_finishing_message(){
 
 
 print_disabled_domains(){
+  local domains
   message="$(translate 'messages.ssl_disabled_for_domains')"
   domains=$(join_by ", " "${SUCCESSFUL_DOMAINS[@]}")
   print_with_color "OK. ${message} ${domains}" 'green'
@@ -1383,6 +1384,7 @@ print_disabled_domains(){
 
 
 print_not_disabled_domains(){
+  local domains
   local color="${1}"
   message="$(translate 'messages.ssl_not_disabled_for_domains')"
   domains=$(join_by ", " "${FAILED_DOMAINS[@]}")
