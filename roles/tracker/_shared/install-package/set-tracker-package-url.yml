@@ -24,6 +24,9 @@
             login_db: keitaro
             query: "SELECT `value` FROM keitaro_settings WHERE `key` = 'is_beta_channel'"
           register: get_tracker_stability
+          vars:
+            ansible_python_interpreter: "/usr/bin/python3"
+
 
         - set_fact:
             tracker_stability: "{{ 'stable' if get_tracker_stability.query_result[0][0]['value'] == '0' else 'unstable' }}" 
