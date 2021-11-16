@@ -54,7 +54,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.29.11'
+RELEASE_VERSION='2.29.12'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -106,21 +106,17 @@ CERTBOT_PREFERRED_CHAIN="ISRG Root X1"
 INDENTATION_LENGTH=2
 INDENTATION_SPACES=$(printf "%${INDENTATION_LENGTH}s")
 
-if [[ "${TOOL_NAME}" == "install" ]]; then
+TOOL_ARGS="${*}"
+
+if empty "${KCTL_COMMAND}"  && [ "${TOOL_NAME}" = "install" ]; then
   SCRIPT_URL="${KEITARO_URL}/${TOOL_NAME}.sh"
-  if ! empty ${@}; then
-    SCRIPT_COMMAND="curl -fsSL "$SCRIPT_URL" > run; bash run ${@}"
-    TOOL_ARGS="${@}"
-  else
-    SCRIPT_COMMAND="curl -fsSL "$SCRIPT_URL" > run; bash run"
-  fi
+  SCRIPT_COMMAND="curl -fsSL "$SCRIPT_URL" | bash -s -- ${TOOL_ARGS}"
+elif empty "${KCTL_COMMAND}" && [ "${TOOL_NAME}" = "kctl" ]; then
+  SCRIPT_COMMAND="kctl ${TOOL_ARGS}"
+elif empty "${KCTL_COMMAND}"; then
+  SCRIPT_COMMAND="kctl-${TOOL_NAME} ${TOOL_ARGS}"
 else
-  if ! empty ${@}; then
-    SCRIPT_COMMAND="${SCRIPT_NAME} ${@}"
-    TOOL_ARGS="${@}"
-  else
-    SCRIPT_COMMAND="${SCRIPT_NAME}"
-  fi
+  SCRIPT_COMMAND="${KCTL_COMMAND} ${TOOL_ARGS}"
 fi
 declare -A DICT
 
@@ -393,18 +389,24 @@ AS_VERSION__REGEX="(${AS_VERSION__PART_REGEX}\.){1,${AS_VERSION__PARTS_TO_KEEP}}
 as_version() {
   local version_string="${1}"
   # Expand version string by adding `.` to the end to simplify logic
-  local expanded_version_string="${version_string}."
-  if [[ ${expanded_version_string} =~ ^${AS_VERSION__REGEX}$ ]]; then
-
-    echo "${expanded_version_string//./ }"|xargs printf '1%03d%03d%03d%03d'
-  else
-    printf "1%03d%03d%03d%03d" ''
+  local major_part='0'
+  local minor_part='0'
+  local patch_part='0'
+  local additional_part='0'
+  if [[ "${version_string}." =~ ^${AS_VERSION__REGEX}$ ]]; then
+    IFS='.' read -r -a parts <<< "${version_string}"
+    major_part="${parts[0]:-${major_part}}"
+    minor_part="${parts[1]:-${minor_part}}"
+    patch_part="${parts[2]:-${patch_part}}"
+    additional_part="${parts[3]:-${additional_part}}"
   fi
+  printf '1%03d%03d%03d%03d' "${major_part}" "${minor_part}" "${patch_part}" "${additional_part}"
 }
 
 as_minor_version() {
   local version_string="${1}"
-  local version_number=$(as_version "${version_string}")
+  local version_number
+  version_number=$(as_version "${version_string}")
   local meaningful_version_length=$(( 1 + 2*AS_VERSION__MAX_DIGITS_PER_PART ))
   local zeroes_length=$(( 1 + AS_VERSION__PARTS_TO_KEEP * AS_VERSION__MAX_DIGITS_PER_PART - meaningful_version_length ))
   local meaningful_version=${version_number:0:${meaningful_version_length}}
@@ -412,7 +414,8 @@ as_minor_version() {
 }
 detect_db_engine() {
   local sql="SELECT lower(engine) FROM information_schema.tables WHERE table_name = 'keitaro_clicks'"
-  local db_engine="$(mysql "${VARS['db_name']}" -se "${sql}" 2>/dev/null)"
+  local db_engine
+  db_engine="$(mysql "${VARS['db_name']}" -se "${sql}" 2>/dev/null)"
   debug "Detected engine from keitaro_clicks table - '${db_engine}'"
   echo "${db_engine}"
 }
@@ -531,7 +534,8 @@ get_ui_lang(){
 
 translate(){
   local key="${1}"
-  local i18n_key=$(get_ui_lang).$key
+  local i18n_key
+  i18n_key=$(get_ui_lang).$key
   message="${DICT[$i18n_key]}"
   while isset "${2}"; do
     message=$(interpolate "${message}" "${2}")
@@ -646,8 +650,12 @@ read_stdin(){
 
 install_package(){
   local package="${1}"
-  debug "Installing ${package}"
-  run_command "yum install -y ${package}"
+  if ! is_package_installed "${package}"; then
+    debug "Installing ${package}"
+    run_command "yum install -y ${package}"
+  else
+    debug "Package ${package} is already installed"
+  fi
 }
 
 is_installed(){
@@ -695,7 +703,8 @@ detect_inventory_path(){
 
 fix_db_engine() {
   debug "Detected installer with version ${INSTALLED_VERSION} which possibly sets wrong db_engine"
-  local detected_db_engine=$(detect_db_engine)
+  local detected_db_engine
+  detected_db_engine=$(detect_db_engine)
   debug "Detected engine - '${detected_db_engine}', engine in the inventory - '${VARS['db_engine']}'"
   if decteted_db_engine_doesnt_match_inventory "${detected_db_engine}"; then
     debug "Detected engine and engine in the inventory are not matching, reconfiguring"
@@ -720,7 +729,8 @@ KEITARO_KEY_LIC_FILEPATH="${WEBAPP_ROOT}/var/license/key.lic"
 
 get_license_key_from_tracker() {
   if is_file_existing "${KEITARO_KEY_LIC_FILEPATH}"; then
-    local license_key=$(cat "${KEITARO_KEY_LIC_FILEPATH}")
+    local license_key
+    license_key=$(cat "${KEITARO_KEY_LIC_FILEPATH}")
     if isset "${license_key}"; then
       VARS['license_key']="${license_key}"
     fi
@@ -1102,8 +1112,10 @@ really_run_command(){
   local run_as="${4}"
   local print_fail_message_method="${5}"
   local output_log="${6}"
-  local current_command_script=$(save_command_script "${command}" "${run_as}")
-  local evaluated_command=$(command_run_as "${current_command_script}" "${run_as}")
+  local evaluated_command
+  local current_command_script
+  current_command_script=$(save_command_script "${command}" "${run_as}")
+  evaluated_command=$(command_run_as "${current_command_script}" "${run_as}")
   evaluated_command=$(unbuffer_streams "${evaluated_command}")
   evaluated_command=$(save_command_logs "${evaluated_command}" "${output_log}")
   evaluated_command=$(hide_command_output "${evaluated_command}" "${hide_output}")
@@ -1177,7 +1189,8 @@ hide_command_output(){
 save_command_script(){
   local command="${1}"
   local run_as="${2}"
-  local current_command_dir=$(mktemp -d)
+  local current_command_dir
+    current_command_dir=$(mktemp -d)
   if isset "$run_as"; then
     chown "$run_as" "$current_command_dir"
   fi
@@ -1198,8 +1211,10 @@ print_current_command_fail_message(){
   if empty "$print_fail_message_method"; then
     print_fail_message_method="print_common_fail_message"
   fi
-  local fail_message_header=$(translate 'errors.run_command.fail')
-  local fail_message=$(eval "$print_fail_message_method" "$current_command_script")
+  local fail_message
+  local fail_message_header
+  fail_message_header=$(translate 'errors.run_command.fail')
+  fail_message=$(eval "$print_fail_message_method" "$current_command_script")
   echo -e "${fail_message_header}\n${fail_message}"
 }
 
@@ -1264,7 +1279,7 @@ detect_license_edition_type() {
   else
     local url="${KEITARO_URL}/external_api/licenses/edition_type?key=${license_key}&ip=${license_ip}"
     debug "Getting url '${url}'"
-    local license_edition_type="$(curl -fsSL "${url}" 2>&1)"
+    license_edition_type="$(curl -fsSL "${url}" 2>&1)"
     debug "Done, result is '${license_edition_type}'"
   fi
 
@@ -1272,10 +1287,9 @@ detect_license_edition_type() {
 }
 
 
-
 detect_license_expired_status() {
   local license_key="${1}"
-
+  local license_expired_status
   debug "Detecting license expired status for key ${license_key}"
 
   if isset "$SKIP_CHECKS"; then
@@ -1284,7 +1298,7 @@ detect_license_expired_status() {
   else
     local url="${KEITARO_URL}/license/api/get_expiration_status?key=${license_key}"
     debug "Getting url '${url}'"
-    local license_expired_status="$(curl -fsSL "${url}" 2>&1)"
+    license_expired_status="$(curl -fsSL "${url}" 2>&1)"
     debug "Done, result is '${license_expired_status}'"
   fi
 
@@ -1339,9 +1353,11 @@ detect_table_prefix(){
   if empty "$file"; then
     return ${SUCCESS_RESULT}
   fi
-  local mime_type="$(detect_mime_type "${file}")"
+  local mime_type
+  mime_type="$(detect_mime_type "${file}")"
   debug "Detected mime type: ${mime_type}"
-  local get_head_chunk="$(build_get_chunk_command "${mime_type}" "${file}" "head -n 100")"
+  local get_head_chunk
+  get_head_chunk="$(build_get_chunk_command "${mime_type}" "${file}" "head -n 100")"
   if empty "${get_head_chunk}"; then
     return ${FAILURE_RESULT}
   fi
@@ -1382,13 +1398,15 @@ ensure_license_valid() {
     if ! is_file_existing "${WEBAPP_ROOT}/var/license/key.lic"; then
       fail "File ${WEBAPP_ROOT}/var/license/key.lic does not exist"
     fi
-    local license_key=$(cat "${WEBAPP_ROOT}/var/license/key.lic")
+    local license_key
+    license_key=$(cat "${WEBAPP_ROOT}/var/license/key.lic")
   else
     local license_key="${VARS['license_key']}"
   fi
 
   if ! validate_license "${license_key}"; then
-    local error_message="$(translate "errors.check_license_exist" "ip=$(detect_license_ip)" "key=${license_key}")"
+    local error_message
+    error_message="$(translate "errors.check_license_exist" "ip=$(detect_license_ip)" "key=${license_key}")"
     fail "${error_message}"
   fi
 }
@@ -1460,18 +1478,24 @@ validate_enough_space_for_dump() {
   if empty "$file"; then
     return ${SUCCESS_RESULT}
   fi
-  local dump_size_kb=$(du -k "$file" | cut -f1)
-  local avail_space_in_kb=$(df "$HOME" | awk 'NR==2 { print $4 }')
+  local dump_size_kb
+  dump_size_kb=$(du -k "$file" | cut -f1)
+  local avail_space_in_kb
+  avail_space_in_kb=$(df "$HOME" | awk 'NR==2 { print $4 }')
 
   if file --mime-type "$file" | grep -q gzip$; then
-    local unpacked_dump_size_in_kb=$((dump_size_kb * 7))
-    local needed_space_in_kb=$((unpacked_dump_size_in_kb * 23 / 10))
+    local unpacked_dump_size_in_kb
+    unpacked_dump_size_in_kb=$((dump_size_kb * 7))
+    local needed_space_in_kb
+    needed_space_in_kb=$((unpacked_dump_size_in_kb * 23 / 10))
   else
-    local needed_space_in_kb=$((dump_size_kb * 13 / 10))
+    local needed_space_in_kb
+    needed_space_in_kb=$((dump_size_kb * 13 / 10))
   fi
 
   if [[ "$needed_space_in_kb" -gt "$avail_space_in_kb" ]]; then
-    local fail_message_header=$(translate 'validation_errors.validate_enough_space_for_dump')
+    local fail_message_header
+    fail_message_header=$(translate 'validation_errors.validate_enough_space_for_dump')
     return ${FAILURE_RESULT}
   else
     return ${SUCCESS_RESULT}
@@ -1526,11 +1550,12 @@ validate_license_key_format() {
 
 validate_license() {
   local license_key="${1}"
-
-  local license_ip=$(detected_license_ip)
+  local license_ip
+  license_ip=$(detected_license_ip)
   ensure_license_ip_is_correct "${license_ip}"
 
-  local license_edition_type=$(detected_license_edition_type "${license_ip}" "${license_key}")
+  local license_edition_type
+  license_edition_type=$(detected_license_edition_type "${license_ip}" "${license_key}")
   ensure_license_edition_type_is_correct "${license_edition_type}"
 
   is_license_edition_type_valid "${license_edition_type}"
@@ -1627,7 +1652,6 @@ INSTALLED_VERSION=""
 
 
 DICT['en.messages.keitaro_already_installed']='Keitaro is already installed'
-DICT['en.messages.installation_without_key']='Attention tracker Keitaro will be instaled without license key.'
 DICT['en.messages.check_keitaro_dump_get_tables_prefix']="Getting tables prefix from dump"
 DICT['en.messages.check_keitaro_dump_validity']="Checking SQL dump"
 DICT['en.messages.validate_nginx_conf']='Checking nginx config'
@@ -1673,7 +1697,6 @@ DICT['en.validation_errors.validate_starts_with_latin_letter']='The value must b
 DICT['en.validation_errors.validate_license_key_is_active']='Specified license key has expired'
 
 DICT['ru.messages.keitaro_already_installed']='Keitaro трекер уже установлен.'
-DICT['ru.messages.installation_without_key']='Внимание трекер Keitaro будет установлен без лицензионного ключа.'
 DICT['ru.messages.check_keitaro_dump_get_tables_prefix']="Получаем префикс таблиц из SQL дампа"
 DICT['ru.messages.check_keitaro_dump_validity']="Проверяем SQL дамп"
 DICT['ru.messages.validate_nginx_conf']='Проверяем файл конфигурации nginx'
@@ -1719,11 +1742,45 @@ DICT['ru.validation_errors.validate_enough_space_for_dump']='Недостато�
 DICT['ru.validation_errors.validate_license_key_is_active']='Срок действия указанного лицензионного ключа истек'
 
 
+get_ansible_galaxy_command() {
+  if [[ "$(get_centos_major_release)" == "7" ]]; then
+    echo "ansible-galaxy-3"
+  else
+    echo "ansible-galaxy"
+  fi
+}
+is_installed_ansible_collection() {
+  local collection="${1}"
+  debug "Collection to check"
+  [[ $($(get_ansible_package_name) collection list |grep -e "${collection}") > /dev/null ]]
+}
+install_ansible_collection(){
+  local collection="${1}"
+  if is_installed_ansible_collection "${collection}"; then
+    debug "Collection ${collection} is already installed"
+  else
+    local ansible_galaxy_command
+    ansible_galaxy_command="$(get_ansible_galaxy_command)"
+    debug "Installing ansible collection ${collection}"
+    run_command "${ansible_galaxy_command} collection install ${collection}"
+  fi
+}
+
+get_ansible_package_name() {
+  if [[ "$(get_centos_major_release)" == "7" ]]; then
+    echo "ansible-python3"
+  else
+    echo "ansible"
+  fi
+}
+
 
 is_detected_license_edition_type_commercial() {
-  local license_ip="$(detected_license_ip)"
+  local license_edition_type
+  local license_ip
+  license_ip="$(detected_license_ip)"
   local license_key="${VARS['license_key']}"
-  local license_edition_type=$(detected_license_edition_type "${license_ip}" "${license_key}")
+  license_edition_type=$(detected_license_edition_type "${license_ip}" "${license_key}")
   [[ "${license_edition_type}" == "${LICENSE_EDITION_TYPE_COMMERCIAL}" ]]
 }
 
@@ -2004,7 +2061,8 @@ MIN_RAM_SIZE_MB=1500
 assert_has_enough_ram(){
   debug "Checking RAM size"
 
-  local current_ram_size_mb=$(get_ram_size_mb)
+  local current_ram_size_mb
+  current_ram_size_mb=$(get_ram_size_mb)
   if [[ "$current_ram_size_mb" -lt "$MIN_RAM_SIZE_MB" ]]; then
     debug "RAM size ${current_ram_size_mb}mb is less than ${MIN_RAM_SIZE_MB}mb, raising error"
     fail "$(translate errors.not_enough_ram)"
@@ -2017,7 +2075,8 @@ MIN_FREE_DISK_SPACE_MB=2048
 assert_has_enough_free_disk_space(){
   debug "Checking free disk spice"
 
-  local current_free_disk_space_mb=$(get_free_disk_space_mb)
+  local current_free_disk_space_mb
+  current_free_disk_space_mb=$(get_free_disk_space_mb)
   if [[ "${current_free_disk_space_mb}" -lt "${MIN_FREE_DISK_SPACE_MB}" ]]; then
     debug "Free disk space ${current_free_disk_space_mb}mb is less than ${MIN_FREE_DISK_SPACE_MB}mb, raising error"
     fail "$(translate errors.not_enough_free_disk_space)"
@@ -2166,6 +2225,11 @@ parse_line_from_inventory_file(){
   local line="${1}"
   IFS="=" read var_name value <<< "$line"
   if [[ "$var_name" != "db_restore_path" ]] && [[ "$var_name" != "without_key" ]]; then
+    if [[ "${value}" =~ ^'.*'$ ]]; then
+      value_without_quotes="${value:1:-1}" 
+      debug "# '$var_name': removed quotes ${value} -> ${value_without_quotes}"
+      value="${value_without_quotes}"
+    fi
     if empty "${VARS[$var_name]}"; then
       VARS[$var_name]=$value
       debug "# read '$var_name' from inventory"
@@ -2184,7 +2248,8 @@ stage3(){
 }
 
 get_ssh_port(){
-  local ssh_port=$(echo "${SSH_CLIENT}" | cut -d' ' -f 3)
+  local ssh_port
+  ssh_port=$(echo "${SSH_CLIENT}" | cut -d' ' -f 3)
   if empty "${ssh_port}"; then
     ssh_port="22"
   fi
@@ -2200,7 +2265,7 @@ write_inventory_file(){
   print_line_to_inventory_file
   print_line_to_inventory_file "[server:vars]"
   print_line_to_inventory_file "license_ip=$(detected_license_ip)"
-  print_line_to_inventory_file "license_key=${VARS['license_key']}"
+  print_line_to_inventory_file "license_key='${VARS['license_key']}'"
   print_line_to_inventory_file "db_root_password=${VARS['db_root_password']}"
   print_line_to_inventory_file "db_name=${VARS['db_name']}"
   print_line_to_inventory_file "db_user=${VARS['db_user']}"
@@ -2223,7 +2288,8 @@ write_inventory_file(){
     print_line_to_inventory_file "db_restore_path=${VARS['db_restore_path']}"
     print_line_to_inventory_file "db_restore_salt=${VARS['db_restore_salt']}"
   fi
-  local current_ram_size_mb="$(get_ram_size_mb)"
+  local current_ram_size_mb
+  current_ram_size_mb="$(get_ram_size_mb)"
   if is_ram_size_mb_changed; then
      local previous_ram_size_mb="${VARS['previous_ram_size_mb']:-${VARS['ram_size_mb']}}"
      print_line_to_inventory_file "previous_ram_size_mb=${previous_ram_size_mb}"
@@ -2307,62 +2373,28 @@ stage4(){
   write_inventory_file
 }
 
+upgrade_packages() {
+  if empty "$WITHOUTH_YUM_UPDATE"; then
+    debug "Upgrading packages"
+    run_command "yum update -y"
+  fi
+}
+
+install_packages(){
+  install_package file
+  install_package tar
+  install_package epel-release
+  install_package "$(get_ansible_package_name)"
+  install_ansible_collection "community.mysql"
+  install_ansible_collection "containers.podman"
+}
+
 stage5(){
   debug "Starting stage 5: upgrade current and install necessary packages"
   upgrade_packages
   install_packages
 }
 
-upgrade_packages(){
-  if empty "$WITHOUTH_YUM_UPDATE"; then
-    debug "Upgrading packages"
-    if [[ "$(get_centos_major_release)" == "7" ]]; then
-      run_command "yum update -x MariaDB-* -y"
-    else
-      run_command "yum update -x MariaDB-* -y --nobest"
-    fi
-  fi
-}
-
-install_packages(){
-  if ! is_package_installed file; then
-    install_package file
-  fi
-  if ! is_package_installed tar; then
-    install_package tar
-  fi
-  if ! is_package_installed epel-release; then
-    install_package epel-release
-  fi
-  if ! is_package_installed "$(get_ansible_package_name)"; then
-    install_package "$(get_ansible_package_name)"
-  fi
-  install_galaxy_collection "community.mysql"
-  install_galaxy_collection "containers.podman"
-}
-
-get_ansible_package_name() {
-  if [[ "$(get_centos_major_release)" == "7" ]]; then
-    echo "ansible-python3"
-  else
-    echo "ansible"
-  fi
-}
-
-get_ansible_galaxy_command() {
-  if [[ "$(get_centos_major_release)" == "7" ]]; then
-    echo "ansible-galaxy-3"
-  else
-    echo "ansible-galaxy"
-  fi
-}
-
-install_galaxy_collection(){
-  local collection="${1}"
-  local command="$(get_ansible_galaxy_command) collection install ${collection}"
-  debug "Installing ansible collection ${collection}"
-  run_command "${command}"
-}
 
 download_provision(){
   debug "Download provision"
@@ -2424,7 +2456,8 @@ json2dict() {
     local SPACE='[[:space:]]+'
 
     # Force zsh to expand $A into multiple words
-    local is_wordsplit_disabled=$(unsetopt 2>/dev/null | grep -c '^shwordsplit$')
+    local is_wordsplit_disabled
+    is_wordsplit_disabled=$(unsetopt 2>/dev/null | grep -c '^shwordsplit$')
     if [ "$is_wordsplit_disabled" != 0 ]; then setopt shwordsplit; fi
     $GREP "$STRING|$NUMBER|$KEYWORD|$SPACE|." | grep -v -E "^$SPACE$"
     if [ "$is_wordsplit_disabled" != 0 ]; then unsetopt shwordsplit; fi
@@ -2573,7 +2606,8 @@ run_ansible_playbook(){
     env="${env} TABLES_PREFIX='$(cat "${DETECTED_PREFIX_PATH}" | head -n1)'"
     rm -f "${DETECTED_PREFIX_PATH}"
   fi
-  local command="${env} $(get_ansible_playbook_command) -vvv -i ${INVENTORY_PATH} ${PLAYBOOK_DIRECTORY}/playbook.yml"
+  local command
+  command="${env} $(get_ansible_playbook_command) -vvv -i ${INVENTORY_PATH} ${PLAYBOOK_DIRECTORY}/playbook.yml"
   if isset "$ANSIBLE_TAGS"; then
     command="${command} --tags ${ANSIBLE_TAGS}"
   fi
@@ -2683,7 +2717,7 @@ print_field_content(){
     echo "${field_caption} is empty"
   else
     echo "${field_caption}:"
-    echo -e "${field_content}" | fold -s -w $((${COLUMNS:-80} - ${INDENTATION_LENGTH})) | add_indentation
+    echo -e "${field_content}" | fold -s -w $((${COLUMNS:-80} - INDENTATION_LENGTH)) | add_indentation
   fi
 }
 
@@ -2771,7 +2805,7 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['tune-swap']='2.27.7'
   ['install-php']='2.28.5'
   ['install-roadrunner']='2.20.4'
-  ['tune-php']='2.28.5'
+  ['tune-php']='2.29.10'
   ['tune-roadrunner']='2.27.7'
   ['install-mariadb']='1.17'
   ['tune-mariadb']='2.29.8'
@@ -2786,7 +2820,8 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
 expand_ansible_tags_on_upgrade() {
   if is_upgrade_mode_set; then
     debug "Upgrade mode detected, expading ansible tags."
-    local installed_version=$(get_installed_version_on_upgrade)
+    local installed_version
+    installed_version=$(get_installed_version_on_upgrade)
     debug "Upgrading ${installed_version} -> ${RELEASE_VERSION}"
     expand_ansible_tags_on_full_upgrade
     expand_ansible_tags_with_tune_tag
@@ -2864,9 +2899,7 @@ install(){
     assert_keitaro_not_installed
     stage4                  # get and save vars to the inventory file
   fi
-  if isset "${VARS['without_key']}"; then
-     translate 'messages.installation_without_key'
-  else
+  if empty "${VARS['without_key']}"; then
     ensure_license_valid
   fi
   stage5                    # upgrade packages and install ansible

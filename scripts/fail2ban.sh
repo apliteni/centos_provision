@@ -50,7 +50,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.29.11'
+RELEASE_VERSION='2.29.12'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -102,21 +102,17 @@ CERTBOT_PREFERRED_CHAIN="ISRG Root X1"
 INDENTATION_LENGTH=2
 INDENTATION_SPACES=$(printf "%${INDENTATION_LENGTH}s")
 
-if [[ "${TOOL_NAME}" == "install" ]]; then
+TOOL_ARGS="${*}"
+
+if empty "${KCTL_COMMAND}"  && [ "${TOOL_NAME}" = "install" ]; then
   SCRIPT_URL="${KEITARO_URL}/${TOOL_NAME}.sh"
-  if ! empty ${@}; then
-    SCRIPT_COMMAND="curl -fsSL "$SCRIPT_URL" > run; bash run ${@}"
-    TOOL_ARGS="${@}"
-  else
-    SCRIPT_COMMAND="curl -fsSL "$SCRIPT_URL" > run; bash run"
-  fi
+  SCRIPT_COMMAND="curl -fsSL "$SCRIPT_URL" | bash -s -- ${TOOL_ARGS}"
+elif empty "${KCTL_COMMAND}" && [ "${TOOL_NAME}" = "kctl" ]; then
+  SCRIPT_COMMAND="kctl ${TOOL_ARGS}"
+elif empty "${KCTL_COMMAND}"; then
+  SCRIPT_COMMAND="kctl-${TOOL_NAME} ${TOOL_ARGS}"
 else
-  if ! empty ${@}; then
-    SCRIPT_COMMAND="${SCRIPT_NAME} ${@}"
-    TOOL_ARGS="${@}"
-  else
-    SCRIPT_COMMAND="${SCRIPT_NAME}"
-  fi
+  SCRIPT_COMMAND="${KCTL_COMMAND} ${TOOL_ARGS}"
 fi
 
 debug() {

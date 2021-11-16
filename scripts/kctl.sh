@@ -290,7 +290,8 @@ get_ui_lang(){
 
 translate(){
   local key="${1}"
-  local i18n_key=$(get_ui_lang).$key
+  local i18n_key
+  i18n_key=$(get_ui_lang).$key
   message="${DICT[$i18n_key]}"
   while isset "${2}"; do
     message=$(interpolate "${message}" "${2}")
@@ -778,8 +779,10 @@ really_run_command(){
   local run_as="${4}"
   local print_fail_message_method="${5}"
   local output_log="${6}"
-  local current_command_script=$(save_command_script "${command}" "${run_as}")
-  local evaluated_command=$(command_run_as "${current_command_script}" "${run_as}")
+  local evaluated_command
+  local current_command_script
+  current_command_script=$(save_command_script "${command}" "${run_as}")
+  evaluated_command=$(command_run_as "${current_command_script}" "${run_as}")
   evaluated_command=$(unbuffer_streams "${evaluated_command}")
   evaluated_command=$(save_command_logs "${evaluated_command}" "${output_log}")
   evaluated_command=$(hide_command_output "${evaluated_command}" "${hide_output}")
@@ -853,7 +856,8 @@ hide_command_output(){
 save_command_script(){
   local command="${1}"
   local run_as="${2}"
-  local current_command_dir=$(mktemp -d)
+  local current_command_dir
+    current_command_dir=$(mktemp -d)
   if isset "$run_as"; then
     chown "$run_as" "$current_command_dir"
   fi
@@ -874,8 +878,10 @@ print_current_command_fail_message(){
   if empty "$print_fail_message_method"; then
     print_fail_message_method="print_common_fail_message"
   fi
-  local fail_message_header=$(translate 'errors.run_command.fail')
-  local fail_message=$(eval "$print_fail_message_method" "$current_command_script")
+  local fail_message
+  local fail_message_header
+  fail_message_header=$(translate 'errors.run_command.fail')
+  fail_message=$(eval "$print_fail_message_method" "$current_command_script")
   echo -e "${fail_message_header}\n${fail_message}"
 }
 
@@ -935,7 +941,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.29.11'
+RELEASE_VERSION='2.29.12'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -987,21 +993,17 @@ CERTBOT_PREFERRED_CHAIN="ISRG Root X1"
 INDENTATION_LENGTH=2
 INDENTATION_SPACES=$(printf "%${INDENTATION_LENGTH}s")
 
-if [[ "${TOOL_NAME}" == "install" ]]; then
+TOOL_ARGS="${*}"
+
+if empty "${KCTL_COMMAND}"  && [ "${TOOL_NAME}" = "install" ]; then
   SCRIPT_URL="${KEITARO_URL}/${TOOL_NAME}.sh"
-  if ! empty ${@}; then
-    SCRIPT_COMMAND="curl -fsSL "$SCRIPT_URL" > run; bash run ${@}"
-    TOOL_ARGS="${@}"
-  else
-    SCRIPT_COMMAND="curl -fsSL "$SCRIPT_URL" > run; bash run"
-  fi
+  SCRIPT_COMMAND="curl -fsSL "$SCRIPT_URL" | bash -s -- ${TOOL_ARGS}"
+elif empty "${KCTL_COMMAND}" && [ "${TOOL_NAME}" = "kctl" ]; then
+  SCRIPT_COMMAND="kctl ${TOOL_ARGS}"
+elif empty "${KCTL_COMMAND}"; then
+  SCRIPT_COMMAND="kctl-${TOOL_NAME} ${TOOL_ARGS}"
 else
-  if ! empty ${@}; then
-    SCRIPT_COMMAND="${SCRIPT_NAME} ${@}"
-    TOOL_ARGS="${@}"
-  else
-    SCRIPT_COMMAND="${SCRIPT_NAME}"
-  fi
+  SCRIPT_COMMAND="${KCTL_COMMAND} ${TOOL_ARGS}"
 fi
 declare -A DICT
 
@@ -1145,7 +1147,7 @@ kctl_install() {
   local extra_options=${3}
   local log_file_path="${KCTL_LOG_DIR}/${log_file_name}"
   debug "Run command: curl -fsSL4 '${KEITARO_URL}/install.sh' | bash -s -- -rt '${tags}'  -o '${log_file_path}'"
-  curl -fsSL4 "${KEITARO_URL}/install.sh" | bash -s -- -rt "${tags}"  -o "${log_file_path}" "${extra_options}"
+  curl -fsSL4 "${KEITARO_URL}/install.sh" | KCTL_COMMAND="${SCRIPT_COMMAND}" bash -s -- -rt "${tags}"  -o "${log_file_path}" "${extra_options}"
 }
 kctl_renew_certificates() {
   local successfully_renewed_flag_filepath="/var/lib/letsencrypt/.renewed"
@@ -1197,13 +1199,13 @@ declare -A DICT
 
 DICT['en.errors.rollback_version_is_empty']='Rollback version not specified'
 DICT['en.errors.rollback_version_is_incorrect']="Version can't be less than ${MIN_ROLLBACK_VERSION}"
-DICT['en.errors.see_logs']="Evaluating log saved to ${LOG_PATH}. Please rerun ${TOOL_NAME} ${@} after resolving problems."
+DICT['en.errors.see_logs']="Evaluating log saved to ${LOG_PATH}. Please rerun ${TOOL_NAME} ${*} after resolving problems."
 DICT['en.errors.invalid_options']="Invalid option ${1}. Try 'kctl help' for more information."
 
 
 DICT['ru.errors.rollback_version_is_empty']='Не указана версия для отката'
 DICT['ru.errors.rollback_version_is_incorrect']="Версия не может быть ниже ${MIN_ROLLBACK_VERSION}"
-DICT['ru.errors.see_logs']="Журнал выполнения сохранён в ${LOG_PATH}. Пожалуйста запустите ${TOOL_NAME} ${@} после устранения возникших проблем."
+DICT['ru.errors.see_logs']="Журнал выполнения сохранён в ${LOG_PATH}. Пожалуйста запустите ${TOOL_NAME} ${*} после устранения возникших проблем."
 DICT['ru.errors.invalid_options']="Неправильный параметр ${1}. Используйте 'kctl help' чтобы узнать подробнее"
 
 on_exit(){
@@ -1252,18 +1254,24 @@ AS_VERSION__REGEX="(${AS_VERSION__PART_REGEX}\.){1,${AS_VERSION__PARTS_TO_KEEP}}
 as_version() {
   local version_string="${1}"
   # Expand version string by adding `.` to the end to simplify logic
-  local expanded_version_string="${version_string}."
-  if [[ ${expanded_version_string} =~ ^${AS_VERSION__REGEX}$ ]]; then
-
-    echo "${expanded_version_string//./ }"|xargs printf '1%03d%03d%03d%03d'
-  else
-    printf "1%03d%03d%03d%03d" ''
+  local major_part='0'
+  local minor_part='0'
+  local patch_part='0'
+  local additional_part='0'
+  if [[ "${version_string}." =~ ^${AS_VERSION__REGEX}$ ]]; then
+    IFS='.' read -r -a parts <<< "${version_string}"
+    major_part="${parts[0]:-${major_part}}"
+    minor_part="${parts[1]:-${minor_part}}"
+    patch_part="${parts[2]:-${patch_part}}"
+    additional_part="${parts[3]:-${additional_part}}"
   fi
+  printf '1%03d%03d%03d%03d' "${major_part}" "${minor_part}" "${patch_part}" "${additional_part}"
 }
 
 as_minor_version() {
   local version_string="${1}"
-  local version_number=$(as_version "${version_string}")
+  local version_number
+  version_number=$(as_version "${version_string}")
   local meaningful_version_length=$(( 1 + 2*AS_VERSION__MAX_DIGITS_PER_PART ))
   local zeroes_length=$(( 1 + AS_VERSION__PARTS_TO_KEEP * AS_VERSION__MAX_DIGITS_PER_PART - meaningful_version_length ))
   local meaningful_version=${version_number:0:${meaningful_version_length}}

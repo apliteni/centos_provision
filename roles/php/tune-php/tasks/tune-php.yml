@@ -21,3 +21,10 @@
   copy:
     content: "extension={{ source_guardian_extension_name }}\n"
     dest: /etc/php/php.d/01-sourceguardian_loader.ini
+
+- name: Change dirrectory owner
+  file:
+    dest: "/var/opt/remi/{{ php_version }}/log/php-fpm/"
+    owner: "{{ keitaro_user }}"
+    group: "{{ keitaro_group }}"
+    recurse: yes

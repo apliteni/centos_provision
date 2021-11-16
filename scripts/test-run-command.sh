@@ -54,7 +54,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.29.11'
+RELEASE_VERSION='2.29.12'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -106,21 +106,17 @@ CERTBOT_PREFERRED_CHAIN="ISRG Root X1"
 INDENTATION_LENGTH=2
 INDENTATION_SPACES=$(printf "%${INDENTATION_LENGTH}s")
 
-if [[ "${TOOL_NAME}" == "install" ]]; then
+TOOL_ARGS="${*}"
+
+if empty "${KCTL_COMMAND}"  && [ "${TOOL_NAME}" = "install" ]; then
   SCRIPT_URL="${KEITARO_URL}/${TOOL_NAME}.sh"
-  if ! empty ${@}; then
-    SCRIPT_COMMAND="curl -fsSL "$SCRIPT_URL" > run; bash run ${@}"
-    TOOL_ARGS="${@}"
-  else
-    SCRIPT_COMMAND="curl -fsSL "$SCRIPT_URL" > run; bash run"
-  fi
+  SCRIPT_COMMAND="curl -fsSL "$SCRIPT_URL" | bash -s -- ${TOOL_ARGS}"
+elif empty "${KCTL_COMMAND}" && [ "${TOOL_NAME}" = "kctl" ]; then
+  SCRIPT_COMMAND="kctl ${TOOL_ARGS}"
+elif empty "${KCTL_COMMAND}"; then
+  SCRIPT_COMMAND="kctl-${TOOL_NAME} ${TOOL_ARGS}"
 else
-  if ! empty ${@}; then
-    SCRIPT_COMMAND="${SCRIPT_NAME} ${@}"
-    TOOL_ARGS="${@}"
-  else
-    SCRIPT_COMMAND="${SCRIPT_NAME}"
-  fi
+  SCRIPT_COMMAND="${KCTL_COMMAND} ${TOOL_ARGS}"
 fi
 declare -A DICT
 
@@ -232,7 +228,8 @@ get_ui_lang(){
 
 translate(){
   local key="${1}"
-  local i18n_key=$(get_ui_lang).$key
+  local i18n_key
+  i18n_key=$(get_ui_lang).$key
   message="${DICT[$i18n_key]}"
   while isset "${2}"; do
     message=$(interpolate "${message}" "${2}")
@@ -520,8 +517,10 @@ really_run_command(){
   local run_as="${4}"
   local print_fail_message_method="${5}"
   local output_log="${6}"
-  local current_command_script=$(save_command_script "${command}" "${run_as}")
-  local evaluated_command=$(command_run_as "${current_command_script}" "${run_as}")
+  local evaluated_command
+  local current_command_script
+  current_command_script=$(save_command_script "${command}" "${run_as}")
+  evaluated_command=$(command_run_as "${current_command_script}" "${run_as}")
   evaluated_command=$(unbuffer_streams "${evaluated_command}")
   evaluated_command=$(save_command_logs "${evaluated_command}" "${output_log}")
   evaluated_command=$(hide_command_output "${evaluated_command}" "${hide_output}")
@@ -595,7 +594,8 @@ hide_command_output(){
 save_command_script(){
   local command="${1}"
   local run_as="${2}"
-  local current_command_dir=$(mktemp -d)
+  local current_command_dir
+    current_command_dir=$(mktemp -d)
   if isset "$run_as"; then
     chown "$run_as" "$current_command_dir"
   fi
@@ -616,8 +616,10 @@ print_current_command_fail_message(){
   if empty "$print_fail_message_method"; then
     print_fail_message_method="print_common_fail_message"
   fi
-  local fail_message_header=$(translate 'errors.run_command.fail')
-  local fail_message=$(eval "$print_fail_message_method" "$current_command_script")
+  local fail_message
+  local fail_message_header
+  fail_message_header=$(translate 'errors.run_command.fail')
+  fail_message=$(eval "$print_fail_message_method" "$current_command_script")
   echo -e "${fail_message_header}\n${fail_message}"
 }
 
@@ -705,7 +707,8 @@ json2dict() {
     local SPACE='[[:space:]]+'
 
     # Force zsh to expand $A into multiple words
-    local is_wordsplit_disabled=$(unsetopt 2>/dev/null | grep -c '^shwordsplit$')
+    local is_wordsplit_disabled
+    is_wordsplit_disabled=$(unsetopt 2>/dev/null | grep -c '^shwordsplit$')
     if [ "$is_wordsplit_disabled" != 0 ]; then setopt shwordsplit; fi
     $GREP "$STRING|$NUMBER|$KEYWORD|$SPACE|." | grep -v -E "^$SPACE$"
     if [ "$is_wordsplit_disabled" != 0 ]; then unsetopt shwordsplit; fi
@@ -835,7 +838,8 @@ run_ansible_playbook(){
     env="${env} TABLES_PREFIX='$(cat "${DETECTED_PREFIX_PATH}" | head -n1)'"
     rm -f "${DETECTED_PREFIX_PATH}"
   fi
-  local command="${env} $(get_ansible_playbook_command) -vvv -i ${INVENTORY_PATH} ${PLAYBOOK_DIRECTORY}/playbook.yml"
+  local command
+  command="${env} $(get_ansible_playbook_command) -vvv -i ${INVENTORY_PATH} ${PLAYBOOK_DIRECTORY}/playbook.yml"
   if isset "$ANSIBLE_TAGS"; then
     command="${command} --tags ${ANSIBLE_TAGS}"
   fi
@@ -945,7 +949,7 @@ print_field_content(){
     echo "${field_caption} is empty"
   else
     echo "${field_caption}:"
-    echo -e "${field_content}" | fold -s -w $((${COLUMNS:-80} - ${INDENTATION_LENGTH})) | add_indentation
+    echo -e "${field_content}" | fold -s -w $((${COLUMNS:-80} - INDENTATION_LENGTH)) | add_indentation
   fi
 }
 
