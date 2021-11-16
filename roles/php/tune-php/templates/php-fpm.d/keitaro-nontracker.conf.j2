@@ -16,4 +16,5 @@ pm.max_requests = {{ php_fpm_worker_max_requests }}
 pm.status_path = /status-nontracker
 
 php_admin_value[error_log] = /var/log/php-fpm/keitaro-nontracker-error.log
+php_admin_value[error_reporting] = {{ php_logging_level }}
 php_admin_flag[log_errors] = on

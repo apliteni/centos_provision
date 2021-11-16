@@ -68,7 +68,8 @@ define_dump_path() {
 }
 
 ensure_nobody_is_using_database() {
-  local parallel_processes_list=$(mysql --host="$mysql_host" --execute='SELECT * FROM INFORMATION_SCHEMA.PROCESSLIST WHERE COMMAND = "Query" AND DB = "keitaro"';)
+  local parallel_processes_list
+  parallel_processes_list=$(mysql --host="$mysql_host" --execute='SELECT * FROM INFORMATION_SCHEMA.PROCESSLIST WHERE COMMAND = "Query" AND DB = "keitaro"';)
   if [[ $parallel_processes_list ]]; then
     echo "Database Keitaro used by another process"
     exit 1
