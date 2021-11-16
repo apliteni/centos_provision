@@ -54,7 +54,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.29.12'
+RELEASE_VERSION='2.29.13'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -1749,21 +1749,11 @@ get_ansible_galaxy_command() {
     echo "ansible-galaxy"
   fi
 }
-is_installed_ansible_collection() {
-  local collection="${1}"
-  debug "Collection to check"
-  [[ $($(get_ansible_package_name) collection list |grep -e "${collection}") > /dev/null ]]
-}
 install_ansible_collection(){
   local collection="${1}"
-  if is_installed_ansible_collection "${collection}"; then
-    debug "Collection ${collection} is already installed"
-  else
-    local ansible_galaxy_command
-    ansible_galaxy_command="$(get_ansible_galaxy_command)"
-    debug "Installing ansible collection ${collection}"
-    run_command "${ansible_galaxy_command} collection install ${collection}"
-  fi
+  ansible_galaxy_command="$(get_ansible_galaxy_command)"
+  debug "Installing ansible collection ${collection}"
+  run_command "${ansible_galaxy_command} collection install ${collection}"
 }
 
 get_ansible_package_name() {
