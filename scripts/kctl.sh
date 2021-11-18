@@ -330,7 +330,6 @@ force_utf8_input(){
   fi
 }
 
-
 get_user_var(){
   local var_name="${1}"
   local validation_methods="${2}"
@@ -941,7 +940,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.29.13'
+RELEASE_VERSION='2.29.14'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"

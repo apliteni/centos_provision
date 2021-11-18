@@ -53,7 +53,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.29.13'
+RELEASE_VERSION='2.29.14'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -529,7 +529,6 @@ force_utf8_input(){
     stty -F /proc/$$/fd/1 iutf8
   fi
 }
-
 
 get_user_var(){
   local var_name="${1}"
@@ -1384,11 +1383,6 @@ stage3(){
   debug "Starting stage 3: get user vars"
   get_user_vars
 }
-#
-
-
-
-
 
 get_user_vars(){
   debug 'Read vars from user input'
