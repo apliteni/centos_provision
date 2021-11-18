@@ -54,7 +54,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.29.13'
+RELEASE_VERSION='2.29.14'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -573,7 +573,6 @@ force_utf8_input(){
     stty -F /proc/$$/fd/1 iutf8
   fi
 }
-
 
 get_user_var(){
   local var_name="${1}"
@@ -1774,12 +1773,6 @@ is_detected_license_edition_type_commercial() {
   [[ "${license_edition_type}" == "${LICENSE_EDITION_TYPE_COMMERCIAL}" ]]
 }
 
-is_ram_size_mb_changed() {
-  ( isset "${VARS['previous_ram_size_mb']}" && [[ "${VARS['previous_ram_size_mb']}" != "${VARS['ram_size_mb']}" ]] ) \
-      || ( isset "${VARS['ram_size_mb']}" && [[ "${VARS['ram_size_mb']}" != "$(get_ram_size_mb)" ]] )
-}
-
-
 get_var_from_config(){
   local var="${1}"
   local file="${2}"
@@ -1793,17 +1786,13 @@ get_var_from_config(){
     sed -r -e "s/^'(.*)'\$/\\1/g" -e 's/^"(.*)"$/\1/g'
   }
 
-DETECTED_RAM_SIZE_MB=""
+get_free_disk_space_mb() {
+  (df -m | grep -e "/$" | awk '{print$4}') 2>/dev/null
+}
 
-get_ram_size_mb() {
-  if empty "${DETECTED_RAM_SIZE_MB}"; then
-    if is_ci_mode; then
-      DETECTED_RAM_SIZE_MB=2048
-    else
-      DETECTED_RAM_SIZE_MB=$((free -m | grep Mem: | awk '{print $2}') 2>/dev/null)
-    fi
-  fi
-  echo "${DETECTED_RAM_SIZE_MB}"
+is_ram_size_mb_changed() {
+  ( isset "${VARS['previous_ram_size_mb']}" && [[ "${VARS['previous_ram_size_mb']}" != "${VARS['ram_size_mb']}" ]] ) \
+      || ( isset "${VARS['ram_size_mb']}" && [[ "${VARS['ram_size_mb']}" != "$(get_ram_size_mb)" ]] )
 }
 
 
@@ -1870,9 +1859,19 @@ get_var_from_keitaro_app_config() {
   get_var_from_config "${var}" "${WEBAPP_ROOT}/application/config/config.ini.php" '='
 }
 
-get_free_disk_space_mb() {
-  (df -m | grep -e "/$" | awk '{print$4}') 2>/dev/null
+DETECTED_RAM_SIZE_MB=""
+
+get_ram_size_mb() {
+  if empty "${DETECTED_RAM_SIZE_MB}"; then
+    if is_ci_mode; then
+      DETECTED_RAM_SIZE_MB=2048
+    else
+      DETECTED_RAM_SIZE_MB=$((free -m | grep Mem: | awk '{print $2}') 2>/dev/null)
+    fi
+  fi
+  echo "${DETECTED_RAM_SIZE_MB}"
 }
+
 
 
 
@@ -2025,26 +2024,38 @@ stage1() {
   set_ui_lang
 }
 
-
-assert_not_running_under_openvz() {
-  debug "Assert we are not running under OpenVZ"
+assert_pannels_not_installed(){
   if isset "$SKIP_CHECKS"; then
-    debug "Detected test mode, skip OpenVZ checks"
-    return
-  fi
-
-  virtualization_type="$(hostnamectl status | grep Virtualization | awk '{print $2}')"
-  debug "Detected virtualization type: '${virtualization_type}'"
-  if isset "${virtualization_type}" && [[ "${virtualization_type}" == "openvz" ]]; then
-    fail "Servers with OpenVZ virtualization are not supported"
+    debug "SKIPPED: actual checking of panels skipped"
+  else
+    if is_installed mysql; then
+      assert_isp_manager_not_installed
+      assert_vesta_cp_not_installed
+    fi
   fi
 }
 
-assert_centos_distro(){
-  assert_installed 'yum' 'errors.wrong_distro'
-  if ! is_file_existing /etc/centos-release; then
-    fail "$(translate errors.wrong_distro)" "see_logs"
+
+assert_isp_manager_not_installed(){
+  if is_database_exists roundcube; then
+    debug "ISP Manager database detected"
+    fail "$(translate errors.isp_manager_installed)"
   fi
+}
+
+
+assert_vesta_cp_not_installed(){
+  if is_database_exists admin_default; then
+    debug "Vesta CP database detected"
+    fail "$(translate errors.vesta_cp_installed)"
+  fi
+}
+
+
+is_database_exists(){
+  local database="${1}"
+  debug "Check if database ${database} exists"
+  mysql -Nse 'show databases' 2>/dev/null | tr '\n' ' ' | grep -Pq "${database}"
 }
 MIN_RAM_SIZE_MB=1500
 
@@ -2058,6 +2069,28 @@ assert_has_enough_ram(){
     fail "$(translate errors.not_enough_ram)"
   else
     debug "RAM size ${current_ram_size_mb}mb is greater than ${MIN_RAM_SIZE_MB}mb, continuing"
+  fi
+}
+
+assert_centos_distro(){
+  assert_installed 'yum' 'errors.wrong_distro'
+  if ! is_file_existing /etc/centos-release; then
+    fail "$(translate errors.wrong_distro)" "see_logs"
+  fi
+}
+#
+
+
+
+
+
+assert_apache_not_installed(){
+  if isset "$SKIP_CHECKS"; then
+    debug "SKIPPED: actual checking of httpd skipped"
+  else
+    if is_installed httpd; then
+      fail "$(translate errors.apache_installed)"
+    fi
   fi
 }
 MIN_FREE_DISK_SPACE_MB=2048
@@ -2101,52 +2134,18 @@ are_thp_sys_files_existing() {
   is_file_existing "/sys/kernel/mm/transparent_hugepage/enabled" && is_file_existing "/sys/kernel/mm/transparent_hugepage/defrag"
 }
 
-assert_pannels_not_installed(){
+
+assert_not_running_under_openvz() {
+  debug "Assert we are not running under OpenVZ"
   if isset "$SKIP_CHECKS"; then
-    debug "SKIPPED: actual checking of panels skipped"
-  else
-    if is_installed mysql; then
-      assert_isp_manager_not_installed
-      assert_vesta_cp_not_installed
-    fi
+    debug "Detected test mode, skip OpenVZ checks"
+    return
   fi
-}
 
-
-assert_isp_manager_not_installed(){
-  if is_database_exists roundcube; then
-    debug "ISP Manager database detected"
-    fail "$(translate errors.isp_manager_installed)"
-  fi
-}
-
-
-assert_vesta_cp_not_installed(){
-  if is_database_exists admin_default; then
-    debug "Vesta CP database detected"
-    fail "$(translate errors.vesta_cp_installed)"
-  fi
-}
-
-
-is_database_exists(){
-  local database="${1}"
-  debug "Check if database ${database} exists"
-  mysql -Nse 'show databases' 2>/dev/null | tr '\n' ' ' | grep -Pq "${database}"
-}
-#
-
-
-
-
-
-assert_apache_not_installed(){
-  if isset "$SKIP_CHECKS"; then
-    debug "SKIPPED: actual checking of httpd skipped"
-  else
-    if is_installed httpd; then
-      fail "$(translate errors.apache_installed)"
-    fi
+  virtualization_type="$(hostnamectl status | grep Virtualization | awk '{print $2}')"
+  debug "Detected virtualization type: '${virtualization_type}'"
+  if isset "${virtualization_type}" && [[ "${virtualization_type}" == "openvz" ]]; then
+    fail "Servers with OpenVZ virtualization are not supported"
   fi
 }
 
@@ -2160,6 +2159,44 @@ stage2(){
   assert_not_running_under_openvz
   assert_pannels_not_installed
   assert_thp_deactivatable
+}
+
+read_inventory(){
+  detect_inventory_path
+  if isset "${DETECTED_INVENTORY_PATH}"; then
+    parse_inventory "${DETECTED_INVENTORY_PATH}"
+  fi
+}
+
+parse_inventory() {
+  local file="${1}"
+  debug "Found inventory file ${file}, reading defaults from it"
+  while IFS="" read -r line; do
+    if [[ "$line" =~ = ]]; then
+      parse_line_from_inventory_file "$line"
+    fi
+  done < "${file}"
+}
+
+parse_line_from_inventory_file(){
+  local line="${1}"
+  local quoted_string_regex="^'.*'\$"
+  IFS="=" read var_name value <<< "$line"
+  if [[ "$var_name" != "db_restore_path" ]] && [[ "$var_name" != "without_key" ]]; then
+    if [[ "${value}" =~ ${quoted_string_regex} ]]; then
+      debug "# ${value} is quoted, removing quotes"
+      value_without_quotes="${value:1:-1}" 
+      debug "# $var_name: quotes removed - ${value} -> ${value_without_quotes}"
+      value="${value_without_quotes}"
+    fi
+    if empty "${VARS[$var_name]}"; then
+      VARS[$var_name]=$value
+      debug "# read '$var_name' from inventory"
+    else
+      debug "# $var_name is set from options, skip inventory value"
+    fi
+    debug "  $var_name=${VARS[$var_name]}"
+  fi
 }
 
 setup_vars(){
@@ -2192,42 +2229,6 @@ setup_default_value(){
 generate_password(){
   local PASSWORD_LENGTH=16
   LC_ALL=C tr -cd '[:alnum:]' < /dev/urandom | head -c${PASSWORD_LENGTH}
-}
-
-read_inventory(){
-  detect_inventory_path
-  if isset "${DETECTED_INVENTORY_PATH}"; then
-    parse_inventory "${DETECTED_INVENTORY_PATH}"
-  fi
-}
-
-parse_inventory(){
-  local file="${1}"
-  debug "Found inventory file ${file}, reading defaults from it"
-  while IFS="" read -r line; do
-    if [[ "$line" =~ = ]]; then
-      parse_line_from_inventory_file "$line"
-    fi
-  done < "${file}"
-}
-
-parse_line_from_inventory_file(){
-  local line="${1}"
-  IFS="=" read var_name value <<< "$line"
-  if [[ "$var_name" != "db_restore_path" ]] && [[ "$var_name" != "without_key" ]]; then
-    if [[ "${value}" =~ ^'.*'$ ]]; then
-      value_without_quotes="${value:1:-1}" 
-      debug "# '$var_name': removed quotes ${value} -> ${value_without_quotes}"
-      value="${value_without_quotes}"
-    fi
-    if empty "${VARS[$var_name]}"; then
-      VARS[$var_name]=$value
-      debug "# read '$var_name' from inventory"
-    else
-      debug "# $var_name is set from options, skip inventory value"
-    fi
-    debug "  $var_name=${VARS[$var_name]}"
-  fi
 }
 
 stage3(){
@@ -2328,7 +2329,6 @@ print_line_to_inventory_file() {
   echo "$line" >> "$INVENTORY_PATH"
 }
 
-
 get_user_vars(){
   debug 'Read vars from user input'
   hack_stdin_if_pipe_mode
@@ -2336,7 +2336,6 @@ get_user_vars(){
   get_user_var 'license_key' 'validate_presence validate_license_key_format validate_license_key_is_active validate_license'
   get_user_db_restore_vars
 }
-
 
 get_user_db_restore_vars(){
   if is_detected_license_edition_type_commercial; then
@@ -2363,13 +2362,6 @@ stage4(){
   write_inventory_file
 }
 
-upgrade_packages() {
-  if empty "$WITHOUTH_YUM_UPDATE"; then
-    debug "Upgrading packages"
-    run_command "yum update -y"
-  fi
-}
-
 install_packages(){
   install_package file
   install_package tar
@@ -2377,6 +2369,13 @@ install_packages(){
   install_package "$(get_ansible_package_name)"
   install_ansible_collection "community.mysql"
   install_ansible_collection "containers.podman"
+}
+
+upgrade_packages() {
+  if empty "$WITHOUTH_YUM_UPDATE"; then
+    debug "Upgrading packages"
+    run_command "yum update -y"
+  fi
 }
 
 stage5(){
