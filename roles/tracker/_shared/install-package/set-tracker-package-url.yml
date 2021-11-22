@@ -21,7 +21,7 @@
       block:
         - name: Get tracker stability
           community.mysql.mysql_query:
-            login_db: keitaro
+            login_db: "{{ db_name }}"
             query: "SELECT `value` FROM keitaro_settings WHERE `key` = 'is_beta_channel'"
           register: get_tracker_stability
           vars:
