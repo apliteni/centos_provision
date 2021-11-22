@@ -10,7 +10,7 @@
 
 - name: Check keitaro shcema exist
   community.mysql.mysql_query:
-    login_db: keitaro
+    login_db: "{{ db_name }}"
     query: SELECT table_name FROM information_schema.tables WHERE table_schema = 'keitaro' AND table_name = 'keitaro_users';
   register: db_tracker_schema_exist_query
 
@@ -109,7 +109,7 @@
 
 - name: Check keitaro admin exist
   community.mysql.mysql_query:
-    login_db: keitaro
+    login_db: "{{ db_name }}"
     query: SELECT 1 FROM keitaro_users LIMIT 1
   register: db_tracker_users_exist_query
 
