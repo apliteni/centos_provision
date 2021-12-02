@@ -6,3 +6,4 @@
 *monitor*
 ci/
 scripts/src
+*.pyc
