@@ -1,9 +1,8 @@
-.keitaro
-*.retry
 .DS_Store
 .env
 .gitlab-ci.yml
-*monitor*
+.gitlab
 ci/
-scripts/src
+docs/
+scripts/
 *.pyc
