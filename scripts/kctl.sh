@@ -26,7 +26,7 @@ on() {
   shift;
   for sig in "$@";
   do
-      trap "$func $sig" "$sig";
+      trap '"$func" "$sig"' "$sig";
   done
 }
 
@@ -304,7 +304,7 @@ translate(){
 interpolate(){
   local string="${1}"
   local substitution="${2}"
-  IFS="=" read name value <<< "${substitution}"
+  IFS="=" read -r name value <<< "${substitution}"
   string="${string//:${name}:/${value}}"
   echo "${string}"
 }
@@ -628,7 +628,7 @@ init() {
   debug "Starting init stage: log basic info"
   debug "Command: ${SCRIPT_COMMAND}"
   debug "Script version: ${RELEASE_VERSION}"
-  debug "User ID: "$EUID""
+  debug "User ID: ${EUID}"
   debug "Current date time: $(date +'%Y-%m-%d %H:%M:%S %:z')"
   trap on_exit SIGHUP SIGINT SIGTERM
 }
@@ -910,7 +910,7 @@ remove_current_command(){
 start_or_reload_nginx(){
   if (is_file_existing "/run/nginx.pid" && [[ -s "/run/nginx.pid" ]]) || is_ci_mode; then
     debug "Nginx is started, reloading"
-    run_command "nginx -s reload" "$(translate 'messages.reloading_nginx')" 'hide_output'
+    run_command "systemctl reload nginx" "$(translate 'messages.reloading_nginx')" 'hide_output'
   else
     debug "Nginx is not running, starting"
     print_with_color "$(translate 'messages.nginx_is_not_running')" "yellow"
@@ -940,7 +940,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.29.15'
+RELEASE_VERSION='2.29.16'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -996,7 +996,7 @@ TOOL_ARGS="${*}"
 
 if empty "${KCTL_COMMAND}"  && [ "${TOOL_NAME}" = "install" ]; then
   SCRIPT_URL="${KEITARO_URL}/${TOOL_NAME}.sh"
-  SCRIPT_COMMAND="curl -fsSL "$SCRIPT_URL" | bash -s -- ${TOOL_ARGS}"
+  SCRIPT_COMMAND="curl -fsSL $SCRIPT_URL | bash -s -- ${TOOL_ARGS}"
 elif empty "${KCTL_COMMAND}" && [ "${TOOL_NAME}" = "kctl" ]; then
   SCRIPT_COMMAND="kctl ${TOOL_ARGS}"
 elif empty "${KCTL_COMMAND}"; then
@@ -1068,19 +1068,19 @@ MIN_ROLLBACK_VERSION='9.13.0'
 
 kctl_downgrade() {
   local rollback_version="${1}"
-  if empty "${rollback_version}"; then
-    fail "$(translate errors.rollback_version_is_empty)" "see_logs"
-  elif is_rollback_version_valid "${rollback_version}"; then
+  if is_rollback_version_valid "${rollback_version}"; then
+    kctl_install "upgrade,upgrade-tracker" "kctl-downgrade.log" "-a '${rollback_version}'"
+  else
+
     fail "$(translate errors.rollback_version_is_incorrect)"
   fi
 
-  kctl_install "upgrade,upgrade-tracker" "kctl-downgrade.log" "-a '${rollback_version}'"
 }
 
 is_rollback_version_valid() {
   local rollback_version="${1}"
-  [[ "${rollback_version}" == "lastest-stable" ]] ||
-     (( $(as_version "${rollback_version}") <  $(as_version "${MIN_ROLLBACK_VERSION}") ))
+  [[ "${rollback_version}" == "latest-stable" ]] ||
+     (( $(as_version "${rollback_version}") >=  $(as_version "${MIN_ROLLBACK_VERSION}") ))
 }
 
 PEM_SPLITTER="-----BEGIN CERTIFICATE-----"
@@ -1143,11 +1143,12 @@ remove_last_certificate_from_chain() {
 kctl_install() {
   local tags="${1}"
   local log_file_name="${2}"
-  local extra_options=${3}
+  local extra_options="${3}"
   local log_file_path="${KCTL_LOG_DIR}/${log_file_name}"
-  debug "Run command: curl -fsSL4 '${KEITARO_URL}/install.sh' | bash -s -- -rt '${tags}'  -o '${log_file_path}'"
+  debug "Run command: curl -fsSL4 '${KEITARO_URL}/install.sh' | bash -s -- -rt '${tags}'  -o '${log_file_path}' '${extra_options}'"
   curl -fsSL4 "${KEITARO_URL}/install.sh" | KCTL_COMMAND="${SCRIPT_COMMAND}" bash -s -- -rt "${tags}"  -o "${log_file_path}" "${extra_options}"
 }
+
 kctl_renew_certificates() {
   local successfully_renewed_flag_filepath="/var/lib/letsencrypt/.renewed"
   local renew_args="--allow-subset-of-names --renew-hook 'touch ${successfully_renewed_flag_filepath}'"
@@ -1160,14 +1161,16 @@ kctl_renew_certificates() {
   init_log "${log_path}"
 
   debug "Renewing certificates"
-  if run_command "${command}" "${message}" 'hide_output' 'allow_errors' > /dev/null; then
-    if is_file_existing "${successfully_renewed_flag_filepath}"; then
-      debug "Some certificates have been renewed. Removing flag file ${successfully_renewed_flag_filepath} and reloading nginx"
-      command="rm -f '${successfully_renewed_flag_filepath}' && systemctl reload nginx"
-      run_command "${command}" "" 'hide_output' > /dev/null
-    else
-      debug "Certificates have not been updated."
-    fi
+
+  run_command "${command}" "${message}" 'hide_output' 'allow_errors' || \
+    debug "Errors occurred while renewing some certificates. certbot exit code: ${?}"
+
+  if is_file_existing "${successfully_renewed_flag_filepath}"; then
+    debug "Some certificates have been renewed. Removing flag file ${successfully_renewed_flag_filepath} and reloading nginx"
+    command="rm -f '${successfully_renewed_flag_filepath}' && systemctl reload nginx"
+    run_command "${command}" "" 'hide_output'
+  else
+    debug "Certificates have not been updated."
   fi
 }
 
@@ -1200,7 +1203,6 @@ DICT['en.errors.rollback_version_is_empty']='Rollback version not specified'
 DICT['en.errors.rollback_version_is_incorrect']="Version can't be less than ${MIN_ROLLBACK_VERSION}"
 DICT['en.errors.see_logs']="Evaluating log saved to ${LOG_PATH}. Please rerun ${TOOL_NAME} ${*} after resolving problems."
 DICT['en.errors.invalid_options']="Invalid option ${1}. Try 'kctl help' for more information."
-
 
 DICT['ru.errors.rollback_version_is_empty']='Не указана версия для отката'
 DICT['ru.errors.rollback_version_is_incorrect']="Версия не может быть ниже ${MIN_ROLLBACK_VERSION}"

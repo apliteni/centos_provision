@@ -22,4 +22,4 @@
     permanent: yes
     immediate: yes
     state: enabled
-  with_items: "{{ firewall_allowed_tcp_ports }}"
+  with_items: "{{ firewall_allowed_tcp_ports | unique }}"

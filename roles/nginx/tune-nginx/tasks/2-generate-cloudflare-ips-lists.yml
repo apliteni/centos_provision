@@ -1,0 +1,12 @@
+- name: Generate CF IPs lists
+  command: "/usr/local/bin/keitaro-generate_cf_ip_lists {{ nginx_ip_list_cf_v4_path }} {{ nginx_ip_list_cf_v6_path }}"
+  args:
+    creates: "{{ nginx_ip_list_cf_v4_path }}"
+
+- name: Configure cron to update CF IP list every day
+  cron:
+    name: "Generate CloudFlare IP list"
+    hour: "{{ box_creation_time | extract_hour }}"
+    minute: "{{ box_creation_time | extract_minute }}"
+    job: "/usr/local/bin/keitaro-generate_cf_ip_lists {{ nginx_ip_list_cf_v4_path }} {{ nginx_ip_list_cf_v6_path }}"
+

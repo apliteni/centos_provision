@@ -2,7 +2,7 @@
   when: (custom_package is defined) and (custom_package is match('^' + keitaro_files))
   set_fact:
     tracker_package_url: "{{ custom_package }}"
-  
+
 - name: Set tracker version to install if custom_package is a version
   set_fact:
     tracker_version_to_install: "{{ custom_package }}"
@@ -16,8 +16,13 @@
         tracker_stability: stable
       when: (custom_package is defined) and (custom_package == 'latest-stable')
 
+    - name: Set default tracker tracker version if tracker stability is 'unstable'
+      set_fact:
+        keitaro_release: 9.13.8
+      when: (tracker_stability is defined) and (tracker_stability == 'unstable') and (installed is not defined )
+
     - name: Get tracker stability if tracker is intalled
-      when: (tracker_stability is undefined) and (installed is defined) 
+      when: (tracker_stability is undefined) and (installed is defined)
       block:
         - name: Get tracker stability
           community.mysql.mysql_query:
@@ -27,14 +32,16 @@
           vars:
             ansible_python_interpreter: "/usr/bin/python3"
 
-
         - set_fact:
-            tracker_stability: "{{ 'stable' if get_tracker_stability.query_result[0][0]['value'] == '0' else 'unstable' }}" 
+            tracker_stability: "{{ 'stable' if get_tracker_stability.query_result[0][0]['value'] == '0' else 'unstable' }}"
 
     - name: Set default tracker stability as 'stable'
       set_fact:
         tracker_stability: stable
       when: (tracker_stability is undefined)
+
+    - set_fact:
+        disable_delay: "{{ 'true' if tracker_stability == 'unstable' else 'false' }}"
 
     - name: Get latest tracker version
       uri:
@@ -47,6 +54,7 @@
           version: "{{ keitaro_release }}"
           stability: "{{ tracker_stability }}"
           phpversion: "{{ php_release }}"
+          disable_delay: "{{ disable_delay }}"
         http_agent: "{{ kctl_user_agent }}"
         return_content: yes
       failed_when: "'success::' not in get_latest_tracker_version.content"

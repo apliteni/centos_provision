@@ -46,7 +46,7 @@ parse_options() {
 
   if [[ "${force_import}" == "" ]]; then
     exec 3<>/dev/tty
-    read -u 3 -p "This script will destroy the data in the keitaro database, are you sure you want to continue (yes|no)" yn
+    read -r -u 3 -p "This script will destroy the data in the keitaro database, are you sure you want to continue (yes|no)" yn
     case $yn in
         [Yy]*) ;;
         [Nn]*) exit
@@ -151,7 +151,7 @@ unpack_db_dump_to_chunks() {
 }
 
 rename_table_prefix() {
-  if [[ ! -z "${replace_table_prefix_from}" ]] && [[ $replace_table_prefix_from != $replace_table_prefix_to ]]; then
+  if [[ -n "${replace_table_prefix_from}" ]] && [[ $replace_table_prefix_from != $replace_table_prefix_to ]]; then
     sed "s/$replace_table_prefix_from/$replace_table_prefix_to/"
   else
     cat

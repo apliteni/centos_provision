@@ -131,3 +131,7 @@ or ignore
 ### How to repair  tracker or start fill upgrade
 
     kctl doctor
+
+## Variables and flags
+
+KCTL_TRACKER_STABILITY - SetUp stability channel stable|unstsable|e.g. default: stable 

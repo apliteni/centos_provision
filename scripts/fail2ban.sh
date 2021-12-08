@@ -23,7 +23,7 @@ on() {
   shift;
   for sig in "$@";
   do
-      trap "$func $sig" "$sig";
+      trap '"$func" "$sig"' "$sig";
   done
 }
 
@@ -50,7 +50,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.29.15'
+RELEASE_VERSION='2.29.16'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -106,7 +106,7 @@ TOOL_ARGS="${*}"
 
 if empty "${KCTL_COMMAND}"  && [ "${TOOL_NAME}" = "install" ]; then
   SCRIPT_URL="${KEITARO_URL}/${TOOL_NAME}.sh"
-  SCRIPT_COMMAND="curl -fsSL "$SCRIPT_URL" | bash -s -- ${TOOL_ARGS}"
+  SCRIPT_COMMAND="curl -fsSL $SCRIPT_URL | bash -s -- ${TOOL_ARGS}"
 elif empty "${KCTL_COMMAND}" && [ "${TOOL_NAME}" = "kctl" ]; then
   SCRIPT_COMMAND="kctl ${TOOL_ARGS}"
 elif empty "${KCTL_COMMAND}"; then

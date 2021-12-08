@@ -2,10 +2,10 @@
   shell: /bin/true
   notify:
     - restart mariadb
-    - restart nginx
     - restart php-fpm
     - restart redis
     - restart roadrunner
+    - reload nginx
   changed_when: "'molecule-notest' not in ansible_skip_tags"
 
 - name: Schedule generating stats.json job

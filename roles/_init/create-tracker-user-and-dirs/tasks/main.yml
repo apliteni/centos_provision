@@ -30,6 +30,7 @@
   with_items:
     - "{{ keitaro_app_dir }}"
     - "{{ keitaro_app_logs_dir }}"
+    - "{{ keitaro_stats_json_path | dirname }}"
 
 - name: Ensure ssl logs dir exists
   file:
@@ -53,3 +54,12 @@
     limit_type: '-'
     limit_item: nofile
     value: '4096'
+
+- name: Create keitaro nginx dirs
+  file:
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - /etc/nginx/conf.d/keitaro
+    - /etc/nginx/conf.d/local/keitaro
+

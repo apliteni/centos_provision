@@ -1,0 +1,35 @@
+- name: Make sure local setting files exist
+  copy:
+    content: ""
+    dest: "{{ item }}"
+    force: no
+  with_items:
+    - "{{ nginx_conf_path }}/local/keitaro/server.inc"
+    - "{{ nginx_conf_path }}/local/keitaro/admin.inc"
+    - "{{ nginx_conf_path }}/local/keitaro/nontracker.inc"
+    - "{{ nginx_conf_path }}/local/keitaro/tracker.inc"
+    - "{{ nginx_conf_path }}/local/keitaro/realip.inc"
+
+- name: Generate nginx configs
+  template:
+    src: "{{ item }}.j2"
+    dest: "/etc/{{ item }}"
+  with_items:
+    - nginx/conf.d/keitaro.conf
+    - nginx/conf.d/keitaro/admin.inc
+    - nginx/conf.d/keitaro/locations-common.inc
+    - nginx/conf.d/keitaro/locations-tracker.inc
+    - nginx/conf.d/keitaro/nontracker.inc
+    - nginx/conf.d/keitaro/nontracker.php-fpm.inc
+    - nginx/conf.d/keitaro/tracker.inc
+    - nginx/conf.d/keitaro/realip.inc
+  notify:
+    - reload nginx
+
+- name: Remove default nginx keitaro config file (if configured).
+  file:
+    path: "{{ nginx_default_vhost_path }}"
+    state: absent
+  notify:
+    - reload nginx
+

@@ -1,0 +1,20 @@
+- name: Remove default nginx keitaro config file (if configured).
+  file:
+    path: "{{ nginx_default_vhost_path }}"
+    state: absent
+  register: nginx_removing_default_site_config_result
+
+- name: Generate main nginx config
+  template:
+    src: "{{ item }}.j2"
+    dest: "/etc/{{ item }}"
+  with_items:
+    - nginx/nginx.conf
+  register: nginx_generation_main_config_result
+
+- name: Restart nginx
+  systemd:
+    name: nginx
+    state: restarted
+  when: nginx_removing_default_site_config_result.changed 
+        or nginx_generation_main_config_result.changed

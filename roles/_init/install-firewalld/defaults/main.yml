@@ -1,4 +1,5 @@
 firewall_allowed_tcp_ports:
   - "{{ ssh_port }}"
+  - "{{ sshd_port }}"
   - 443
   - 80

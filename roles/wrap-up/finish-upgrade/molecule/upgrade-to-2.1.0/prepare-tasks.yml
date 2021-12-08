@@ -2,7 +2,7 @@
     name: _init/create-tracker-user-and-dirs
 
 - include_role:
-    name: nginx/install-nginx
+    name: _init/_install-nginx
 
 - include_role:
     name: nginx/tune-nginx

@@ -3,3 +3,7 @@ nginx_group: nginx
 nginx_conf_path: /etc/nginx/conf.d
 nginx_log_dir: /var/log/nginx
 nginx_access_log: "{{ nginx_log_dir }}/access.log"
+nginx_access_log_options: buffer=16k flush=5s
+nginx_access_log_keitaro: "{{ nginx_log_dir }}/access.log"
+nginx_pidfile: /var/run/nginx.pid
+nginx_default_vhost_path: "{{ nginx_conf_path }}/default.conf"

@@ -26,7 +26,7 @@ on() {
   shift;
   for sig in "$@";
   do
-      trap "$func $sig" "$sig";
+      trap '"$func" "$sig"' "$sig";
   done
 }
 
@@ -54,7 +54,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.29.15'
+RELEASE_VERSION='2.29.16'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -110,7 +110,7 @@ TOOL_ARGS="${*}"
 
 if empty "${KCTL_COMMAND}"  && [ "${TOOL_NAME}" = "install" ]; then
   SCRIPT_URL="${KEITARO_URL}/${TOOL_NAME}.sh"
-  SCRIPT_COMMAND="curl -fsSL "$SCRIPT_URL" | bash -s -- ${TOOL_ARGS}"
+  SCRIPT_COMMAND="curl -fsSL $SCRIPT_URL | bash -s -- ${TOOL_ARGS}"
 elif empty "${KCTL_COMMAND}" && [ "${TOOL_NAME}" = "kctl" ]; then
   SCRIPT_COMMAND="kctl ${TOOL_ARGS}"
 elif empty "${KCTL_COMMAND}"; then
@@ -548,7 +548,7 @@ translate(){
 interpolate(){
   local string="${1}"
   local substitution="${2}"
-  IFS="=" read name value <<< "${substitution}"
+  IFS="=" read -r name value <<< "${substitution}"
   string="${string//:${name}:/${value}}"
   echo "${string}"
 }
@@ -961,7 +961,7 @@ init() {
   debug "Starting init stage: log basic info"
   debug "Command: ${SCRIPT_COMMAND}"
   debug "Script version: ${RELEASE_VERSION}"
-  debug "User ID: "$EUID""
+  debug "User ID: ${EUID}"
   debug "Current date time: $(date +'%Y-%m-%d %H:%M:%S %:z')"
   trap on_exit SIGHUP SIGINT SIGTERM
 }
@@ -1243,7 +1243,7 @@ remove_current_command(){
 start_or_reload_nginx(){
   if (is_file_existing "/run/nginx.pid" && [[ -s "/run/nginx.pid" ]]) || is_ci_mode; then
     debug "Nginx is started, reloading"
-    run_command "nginx -s reload" "$(translate 'messages.reloading_nginx')" 'hide_output'
+    run_command "systemctl reload nginx" "$(translate 'messages.reloading_nginx')" 'hide_output'
   else
     debug "Nginx is not running, starting"
     print_with_color "$(translate 'messages.nginx_is_not_running')" "yellow"
@@ -1938,7 +1938,7 @@ parse_options(){
   fi
   if isset "${VARS['without_key']}" || [ "${RECONFIGURE}" == 'true' ]; then
     ensure_license_key_absent
-  fi 
+  fi
   ensure_options_correct
 }
 
@@ -1959,7 +1959,7 @@ ensure_license_key_absent() {
 
 help_ru(){
   print_err "$SCRIPT_NAME уставливает и настраивает Keitaro"
-  print_err "Пример: "$SCRIPT_NAME" -L ru -K AAAA-BBBB-CCCC-DDDD"
+  print_err "Пример: $SCRIPT_NAME -L ru -K AAAA-BBBB-CCCC-DDDD"
   print_err
   print_err "Автоматизация:"
   print_err "  -K LICENSE_KEY           задать ключ лицензии"
@@ -1990,7 +1990,7 @@ help_ru(){
 
 help_en(){
   print_err "$SCRIPT_NAME installs and configures Keitaro"
-  print_err "Example: "$SCRIPT_NAME" -L en -K AAAA-BBBB-CCCC-DDDD"
+  print_err "Example: $SCRIPT_NAME -L en -K AAAA-BBBB-CCCC-DDDD"
   print_err
   print_err "Script automation:"
   print_err "  -K LICENSE_KEY           set license key"
@@ -2183,6 +2183,7 @@ setup_vars(){
   setup_default_value db_engine 'tokudb'
   setup_default_value php_engine "${PHP_ENGINE}"
   setup_default_value big_data_engine "${KCTL_BIG_DATA_ENGINE:-mariadb}"
+  setup_default_value tracker_stability "${KCTL_TRACKER_STABILITY:-stable}" 
   setup_default_value salt "$(dbus-uuidgen)"
 }
 
@@ -2222,11 +2223,11 @@ parse_inventory() {
 parse_line_from_inventory_file(){
   local line="${1}"
   local quoted_string_regex="^'.*'\$"
-  IFS="=" read var_name value <<< "$line"
+  IFS="=" read -r var_name value <<< "$line"
   if [[ "$var_name" != "db_restore_path" ]] && [[ "$var_name" != "without_key" ]]; then
     if [[ "${value}" =~ ${quoted_string_regex} ]]; then
       debug "# ${value} is quoted, removing quotes"
-      value_without_quotes="${value:1:-1}" 
+      value_without_quotes="${value:1:-1}"
       debug "# $var_name: quotes removed - ${value} -> ${value_without_quotes}"
       value="${value_without_quotes}"
     fi
@@ -2257,6 +2258,17 @@ get_ssh_port(){
   echo "${ssh_port}"
 }
 
+detect_sshd_port(){
+  local port
+  port=$(ss -l -4 -p -n | grep sshd -w | awk '{ print $5 }' | awk -F: '{ print $2 }')
+  debug "Detected sshd port: ${port}"
+  if empty "${port}"; then
+    debug "Reset detected ssh port to 22"
+    port="22"
+  fi
+  echo "${port}"
+}
+
 write_inventory_file(){
   debug "Writing inventory file: STARTED"
   create_inventory_file
@@ -2284,6 +2296,7 @@ write_inventory_file(){
   print_line_to_inventory_file "php_engine=${VARS['php_engine']}"
   print_line_to_inventory_file "cpu_cores=$(get_cpu_cores)"
   print_line_to_inventory_file "ssh_port=$(get_ssh_port)"
+  print_line_to_inventory_file "sshd_port=$(detect_sshd_port)"
   if isset "${VARS['db_restore_path']}"; then
     print_line_to_inventory_file "db_restore_path=${VARS['db_restore_path']}"
     print_line_to_inventory_file "db_restore_salt=${VARS['db_restore_salt']}"
@@ -2306,6 +2319,7 @@ write_inventory_file(){
     print_line_to_inventory_file "db_engine=${VARS['db_engine']}"
   fi
   print_line_to_inventory_file "big_data_engine=${VARS['big_data_engine']}"
+  print_line_to_inventory_file "tracker_stability=${VARS['tracker_stability']}"
   if isset "$KEITARO_RELEASE"; then
     print_line_to_inventory_file "kversion=$KEITARO_RELEASE"
   fi
@@ -2386,13 +2400,19 @@ install_packages(){
   install_ansible_collection "community.mysql"
   install_ansible_collection "containers.podman"
 }
+clean_packages_metadata() {
+  if empty "$WITHOUTH_YUM_UPDATE"; then
+    debug "Clean yum metadata"
+    run_command "yum clean metadata"
+  fi
+}
 
 stage5(){
   debug "Starting stage 5: upgrade current and install necessary packages"
+  clean_packages_metadata
   upgrade_packages
   install_packages
 }
-
 
 download_provision(){
   debug "Download provision"
@@ -2778,6 +2798,7 @@ signal_successful_installation() {
   VARS['db_restore_salt']=""
   VARS['salt']=""
   VARS['custom_package']=""
+  VARS['tracker_stability']=""
   write_inventory_file
 }
 
@@ -2789,13 +2810,14 @@ signal_successful_installation() {
 #     and we are upgrading to 2.14
 #   then ansible tags will be expanded by `enable-swap` tag
 declare -A REPLAY_ROLE_TAGS_SINCE=(
+  ['install-nginx']='2.29.15'
   ['create-tracker-user-and-dirs']='2.22.0'
   ['disable-selinux']='2.25.0'
   ['disable-thp']='0.9'
   ['install-certs']='1.0'
   ['install-chrony']='2.27.7'
   ['install-docker']='2.29.4'
-  ['install-firewalld']='2.25.3'
+  ['install-firewalld']='2.29.15'
   ['install-packages']='2.27.7'
   ['install-postfix']='2.29.8'
   ['setup-journald']='2.12'
@@ -2809,7 +2831,6 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['tune-mariadb']='2.29.8'
   ['tune-redis']='2.27.7'
   ['tune-sysctl']='2.27.7'
-  ['install-nginx']='2.27.0'
   ['tune-nginx']='2.28.8'
   ['upgrade-tracker']='2.12'
   ['wrap-up-tracker-configuration']='2.27.4'
@@ -2844,7 +2865,7 @@ expand_ansible_tags_with_tune_tag() {
 
 expand_ansible_tags_with_role_tags() {
   local installed_version=${1}
-  for role_tag in ${!REPLAY_ROLE_TAGS_SINCE[@]}; do
+  for role_tag in "${!REPLAY_ROLE_TAGS_SINCE[@]}"; do
     replay_role_tag_since=${REPLAY_ROLE_TAGS_SINCE[${role_tag}]}
     if (( $(as_version "${installed_version}") <= $(as_version "${replay_role_tag_since}") )); then
       ANSIBLE_TAGS="${ANSIBLE_TAGS},${role_tag}"

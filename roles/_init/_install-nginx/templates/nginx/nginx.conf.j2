@@ -1,0 +1,76 @@
+user  {{ nginx_user }};
+
+error_log {{ nginx_error_log }} {{ nginx_error_log_format }};
+pid {{ nginx_pidfile }};
+
+worker_processes  {{ nginx_workers_count }};
+
+# number of file descriptors used for nginx
+# the limit for the maximum FDs on the server is usually set by the OS.
+# if you don't set FD's then OS settings will be used which is by default 2000
+# worker_rlimit_nofile 20000;
+
+events {
+    worker_connections  {{ nginx_worker_connections }};
+    multi_accept off; # Access to Click API can be made in parrallel
+    use epoll;
+}
+
+http {
+    include       /etc/nginx/mime.types;
+    default_type  application/octet-stream;
+
+    server_names_hash_bucket_size 128;
+    server_names_hash_max_size 4096;
+    
+    # to allow uploading large landing pages
+    client_max_body_size {{ max_upload_size }};
+
+    log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                      '$status $body_bytes_sent "$http_referer" '
+                      '"$http_user_agent" "$http_x_forwarded_for" $host';
+
+    log_format status '$status';
+
+    log_not_found off;
+
+    sendfile        on;
+    tcp_nopush      on;
+    tcp_nodelay     on;
+
+    keepalive_timeout  65;
+    keepalive_requests 100;
+
+    # Security
+    server_tokens off;
+
+    # Compression
+    gzip                on;
+    gzip_comp_level     6;
+    gzip_min_length     4096;
+    gzip_buffers        8 64k;
+    gzip_types          text/plain text/css text/javascript text/js text/xml application/json application/javascript  application/x-javascript application/xml application/xml+rss
+
+    gzip_proxied        any;
+    gzip_disable        "msie";
+
+    # cache informations about FDs, frequently accessed files
+    # can boost performance
+    open_file_cache          max=10000 inactive=30s;
+    open_file_cache_valid    60s;
+    open_file_cache_min_uses 2;
+    open_file_cache_errors   on;
+
+    # allow the server to close connection on non responding client, this will free up
+    reset_timedout_connection on;
+
+    # Proxy settings
+    proxy_buffering    off;
+    proxy_set_header   X-Real-IP $remote_addr;
+    proxy_set_header   X-Scheme $scheme;
+    proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header   Host $http_host;
+
+
+    include {{ nginx_conf_path }}/*.conf;
+}

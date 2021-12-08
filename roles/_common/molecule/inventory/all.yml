@@ -2,6 +2,7 @@ php_engine: roadrunner
 cpu_cores: 2
 ram_size_mb: 1938
 ssh_port: 22
+sshd_port: 22
 db_name: keitaro
 db_user: keitaro
 db_password: keitaro

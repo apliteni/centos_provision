@@ -26,7 +26,7 @@ on() {
   shift;
   for sig in "$@";
   do
-      trap "$func $sig" "$sig";
+      trap '"$func" "$sig"' "$sig";
   done
 }
 
@@ -53,7 +53,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.29.15'
+RELEASE_VERSION='2.29.16'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -109,7 +109,7 @@ TOOL_ARGS="${*}"
 
 if empty "${KCTL_COMMAND}"  && [ "${TOOL_NAME}" = "install" ]; then
   SCRIPT_URL="${KEITARO_URL}/${TOOL_NAME}.sh"
-  SCRIPT_COMMAND="curl -fsSL "$SCRIPT_URL" | bash -s -- ${TOOL_ARGS}"
+  SCRIPT_COMMAND="curl -fsSL $SCRIPT_URL | bash -s -- ${TOOL_ARGS}"
 elif empty "${KCTL_COMMAND}" && [ "${TOOL_NAME}" = "kctl" ]; then
   SCRIPT_COMMAND="kctl ${TOOL_ARGS}"
 elif empty "${KCTL_COMMAND}"; then
@@ -450,7 +450,7 @@ translate(){
 interpolate(){
   local string="${1}"
   local substitution="${2}"
-  IFS="=" read name value <<< "${substitution}"
+  IFS="=" read -r name value <<< "${substitution}"
   string="${string//:${name}:/${value}}"
   echo "${string}"
 }
@@ -709,7 +709,7 @@ init() {
   debug "Starting init stage: log basic info"
   debug "Command: ${SCRIPT_COMMAND}"
   debug "Script version: ${RELEASE_VERSION}"
-  debug "User ID: "$EUID""
+  debug "User ID: ${EUID}"
   debug "Current date time: $(date +'%Y-%m-%d %H:%M:%S %:z')"
   trap on_exit SIGHUP SIGINT SIGTERM
 }
@@ -860,7 +860,7 @@ print_with_color(){
 start_or_reload_nginx(){
   if (is_file_existing "/run/nginx.pid" && [[ -s "/run/nginx.pid" ]]) || is_ci_mode; then
     debug "Nginx is started, reloading"
-    run_command "nginx -s reload" "$(translate 'messages.reloading_nginx')" 'hide_output'
+    run_command "systemctl reload nginx" "$(translate 'messages.reloading_nginx')" 'hide_output'
   else
     debug "Nginx is not running, starting"
     print_with_color "$(translate 'messages.nginx_is_not_running')" "yellow"
@@ -1312,7 +1312,7 @@ parse_options(){
 help_ru(){
   print_err "$SCRIPT_NAME удаляет SSL сертификаты"
   print_err "Использование этой программы подразумевает принятие условий соглашения подписки Let's Encrypt."
-  print_err "Пример: "$SCRIPT_NAME" -L ru -D domain1.tld,domain2.tld"
+  print_err "Пример: $SCRIPT_NAME -L ru -D domain1.tld,domain2.tld"
   print_err
   print_err "Автоматизация:"
   print_err "  -D DOMAINS               удалить сертификаты для спика доменов, DOMAINS=domain1.tld[,domain2.tld...]."
@@ -1323,7 +1323,7 @@ help_ru(){
 help_en(){
   print_err "$SCRIPT_NAME removes SSL certificates"
   print_err "The use of this program implies acceptance of the terms of the Let's Encrypt Subscriber Agreement."
-  print_err "Example: "$SCRIPT_NAME" -L en -D domain1.tld,domain2.tld"
+  print_err "Example: $SCRIPT_NAME -L en -D domain1.tld,domain2.tld"
   print_err
   print_err "Script automation:"
   print_err "  -D DOMAINS               remove certs for domains, DOMAINS=domain1.tld[,domain2.tld...]."
@@ -1352,9 +1352,9 @@ delete_certificates(){
   IFS=',' read -r -a domains <<< "${VARS['ssl_domains']}"
   for domain in "${domains[@]}"; do
     if disable_domain "${domain}"; then
-      FAILED_DOMAINS+=($domain)
+      FAILED_DOMAINS+=("${domain}")
     else
-      SUCCESSFUL_DOMAINS+=($domain)
+      SUCCESSFUL_DOMAINS+=("${domain}")
     fi
   done
 }

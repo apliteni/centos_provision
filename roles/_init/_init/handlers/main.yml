@@ -3,30 +3,36 @@
     name: mariadb
     state: restarted
     daemon-reload: true
+
 - name: restart redis
   service:
     name: redis
     state: restarted
     daemon-reload: true
+
 - name: restart php-fpm
   service:
     name: "{{php_version}}-php-fpm"
     state: restarted
     daemon-reload: true
+
 - name: restart roadrunner
   service:
     name: roadrunner
     state: restarted
     daemon-reload: true
+
 - name: restart nginx
   service:
     name: nginx
     state: restarted
     daemon-reload: true
+
 - name: reload nginx
   service:
     name: nginx
     state: reloaded
+
 - name: restart clickhouse
   service:
     name: clickhouse-server
