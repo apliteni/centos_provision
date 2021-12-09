@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -e                              # halt on error
 set +m
+
+umask 22
+
 action="${1}"
 
 SUCCESS_RESULT=0
@@ -50,7 +53,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.29.17'
+RELEASE_VERSION='2.29.18'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
