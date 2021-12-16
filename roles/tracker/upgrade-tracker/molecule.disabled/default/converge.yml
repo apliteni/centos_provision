@@ -1,7 +1,0 @@
----
-- name: Converge
-  hosts: all
-  tasks:
-    - name: "Include upgrade-tracker"
-      include_role:
-        name: "upgrade-tracker"

@@ -1,9 +1,0 @@
----
-- name: Converge
-  hosts: all
-  vars_files:
-    - ../../../../../vars/keitaro.yml
-  tasks:
-    - name: "Include install-kctl-tools"
-      include_role:
-        name: "install-kctl-tools"

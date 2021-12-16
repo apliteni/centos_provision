@@ -1,3 +1,0 @@
-- include: upgrade_from_1.5/set_db_engine.yml
-
-- include: upgrade_from_1.5/tune_logrotate.yml

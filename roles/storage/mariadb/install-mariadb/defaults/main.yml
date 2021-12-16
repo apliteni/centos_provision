@@ -1,3 +1,0 @@
-mariadb_enabled_repos:
-  centos7: base,mariadb
-  centos8: BaseOS,mariadb

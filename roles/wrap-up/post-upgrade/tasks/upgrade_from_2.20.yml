@@ -1,4 +1,0 @@
-- name: Remove old RoadRunner config
-  file:
-    path: /etc/php/roadrunner.yml
-    state: absent

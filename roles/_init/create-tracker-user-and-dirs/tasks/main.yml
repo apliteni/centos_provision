@@ -30,7 +30,7 @@
   with_items:
     - "{{ keitaro_app_dir }}"
     - "{{ keitaro_app_logs_dir }}"
-    - "{{ keitaro_stats_json_path | dirname }}"
+    - "{{ keitaro_stats_json_dir }}"
 
 - name: Ensure ssl logs dir exists
   file:

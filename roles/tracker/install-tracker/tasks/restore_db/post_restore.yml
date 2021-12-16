@@ -4,7 +4,7 @@
     chdir: "{{ keitaro_app_dir }}"
   become_user: "{{ keitaro_user }}"
   ignore_errors: yes
-  when: with_license_key
+  when: license_key is defined
 
 - name: Reset Keitaro salt
   lineinfile:

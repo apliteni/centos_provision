@@ -1,7 +1,0 @@
-- name: Restore DB from SQL dump
-  shell: >
-    {{cat}} '{{ db_restore_path }}' \
-      | sed -r -e 's/engine=\w+/engine={{ db_engine }}/ig' -e 's/{{ ansible_env.TABLES_PREFIX }}/keitaro_/g' \
-      | mysql --user={{ db_user }} --password={{ db_password }} {{ db_name }}
-  args:
-    chdir: ../

@@ -1,1 +1,0 @@
-nginx_default_vhost_path: "{{ nginx_conf_path }}/default.conf"

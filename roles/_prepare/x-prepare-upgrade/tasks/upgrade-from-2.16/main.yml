@@ -1,3 +1,0 @@
-- name: Remove `certbot renew` cron job
-  shell: crontab -l | sed '/certbot renew/d' | crontab -
-

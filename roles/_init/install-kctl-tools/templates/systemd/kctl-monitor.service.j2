@@ -1,0 +1,18 @@
+[Unit]
+Description=The Keitaro Monitor
+After=network.target
+
+[Service]
+Type=simple
+ExecStart={{ kctl_bin_dir }}/kctl-monitor
+ExecStop=/bin/kill -s HUP $MAINPID
+KillSignal=SIGQUIT
+TimeoutStopSec=5
+KillMode=mixed
+PrivateTmp=true
+Restart=on-failure
+RestartSec=30s
+EnvironmentFile={{ keitaro_config_dir }}/config/kctl-monitor.env
+
+[Install]
+WantedBy=multi-user.target

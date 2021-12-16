@@ -1,7 +1,0 @@
-- name: Install selinux supporting packages
-  include_tasks: "{{ playbook_dir }}/roles/_common/selinux/tasks/install-supporting-packages.yml"
-
-- name: Disable selinux
-  selinux:
-    policy: targeted
-    state: disabled

@@ -1,0 +1,21 @@
+- name: Render kctl-monitor env file
+  template:
+    src: env/kctl-monitor.env.j2
+    dest: "{{ keitaro_config_dir}}/config/kctl-monitor.env"
+
+- name: Generate systemd kctl-monitor config
+  template:
+    src: systemd/kctl-monitor.service.j2
+    dest: /etc/systemd/system/kctl-monitor.service
+  register: systemd_monitor_config_status
+
+- name: Reload kctl-monitor systemd service
+  systemd:
+    name: kctl-monitor
+    daemon-reload: true
+  when: systemd_monitor_config_status.changed
+
+- name: Enable kctl-monitor
+  systemd:
+    name: kctl-monitor
+    enabled: true

@@ -1,9 +1,0 @@
-- name: Delete slow query logs
-  file:
-    state: absent
-    path: /var/log/mysql/slow_queries.log
-
-- name: Find and delete temporary stats.json
-  command: "find {{ keitaro_stats_json_path| dirname }}  -maxdepth 1 -type f -name '{{ keitaro_stats_json_path| basename }}-*.tmp' -print -delete"
-  register: temporary_stats_json
-  changed_when: "temporary_stats_json.stdout_lines != []"

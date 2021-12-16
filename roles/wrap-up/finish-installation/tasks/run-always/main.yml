@@ -1,2 +1,0 @@
-- include_tasks:  force-restart-services.yml
-- include_tasks:  schedule-generating-stats-json.yml

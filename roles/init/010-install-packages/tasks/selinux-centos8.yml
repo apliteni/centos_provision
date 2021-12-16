@@ -1,6 +1,0 @@
-- name: Install CentOS 8 SELinux supporting packages
-  package:
-    name:
-      - selinux-policy-targeted
-      - python3-libselinux
-    state: installed

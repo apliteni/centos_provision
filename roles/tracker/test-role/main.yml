@@ -1,5 +1,0 @@
-- name: Check keitaro admin exist
-  community.mysql.mysql_query:
-    login_db: keitaro
-    query: SELECT 1 FROM keitaro_users LIMIT 1
-  register: db_user_exist

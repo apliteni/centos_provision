@@ -1,4 +1,0 @@
-keitaro_backups_root: "/etc/keitaro/backups"
-keitaro_backups_copies_to_keep: 5
-keitaro_backups_current_time: "{{ ansible_date_time.iso8601_basic_short }}"
-keitaro_backups_current_dir: "{{ keitaro_backups_root }}/{{ keitaro_backups_current_time }}"

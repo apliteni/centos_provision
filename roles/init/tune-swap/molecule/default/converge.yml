@@ -1,3 +1,0 @@
-- name: Redefine current swap size to force swap creation
-  set_fact:
-    swap_size_mb: "{{ (ram_size_mb / 2) | int }}"

@@ -53,7 +53,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.29.18'
+RELEASE_VERSION='2.30.0'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -106,17 +106,6 @@ INDENTATION_LENGTH=2
 INDENTATION_SPACES=$(printf "%${INDENTATION_LENGTH}s")
 
 TOOL_ARGS="${*}"
-
-if empty "${KCTL_COMMAND}"  && [ "${TOOL_NAME}" = "install" ]; then
-  SCRIPT_URL="${KEITARO_URL}/${TOOL_NAME}.sh"
-  SCRIPT_COMMAND="curl -fsSL $SCRIPT_URL | bash -s -- ${TOOL_ARGS}"
-elif empty "${KCTL_COMMAND}" && [ "${TOOL_NAME}" = "kctl" ]; then
-  SCRIPT_COMMAND="kctl ${TOOL_ARGS}"
-elif empty "${KCTL_COMMAND}"; then
-  SCRIPT_COMMAND="kctl-${TOOL_NAME} ${TOOL_ARGS}"
-else
-  SCRIPT_COMMAND="${KCTL_COMMAND} ${TOOL_ARGS}"
-fi
 
 debug() {
   local message="${1}"

@@ -1,0 +1,6 @@
+# We have to prepare things in converge steps because redefined vars are not shared across molecule stages
+- name: Create env dirrectory
+  file:
+    path: "{{ keitaro_config_dir }}/config"
+    state: directory
+    mode: '0755'

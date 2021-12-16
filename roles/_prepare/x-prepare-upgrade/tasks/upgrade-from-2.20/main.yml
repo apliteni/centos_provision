@@ -1,4 +1,0 @@
-- name: Remove old kctl-delete tool
-  file:
-    path: "{{ kctl_bin_dir }}/kctl-delete-ssl"
-    state: absent

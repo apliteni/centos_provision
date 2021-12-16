@@ -1,3 +1,0 @@
-- name: Restore DB from SQL dump
-  include: restore_db.yml
-  when: "db_restore_path is defined and db_restore_path != ''"

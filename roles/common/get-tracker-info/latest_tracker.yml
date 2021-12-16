@@ -1,5 +1,0 @@
-- name: Get latest tracker version
-  shell: >
-    curl -fsSL  -A "{{ user_agent }}" "{{ keitaro_url }}/license/api/checkUpdate?{{ request_params }}" | \
-        awk -F '::' '{print $2}'
-  register: get_latest_tracker_version

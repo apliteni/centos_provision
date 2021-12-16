@@ -52,16 +52,13 @@ TOOL_NAME='kctl'
 
 assert_caller_root(){
   debug 'Ensure script has been running by root'
-  if isset "$SKIP_CHECKS"; then
-    debug "SKIP: actual checking of current user"
+  if [[ "$EUID" == "$ROOT_UID" ]]; then
+    debug 'OK: current user is root'
   else
-    if [[ "$EUID" == "$ROOT_UID" ]]; then
-      debug 'OK: current user is root'
-    else
-      debug 'NOK: current user is not root'
-      fail "$(translate errors.must_be_root)"
-    fi
+    debug 'NOK: current user is not root'
+    fail "$(translate errors.must_be_root)"
   fi
+  
 }
 
 
@@ -81,8 +78,8 @@ assert_keitaro_not_installed(){
   if is_keitaro_installed; then
     debug 'NOK: keitaro is already installed'
     print_err "$(translate messages.keitaro_already_installed)" 'yellow'
-    show_credentials
     clean_up
+    print_url
     exit "${KEITARO_ALREADY_INSTALLED_RESULT}"
   else
     debug 'OK: keitaro is not installed yet'
@@ -96,7 +93,7 @@ is_keitaro_installed() {
      isset "${VARS['installed']}"
    else
      debug "Current version is ${INSTALLED_VERSION} - using old algorithm (check '${KEITARO_LOCK_FILEPATH}' file)"
-     is_file_existing "${KEITARO_LOCK_FILEPATH}" no
+     file_exists "${KEITARO_LOCK_FILEPATH}"
    fi
 }
 
@@ -116,25 +113,10 @@ assert_that_another_certbot_process_not_runing() {
   fi
 
 }
-#
 
-
-
-
-
-is_directory_exist(){
+directory_exists(){
   local directory="${1}"
-  local result_on_skip="${2}"
   debug "Checking ${directory} directory existence"
-  if isset "$SKIP_CHECKS"; then
-    debug "SKIP: actual check of ${directory} directory existence disabled"
-    if [[ "$result_on_skip" == "no" ]]; then
-      debug "NO: simulate ${directory} directory does not exist"
-      return ${FAILURE_RESULT}
-    fi
-    debug "YES: simulate ${directory} directory exists"
-    return ${SUCCESS_RESULT}
-  fi
   if [ -d "${directory}" ]; then
     debug "YES: ${directory} directory exists"
     return ${SUCCESS_RESULT}
@@ -143,26 +125,11 @@ is_directory_exist(){
     return ${FAILURE_RESULT}
   fi
 }
-#
 
-
-
-
-
-is_file_content_matching(){
+file_content_matches(){
   local file="${1}"
   local pattern="${2}"
-  local result_on_skip="${3}"
   debug "Checking ${file} file matching with pattern '${pattern}'"
-  if isset "$SKIP_CHECKS"; then
-    debug "SKIP: actual check of ${file} file matching disabled"
-    if [[ "$result_on_skip" == "no" ]]; then
-      debug "NO: simulate ${file} file does not match '${pattern}'"
-      return ${FAILURE_RESULT}
-    fi
-    debug "YES: simulate ${file} file matches '${pattern}'"
-    return ${SUCCESS_RESULT}
-  fi
   if test -f "$file" && grep -q "$pattern" "$file"; then
     debug "YES: ${file} file matches '${pattern}'"
     return ${SUCCESS_RESULT}
@@ -172,51 +139,14 @@ is_file_content_matching(){
   fi
 }
 
-is_file_existing(){
+file_exists(){
   local file="${1}"
-  local result_on_skip="${2}"
   debug "Checking ${file} file existence"
-  if isset "$SKIP_CHECKS"; then
-    debug "SKIP: actual check of ${file} file existence disabled"
-    if [[ "$result_on_skip" == "no" ]]; then
-      debug "NO: simulate ${file} file does not exist"
-      return ${FAILURE_RESULT}
-    fi
-    debug "YES: simulate ${file} file exists"
-    return ${SUCCESS_RESULT}
-  fi
   if [ -f "${file}" ]; then
     debug "YES: ${file} file exists"
     return ${SUCCESS_RESULT}
   else
     debug "NO: ${file} file does not exist"
-    return ${FAILURE_RESULT}
-  fi
-}
-#
-
-
-
-
-
-is_path_exist(){
-  local path="${1}"
-  local result_on_skip="${2}"
-  debug "Checking ${path} path existence"
-  if isset "$SKIP_CHECKS"; then
-    debug "SKIP: actual check of ${path} path existence disabled"
-    if [[ "$result_on_skip" == "no" ]]; then
-      debug "NO: simulate ${path} path does not exist"
-      return ${FAILURE_RESULT}
-    fi
-    debug "YES: simulate ${path} path exists"
-    return ${SUCCESS_RESULT}
-  fi
-  if [ -e "${path}" ]; then
-    debug "YES: ${path} path exists"
-    return ${SUCCESS_RESULT}
-  else
-    debug "NO: ${path} path does not exist"
     return ${FAILURE_RESULT}
   fi
 }
@@ -238,62 +168,11 @@ dockerized_certbot_volumes() {
   echo "${dockerized_certbot_volumes}"
 }
 
-#
-
-
-
-
-
-
-set_ui_lang(){
-  if empty "$UI_LANG"; then
-    UI_LANG=$(detect_language)
-    if empty "$UI_LANG"; then
-      UI_LANG="en"
-    fi
-  fi
-  debug "Language: ${UI_LANG}"
-}
-
-
-detect_language(){
-  detect_language_from_vars "$LC_ALL" "$LC_MESSAGES" "$LANG"
-}
-
-
-detect_language_from_vars(){
-  while [[ ${#} -gt 0 ]]; do
-    if isset "${1}"; then
-      detect_language_from_var "${1}"
-      break
-    fi
-    shift
-  done
-}
-
-
-detect_language_from_var(){
-  local lang_value="${1}"
-  if [[ "$lang_value" =~ ^ru_[[:alpha:]]+\.UTF-8$ ]]; then
-    echo ru
-  else
-    echo en
-  fi
-}
-
-
-get_ui_lang(){
-  if empty "$UI_LANG"; then
-    set_ui_lang
-  fi
-  echo "$UI_LANG"
-}
 
 
 translate(){
   local key="${1}"
-  local i18n_key
-  i18n_key=$(get_ui_lang).$key
+  local i18n_key="en.${key}"
   message="${DICT[$i18n_key]}"
   while isset "${2}"; do
     message=$(interpolate "${message}" "${2}")
@@ -318,18 +197,6 @@ add_indentation(){
 detect_mime_type(){
   local file="${1}"
   file --brief --mime-type "$file"
-}
-
-force_utf8_input(){
-  if locale -a 2>/dev/null | grep -q en_US.UTF-8; then
-    LC_CTYPE=en_US.UTF-8
-  else
-    debug "Locale en_US.UTF-8 is not defined. Skip setting LC_CTYPE"
-    return
-  fi
-  if [ -f /proc/$$/fd/1 ]; then
-    stty -F /proc/$$/fd/1 iutf8
-  fi
 }
 
 get_user_var(){
@@ -370,16 +237,6 @@ hack_stdin_if_pipe_mode(){
 hack_stdin(){
   exec 3<&1
 }
-print_prompt_error(){
-  local error_key="${1}"
-  error=$(translate "validation_errors.$error_key")
-  print_with_color "*** ${error}" 'red'
-}
-
-print_prompt_help(){
-  local var_name="${1}"
-  print_translated "prompts.$var_name.help"
-}
 #
 
 
@@ -394,6 +251,16 @@ print_prompt(){
     prompt="$prompt [${VARS[$var_name]}]"
   fi
   echo -en "$prompt > "
+}
+print_prompt_error(){
+  local error_key="${1}"
+  error=$(translate "validation_errors.$error_key")
+  print_with_color "*** ${error}" 'red'
+}
+
+print_prompt_help(){
+  local var_name="${1}"
+  print_translated "prompts.$var_name.help"
 }
 
 read_stdin(){
@@ -429,40 +296,19 @@ fail() {
   clean_up
   exit ${FAILURE_RESULT}
 }
-#
-
-
-
 
 common_parse_options(){
   local option="${1}"
   local argument="${2}"
   case $option in
     l|L)
-      case $argument in
-        en)
-          UI_LANG=en
-          ;;
-        ru)
-          UI_LANG=ru
-          ;;
-        *)
-          print_err "-L: language '$argument' is not supported"
-          exit ${FAILURE_RESULT}
-          ;;
-      esac
+      print_deprecation_warning '-L option is ignored'
       ;;
     v)
       version
       ;;
     h)
       help
-      ;;
-    s)
-      SKIP_CHECKS=true
-      ;;
-    p)
-      PRESERVE_RUNNING=true
       ;;
     *)
       wrong_options
@@ -472,25 +318,15 @@ common_parse_options(){
 
 
 help(){
-  if [[ $(get_ui_lang) == 'ru' ]]; then
-    usage_ru_header
-    help_ru
-    help_ru_common
-  else
-    usage_en_header
-    help_en
-    help_en_common
-  fi
+  usage_en_header
+  help_en
+  help_en_common
   exit ${SUCCESS_RESULT}
 }
 
 
 usage(){
-  if [[ $(get_ui_lang) == 'ru' ]]; then
-    usage_ru
-  else
-    usage_en
-  fi
+  usage_en
   exit ${FAILURE_RESULT}
 }
 
@@ -513,51 +349,32 @@ ensure_options_correct(){
 }
 
 
-usage_ru(){
-  usage_ru_header
-  print_err "Попробуйте '${SCRIPT_NAME} -h' для большей информации."
-  print_err
-}
-
-
 usage_en(){
   usage_en_header
   print_err "Try '${SCRIPT_NAME} -h' for more information."
   print_err
 }
 
-
-usage_ru_header(){
-  print_err "Использование: $SCRIPT_NAME [OPTION]..."
-}
-
-
 usage_en_header(){
-  print_err "Usage: $SCRIPT_NAME [OPTION]..."
+  print_err "Usage: ${SCRIPT_NAME} [OPTION]..."
 }
-
-
-help_ru_common(){
-  print_err "Интернационализация:"
-  print_err "  -L LANGUAGE              задать язык - en или ru соответсвенно для английского или русского языка"
-  print_err
-  print_err "Разное:"
-  print_err "  -h                       показать эту справку выйти"
-  print_err
-  print_err "  -v                       показать версию и выйти"
-  print_err
-}
-
 
 help_en_common(){
-  print_err "Internationalization:"
-  print_err "  -L LANGUAGE              set language - either en or ru for English and Russian appropriately"
-  print_err
   print_err "Miscellaneous:"
   print_err "  -h                       display this help text and exit"
   print_err
   print_err "  -v                       display version information and exit"
   print_err
+}
+
+init() {
+  init_kctl
+  debug "Starting init stage: log basic info"
+  debug "Command: ${SCRIPT_NAME} ${TOOL_ARGS}"
+  debug "Script version: ${RELEASE_VERSION}"
+  debug "User ID: ${EUID}"
+  debug "Current date time: $(date +'%Y-%m-%d %H:%M:%S %:z')"
+  trap on_exit SIGHUP SIGINT SIGTERM
 }
 
 LOGS_TO_KEEP=5
@@ -624,17 +441,6 @@ create_log() {
   fi
 }
 
-init() {
-  init_kctl
-  force_utf8_input
-  debug "Starting init stage: log basic info"
-  debug "Command: ${SCRIPT_COMMAND}"
-  debug "Script version: ${RELEASE_VERSION}"
-  debug "User ID: ${EUID}"
-  debug "Current date time: $(date +'%Y-%m-%d %H:%M:%S %:z')"
-  trap on_exit SIGHUP SIGINT SIGTERM
-}
-
 log_and_print_err(){
   local message="${1}"
   print_err "$message" 'red'
@@ -660,6 +466,10 @@ print_content_of(){
   else
     debug "Can't show '${filepath}' content - file does not exist"
   fi
+}
+print_deprecation_warning() {
+  local message="${1}"
+  print_err "DEPRECATION WARNING: ${message}" "yellow"
 }
 
 print_err(){
@@ -736,14 +546,9 @@ run_command(){
   else
     echo -e "${message}"
   fi
-  if isset "$PRESERVE_RUNNING"; then
-    print_command_status "$command" 'SKIPPED' 'yellow' "$hide_output"
-    debug "Actual running disabled"
-  else
-    really_run_command "${command}" "${hide_output}" "${allow_errors}" "${run_as}" \
-        "${print_fail_message_method}" "${output_log}"
-      fi
-    }
+  really_run_command "${command}" "${hide_output}" "${allow_errors}" "${run_as}" \
+                     "${print_fail_message_method}" "${output_log}"
+}
 
 
 print_command_status(){
@@ -910,7 +715,7 @@ remove_current_command(){
 }
 
 start_or_reload_nginx(){
-  if (is_file_existing "/run/nginx.pid" && [[ -s "/run/nginx.pid" ]]) || is_ci_mode; then
+  if (file_exists "/run/nginx.pid" && [[ -s "/run/nginx.pid" ]]) || is_ci_mode; then
     debug "Nginx is started, reloading"
     run_command "systemctl reload nginx" "$(translate 'messages.reloading_nginx')" 'hide_output'
   else
@@ -942,7 +747,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.29.18'
+RELEASE_VERSION='2.30.0'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -995,21 +800,10 @@ INDENTATION_LENGTH=2
 INDENTATION_SPACES=$(printf "%${INDENTATION_LENGTH}s")
 
 TOOL_ARGS="${*}"
-
-if empty "${KCTL_COMMAND}"  && [ "${TOOL_NAME}" = "install" ]; then
-  SCRIPT_URL="${KEITARO_URL}/${TOOL_NAME}.sh"
-  SCRIPT_COMMAND="curl -fsSL $SCRIPT_URL | bash -s -- ${TOOL_ARGS}"
-elif empty "${KCTL_COMMAND}" && [ "${TOOL_NAME}" = "kctl" ]; then
-  SCRIPT_COMMAND="kctl ${TOOL_ARGS}"
-elif empty "${KCTL_COMMAND}"; then
-  SCRIPT_COMMAND="kctl-${TOOL_NAME} ${TOOL_ARGS}"
-else
-  SCRIPT_COMMAND="${KCTL_COMMAND} ${TOOL_ARGS}"
-fi
 declare -A DICT
 
 DICT['en.errors.program_failed']='PROGRAM FAILED'
-DICT['en.errors.must_be_root']='You should run this program as root.'
+DICT['en.errors.must_be_root']='You runs this program as root.'
 DICT['en.errors.upgrade_server']='You should upgrade the server configuration. Please contact Keitaro support team.'
 DICT['en.errors.run_command.fail']='There was an error evaluating current command'
 DICT['en.errors.run_command.fail_extra']=''
@@ -1035,54 +829,30 @@ DICT['en.validation_errors.validate_presence']='Please enter value'
 DICT['en.validation_errors.validate_absence']='Should not be specified'
 DICT['en.validation_errors.validate_yes_no']='Please answer "yes" or "no"'
 
-DICT['ru.errors.program_failed']='ОШИБКА ВЫПОЛНЕНИЯ ПРОГРАММЫ'
-DICT['ru.errors.must_be_root']='Эту программу может запускать только root.'
-DICT['ru.errors.upgrade_server']='Необходимо обновить конфигурацию. Пожалуйста, обратитесь в службу поддержки Keitaro.'
-DICT['ru.errors.run_command.fail']='Ошибка выполнения текущей команды'
-DICT['ru.errors.run_command.fail_extra']=''
-DICT['ru.errors.terminated']='Выполнение прервано'
-DICT['ru.errors.unexpected']='Непредвиденная ошибка'
-DICT['ru.errors.cant_upgrade']='Невозможно запустить upgrade т.к. установка не выполнена или произошла с ошибкой'
-DICT['ru.certbot_errors.another_proccess']="Другой процесс certbot уже запущен"
-DICT['ru.messages.generating_nginx_vhost']="Генерируется конфигурация для сайта :domain:"
-DICT['ru.messages.reloading_nginx']="Перезагружается nginx"
-DICT['ru.messages.nginx_is_not_running']="Nginx не запущен"
-DICT['ru.messages.starting_nginx']="Запускается nginx"
-DICT['ru.messages.skip_nginx_conf_generation']="Пропуск генерации конфигурации nginx"
-DICT['ru.messages.run_command']='Выполняется команда'
-DICT['ru.messages.successful']='Готово!'
-DICT['ru.no']='нет'
-DICT['ru.validation_errors.validate_domains_list']=$(cat <<-END
-	Укажите список доменных имён через запятую без пробелов (например domain1.tld,www.domain1.tld).
-	Каждое доменное имя должно сстоять только из букв, цифр и тире и содержать хотя бы одну точку.
-	Домены длиной более 64 символов не поддерживаются.
-END
-)
-DICT['ru.validation_errors.validate_absence']='Значение не должно быть задано'
-DICT['ru.validation_errors.validate_presence']='Введите значение'
-DICT['ru.validation_errors.validate_yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
-
 kctl_doctor(){
-  kctl_install "full-upgrade" "kctl-doctor.log"
+  kctl_install "-C" "kctl-doctor.log"
 }
 
 MIN_ROLLBACK_VERSION='9.13.0'
 
 kctl_downgrade() {
   local rollback_version="${1}"
-  if is_rollback_version_valid "${rollback_version}"; then
-    kctl_install "upgrade,upgrade-tracker" "kctl-downgrade.log" "-a '${rollback_version}'"
-  else
+  assert_rollback_version_valid "${rollback_version}"
+  kctl_install "-U -t upgrade-tracker -a '${rollback_version}'" "kctl-downgrade.log"
+}
 
+assert_rollback_version_valid() {
+  local rollback_version="${1}"
+  if ! is_rollback_version_valid "${rollback_version}"; then
     fail "$(translate errors.rollback_version_is_incorrect)"
   fi
-
 }
 
 is_rollback_version_valid() {
   local rollback_version="${1}"
   [[ "${rollback_version}" == "latest-stable" ]] ||
      (( $(as_version "${rollback_version}") >=  $(as_version "${MIN_ROLLBACK_VERSION}") ))
+
 }
 
 PEM_SPLITTER="-----BEGIN CERTIFICATE-----"
@@ -1143,12 +913,11 @@ remove_last_certificate_from_chain() {
 }
 
 kctl_install() {
-  local tags="${1}"
+  local options="${1}"
   local log_file_name="${2}"
-  local extra_options="${3}"
   local log_file_path="${KCTL_LOG_DIR}/${log_file_name}"
-  debug "Run command: curl -fsSL4 '${KEITARO_URL}/install.sh' | bash -s -- -rt '${tags}'  -o '${log_file_path}' '${extra_options}'"
-  curl -fsSL4 "${KEITARO_URL}/install.sh" | KCTL_COMMAND="${SCRIPT_COMMAND}" bash -s -- -rt "${tags}"  -o "${log_file_path}" "${extra_options}"
+  debug "Run command: curl -fsSL4 '${KEITARO_URL}/install.sh' | bash -s -- ${options} -o '${log_file_path}'"
+  curl -fsSL4 "${KEITARO_URL}/install.sh" | bash -s -- "${options}"  -o "${log_file_path}"
 }
 
 kctl_renew_certificates() {
@@ -1167,7 +936,7 @@ kctl_renew_certificates() {
   run_command "${command}" "${message}" 'hide_output' 'allow_errors' || \
     debug "Errors occurred while renewing some certificates. certbot exit code: ${?}"
 
-  if is_file_existing "${successfully_renewed_flag_filepath}"; then
+  if file_exists "${successfully_renewed_flag_filepath}"; then
     debug "Some certificates have been renewed. Removing flag file ${successfully_renewed_flag_filepath} and reloading nginx"
     command="rm -f '${successfully_renewed_flag_filepath}' && systemctl reload nginx"
     run_command "${command}" "" 'hide_output'
@@ -1191,25 +960,21 @@ kctl_show_version(){
 }
 
 kctl_upgrade(){
-  kctl_install "upgrade" "kctl-upgrade.log"
+  kctl_install "-U" "kctl-upgrade.log"
 }
 
 on_exit(){
   exit 1
 }
-
-CURRENT_DATETIME="$(date +%Y%m%d%H%M)"
 declare -A DICT
 
 DICT['en.errors.rollback_version_is_empty']='Rollback version not specified'
 DICT['en.errors.rollback_version_is_incorrect']="Version can't be less than ${MIN_ROLLBACK_VERSION}"
-DICT['en.errors.see_logs']="Evaluating log saved to ${LOG_PATH}. Please rerun ${TOOL_NAME} ${*} after resolving problems."
+DICT['en.errors.see_logs']="Evaluating log saved to ${LOG_PATH}."
 DICT['en.errors.invalid_options']="Invalid option ${1}. Try 'kctl help' for more information."
 
-DICT['ru.errors.rollback_version_is_empty']='Не указана версия для отката'
-DICT['ru.errors.rollback_version_is_incorrect']="Версия не может быть ниже ${MIN_ROLLBACK_VERSION}"
-DICT['ru.errors.see_logs']="Журнал выполнения сохранён в ${LOG_PATH}. Пожалуйста запустите ${TOOL_NAME} ${*} после устранения возникших проблем."
-DICT['ru.errors.invalid_options']="Неправильный параметр ${1}. Используйте 'kctl help' чтобы узнать подробнее"
+
+CURRENT_DATETIME="$(date +%Y%m%d%H%M)"
 
 on_exit(){
   exit 1

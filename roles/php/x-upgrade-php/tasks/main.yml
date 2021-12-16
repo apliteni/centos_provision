@@ -1,2 +1,0 @@
-- include: upgrade_tracker.yml
-  when: "'upgrade-from-2.12' in ansible_run_tags"

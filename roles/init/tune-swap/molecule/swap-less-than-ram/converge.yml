@@ -1,3 +1,0 @@
-- set_fact:
-    ram_size_mb: 2048
-    current_swap_size_mb: 1024

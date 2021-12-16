@@ -1,7 +1,0 @@
----
-- name: Converge
-  hosts: all
-  tasks:
-    - name: "Include disable-thp"
-      include_role:
-        name: "disable-thp"

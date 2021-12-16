@@ -55,7 +55,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.29.18'
+RELEASE_VERSION='2.30.0'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -108,21 +108,10 @@ INDENTATION_LENGTH=2
 INDENTATION_SPACES=$(printf "%${INDENTATION_LENGTH}s")
 
 TOOL_ARGS="${*}"
-
-if empty "${KCTL_COMMAND}"  && [ "${TOOL_NAME}" = "install" ]; then
-  SCRIPT_URL="${KEITARO_URL}/${TOOL_NAME}.sh"
-  SCRIPT_COMMAND="curl -fsSL $SCRIPT_URL | bash -s -- ${TOOL_ARGS}"
-elif empty "${KCTL_COMMAND}" && [ "${TOOL_NAME}" = "kctl" ]; then
-  SCRIPT_COMMAND="kctl ${TOOL_ARGS}"
-elif empty "${KCTL_COMMAND}"; then
-  SCRIPT_COMMAND="kctl-${TOOL_NAME} ${TOOL_ARGS}"
-else
-  SCRIPT_COMMAND="${KCTL_COMMAND} ${TOOL_ARGS}"
-fi
 declare -A DICT
 
 DICT['en.errors.program_failed']='PROGRAM FAILED'
-DICT['en.errors.must_be_root']='You should run this program as root.'
+DICT['en.errors.must_be_root']='You runs this program as root.'
 DICT['en.errors.upgrade_server']='You should upgrade the server configuration. Please contact Keitaro support team.'
 DICT['en.errors.run_command.fail']='There was an error evaluating current command'
 DICT['en.errors.run_command.fail_extra']=''
@@ -148,39 +137,12 @@ DICT['en.validation_errors.validate_presence']='Please enter value'
 DICT['en.validation_errors.validate_absence']='Should not be specified'
 DICT['en.validation_errors.validate_yes_no']='Please answer "yes" or "no"'
 
-DICT['ru.errors.program_failed']='ОШИБКА ВЫПОЛНЕНИЯ ПРОГРАММЫ'
-DICT['ru.errors.must_be_root']='Эту программу может запускать только root.'
-DICT['ru.errors.upgrade_server']='Необходимо обновить конфигурацию. Пожалуйста, обратитесь в службу поддержки Keitaro.'
-DICT['ru.errors.run_command.fail']='Ошибка выполнения текущей команды'
-DICT['ru.errors.run_command.fail_extra']=''
-DICT['ru.errors.terminated']='Выполнение прервано'
-DICT['ru.errors.unexpected']='Непредвиденная ошибка'
-DICT['ru.errors.cant_upgrade']='Невозможно запустить upgrade т.к. установка не выполнена или произошла с ошибкой'
-DICT['ru.certbot_errors.another_proccess']="Другой процесс certbot уже запущен"
-DICT['ru.messages.generating_nginx_vhost']="Генерируется конфигурация для сайта :domain:"
-DICT['ru.messages.reloading_nginx']="Перезагружается nginx"
-DICT['ru.messages.nginx_is_not_running']="Nginx не запущен"
-DICT['ru.messages.starting_nginx']="Запускается nginx"
-DICT['ru.messages.skip_nginx_conf_generation']="Пропуск генерации конфигурации nginx"
-DICT['ru.messages.run_command']='Выполняется команда'
-DICT['ru.messages.successful']='Готово!'
-DICT['ru.no']='нет'
-DICT['ru.validation_errors.validate_domains_list']=$(cat <<-END
-	Укажите список доменных имён через запятую без пробелов (например domain1.tld,www.domain1.tld).
-	Каждое доменное имя должно сстоять только из букв, цифр и тире и содержать хотя бы одну точку.
-	Домены длиной более 64 символов не поддерживаются.
-END
-)
-DICT['ru.validation_errors.validate_absence']='Значение не должно быть задано'
-DICT['ru.validation_errors.validate_presence']='Введите значение'
-DICT['ru.validation_errors.validate_yes_no']='Ответьте "да" или "нет" (можно также ответить "yes" или "no")'
-
 declare -a DOMAINS
 declare -a SUCCESSFUL_DOMAINS
 declare -a FAILED_DOMAINS
 DISABLE_SSL_LOG="${WORKING_DIR}/disable-ssl.log"
 CERTBOT_LOCK_FILE="/var/lib/letsencrypt/.certbot.lock"
-DICT['en.errors.see_logs']="Evaluating log saved to ${LOG_PATH}. Please rerun \`${SCRIPT_COMMAND}\` after resolving problems."
+DICT['en.errors.see_logs']="Evaluating log saved to ${LOG_PATH}."
 DICT['en.errors.domain_invalid']=":domain: doesn't look as valid domain"
 DICT['en.certbot_errors.wrong_a_entry']="Please make sure that your domain name was entered correctly and the DNS A record for that domain contains the right IP address. You need to wait a little if the DNS A record was updated recently."
 DICT['en.certbot_errors.too_many_requests']="There were too many requests. See https://letsencrypt.org/docs/rate-limits/."
@@ -188,27 +150,17 @@ DICT['en.certbot_errors.fetching']="There was connection error while issuing cer
 DICT['en.messages.ssl_disabled_for_domains']="SSL certificates are deleted for domains:"
 DICT['en.messages.ssl_not_disabled_for_domains']="There were errors while deleted certificates for domains:"
 
-DICT['ru.errors.see_logs']="Журнал выполнения сохранён в ${LOG_PATH}. Пожалуйста запустите \`${SCRIPT_COMMAND}\` после устранения возникших проблем."
-DICT['ru.errors.domain_invalid']=":domain: не похож на домен"
-DICT['ru.certbot_errors.wrong_a_entry']="Убедитесь что домен верный и что DNS A запись указывает на нужный IP адрес. Если A запись была обновлена недавно, то следует подождать некоторое время."
-DICT['ru.certbot_errors.too_many_requests']="Было слишком много запросов, см. https://letsencrypt.org/docs/rate-limits/"
-DICT['ru.certbot_errors.fetching']="Во время запуска произошла ошибка сети. Попробуйте запустить скрипт снова через час. Если ошибка повторится, обратитесь в службу поддержки."
-DICT['ru.messages.ssl_disabled_for_domains']="SSL сертификаты удалены для сайтов:"
-DICT['ru.messages.ssl_not_disabled_for_domains']="SSL сертификаты не удалены для сайтов:"
 
 
 assert_caller_root(){
   debug 'Ensure script has been running by root'
-  if isset "$SKIP_CHECKS"; then
-    debug "SKIP: actual checking of current user"
+  if [[ "$EUID" == "$ROOT_UID" ]]; then
+    debug 'OK: current user is root'
   else
-    if [[ "$EUID" == "$ROOT_UID" ]]; then
-      debug 'OK: current user is root'
-    else
-      debug 'NOK: current user is not root'
-      fail "$(translate errors.must_be_root)"
-    fi
+    debug 'NOK: current user is not root'
+    fail "$(translate errors.must_be_root)"
   fi
+  
 }
 
 
@@ -220,19 +172,9 @@ assert_installed(){
   fi
 }
 
-is_file_existing(){
+file_exists(){
   local file="${1}"
-  local result_on_skip="${2}"
   debug "Checking ${file} file existence"
-  if isset "$SKIP_CHECKS"; then
-    debug "SKIP: actual check of ${file} file existence disabled"
-    if [[ "$result_on_skip" == "no" ]]; then
-      debug "NO: simulate ${file} file does not exist"
-      return ${FAILURE_RESULT}
-    fi
-    debug "YES: simulate ${file} file exists"
-    return ${SUCCESS_RESULT}
-  fi
   if [ -f "${file}" ]; then
     debug "YES: ${file} file exists"
     return ${SUCCESS_RESULT}
@@ -241,26 +183,11 @@ is_file_existing(){
     return ${FAILURE_RESULT}
   fi
 }
-#
 
-
-
-
-
-is_file_content_matching(){
+file_content_matches(){
   local file="${1}"
   local pattern="${2}"
-  local result_on_skip="${3}"
   debug "Checking ${file} file matching with pattern '${pattern}'"
-  if isset "$SKIP_CHECKS"; then
-    debug "SKIP: actual check of ${file} file matching disabled"
-    if [[ "$result_on_skip" == "no" ]]; then
-      debug "NO: simulate ${file} file does not match '${pattern}'"
-      return ${FAILURE_RESULT}
-    fi
-    debug "YES: simulate ${file} file matches '${pattern}'"
-    return ${SUCCESS_RESULT}
-  fi
   if test -f "$file" && grep -q "$pattern" "$file"; then
     debug "YES: ${file} file matches '${pattern}'"
     return ${SUCCESS_RESULT}
@@ -269,25 +196,10 @@ is_file_content_matching(){
     return ${FAILURE_RESULT}
   fi
 }
-#
 
-
-
-
-
-is_directory_exist(){
+directory_exists(){
   local directory="${1}"
-  local result_on_skip="${2}"
   debug "Checking ${directory} directory existence"
-  if isset "$SKIP_CHECKS"; then
-    debug "SKIP: actual check of ${directory} directory existence disabled"
-    if [[ "$result_on_skip" == "no" ]]; then
-      debug "NO: simulate ${directory} directory does not exist"
-      return ${FAILURE_RESULT}
-    fi
-    debug "YES: simulate ${directory} directory exists"
-    return ${SUCCESS_RESULT}
-  fi
   if [ -d "${directory}" ]; then
     debug "YES: ${directory} directory exists"
     return ${SUCCESS_RESULT}
@@ -384,62 +296,11 @@ detect_installed_version(){
 is_compatible_with_current_release() {
   [[ "${RELEASE_VERSION}" == "${INSTALLED_VERSION}" ]]
 }
-#
-
-
-
-
-
-
-set_ui_lang(){
-  if empty "$UI_LANG"; then
-    UI_LANG=$(detect_language)
-    if empty "$UI_LANG"; then
-      UI_LANG="en"
-    fi
-  fi
-  debug "Language: ${UI_LANG}"
-}
-
-
-detect_language(){
-  detect_language_from_vars "$LC_ALL" "$LC_MESSAGES" "$LANG"
-}
-
-
-detect_language_from_vars(){
-  while [[ ${#} -gt 0 ]]; do
-    if isset "${1}"; then
-      detect_language_from_var "${1}"
-      break
-    fi
-    shift
-  done
-}
-
-
-detect_language_from_var(){
-  local lang_value="${1}"
-  if [[ "$lang_value" =~ ^ru_[[:alpha:]]+\.UTF-8$ ]]; then
-    echo ru
-  else
-    echo en
-  fi
-}
-
-
-get_ui_lang(){
-  if empty "$UI_LANG"; then
-    set_ui_lang
-  fi
-  echo "$UI_LANG"
-}
 
 
 translate(){
   local key="${1}"
-  local i18n_key
-  i18n_key=$(get_ui_lang).$key
+  local i18n_key="en.${key}"
   message="${DICT[$i18n_key]}"
   while isset "${2}"; do
     message=$(interpolate "${message}" "${2}")
@@ -460,31 +321,24 @@ interpolate(){
 is_installed(){
   local command="${1}"
   debug "Try to find command '$command'"
-  if isset "$SKIP_CHECKS"; then
-    debug "SKIPPED: actual checking of command '$command' presence skipped"
+  if [[ $(sh -c "command -v '$command' -gt /dev/null") ]]; then
+    debug "FOUND: Command '$command' found"
   else
-    if [[ $(sh -c "command -v '$command' -gt /dev/null") ]]; then
-      debug "FOUND: Command '$command' found"
-    else
-      debug "NOT FOUND: Command '$command' not found"
-      return ${FAILURE_RESULT}
-    fi
+    debug "NOT FOUND: Command '$command' not found"
+    return ${FAILURE_RESULT}
   fi
 }
 
 is_package_installed(){
   local package="${1}"
   debug "Try to find package '$package'"
-  if isset "$SKIP_CHECKS"; then
-    debug "SKIPPED: actual checking of package '$package' presence skipped"
+  if yum list installed --quiet "$package" &> /dev/null; then
+    debug "FOUND: Package '$package' found"
   else
-    if yum list installed --quiet "$package" &> /dev/null; then
-      debug "FOUND: Package '$package' found"
-    else
-      debug "NOT FOUND: Package '$package' not found"
-      return ${FAILURE_RESULT}
-    fi
+    debug "NOT FOUND: Package '$package' not found"
+    return ${FAILURE_RESULT}
   fi
+  
 }
 
 detect_inventory_path(){
@@ -502,18 +356,6 @@ detect_inventory_path(){
 
 add_indentation(){
   sed -r "s/^/$INDENTATION_SPACES/g"
-}
-
-force_utf8_input(){
-  if locale -a 2>/dev/null | grep -q en_US.UTF-8; then
-    LC_CTYPE=en_US.UTF-8
-  else
-    debug "Locale en_US.UTF-8 is not defined. Skip setting LC_CTYPE"
-    return
-  fi
-  if [ -f /proc/$$/fd/1 ]; then
-    stty -F /proc/$$/fd/1 iutf8
-  fi
 }
 
 get_user_var(){
@@ -617,7 +459,7 @@ get_vhost_generating_commands(){
   if nginx_vhost_relevant "$vhost_path"; then
     debug "File ${vhost_path} generated by relevant installer tool, skip regenerating"
   else
-    if is_file_existing "$vhost_path" no; then
+    if file_exists "$vhost_path"; then
       debug "File ${vhost_path} generated by irrelevant installer tool, force regenerating"
       commands+=("cp ${vhost_path} ${vhost_backup_path}")
     else
@@ -656,7 +498,7 @@ nginx_vhost_sed_expressions(){
   shift 2
   local expressions=''
   expressions="${expressions} -e '1a# Post-processed by Keitaro ${TOOL_NAME} tool v${RELEASE_VERSION}'"
-  if ! is_file_content_matching "$vhost_path" "include ${vhost_override_path};" no; then
+  if ! file_content_matches "$vhost_path" "include ${vhost_override_path};"; then
     expressions="${expressions} -e '/server.inc;/a\ \ include ${vhost_override_path};'"
   fi
   expressions="${expressions} -e 's/server_name _/server_name ${domain}/'"
@@ -671,13 +513,13 @@ nginx_vhost_sed_expressions(){
 
 nginx_vhost_relevant(){
   local vhost_path="${1}"
-  is_file_content_matching "$vhost_path" "# Generated by Keitaro install tool v${RELEASE_VERSION}" "no"
+  file_content_matches "$vhost_path" "# Generated by Keitaro install tool v${RELEASE_VERSION}"
 }
 
 
 nginx_vhost_already_processed(){
   local vhost_path="${1}"
-  is_file_content_matching "$vhost_path" "# Post-processed by Keitaro ${TOOL_NAME} tool v${RELEASE_VERSION}" "no"
+  file_content_matches "$vhost_path" "# Post-processed by Keitaro ${TOOL_NAME} tool v${RELEASE_VERSION}"
 }
 
 clean_up(){
@@ -707,9 +549,8 @@ fail() {
 
 init() {
   init_kctl
-  force_utf8_input
   debug "Starting init stage: log basic info"
-  debug "Command: ${SCRIPT_COMMAND}"
+  debug "Command: ${SCRIPT_NAME} ${TOOL_ARGS}"
   debug "Script version: ${RELEASE_VERSION}"
   debug "User ID: ${EUID}"
   debug "Current date time: $(date +'%Y-%m-%d %H:%M:%S %:z')"
@@ -860,7 +701,7 @@ print_with_color(){
 }
 
 start_or_reload_nginx(){
-  if (is_file_existing "/run/nginx.pid" && [[ -s "/run/nginx.pid" ]]) || is_ci_mode; then
+  if (file_exists "/run/nginx.pid" && [[ -s "/run/nginx.pid" ]]) || is_ci_mode; then
     debug "Nginx is started, reloading"
     run_command "systemctl reload nginx" "$(translate 'messages.reloading_nginx')" 'hide_output'
   else
@@ -892,14 +733,9 @@ run_command(){
   else
     echo -e "${message}"
   fi
-  if isset "$PRESERVE_RUNNING"; then
-    print_command_status "$command" 'SKIPPED' 'yellow' "$hide_output"
-    debug "Actual running disabled"
-  else
-    really_run_command "${command}" "${hide_output}" "${allow_errors}" "${run_as}" \
-        "${print_fail_message_method}" "${output_log}"
-      fi
-    }
+  really_run_command "${command}" "${hide_output}" "${allow_errors}" "${run_as}" \
+                     "${print_fail_message_method}" "${output_log}"
+}
 
 
 print_command_status(){
@@ -1064,40 +900,19 @@ remove_current_command(){
   rm -f "$CURRENT_COMMAND_OUTPUT_LOG" "$CURRENT_COMMAND_ERROR_LOG" "$current_command_script"
   rmdir $(dirname "$current_command_script")
 }
-#
-
-
-
 
 common_parse_options(){
   local option="${1}"
   local argument="${2}"
   case $option in
     l|L)
-      case $argument in
-        en)
-          UI_LANG=en
-          ;;
-        ru)
-          UI_LANG=ru
-          ;;
-        *)
-          print_err "-L: language '$argument' is not supported"
-          exit ${FAILURE_RESULT}
-          ;;
-      esac
+      print_deprecation_warning '-L option is ignored'
       ;;
     v)
       version
       ;;
     h)
       help
-      ;;
-    s)
-      SKIP_CHECKS=true
-      ;;
-    p)
-      PRESERVE_RUNNING=true
       ;;
     *)
       wrong_options
@@ -1107,25 +922,15 @@ common_parse_options(){
 
 
 help(){
-  if [[ $(get_ui_lang) == 'ru' ]]; then
-    usage_ru_header
-    help_ru
-    help_ru_common
-  else
-    usage_en_header
-    help_en
-    help_en_common
-  fi
+  usage_en_header
+  help_en
+  help_en_common
   exit ${SUCCESS_RESULT}
 }
 
 
 usage(){
-  if [[ $(get_ui_lang) == 'ru' ]]; then
-    usage_ru
-  else
-    usage_en
-  fi
+  usage_en
   exit ${FAILURE_RESULT}
 }
 
@@ -1148,46 +953,17 @@ ensure_options_correct(){
 }
 
 
-usage_ru(){
-  usage_ru_header
-  print_err "Попробуйте '${SCRIPT_NAME} -h' для большей информации."
-  print_err
-}
-
-
 usage_en(){
   usage_en_header
   print_err "Try '${SCRIPT_NAME} -h' for more information."
   print_err
 }
 
-
-usage_ru_header(){
-  print_err "Использование: $SCRIPT_NAME [OPTION]..."
-}
-
-
 usage_en_header(){
-  print_err "Usage: $SCRIPT_NAME [OPTION]..."
+  print_err "Usage: ${SCRIPT_NAME} [OPTION]..."
 }
-
-
-help_ru_common(){
-  print_err "Интернационализация:"
-  print_err "  -L LANGUAGE              задать язык - en или ru соответсвенно для английского или русского языка"
-  print_err
-  print_err "Разное:"
-  print_err "  -h                       показать эту справку выйти"
-  print_err
-  print_err "  -v                       показать версию и выйти"
-  print_err
-}
-
 
 help_en_common(){
-  print_err "Internationalization:"
-  print_err "  -L LANGUAGE              set language - either en or ru for English and Russian appropriately"
-  print_err
   print_err "Miscellaneous:"
   print_err "  -h                       display this help text and exit"
   print_err
@@ -1291,12 +1067,11 @@ validate_yes_no(){
 stage1(){
   debug "Starting stage 1: initial script setup"
   parse_options "$@"
-  set_ui_lang
 }
 
 
 parse_options(){
-  while getopts ":D:L:hv" option; do
+  while getopts ":D:hvL:" option; do
     argument=$OPTARG
     case $option in
       D)
@@ -1311,21 +1086,10 @@ parse_options(){
   ensure_options_correct
 }
 
-help_ru(){
-  print_err "$SCRIPT_NAME удаляет SSL сертификаты"
-  print_err "Использование этой программы подразумевает принятие условий соглашения подписки Let's Encrypt."
-  print_err "Пример: $SCRIPT_NAME -L ru -D domain1.tld,domain2.tld"
-  print_err
-  print_err "Автоматизация:"
-  print_err "  -D DOMAINS               удалить сертификаты для спика доменов, DOMAINS=domain1.tld[,domain2.tld...]."
-  print_err
-}
-
-
 help_en(){
   print_err "$SCRIPT_NAME removes SSL certificates"
   print_err "The use of this program implies acceptance of the terms of the Let's Encrypt Subscriber Agreement."
-  print_err "Example: $SCRIPT_NAME -L en -D domain1.tld,domain2.tld"
+  print_err "Example: $SCRIPT_NAME -D domain1.tld,domain2.tld"
   print_err
   print_err "Script automation:"
   print_err "  -D DOMAINS               remove certs for domains, DOMAINS=domain1.tld[,domain2.tld...]."
@@ -1370,7 +1134,7 @@ disable_domain(){
   certbot_command="$(build_certbot_command) delete -n --cert-name $domain"
   run_command "${certbot_command}" "" "hide_output" "allow_errors" "" "" "$DISABLE_SSL_LOG"
 
-  is_file_existing "/etc/nginx/conf.d/${domain}.conf" && is_file_existing "/etc/letsencrypt/live/$domain"
+  file_exists "/etc/nginx/conf.d/${domain}.conf" && file_exists "/etc/letsencrypt/live/$domain"
 }
 
 show_finishing_message(){

@@ -37,3 +37,7 @@
   service:
     name: clickhouse-server
     state: restarted
+- name: restart kctl-monitor
+  service:
+    name: kctl-monitor
+    state: restarted

@@ -1,6 +1,0 @@
-swap_path: /keitaro.swap
-swap_size_minimal_mb: "{{ [ram_size_mb, 8192] | min }}"
-# Calculate swap space to add
-swap_size_to_add_mb: "{{ (swap_size_minimal_mb | int) - (current_swap_size_mb | int) }}"
-
-space_for_packages : 1000

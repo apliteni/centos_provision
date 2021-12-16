@@ -1,3 +1,0 @@
-- name: Get current tracker version
-  command: "grep -oP '\\d+(\\.\\d+)+' /var/www/keitaro/version.php"
-  register: get_current_tracker_version

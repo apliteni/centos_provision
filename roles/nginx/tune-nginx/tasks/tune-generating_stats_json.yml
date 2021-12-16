@@ -1,6 +1,0 @@
-- name: Create directory for stats.json
-  file:
-    path: "{{ keitaro_stats_json_path | dirname }}"
-    state: directory
-    owner: "{{ keitaro_user }}"
-

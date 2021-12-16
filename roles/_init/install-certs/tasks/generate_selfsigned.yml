@@ -32,6 +32,6 @@
       -days 3650 \
       -keyout {{ ssl_privkey_path }} \
       -out {{ ssl_cert_path }} \
-      -subj "/CN={{ license_ip }}"
+      -subj "/CN={{ server_ip }}"
   args:
     creates: "{{ ssl_cert_path }}"

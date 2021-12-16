@@ -1,4 +1,0 @@
-- name: Delete redundant nginx config
-  file:
-    state: absent
-    path:  /etc/nginx/conf.d/keitaro/tracker.roadrunner.inc

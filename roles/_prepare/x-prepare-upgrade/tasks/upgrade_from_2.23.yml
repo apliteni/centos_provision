@@ -1,8 +1,0 @@
-- name: Remove certbot-auto dist
-  file:
-    path: "{{ item }}"
-    state: absent
-  with_items:
-    - /opt/eff.org/certbot
-    - /usr/local/bin/certbot
-

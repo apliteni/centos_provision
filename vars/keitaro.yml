@@ -7,6 +7,7 @@ keitaro_app_logs_dir: "{{ keitaro_app_dir }}/var/log"
 keitaro_app_ssl_logs_dir: "{{ keitaro_app_logs_dir }}/ssl"
 keitaro_config_dir: /etc/keitaro
 keitaro_stats_json_path: "{{ keitaro_app_dir }}/var/stats.json"
+keitaro_stats_json_dir: "{{ keitaro_stats_json_path | dirname }}"
 keitaro_watch_list: "{{ keitaro_app_dir }}/application/data/watch_list.txt"
 keitaro_config_ini_php_path: "{{ keitaro_app_dir }}/application/config/config.ini.php"
 keitaro_logrotate_common_period: 5

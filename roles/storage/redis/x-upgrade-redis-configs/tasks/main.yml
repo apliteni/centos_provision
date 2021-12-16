@@ -1,7 +1,0 @@
-- name: Set maxmemory policy
-  lineinfile:
-    path: /etc/redis.conf
-    insertafter: '^maxmemory {{ redis_memory_mb }}mb'
-    regexp: '^maxmemory {{ redis_memory_mb }}mb '
-    line: 'maxmemory-policy volatile-ttl'
-  notify: restart redis

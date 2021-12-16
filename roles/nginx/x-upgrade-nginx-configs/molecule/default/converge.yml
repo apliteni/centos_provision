@@ -1,7 +1,0 @@
----
-- name: Converge
-  hosts: all
-  tasks:
-    - name: "Include x-upgrade-nginx-configs"
-      include_role:
-        name: "x-upgrade-nginx-configs"

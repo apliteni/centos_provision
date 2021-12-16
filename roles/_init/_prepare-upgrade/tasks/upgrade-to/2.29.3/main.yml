@@ -4,7 +4,6 @@
     path: /var/log/mysql/slow_queries.log
 
 - set_fact:
-    keitaro_stats_json_dir: "{{ keitaro_stats_json_path | dirname }}"
     keitaro_stats_json_tmp_file_name: "{{ keitaro_stats_json_path | basename }}-*.tmp"
 
 - name: Find and delete temporary stats.json

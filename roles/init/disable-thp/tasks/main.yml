@@ -1,9 +1,0 @@
-- name: Detect /sys/kernel/mm/transparent_hugepage exists
-  stat:
-    path: /sys/kernel/mm/transparent_hugepage
-  register: thp_config_dir
-
-- name: Install THP disabling tool and service
-  include: install.yml
-  when: thp_config_dir.stat.exists
-

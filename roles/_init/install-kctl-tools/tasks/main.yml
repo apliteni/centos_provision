@@ -9,7 +9,6 @@
     file_type: "file"
   register: list_utils
 
-
 - name: Install tools
   copy:
     src: "{{ item.path }}"
@@ -23,7 +22,6 @@
     src: "{{ kctl_bin_dir }}/{{ item.path | basename  }}"
     dest: "/usr/local/bin/{{ item.path | basename }}"
   with_items: "{{ list_utils.files }}"
-
 
 - name: Allow keitaro user to run kctl tools
   copy:
@@ -41,3 +39,5 @@
     weekday: "{{ box_creation_time | extract_weekday | next_weekday(6) }}"
     hour: "{{ box_creation_time | extract_hour | next_hour(12) }}"
     minute: "{{ box_creation_time | extract_minute | next_minute(30) }}"
+
+- include: install-kctl-monitor-service.yml
