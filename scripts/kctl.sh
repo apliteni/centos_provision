@@ -747,7 +747,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.30.0'
+RELEASE_VERSION='2.30.1'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -966,6 +966,8 @@ kctl_upgrade(){
 on_exit(){
   exit 1
 }
+
+CURRENT_DATETIME="$(date +%Y%m%d%H%M)"
 declare -A DICT
 
 DICT['en.errors.rollback_version_is_empty']='Rollback version not specified'
@@ -973,8 +975,6 @@ DICT['en.errors.rollback_version_is_incorrect']="Version can't be less than ${MI
 DICT['en.errors.see_logs']="Evaluating log saved to ${LOG_PATH}."
 DICT['en.errors.invalid_options']="Invalid option ${1}. Try 'kctl help' for more information."
 
-
-CURRENT_DATETIME="$(date +%Y%m%d%H%M)"
 
 on_exit(){
   exit 1

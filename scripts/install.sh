@@ -56,7 +56,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.30.0'
+RELEASE_VERSION='2.30.1'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -1255,6 +1255,39 @@ get_ansible_package_name() {
   fi
 }
 
+is_ram_size_mb_changed() {
+  ( isset "${VARS['previous_ram_size_mb']}" && [[ "${VARS['previous_ram_size_mb']}" != "${VARS['ram_size_mb']}" ]] ) \
+      || ( isset "${VARS['ram_size_mb']}" && [[ "${VARS['ram_size_mb']}" != "$(get_ram_size_mb)" ]] )
+}
+
+
+get_var_from_config(){
+  local var="${1}"
+  local file="${2}"
+  local separator="${3}"
+  cat "$file" | \
+    grep "^${var}\\b" | \
+    grep "${separator}" | \
+    head -n1 | \
+    awk -F"${separator}" '{print $2}' | \
+    awk '{$1=$1; print}' | \
+    sed -r -e "s/^'(.*)'\$/\\1/g" -e 's/^"(.*)"$/\1/g'
+  }
+
+DETECTED_RAM_SIZE_MB=""
+
+get_ram_size_mb() {
+  if empty "${DETECTED_RAM_SIZE_MB}"; then
+    if is_ci_mode; then
+      DETECTED_RAM_SIZE_MB=2048
+    else
+      DETECTED_RAM_SIZE_MB=$((free -m | grep Mem: | awk '{print $2}') 2>/dev/null)
+    fi
+  fi
+  echo "${DETECTED_RAM_SIZE_MB}"
+}
+
+
 clean_up(){
   if [ -d "$PROVISION_DIRECTORY" ]; then
     debug "Remove ${PROVISION_DIRECTORY}"
@@ -1310,50 +1343,8 @@ get_var_from_keitaro_app_config() {
   get_var_from_config "${var}" "${WEBAPP_ROOT}/application/config/config.ini.php" '='
 }
 
-get_var_from_config(){
-  local var="${1}"
-  local file="${2}"
-  local separator="${3}"
-  cat "$file" | \
-    grep "^${var}\\b" | \
-    grep "${separator}" | \
-    head -n1 | \
-    awk -F"${separator}" '{print $2}' | \
-    awk '{$1=$1; print}' | \
-    sed -r -e "s/^'(.*)'\$/\\1/g" -e 's/^"(.*)"$/\1/g'
-  }
-
-is_ram_size_mb_changed() {
-  ( isset "${VARS['previous_ram_size_mb']}" && [[ "${VARS['previous_ram_size_mb']}" != "${VARS['ram_size_mb']}" ]] ) \
-      || ( isset "${VARS['ram_size_mb']}" && [[ "${VARS['ram_size_mb']}" != "$(get_ram_size_mb)" ]] )
-}
-
-
 get_free_disk_space_mb() {
   (df -m --output=avail / | tail -n1) 2>/dev/null
-}
-
-DETECTED_RAM_SIZE_MB=""
-
-get_ram_size_mb() {
-  if empty "${DETECTED_RAM_SIZE_MB}"; then
-    if is_ci_mode; then
-      DETECTED_RAM_SIZE_MB=2048
-    else
-      DETECTED_RAM_SIZE_MB=$((free -m | grep Mem: | awk '{print $2}') 2>/dev/null)
-    fi
-  fi
-  echo "${DETECTED_RAM_SIZE_MB}"
-}
-
-
-MYIP_KEITARO_IO="https://myip.keitaro.io"
-
-detect_server_ip() {
-  debug "Detecting server IP address"
-  debug "Getting url '${MYIP_KEITARO_IO}'"
-  SERVER_IP="$(curl -fsSL4 ${MYIP_KEITARO_IO} 2>&1)"
-  debug "Done, result is '${SERVER_IP}'"
 }
 
 
@@ -1492,6 +1483,15 @@ help_en(){
   print_err '  -w                       do not run `yum upgrade`'
   print_err
 }
+MYIP_KEITARO_IO="https://myip.keitaro.io"
+
+detect_server_ip() {
+  debug "Detecting server IP address"
+  debug "Getting url '${MYIP_KEITARO_IO}'"
+  SERVER_IP="$(curl -fsSL4 ${MYIP_KEITARO_IO} 2>&1)"
+  debug "Done, result is '${SERVER_IP}'"
+}
+
 
 stage1() {
   debug "Starting stage 1: initial script setup"
@@ -1499,37 +1499,14 @@ stage1() {
   detect_server_ip
 }
 
-assert_server_ip_is_valid() {
-  if ! valid_ip "${SERVER_IP}"; then
-    fail "$(translate 'errors.cant_detect_server_ip')" "see_logs"
-  fi
-}
 
-valid_ip(){
-  local value="${1}"
-  [[ "$value" =~  ^[[:digit:]]+(\.[[:digit:]]+){3}$ ]] && valid_ip_segments "$value"
-}
+assert_not_running_under_openvz() {
+  debug "Assert we are not running under OpenVZ"
 
-
-valid_ip_segments(){
-  local ip="${1}"
-  local segments
-  IFS='.' read -r -a segments <<< "${ip}"
-  for segment in "${segments[@]}"; do
-    if ! valid_ip_segment "${segment}"; then
-      return "${FAILURE_RESULT}"
-    fi
-  done
-}
-
-valid_ip_segment(){
-  local ip_segment="${1}"
-  [ "$ip_segment" -ge 0 ] && [ "$ip_segment" -le 255 ]
-}
-
-assert_apache_not_installed(){
-  if is_installed httpd; then
-    fail "$(translate errors.apache_installed)"
+  virtualization_type="$(hostnamectl status | grep Virtualization | awk '{print $2}')"
+  debug "Detected virtualization type: '${virtualization_type}'"
+  if isset "${virtualization_type}" && [[ "${virtualization_type}" == "openvz" ]]; then
+    fail "Servers with OpenVZ virtualization are not supported"
   fi
 }
 
@@ -1543,6 +1520,34 @@ assert_centos_distro(){
   assert_installed 'yum' 'errors.wrong_distro'
   if ! file_exists /etc/centos-release; then
     fail "$(translate errors.wrong_distro)" "see_logs"
+  fi
+}
+MIN_RAM_SIZE_MB=1500
+
+assert_has_enough_ram(){
+  debug "Checking RAM size"
+
+  local current_ram_size_mb
+  current_ram_size_mb=$(get_ram_size_mb)
+  if [[ "$current_ram_size_mb" -lt "$MIN_RAM_SIZE_MB" ]]; then
+    debug "RAM size ${current_ram_size_mb}mb is less than ${MIN_RAM_SIZE_MB}mb, raising error"
+    fail "$(translate errors.not_enough_ram)"
+  else
+    debug "RAM size ${current_ram_size_mb}mb is greater than ${MIN_RAM_SIZE_MB}mb, continuing"
+  fi
+}
+MIN_FREE_DISK_SPACE_MB=2048
+
+assert_has_enough_free_disk_space(){
+  debug "Checking free disk spice"
+
+  local current_free_disk_space_mb
+  current_free_disk_space_mb=$(get_free_disk_space_mb)
+  if [[ "${current_free_disk_space_mb}" -lt "${MIN_FREE_DISK_SPACE_MB}" ]]; then
+    debug "Free disk space ${current_free_disk_space_mb}mb is less than ${MIN_FREE_DISK_SPACE_MB}mb, raising error"
+    fail "$(translate errors.not_enough_free_disk_space)"
+  else
+    debug "Free disk space ${current_free_disk_space_mb}mb is greater than ${MIN_FREE_DISK_SPACE_MB}mb, continuing"
   fi
 }
 
@@ -1570,20 +1575,6 @@ assert_thp_deactivatable() {
 
 are_thp_sys_files_existing() {
   file_exists "/sys/kernel/mm/transparent_hugepage/enabled" && file_exists "/sys/kernel/mm/transparent_hugepage/defrag"
-}
-MIN_FREE_DISK_SPACE_MB=2048
-
-assert_has_enough_free_disk_space(){
-  debug "Checking free disk spice"
-
-  local current_free_disk_space_mb
-  current_free_disk_space_mb=$(get_free_disk_space_mb)
-  if [[ "${current_free_disk_space_mb}" -lt "${MIN_FREE_DISK_SPACE_MB}" ]]; then
-    debug "Free disk space ${current_free_disk_space_mb}mb is less than ${MIN_FREE_DISK_SPACE_MB}mb, raising error"
-    fail "$(translate errors.not_enough_free_disk_space)"
-  else
-    debug "Free disk space ${current_free_disk_space_mb}mb is greater than ${MIN_FREE_DISK_SPACE_MB}mb, continuing"
-  fi
 }
 
 assert_pannels_not_installed(){
@@ -1615,30 +1606,39 @@ database_exists(){
   debug "Check if database ${database} exists"
   mysql -Nse 'show databases' 2>/dev/null | tr '\n' ' ' | grep -Pq "${database}"
 }
-MIN_RAM_SIZE_MB=1500
 
-assert_has_enough_ram(){
-  debug "Checking RAM size"
-
-  local current_ram_size_mb
-  current_ram_size_mb=$(get_ram_size_mb)
-  if [[ "$current_ram_size_mb" -lt "$MIN_RAM_SIZE_MB" ]]; then
-    debug "RAM size ${current_ram_size_mb}mb is less than ${MIN_RAM_SIZE_MB}mb, raising error"
-    fail "$(translate errors.not_enough_ram)"
-  else
-    debug "RAM size ${current_ram_size_mb}mb is greater than ${MIN_RAM_SIZE_MB}mb, continuing"
+assert_apache_not_installed(){
+  if is_installed httpd; then
+    fail "$(translate errors.apache_installed)"
   fi
 }
 
-
-assert_not_running_under_openvz() {
-  debug "Assert we are not running under OpenVZ"
-
-  virtualization_type="$(hostnamectl status | grep Virtualization | awk '{print $2}')"
-  debug "Detected virtualization type: '${virtualization_type}'"
-  if isset "${virtualization_type}" && [[ "${virtualization_type}" == "openvz" ]]; then
-    fail "Servers with OpenVZ virtualization are not supported"
+assert_server_ip_is_valid() {
+  if ! valid_ip "${SERVER_IP}"; then
+    fail "$(translate 'errors.cant_detect_server_ip')" "see_logs"
   fi
+}
+
+valid_ip(){
+  local value="${1}"
+  [[ "$value" =~  ^[[:digit:]]+(\.[[:digit:]]+){3}$ ]] && valid_ip_segments "$value"
+}
+
+
+valid_ip_segments(){
+  local ip="${1}"
+  local segments
+  IFS='.' read -r -a segments <<< "${ip}"
+  for segment in "${segments[@]}"; do
+    if ! valid_ip_segment "${segment}"; then
+      return "${FAILURE_RESULT}"
+    fi
+  done
+}
+
+valid_ip_segment(){
+  local ip_segment="${1}"
+  [ "$ip_segment" -ge 0 ] && [ "$ip_segment" -le 255 ]
 }
 
 stage2(){
@@ -1751,6 +1751,17 @@ get_ssh_port(){
   echo "${ssh_port}"
 }
 
+detect_sshd_port(){
+  local port
+  port=$(ss -l -4 -p -n | grep -w tcp | grep -w sshd | awk '{ print $5 }' | awk -F: '{ print $2 }' | head -n1)
+  debug "Detected sshd port: ${port}"
+  if empty "${port}"; then
+    debug "Reset detected ssh port to 22"
+    port="22"
+  fi
+  echo "${port}"
+}
+
 write_inventory_file(){
   local current_ram_size_mb
   debug "Writing inventory file: STARTED"
@@ -1828,17 +1839,6 @@ print_line_to_inventory_file() {
   echo "$line" >> "$INVENTORY_PATH"
 }
 
-detect_sshd_port(){
-  local port
-  port=$(ss -l -4 -p -n | grep -w tcp | grep -w sshd | awk '{ print $5 }' | awk -F: '{ print $2 }' | head -n1)
-  debug "Detected sshd port: ${port}"
-  if empty "${port}"; then
-    debug "Reset detected ssh port to 22"
-    port="22"
-  fi
-  echo "${port}"
-}
-
 stage4(){
   debug "Starting stage 4: generate inventory file (running mode is ${RUNNING_MODE})."
   if is_interactive_restoring_mode; then
@@ -1905,6 +1905,13 @@ print_credentials_notice() {
   local notice=""
   notice=$(translate 'messages.successful.use_old_credentials')
   print_with_color "${notice}" 'yellow'
+}
+
+download_provision(){
+  debug "Download provision"
+  release_url="https://files.keitaro.io/scripts/${BRANCH}/kctl.tar.gz"
+  mkdir -p "${PROVISION_DIRECTORY}"
+  run_command "curl -fsSL ${release_url} | tar -xzC ${PROVISION_DIRECTORY}"
 }
 json2dict() {
 
@@ -2072,13 +2079,6 @@ json2dict() {
   }
 
   echo "("; (tokenize | json_parse); echo ")"
-}
-
-download_provision(){
-  debug "Download provision"
-  release_url="https://files.keitaro.io/scripts/${BRANCH}/kctl.tar.gz"
-  mkdir -p "${PROVISION_DIRECTORY}"
-  run_command "curl -fsSL ${release_url} | tar -xzC ${PROVISION_DIRECTORY}"
 }
 
 write_inventory_on_finish() {
