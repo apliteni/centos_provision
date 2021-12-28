@@ -56,7 +56,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.30.1'
+RELEASE_VERSION='2.30.2'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -1857,10 +1857,27 @@ is_interactive_restoring_mode() {
     [[ "${RESTORING_MODE}" == "${RESTORING_MODE_INTERACTIVE}" ]]
 }
 
+REMI_REPO_FILE='/etc/yum.repos.d/remi-safe.repo'
+REMI_REPO_URL='http://rpms.remirepo.net/enterprise/8/safe/$basearch/'
+
 upgrade_packages() {
   if empty "$WITHOUTH_YUM_UPDATE"; then
+    if file_exists "${REMI_REPO_FILE}" && grep -qF "#baseurl=${REMI_REPO_URL}" "${REMI_REPO_FILE}"; then
+      local fix_command="sed -i 's|#baseurl=${REMI_REPO_URL}|baseurl=${REMI_REPO_URL}|g' '${REMI_REPO_FILE}'"
+      run_command "${fix_command}" "Fixing remi-safe repo"
+    fi
     debug "Upgrading packages"
     run_command "yum update -y"
+  fi
+}
+
+disable_fastestmirror(){
+  debug "Disable fastestmirror plugin on Centos8"
+  if [ "$(get_centos_major_release)" == "8" ]; then
+    sed -i -e 's/^#baseurl/baseurl/g; s/^mirrorlist/#mirrorlist/g;'  /etc/yum.repos.d/*
+  elif [ "$(get_centos_major_release)" == "7" ]; then
+    debug "Disable fastestmirror plugin on Centos7"
+    sed -i -e 's/^enable=1/enable=0/g'  /etc/yum/pluginconf.d/fastestmirror.conf
   fi
 }
 
@@ -1881,6 +1898,7 @@ clean_packages_metadata() {
 
 stage5(){
   debug "Starting stage 5: upgrade current and install necessary packages"
+  disable_fastestmirror
   clean_packages_metadata
   upgrade_packages
   install_packages

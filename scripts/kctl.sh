@@ -747,7 +747,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.30.1'
+RELEASE_VERSION='2.30.2'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -829,8 +829,12 @@ DICT['en.validation_errors.validate_presence']='Please enter value'
 DICT['en.validation_errors.validate_absence']='Should not be specified'
 DICT['en.validation_errors.validate_yes_no']='Please answer "yes" or "no"'
 
-kctl_doctor(){
-  kctl_install "-C" "kctl-doctor.log"
+get_kctl_install() {
+  curl -fsSL4 "${KEITARO_URL}/install.sh"
+}
+
+kctl_doctor() {
+  get_kctl_install | bash -s -- -C -o "${KCTL_LOG_DIR}/kctl-doctor.log"
 }
 
 MIN_ROLLBACK_VERSION='9.13.0'
@@ -838,7 +842,7 @@ MIN_ROLLBACK_VERSION='9.13.0'
 kctl_downgrade() {
   local rollback_version="${1}"
   assert_rollback_version_valid "${rollback_version}"
-  kctl_install "-U -t upgrade-tracker -a '${rollback_version}'" "kctl-downgrade.log"
+  get_kctl_install | bash -s -- -U -t upgrade-tracker -a '${rollback_version}' -o "${KCTL_LOG_DIR}/kctl-downgrade.log"
 }
 
 assert_rollback_version_valid() {
@@ -912,14 +916,6 @@ remove_last_certificate_from_chain() {
   echo "${certificate_chain_wo_x3_content}" > "${certificate_path}"
 }
 
-kctl_install() {
-  local options="${1}"
-  local log_file_name="${2}"
-  local log_file_path="${KCTL_LOG_DIR}/${log_file_name}"
-  debug "Run command: curl -fsSL4 '${KEITARO_URL}/install.sh' | bash -s -- ${options} -o '${log_file_path}'"
-  curl -fsSL4 "${KEITARO_URL}/install.sh" | bash -s -- "${options}"  -o "${log_file_path}"
-}
-
 kctl_renew_certificates() {
   local successfully_renewed_flag_filepath="/var/lib/letsencrypt/.renewed"
   local renew_args="--allow-subset-of-names --renew-hook 'touch ${successfully_renewed_flag_filepath}'"
@@ -960,7 +956,7 @@ kctl_show_version(){
 }
 
 kctl_upgrade(){
-  kctl_install "-U" "kctl-upgrade.log"
+  get_kctl_install | bash -s -- -U -o "${KCTL_LOG_DIR}/kctl-upgrade.log"
 }
 
 on_exit(){
