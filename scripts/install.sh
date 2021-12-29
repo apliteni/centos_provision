@@ -56,7 +56,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.30.2'
+RELEASE_VERSION='2.30.3'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -1891,8 +1891,8 @@ install_packages(){
 }
 clean_packages_metadata() {
   if empty "$WITHOUTH_YUM_UPDATE"; then
-    debug "Clean yum metadata"
-    run_command "yum clean metadata"
+    debug "Clean yum cache"
+    run_command "yum clean all"
   fi
 }
 
