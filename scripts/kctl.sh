@@ -711,7 +711,7 @@ remove_current_command(){
   local current_command_script="${1}"
   debug "Removing current command script and logs"
   rm -f "$CURRENT_COMMAND_OUTPUT_LOG" "$CURRENT_COMMAND_ERROR_LOG" "$current_command_script"
-  rmdir $(dirname "$current_command_script")
+  rmdir "$(dirname "$current_command_script")"
 }
 
 start_or_reload_nginx(){
@@ -747,7 +747,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.30.3'
+RELEASE_VERSION='2.30.4'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -889,7 +889,7 @@ backup_certificate(){
   local certificate_path="${1}"
   local domain_name
   local backup_directory
-  domain_name=$(basename $(dirname "${certificate_path}"))
+  domain_name=$(basename "$(dirname "${certificate_path}")")
   backup_directory="/etc/keitaro/backups/letsencrypt/${CURRENT_DATETIME}/${domain_name}"
 
   mkdir -p "${backup_directory}"

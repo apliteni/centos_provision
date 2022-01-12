@@ -56,7 +56,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.30.3'
+RELEASE_VERSION='2.30.4'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -966,7 +966,7 @@ remove_current_command(){
   local current_command_script="${1}"
   debug "Removing current command script and logs"
   rm -f "$CURRENT_COMMAND_OUTPUT_LOG" "$CURRENT_COMMAND_ERROR_LOG" "$current_command_script"
-  rmdir $(dirname "$current_command_script")
+  rmdir "$(dirname "$current_command_script")"
 }
 
 start_or_reload_nginx(){
@@ -1281,12 +1281,11 @@ get_ram_size_mb() {
     if is_ci_mode; then
       DETECTED_RAM_SIZE_MB=2048
     else
-      DETECTED_RAM_SIZE_MB=$((free -m | grep Mem: | awk '{print $2}') 2>/dev/null)
+      DETECTED_RAM_SIZE_MB=$( (free -m | grep Mem: | awk '{print $2}') 2>/dev/null)
     fi
   fi
   echo "${DETECTED_RAM_SIZE_MB}"
 }
-
 
 clean_up(){
   if [ -d "$PROVISION_DIRECTORY" ]; then
@@ -1511,7 +1510,7 @@ assert_not_running_under_openvz() {
 }
 
 assert_systemctl_works_properly () {
-  if ! run_command "systemctl" "Checking systemd" 'hide_output' 'allow_errors'; then
+  if ! run_command "systemctl > /dev/null" "Checking systemd" 'hide_output' 'allow_errors'; then
     fail "$(translate errors.systemctl_doesnt_work_properly)"
   fi
 }
@@ -1820,7 +1819,8 @@ write_inventory_file(){
 }
 
 create_inventory_file() {
-  mkdir -p "${INVENTORY_DIR}" -m 0700 || fail "Cant't create keitaro inventory dir ${INVENTORY_DIR}"
+  mkdir -p "${INVENTORY_DIR}" || fail "Cant't create keitaro inventory dir ${INVENTORY_DIR}"
+  chmod 0700 "${INVENTORY_DIR}" || fail "Cant't set permissions keitaro inventory dir ${INVENTORY_DIR}"
   (echo -n > "${INVENTORY_PATH}" && chmod 0600 "${INVENTORY_PATH}") || \
     fail "Cant't create keitaro inventory file ${INVENTORY_PATH}"
 }
@@ -1857,28 +1857,30 @@ is_interactive_restoring_mode() {
     [[ "${RESTORING_MODE}" == "${RESTORING_MODE_INTERACTIVE}" ]]
 }
 
-REMI_REPO_FILE='/etc/yum.repos.d/remi-safe.repo'
-REMI_REPO_URL='http://rpms.remirepo.net/enterprise/8/safe/$basearch/'
-
 upgrade_packages() {
   if empty "$WITHOUTH_YUM_UPDATE"; then
-    if file_exists "${REMI_REPO_FILE}" && grep -qF "#baseurl=${REMI_REPO_URL}" "${REMI_REPO_FILE}"; then
-      local fix_command="sed -i 's|#baseurl=${REMI_REPO_URL}|baseurl=${REMI_REPO_URL}|g' '${REMI_REPO_FILE}'"
-      run_command "${fix_command}" "Fixing remi-safe repo"
-    fi
     debug "Upgrading packages"
     run_command "yum update -y"
   fi
 }
 
 disable_fastestmirror(){
-  debug "Disable fastestmirror plugin on Centos8"
-  if [ "$(get_centos_major_release)" == "8" ]; then
-    sed -i -e 's/^#baseurl/baseurl/g; s/^mirrorlist/#mirrorlist/g;'  /etc/yum.repos.d/*
-  elif [ "$(get_centos_major_release)" == "7" ]; then
-    debug "Disable fastestmirror plugin on Centos7"
-    sed -i -e 's/^enable=1/enable=0/g'  /etc/yum/pluginconf.d/fastestmirror.conf
+  local disabling_message="Disabling mirrors in repo files"
+  local disabling_command="sed -i -e 's/^#baseurl/baseurl/g; s/^mirrorlist/#mirrorlist/g;'  /etc/yum.repos.d/*"
+  run_command "${disabling_command}" "${disabling_message}" "hide_output"
+
+  if [[ "$(get_centos_major_release)" == "7" ]] && is_fastestmirror_enabled; then
+    disabling_message="Disabling fastestmirror plugin on Centos7"
+    disabling_command="sed -i -e 's/^enabled=1/enabled=0/g' /etc/yum/pluginconf.d/fastestmirror.conf"
+    run_command "${disabling_command}" "${disabling_message}" "hide_output"
   fi
+}
+
+FASTESTMIROR_CONF_PATH="/etc/yum/pluginconf.d/fastestmirror.conf"
+
+is_fastestmirror_enabled() {
+  file_exists "${FASTESTMIROR_CONF_PATH}" && \
+      grep -q '^enabled=1' "${FASTESTMIROR_CONF_PATH}"
 }
 
 install_packages(){
@@ -1891,8 +1893,7 @@ install_packages(){
 }
 clean_packages_metadata() {
   if empty "$WITHOUTH_YUM_UPDATE"; then
-    debug "Clean yum cache"
-    run_command "yum clean all"
+    run_command "yum clean all" "Cleaninig yum meta" "hide_output"
   fi
 }
 
@@ -2255,7 +2256,7 @@ need_print_stdout_stderr(){
   local is_stdout_set=$?
   isset "${stderr}"
   local is_stderr_set=$?
-  [[ "$ansible_module" == 'cmd' || ${is_stdout_set} == ${SUCCESS_RESULT} || ${is_stderr_set} == ${SUCCESS_RESULT} ]]
+  [[ "$ansible_module" == 'cmd' || ${is_stdout_set} == "${SUCCESS_RESULT}" || ${is_stderr_set} == "${SUCCESS_RESULT}" ]]
 }
 
 need_print_full_json(){
@@ -2267,7 +2268,7 @@ need_print_full_json(){
   local need_print_output_fields=$?
   isset "$msg"
   is_msg_set=$?
-  [[ ${need_print_output_fields} != ${SUCCESS_RESULT} && ${is_msg_set} != ${SUCCESS_RESULT}  ]]
+  [[ ${need_print_output_fields} != "${SUCCESS_RESULT}" && ${is_msg_set} != "${SUCCESS_RESULT}"  ]]
 }
 
 get_printable_fields(){

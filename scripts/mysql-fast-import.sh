@@ -61,7 +61,7 @@ parse_options() {
 define_dump_path() {
   local dump_path=${1}
   if [[ $(dirname "${dump_path}") == '.' ]]; then
-    echo $(pwd)/$(basename "${dump_path}")
+    echo "$(pwd)/$(basename "${dump_path}")"
   else
     echo "${dump_path}"
   fi
@@ -151,7 +151,7 @@ unpack_db_dump_to_chunks() {
 }
 
 rename_table_prefix() {
-  if [[ -n "${replace_table_prefix_from}" ]] && [[ $replace_table_prefix_from != $replace_table_prefix_to ]]; then
+  if [[ -n "${replace_table_prefix_from}" ]] && [[ $replace_table_prefix_from != "$replace_table_prefix_to" ]]; then
     sed "s/$replace_table_prefix_from/$replace_table_prefix_to/"
   else
     cat
