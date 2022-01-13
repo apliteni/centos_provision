@@ -9,4 +9,3 @@
 
 - name: Tune logroatate
   include: 4-configure-logrotate.yml
-

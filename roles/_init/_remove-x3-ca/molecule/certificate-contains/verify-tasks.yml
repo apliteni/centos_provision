@@ -1,0 +1,12 @@
+---
+- name: Check that X3 certificate contains in blacklist folder
+  stat:
+    path: "{{ blacklisted_ca_x3 }}"
+  register: x3_ceritificate
+
+- debug:
+    var: "{{ x3_ceritificate }}"
+
+- name: Ensure certificat is comtains in blacklist folder
+  assert:
+    that: x3_ceritificate.stat.exists == True

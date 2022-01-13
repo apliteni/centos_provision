@@ -9,6 +9,7 @@
     - {role: '_init/_install-nginx',                        tags: 'install-nginx'}
     - {role: '_init/_install-packages',                     tags: 'install-packages'}
     - {role: '_init/_prepare-upgrade',                      tags: 'prepare-upgrade,             upgrade'}
+    - {role: '_init/_remove-x3-ca',                         tags: 'remove-x3-ca'}
     - {role: '_init/create-tracker-user-and-dirs',          tags: 'create-tracker-user-and-dirs'}
     - {role: '_init/disable-selinux',                       tags: 'disable-selinux'}
     - {role: '_init/disable-thp',                           tags: 'disable-thp'}

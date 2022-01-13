@@ -1,0 +1,10 @@
+---
+- name: Identify the CA certificate
+  shell: "trust dump --filter {{ x3_pattern }}"
+  register: x3_identity_output
+
+- set_fact:
+    x3_identity: "{{ x3_identity_output.stdout }}"
+
+- include: blacklist_ca_x3.yml
+  when: x3_identity != ""

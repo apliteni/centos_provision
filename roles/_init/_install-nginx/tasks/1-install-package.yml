@@ -17,3 +17,9 @@
     name: nginx
     enabled: true
 
+- name: Touch nginx log file
+  file:
+    path: "{{ nginx_access_log }}"
+    state: touch
+    access_time: preserve
+    modification_time: preserve

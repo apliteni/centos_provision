@@ -1,0 +1,8 @@
+---
+- name: Check if X3 already is blacklisted
+  stat:
+    path: "{{ blacklisted_ca_x3 }}"
+  register: blacklisted_ca_x3_status
+
+- include: get_x3_identity.yml
+  when: not blacklisted_ca_x3_status.stat.exists
