@@ -8,6 +8,7 @@
     src: "{{ item.src }}"
     dest: "{{ item.dest }}"
     remote_src: true
+    mode: '0644'
   failed_when: false
   with_items:
     - src: /etc/nginx/ssl/cert.pem

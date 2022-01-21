@@ -9,4 +9,3 @@
     hour: "{{ box_creation_time | extract_hour }}"
     minute: "{{ box_creation_time | extract_minute }}"
     job: "/usr/local/bin/keitaro-generate_cf_ip_lists {{ nginx_ip_list_cf_v4_path }} {{ nginx_ip_list_cf_v6_path }}"
-

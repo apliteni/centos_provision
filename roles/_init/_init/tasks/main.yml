@@ -30,11 +30,12 @@
     path: /etc/hostname
   register: etc_hostname_file_info
 
-- set_fact:
+- name: Define useful vars
+  set_fact:
     box_creation_time: "{{ etc_hostname_file_info.stat.ctime | int }}"
     kctl_version: "{{ __kctl_version }}"
     kctl_installed_version: "{{ installer_version }}"
     kctl_tags: "{{ ansible_run_tags }}"
-    
+
 - name: Print debug info
   include_tasks: print-debug-info.yml

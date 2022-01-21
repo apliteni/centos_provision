@@ -4,7 +4,7 @@
     dest: /etc/yum.repos.d/nginx.repo
     owner: root
     group: root
-    mode: 0644
+    mode: '0644'
 
 - name: Ensure nginx is installed.
   package:
@@ -23,3 +23,4 @@
     state: touch
     access_time: preserve
     modification_time: preserve
+    mode: '0644'

@@ -2,6 +2,7 @@
   template:
     src: Altinity-ClickHouse.repo
     dest: /etc/yum.repos.d
+    mode: '0644'
 
 - name: Install by YUM | Install Clickhouse
   yum:
@@ -13,6 +14,7 @@
   template:
     src: users.j2
     dest: "{{ clickhouse_config_path }}/users.xml"
+    mode: '0644'
   notify: restart clickhouse
 
 - name: Start service clickhouse-server if not started

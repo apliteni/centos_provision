@@ -2,10 +2,12 @@
   file:
     path: "/etc/systemd/system/{{ php_version }}-php-fpm.service.d"
     state: directory
+    mode: '0755'
 
 - name: Generate systemd php-fpm config
   template:
     src: systemd/keitaro-systemd-php-fpm.conf.j2
     dest: "/etc/systemd/system/{{ php_version }}-php-fpm.service.d/keitaro-systemd-php-fpm.conf"
+    mode: '0644'
   notify:
     - restart php-fpm

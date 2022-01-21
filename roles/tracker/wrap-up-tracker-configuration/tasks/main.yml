@@ -6,7 +6,7 @@
   changed_when: false
 
 - name: Reload cache
-  command: "{{ php_path}} bin/cli.php system:reload_cache"
+  command: "{{ php_path }} bin/cli.php system:reload_cache"
   args:
     chdir: "{{ keitaro_app_dir }}"
   become_user: "{{ keitaro_user }}"
@@ -41,12 +41,14 @@
 - name: Configure cron to remove old enable-ssl logs
   cron:
     name: Remove old enable-ssl logs
-    hour: "{{ box_creation_time | extract_hour }}" 
+    hour: "{{ box_creation_time | extract_hour }}"
     minute: "{{ box_creation_time | extract_minute }}"
     job: >
-      find {{ kctl_enable_ssl_logs_dir }} -mtime +{{ kctl_enable_ssl_logs_keep_for_n_days }} -type f | head -n {{ kctl_enable_ssl_logs_max_removable_batch_size }} | xargs -r rm
+      find {{ kctl_enable_ssl_logs_dir }} -mtime +{{ kctl_enable_ssl_logs_keep_for_n_days }} -type f | \
+      head -n {{ kctl_enable_ssl_logs_max_removable_batch_size }} | \
+      xargs -r rm
 
-- name: Generate watch list if it isn't exist.
+- name: Generate watch list if it doesn't exist.
   copy:
     dest: "{{ keitaro_watch_list }}"
     content: >
@@ -54,4 +56,5 @@
       application/macros/
       application/filters/
       application/config/config.ini.php
-    force: no
+    force: false
+    mode: '0644'

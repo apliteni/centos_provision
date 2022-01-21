@@ -2,7 +2,8 @@
   template:
     src: "mariadb.repo.j2"
     dest: "/etc/yum.repos.d/mariadb.repo"
-    force: yes
+    force: true
+    mode: '0644'
 
 - name: Install supporting libraries
   package:
@@ -31,4 +32,4 @@
   service:
     name: mariadb
     state: started
-    enabled: yes
+    enabled: true

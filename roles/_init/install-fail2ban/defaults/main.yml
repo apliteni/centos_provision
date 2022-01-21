@@ -1,4 +1,4 @@
-fail2ban_action: iptables-multiport[name=BadBots, port="http,https"] # Action to do.
-fail2ban_maxretry: 3   # Minimum count in log.
-fail2ban_findtime: 60  # Period to find in sec.
-fail2ban_bantime:  600 # Time to ban ip sec.
+fail2ban_action: iptables-multiport[name=BadBots, port="http,https"]  # Action to do
+fail2ban_maxretry: 3                                                  # Minimum count in log
+fail2ban_findtime: 60                                                 # Period to find in sec
+fail2ban_bantime: 600                                                 # Time to ban ip sec

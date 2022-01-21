@@ -6,6 +6,6 @@
 - name: Restart service cron on centos also issue daemon-reload to pick up config changes
   systemd:
     state: restarted
-    daemon_reload: yes
+    daemon_reload: true
     name: crond
   when: set_timezone.changed

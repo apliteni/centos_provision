@@ -7,4 +7,4 @@
 - include: create-user-and-database.yml
   vars:
     ansible_python_interpreter: "/usr/bin/python3"
-    when: check_if_tracker_database_exists_command.rc == 1 # mysql exits with rc = 1 when there is no specified db
+    when: check_if_tracker_database_exists_command.rc == 1    # mysql exits with rc = 1 when there is no specified db

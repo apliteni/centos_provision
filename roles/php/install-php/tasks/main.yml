@@ -1,31 +1,30 @@
 - name: Install php, php-fpm, php extensions and supporting libraries
   yum:
     name:
-      - "{{php_version}}"
-      - "{{php_version}}-php-fpm"
-      - "{{php_version}}-php-bcmath"
-      - "{{php_version}}-php-devel"
-      - "{{php_version}}-php-mysqlnd"
-      - "{{php_version}}-php-opcache"
-      - "{{php_version}}-php-pecl-redis"
-      - "{{php_version}}-php-mbstring"
-      - "{{php_version}}-php-pear"
-      - "{{php_version}}-php-xml"
-      - "{{php_version}}-php-pecl-zip"
-      - "{{php_version}}-php-ioncube-loader"
-      - "{{php_version}}-php-gd"
-      - "{{php_version}}-php-intl"
-      - "{{php_version}}-php-pecl-swoole4"
+      - "{{ php_version }}"
+      - "{{ php_version }}-php-fpm"
+      - "{{ php_version }}-php-bcmath"
+      - "{{ php_version }}-php-devel"
+      - "{{ php_version }}-php-mysqlnd"
+      - "{{ php_version }}-php-opcache"
+      - "{{ php_version }}-php-pecl-redis"
+      - "{{ php_version }}-php-mbstring"
+      - "{{ php_version }}-php-pear"
+      - "{{ php_version }}-php-xml"
+      - "{{ php_version }}-php-pecl-zip"
+      - "{{ php_version }}-php-ioncube-loader"
+      - "{{ php_version }}-php-gd"
+      - "{{ php_version }}-php-intl"
+      - "{{ php_version }}-php-pecl-swoole4"
       - fcgi
     state: installed
 
 - name: Link php directories and php binary
   file:
-    src: "{{item.from}}"
-    dest: "{{item.to}}"
+    src: "{{ item.from }}"
+    dest: "{{ item.to }}"
     state: link
   with_items:
-    - {from: "/etc/opt/remi/{{php_version}}",                 to: '/etc/php'}
-    - {from: "/var/opt/remi/{{php_version}}/log/php-fpm",     to: '/var/log/php-fpm'}
-    - {from: "/usr/bin/{{php_version}}",                      to: '/usr/bin/php'}
-
+    - {from: "/etc/opt/remi/{{ php_version }}",                 to: '/etc/php'}
+    - {from: "/var/opt/remi/{{ php_version }}/log/php-fpm",     to: '/var/log/php-fpm'}
+    - {from: "/usr/bin/{{ php_version }}",                      to: '/usr/bin/php'}

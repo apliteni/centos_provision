@@ -1,4 +1,5 @@
-- set_fact:
+- name: Define vars to display
+  set_fact:
     vars_to_display:
       - box_creation_time
       - cpu_cores
@@ -39,6 +40,7 @@
       - roadrunner_worker_size_mb
       - roadrunner_workers_count
 
-- set_fact:
+- name: Debug vars
+  set_fact:
     debug: |
       {{ dict(vars_to_display | zip(vars_to_display |  map('extract', hostvars[inventory_hostname]))) }}

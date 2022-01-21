@@ -6,7 +6,7 @@
     - /opt/eff.org/certbot
     - /usr/local/bin/certbot
 
-- name: Remove old mysql conf files 
+- name: Remove old mysql conf files
   file:
     path: "/etc/my.cnf.d/{{ item }}"
     state: absent

@@ -3,13 +3,14 @@
 - name: Get x509 cert from trust output
   command: "openssl x509"
   args:
-    stdin: "{{ x3_identity}}"
+    stdin: "{{ x3_identity }}"
   register: x3_x509_format
 
 - name: Add certificate to blacklist directory
   copy:
     content: "{{ x3_x509_format.stdout }}"
     dest: "{{ blacklisted_ca_x3 }}"
+    mode: '0644'
 
 - name: Update the system trust store
   command: "update-ca-trust extract"

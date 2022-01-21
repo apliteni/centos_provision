@@ -1,7 +1,7 @@
 - name: Install redis
   yum:
     name: redis
-    state: latest
+    state: installed
   notify:
     - restart redis
 
@@ -10,4 +10,3 @@
     name: redis
     state: started
     enabled: true
-

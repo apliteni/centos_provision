@@ -2,6 +2,6 @@
   copy:
     src: "bin/{{ item }}"
     dest: "/usr/local/bin/{{ item }}"
-    mode: "0755"
+    mode: '0755'
   with_items:
     - keitaro-generate_cf_ip_lists

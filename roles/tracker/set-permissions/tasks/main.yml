@@ -4,4 +4,4 @@
     owner: "{{ keitaro_user }}"
     group: "{{ keitaro_group }}"
     mode: u=rwX,g=rX,o=rX
-    recurse: yes
+    recurse: true

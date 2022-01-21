@@ -2,6 +2,7 @@
   file:
     state: directory
     path: "{{ kctl_bin_dir }}"
+    mode: '0755'
 
 - name: Find kctl tools
   find:
@@ -13,7 +14,7 @@
   copy:
     src: "{{ item.path }}"
     dest: "{{ kctl_bin_dir }}"
-    mode: "0755"
+    mode: '0755'
   with_items: "{{ list_utils.files }}"
 
 - name: Make symlinks
@@ -29,6 +30,7 @@
       Cmnd_Alias KCTL_TOOLS = /opt/keitaro/bin/kctl-enable-ssl *, /opt/keitaro/bin/kctl-disable-ssl * , /opt/keitaro/bin/kctl upgrade
       {{ keitaro_user }} ALL=(ALL) NOPASSWD: KCTL_TOOLS
     dest: /etc/sudoers.d/99-allow-keitaro-user-to-run-kctl-tools
+    mode: '0440'
 
 # Run renew certificates task weekly
 - name: Install renew certs job

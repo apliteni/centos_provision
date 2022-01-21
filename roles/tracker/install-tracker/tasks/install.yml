@@ -2,7 +2,7 @@
   meta: flush_handlers
 
 - name: Download and unpack tracker package
-  include_tasks: "../../../_shared/install-package.yml"
+  include_tasks: "../_shared/install-package.yml"
 
 - name: Restore DB from SQL dump
   include_tasks: restore_db.yml
@@ -19,32 +19,33 @@
     db_schema_is_empty: "{{ db_schema_exists_query.query_result == [[]] }}"
 
 - block:
-  - name: Make temporary copy of schema.sql
-    copy:
-      src: "{{ keitaro_database_schema }}"
-      dest: "{{ keitaro_database_schema_temp_file }}"
-      remote_src: true
+    - name: Make temporary copy of schema.sql
+      copy:
+        src: "{{ keitaro_database_schema }}"
+        dest: "{{ keitaro_database_schema_temp_file }}"
+        remote_src: true
+        mode: '0644'
 
-  - name: Change schema.sql engine to TokuDB
-    replace:
-      path: "{{ keitaro_database_schema_temp_file }}"
-      regexp: "ENGINE=InnoDB"
-      replace: "ENGINE={{ db_engine }}"
+    - name: Change schema.sql engine to TokuDB
+      replace:
+        path: "{{ keitaro_database_schema_temp_file }}"
+        regexp: "ENGINE=InnoDB"
+        replace: "ENGINE={{ db_engine }}"
 
-  - name: Import database .sql files
-    community.mysql.mysql_db:
-      state: import
-      name: "{{ db_name }}"
-      target: "{{ item }}"
-    with_items:
-      - "{{ keitaro_database_schema_temp_file }}"
-      - "{{ keitaro_database_data }}"
-    when: db_restore_path is not defined
+    - name: Import database .sql files
+      community.mysql.mysql_db:
+        state: import
+        name: "{{ db_name }}"
+        target: "{{ item }}"
+      with_items:
+        - "{{ keitaro_database_schema_temp_file }}"
+        - "{{ keitaro_database_data }}"
+      when: db_restore_path is not defined
 
-  - name: Remove unneeded schema temp file
-    file:
-      path: "{{ keitaro_database_schema_temp_file }}"
-      state: absent
+    - name: Remove unneeded schema temp file
+      file:
+        path: "{{ keitaro_database_schema_temp_file }}"
+        state: absent
   when: db_schema_is_empty
 
 - name: Run cli.php for generate config
@@ -57,7 +58,7 @@
     SALT: "{{ salt }}"
   args:
     chdir: "{{ keitaro_app_dir }}"
-    creates:  "application/config/config.ini.php"
+    creates: "application/config/config.ini.php"
   become_user: "{{ keitaro_user }}"
   when: big_data_engine == 'mariadb'
   notify:
@@ -99,7 +100,7 @@
   command: "{{ php_path }} bin/cli.php system:set_license_key {{ license_key }}"
   args:
     chdir: "{{ keitaro_app_dir }}"
-    creates:  "{{ keitaro_app_dir }}/var/license/key.lic"
+    creates: "{{ keitaro_app_dir }}/var/license/key.lic"
   become_user: "{{ keitaro_user }}"
   when: license_key is defined
 

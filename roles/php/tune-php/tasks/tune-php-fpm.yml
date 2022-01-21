@@ -11,7 +11,7 @@
     dest: "/etc/php/php-fpm.d/{{ item }}"
     owner: root
     group: root
-    mode: 0644
+    mode: '0644'
   with_items:
     - keitaro-nontracker.conf
   notify:
@@ -31,5 +31,5 @@
 
 - name: Enable php-fpm
   service:
-    name: "{{php_version}}-php-fpm"
-    enabled: yes
+    name: "{{ php_version }}-php-fpm"
+    enabled: true

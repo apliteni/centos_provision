@@ -12,14 +12,14 @@
 - name: Ensure firewalld service is enabled and started
   service:
     name: firewalld
-    masked: no
+    masked: false
     state: started
     enabled: true
 
 - name: Allow firewalld ports
   firewalld:
     port: "{{ item }}/tcp"
-    permanent: yes
-    immediate: yes
+    permanent: true
+    immediate: true
     state: enabled
   with_items: "{{ firewall_allowed_tcp_ports | unique }}"

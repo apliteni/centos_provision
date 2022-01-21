@@ -20,8 +20,8 @@
     dest: /usr/local/bin/rr
     state: link
     force: true
-    
+
 - name: Check roadrunner symlink exists
-  stat: 
+  stat:
     path: /usr/local/bin/roadrunner
   register: roadrunner

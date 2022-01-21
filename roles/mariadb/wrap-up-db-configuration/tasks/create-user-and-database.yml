@@ -48,4 +48,3 @@
     priv: "{{ db_name }}.*:ALL,GRANT"
     host: localhost
     state: present
-

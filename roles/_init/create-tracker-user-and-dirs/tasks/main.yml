@@ -18,7 +18,7 @@
     state: directory
     owner: "{{ keitaro_user }}"
     group: "{{ keitaro_group }}"
-    mode: 0550
+    mode: '0550'
 
 - name: Prepare keitaro app dirs
   file:
@@ -26,7 +26,7 @@
     state: directory
     owner: "{{ keitaro_user }}"
     group: "{{ keitaro_group }}"
-    mode: 0755
+    mode: '0755'
   with_items:
     - "{{ keitaro_app_dir }}"
     - "{{ keitaro_app_logs_dir }}"
@@ -36,6 +36,7 @@
   file:
     path: "{{ kctl_enable_ssl_logs_dir }}"
     state: directory
+    mode: '0644'
 
 - name: Create symlink for SSL logs
   file:
@@ -47,6 +48,7 @@
   file:
     path: "{{ ssl_root }}"
     state: directory
+    mode: '0755'
 
 - name: Setup limits
   pam_limits:
@@ -59,7 +61,7 @@
   file:
     path: "{{ item }}"
     state: directory
+    mode: '0755'
   with_items:
     - /etc/nginx/conf.d/keitaro
     - /etc/nginx/conf.d/local/keitaro
-

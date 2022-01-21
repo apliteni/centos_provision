@@ -11,4 +11,4 @@
   shell: |-
     {{ list_ipv4_keitaro_generated_configs_command }} | \
       xargs sed -i -r -e '/listen 80/a \  listen [::]:80;' -e '/listen 443/a \  listen [::]:443 ssl;'
-  when: list_ipv4_keitaro_generated_configs_command_result.stdout != ""
+  when: list_ipv4_keitaro_generated_configs_command_result.stdout | length > 0

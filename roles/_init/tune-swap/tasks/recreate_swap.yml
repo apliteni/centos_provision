@@ -1,4 +1,4 @@
-- name: Check if swap file exists 
+- name: Check if swap file exists
   stat:
     path: "{{ swap_path }}"
   register: swap_path_info

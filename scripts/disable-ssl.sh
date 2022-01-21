@@ -11,6 +11,7 @@ umask 22
 SUCCESS_RESULT=0
 TRUE=0
 FAILURE_RESULT=1
+INTERRUPTED_BY_USER_RESULT=130
 FALSE=1
 ROOT_UID=0
 
@@ -55,7 +56,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.30.5'
+RELEASE_VERSION='2.30.6'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -118,6 +119,7 @@ DICT['en.errors.run_command.fail_extra']=''
 DICT['en.errors.terminated']='Terminated by user'
 DICT['en.errors.unexpected']='Unexpected error'
 DICT['en.errors.cant_upgrade']='Cannot upgrade because installation process is not finished yet'
+DICT['en.errors.already_running']="Another installation process is running."
 DICT['en.certbot_errors.another_proccess']="Another certbot process is already running"
 DICT['en.messages.generating_nginx_vhost']="Generating nginx config for domain :domain:"
 DICT['en.messages.reloading_nginx']="Reloading nginx"
@@ -544,7 +546,7 @@ fail() {
   fi
   print_err
   clean_up
-  exit ${FAILURE_RESULT}
+  exit "${3:-${FAILURE_RESULT}}"
 }
 
 init() {
@@ -554,7 +556,8 @@ init() {
   debug "Script version: ${RELEASE_VERSION}"
   debug "User ID: ${EUID}"
   debug "Current date time: $(date +'%Y-%m-%d %H:%M:%S %:z')"
-  trap on_exit SIGHUP SIGINT SIGTERM
+  trap on_exit SIGHUP SIGTERM
+  trap on_exit_by_user_interrupt SIGINT
 }
 
 LOGS_TO_KEEP=5

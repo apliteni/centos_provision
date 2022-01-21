@@ -26,4 +26,3 @@
     state: absent
   when: can_remove_swap
   register: swap_removed
-

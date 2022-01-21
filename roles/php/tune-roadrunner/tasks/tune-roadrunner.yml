@@ -2,10 +2,12 @@
   file:
     path: "{{ rr_config_dir }}"
     state: directory
+    mode: '0755'
 
 - name: Generate roadrunner config
   template:
     src: roadrunner/roadrunner.yml.j2
     dest: "{{ rr_config_path }}"
+    mode: '0644'
   notify:
     - restart roadrunner

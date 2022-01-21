@@ -5,4 +5,3 @@
     line: '\1rotate {{ keitaro_logrotate_nginx_period }}'
     backrefs: true
     insertbefore: postrotate
-

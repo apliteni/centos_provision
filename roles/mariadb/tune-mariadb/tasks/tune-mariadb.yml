@@ -4,6 +4,7 @@
     owner: mysql
     group: mysql
     state: directory
+    mode: '0755'
 
 - name: Get stat for /var/log/mariadb
   stat:
@@ -20,6 +21,7 @@
   template:
     src: "my.cnf.d/{{ item }}.j2"
     dest: "/etc/my.cnf.d/{{ item }}"
+    mode: '0644'
   with_items:
     - keitaro-mysqld-optimize_performance.cnf
     - keitaro-mysqld-set_default_storage_engine.cnf
@@ -30,7 +32,7 @@
 - name: Restart MariaDB
   systemd:
     name: mariadb
-    state: restarted 
+    state: restarted
   when: mariadb_configuration_generation_status.changed
 
 - name: Create symlinks
@@ -45,4 +47,3 @@
       dest: /var/log/mariadb
     - src: mysql
       dest: /var/lib/mariadb
-

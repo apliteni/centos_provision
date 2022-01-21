@@ -12,7 +12,7 @@
 
 - name: restart php-fpm
   service:
-    name: "{{php_version}}-php-fpm"
+    name: "{{ php_version }}-php-fpm"
     state: restarted
     daemon-reload: true
 

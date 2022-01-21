@@ -6,15 +6,14 @@
 
 - name: Generate main nginx config
   template:
-    src: "{{ item }}.j2"
-    dest: "/etc/{{ item }}"
-  with_items:
-    - nginx/nginx.conf
+    src: "nginx/nginx.conf.j2"
+    dest: "/etc/nginx/nginx.conf"
+    mode: '0644'
   register: nginx_generation_main_config_result
 
 - name: Restart nginx
   systemd:
     name: nginx
     state: restarted
-  when: nginx_removing_default_site_config_result.changed 
+  when: nginx_removing_default_site_config_result.changed
         or nginx_generation_main_config_result.changed

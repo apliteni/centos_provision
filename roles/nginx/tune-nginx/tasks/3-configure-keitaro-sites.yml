@@ -2,7 +2,8 @@
   copy:
     content: ""
     dest: "{{ item }}"
-    force: no
+    force: false
+    mode: '0644'
   with_items:
     - "{{ nginx_conf_path }}/local/keitaro/server.inc"
     - "{{ nginx_conf_path }}/local/keitaro/admin.inc"
@@ -14,6 +15,7 @@
   template:
     src: "{{ item }}.j2"
     dest: "/etc/{{ item }}"
+    mode: '0644'
   with_items:
     - nginx/conf.d/keitaro.conf
     - nginx/conf.d/keitaro/admin.inc
@@ -32,4 +34,3 @@
     state: absent
   notify:
     - reload nginx
-

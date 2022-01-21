@@ -2,11 +2,13 @@
   file:
     path: /etc/systemd/system/mariadb.service.d
     state: directory
+    mode: '0755'
 
 - name: Generate systemd mariadb config
   template:
     src: "systemd/keitaro-systemd-mariadb.conf.j2"
     dest: /etc/systemd/system/mariadb.service.d/keitaro-systemd-mariadb.conf
+    mode: '0644'
   register: mariadb_systemd_configuration_generation_status
 
 - name: Reload systemd & restart mariadb

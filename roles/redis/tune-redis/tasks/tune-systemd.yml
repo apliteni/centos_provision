@@ -2,10 +2,12 @@
   file:
     path: "/etc/systemd/system/redis.service.d"
     state: directory
+    mode: '0755'
 
 - name: Generate systemd redis config
   template:
     src: keitaro-systemd-redis.conf.j2
     dest: "/etc/systemd/system/redis.service.d/keitaro-systemd-redis.conf"
+    mode: '0644'
   notify:
     - restart redis

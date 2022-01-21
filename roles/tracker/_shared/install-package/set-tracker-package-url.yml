@@ -56,7 +56,7 @@
           phpversion: "{{ php_release }}"
           disable_delay: "{{ disable_delay }}"
         http_agent: "{{ kctl_user_agent }}"
-        return_content: yes
+        return_content: true
       failed_when: "'success::' not in get_latest_tracker_version.content"
       register: get_latest_tracker_version
 

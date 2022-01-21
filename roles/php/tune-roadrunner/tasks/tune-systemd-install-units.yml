@@ -2,6 +2,7 @@
   template:
     src: "systemd/{{ item }}.j2"
     dest: "/etc/systemd/system/{{ item }}"
+    mode: '0644'
   with_items: "{{ roadrunner_services }}"
   register: roadrunner_systemd_units
 

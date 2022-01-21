@@ -6,4 +6,3 @@
 - name: Install THP disabling tool and service
   include: install.yml
   when: thp_config_dir.stat.exists
-

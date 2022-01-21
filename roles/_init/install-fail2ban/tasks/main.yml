@@ -7,24 +7,23 @@
   systemd:
     name: "fail2ban.service"
     state: "started"
-    daemon_reload: yes
+    daemon_reload: true
 
 - name: Create fail2ban config directory
   file:
     dest: "{{ keitaro_config_dir }}/fail2ban/"
-    state: "directory"
+    state: directory
+    mode: '0755'
 
-- name: Install Jails
+- name: Install config files
   template:
-    src: "jail/{{ item }}.j2"
-    dest: "{{ keitaro_config_dir }}/fail2ban/{{ item }}"
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: '0644'
   with_items:
-    - keitaro-jail.conf
-
-- name: Install Filters
-  template:
-    src: "filters/{{ item }}.j2"
-    dest: "/etc/fail2ban/filter.d/{{ item }}"
-  with_items:
-    - keitaro-bot-filter.conf
-    - keitaro-filter-options.conf
+    - src: "jail/keitaro-jail.conf.j2"
+      dest: "{{ keitaro_config_dir }}/fail2ban/keitaro-jail.conf"
+    - src: "filters/keitaro-bot-filter.conf.j2"
+      dest: "/etc/fail2ban/filter.d/keitaro-bot-filter.conf"
+    - src: "filters/keitaro-filter-options.conf.j2"
+      dest: "/etc/fail2ban/filter.d/keitaro-filter-options.conf"
