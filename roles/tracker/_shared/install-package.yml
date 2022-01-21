@@ -1,5 +1,5 @@
 - name: Set tracker_package_url
-  include_tasks: "install-package/set-tracker-package-url.yml"
+  include_tasks: "../../_shared/install-package/set-tracker-package-url.yml"
 
 - name: Download and unpack tracker package
   shell: >
