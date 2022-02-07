@@ -1,5 +1,5 @@
 #!/bin/bash
-set -v -o pipefail -e
+set -o pipefail -e
 
 config_dir=${1-/etc/nginx/conf.d}
 mysql_host=${2-localhost}

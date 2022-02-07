@@ -9,4 +9,4 @@
     name: _init/install-kctl-tools
 
 - include_role:
-    name: _init/_install-nginx
+    name: nginx/install-nginx

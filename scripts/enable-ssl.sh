@@ -56,7 +56,7 @@ SELF_NAME=${0}
 
 KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.30.8'
+RELEASE_VERSION='2.30.10'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -325,9 +325,6 @@ run_obsolete_tool_version_if_need() {
     local tool_args="${TOOL_ARGS}"
     if (( $(as_version "${INSTALLED_VERSION}") < $(as_version "1.13") )); then
       fail "$(translate 'errors.upgrade_server')"
-    fi
-    if [[ "${TOOL_NAME}" == "add-site" ]]; then
-      tool_args="-D ${VARS['site_domains']} -R ${VARS['site_root']}"
     fi
     if [[ "${TOOL_NAME}" == "enable-ssl" ]]; then
       tool_args="-D ${VARS['ssl_domains']}"

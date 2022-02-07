@@ -6,7 +6,6 @@
 
   roles:
     - {role: '_init/_init',                                 tags: 'init,                        always'}
-    - {role: '_init/_install-nginx',                        tags: 'install-nginx'}
     - {role: '_init/_install-packages',                     tags: 'install-packages'}
     - {role: '_init/_prepare-upgrade',                      tags: 'prepare-upgrade,             upgrade'}
     - {role: '_init/_remove-x3-ca',                         tags: 'remove-x3-ca'}
@@ -28,6 +27,7 @@
     - {role: 'mariadb/install-mariadb',                     tags: 'install-mariadb'}
     - {role: 'mariadb/tune-mariadb',                        tags: 'tune-mariadb,                 tune'}
     - {role: 'mariadb/wrap-up-db-configuration',            tags: 'wrap-up-db-configuration'}
+    - {role: 'nginx/install-nginx',                         tags: 'install-nginx'}
     - {role: 'nginx/tune-nginx',                            tags: 'tune-nginx,                   tune'}
     - {role: 'php/install-php',                             tags: 'install-php'}
     - {role: 'php/install-roadrunner',                      tags: 'install-roadrunner'}
