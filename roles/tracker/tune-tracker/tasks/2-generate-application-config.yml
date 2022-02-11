@@ -1,0 +1,14 @@
+- name: Generage tracker config
+  shell: >
+    {{ php_path }} bin/cli.php system:generate_config \
+        --env-file-path /etc/keitaro/config/tracker.env \
+        --config-path {{ keitaro_config_ini_php_path }} \
+        --force
+  args:
+    chdir: "{{ keitaro_app_dir }}"
+  become_user: "{{ keitaro_user }}"
+  changed_when: false
+  notify:
+    - restart roadrunner
+    - restart php-fpm
+

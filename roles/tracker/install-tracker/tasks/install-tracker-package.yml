@@ -1,0 +1,9 @@
+  - name: Force all notified handlers to run at this point
+    meta: flush_handlers
+
+  - name: Detect tracker version to install
+    include_tasks: "../_shared/detect-tracker-version-to-install.yml"
+
+  - name: Download and unpack tracker package
+    include_tasks: "../_shared/install-package.yml"
+

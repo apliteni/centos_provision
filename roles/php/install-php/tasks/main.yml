@@ -25,6 +25,7 @@
     dest: "{{ item.to }}"
     state: link
   with_items:
-    - {from: "/etc/opt/remi/{{ php_version }}",                 to: '/etc/php'}
-    - {from: "/var/opt/remi/{{ php_version }}/log/php-fpm",     to: '/var/log/php-fpm'}
-    - {from: "/usr/bin/{{ php_version }}",                      to: '/usr/bin/php'}
+    - { from: "/etc/opt/remi/{{ php_version }}",                 to: '/etc/php' }
+    - { from: "/var/opt/remi/{{ php_version }}/log/php-fpm",     to: '/var/log/php-fpm' }
+    - { from: "/usr/bin/{{ php_version }}",                      to: '/usr/bin/php' }
+    - { from: "/usr/bin/{{ php_version }}",                      to: '/usr/bin/kctl-php' }

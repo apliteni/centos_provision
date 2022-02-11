@@ -8,4 +8,4 @@
       | sed -r -e 's/engine=\w+/engine={{ db_engine }}/ig' -e 's/{{ table_prefix_from }}/keitaro_/g' \
       | mysql {{ db_name }}
   args:
-    chdir: ../
+    chdir: ../../

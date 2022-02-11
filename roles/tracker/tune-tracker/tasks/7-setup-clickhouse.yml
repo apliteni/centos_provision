@@ -1,0 +1,11 @@
+- name: Use CH for keitaro tracker
+  shell: "{{ php_path }} bin/cli.php ch_db:setup --config {{ keitaro_config_ini_php_path }}"
+  args:
+    chdir: "{{ keitaro_app_dir }}"
+  become_user: "{{ keitaro_user }}"
+
+- name: Turn up Rbooster
+  lineinfile:
+    path: "{{ keitaro_config_ini_php_path }}"
+    regexp: ^rbooster =
+    line: "rbooster = true"

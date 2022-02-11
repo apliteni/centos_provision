@@ -24,6 +24,7 @@
     - {role: '_init/tune-swap',                             tags: 'tune-swap,                    tune'}
     - {role: '_init/tune-sysctl',                           tags: 'tune-sysctl,                  tune'}
     - {role: 'clickhouse/install-clickhouse',               tags: 'install-clickhouse'}
+    - {role: 'clickhouse/tune-clickhouse',                  tags: 'tune-clickhouse,              tune'}
     - {role: 'mariadb/install-mariadb',                     tags: 'install-mariadb'}
     - {role: 'mariadb/tune-mariadb',                        tags: 'tune-mariadb,                 tune'}
     - {role: 'mariadb/wrap-up-db-configuration',            tags: 'wrap-up-db-configuration'}
@@ -34,10 +35,10 @@
     - {role: 'php/tune-php',                                tags: 'tune-php,                     tune'}
     - {role: 'php/tune-roadrunner',                         tags: 'tune-roadrunner,              tune'}
     - {role: 'redis/install-redis',                         tags: 'install-redis'}
-    - {role: 'clickhouse/install-clickhouse',               tags: 'install-clickhouse'}
     - {role: 'redis/tune-redis',                            tags: 'tune-redis,                   tune'}
     - {role: 'tracker/install-tracker',                     tags: 'install-tracker'}
     - {role: 'tracker/upgrade-tracker',                     tags: 'upgrade-tracker,              never'}
+    - {role: 'tracker/tune-tracker',                        tags: 'tune-tracker'}
     - {role: 'tracker/set-permissions',                     tags: 'set-permissions,              always'}
     - {role: 'tracker/wrap-up-tracker-configuration',       tags: 'wrap-up-tracker-configuration'}
     - {role: 'wrap-up/finish-installation',                 tags: 'finish-installation'}

@@ -1,2 +1,11 @@
-- include: install-clickhouse.yml
-  when: big_data_engine == 'clickhouse'
+- name: add Clickhouse repository
+  template:
+    src: Altinity-ClickHouse.repo
+    dest: /etc/yum.repos.d
+    mode: '0644'
+
+- name: Install by YUM | Install Clickhouse
+  yum:
+    name: "{{ clickhouse_package }}"
+    state: present
+    enablerepo: altinity_clickhouse

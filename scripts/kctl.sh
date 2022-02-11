@@ -11,7 +11,7 @@ umask 22
 SUCCESS_RESULT=0
 TRUE=0
 FAILURE_RESULT=1
-INTERRUPTED_BY_USER_RESULT=130
+INTERRUPTED_BY_USER_RESULT=200
 FALSE=1
 ROOT_UID=0
 
@@ -51,8 +51,88 @@ is_pipe_mode(){
 }
 TOOL_NAME='kctl'
 
+SELF_NAME=${0}
+
+
+RELEASE_VERSION='2.31.0'
+VERY_FIRST_VERSION='0.9'
+DEFAULT_BRANCH="releases/stable"
+BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
+
+KEITARO_URL='https://keitaro.io'
+FILES_KEITARO_URL="https://files.keitaro.io/scripts/${BRANCH}"
+
+if is_ci_mode; then
+  ROOT_PREFIX='.keitaro'
+else
+  ROOT_PREFIX=''
+fi
+
+declare -A VARS
+declare -A ARGS
+declare -A DETECTED_VARS
+
+TRACKER_ROOT="${ROOT_PREFIX}/var/www/keitaro"
+
+KCTL_ROOT="${ROOT_PREFIX}/opt/keitaro"
+KCTL_BIN_DIR="${KCTL_ROOT}/bin"
+KCTL_LOG_DIR="${KCTL_ROOT}/log"
+KCTL_ETC_DIR="${KCTL_ROOT}/etc"
+KCTL_WORKING_DIR="${KCTL_ROOT}/tmp"
+
+ETC_DIR="${ROOT_PREFIX}/etc/keitaro"
+
+WORKING_DIR="${ROOT_PREFIX}/var/tmp/keitaro"
+
+LOG_DIR="${ROOT_PREFIX}/var/log/keitaro"
+SSL_LOG_DIR="${LOG_DIR}/ssl"
+
+LOG_FILENAME="${TOOL_NAME}.log"
+LOG_PATH="${LOG_DIR}/${LOG_FILENAME}"
+
+INVENTORY_DIR="${ETC_DIR}/config"
+INVENTORY_PATH="${INVENTORY_DIR}/inventory"
+DETECTED_INVENTORY_PATH=""
+
+NGINX_CONFIG_ROOT="/etc/nginx"
+NGINX_VHOSTS_DIR="${NGINX_CONFIG_ROOT}/conf.d"
+NGINX_KEITARO_CONF="${NGINX_VHOSTS_DIR}/keitaro.conf"
+
+SCRIPT_NAME="kctl-${TOOL_NAME}"
+
+CURRENT_COMMAND_OUTPUT_LOG="${WORKING_DIR}/current_command.output.log"
+CURRENT_COMMAND_ERROR_LOG="${WORKING_DIR}/current_command.error.log"
+CURRENT_COMMAND_SCRIPT_NAME="current_command.sh"
+
+INDENTATION_LENGTH=2
+INDENTATION_SPACES=$(printf "%${INDENTATION_LENGTH}s")
+
+TOOL_ARGS="${*}"
+
+DB_ENGINE_INNODB="innodb"
+DB_ENGINE_TOKUDB="tokudb"
+DB_ENGINE_DEFAULT="${DB_ENGINE_TOKUDB}"
+
+PHP_ENGINE_ROADRUNNER="roadrunner"
+PHP_ENGINE_DEFAULT="${PHP_ENGINE_ROADRUNNER}"
+
+OLAP_DB_MARIADB="mariadb"
+OLAP_DB_CLICKHOUSE="clickhouse"
+OLAP_DB_DEFAULT="${OLAP_DB_MARIADB}"
+
+TRACKER_STABILITY_STABLE="stable"
+TRACKER_STABILITY_UNSTABLE="unstable"
+TRACKER_STABILITY_DEFAULT="${TRACKER_STABILITY_STABLE}"
+
+TRACKER_SUPPORTS_RBOOSTER_SINCE='9.14.9.1'
+
+KEITARO_USER='keitaro'
+KEITARO_GROUP='keitaro'
+
+TRACKER_CONFIG_FILE="${TRACKER_ROOT}/application/config/config.ini.php"
+
 assert_caller_root(){
-  debug 'Ensure script has been running by root'
+  debug 'Ensure current user is root'
   if [[ "$EUID" == "$ROOT_UID" ]]; then
     debug 'OK: current user is root'
   else
@@ -67,18 +147,18 @@ assert_installed(){
   local program="${1}"
   local error="${2}"
   if ! is_installed "$program"; then
-    fail "$(translate "${error}")" "see_logs"
+    fail "$(translate "${error}")"
   fi
 }
 
 USE_NEW_ALGORITHM_FOR_INSTALLATION_CHECK_SINCE="2.12"
-KEITARO_LOCK_FILEPATH="${WEBAPP_ROOT}/var/install.lock"
+KEITARO_LOCK_FILEPATH="${TRACKER_ROOT}/var/install.lock"
 
 assert_keitaro_not_installed(){
   debug 'Ensure keitaro is not installed yet'
   if is_keitaro_installed; then
     debug 'NOK: keitaro is already installed'
-    print_err "$(translate messages.keitaro_already_installed)" 'yellow'
+    print_with_color "$(translate messages.keitaro_already_installed)" 'yellow'
     clean_up
     print_url
     exit "${KEITARO_ALREADY_INSTALLED_RESULT}"
@@ -100,6 +180,18 @@ is_keitaro_installed() {
 
 should_use_new_algorithm_for_installation_check() {
   (( $(as_version "${INSTALLED_VERSION}") >= $(as_version "${USE_NEW_ALGORITHM_FOR_INSTALLATION_CHECK_SINCE}") ))
+}
+assert_no_another_process_running(){
+
+  exec 8>/var/run/kctl-process.lock
+
+  debug "Check if another process is running"
+
+  if flock -n -x 8; then
+    debug "No other installer process is running"
+  else
+    fail "$(translate 'errors.already_running')"
+  fi
 }
 # Check if lock file exist
 #https://certbot.eff.org/docs/using.html#id5
@@ -155,10 +247,9 @@ build_certbot_command() {
   if is_ci_mode; then
     echo "/usr/bin/certbot"
   else
-    echo "/usr/bin/docker run --network host --rm -it $(dockerized_certbot_volumes) certbot/certbot"
+    echo "/usr/bin/docker run --network host --rm $(dockerized_certbot_volumes) certbot/certbot"
   fi
 }
-
 DOCKERIZED_CERTBOT_VOLUME_PATHS="/etc/letsencrypt /var/lib/letsencrypt /var/log/letsencrypt /var/www/keitaro"
 
 dockerized_certbot_volumes() {
@@ -285,17 +376,27 @@ debug() {
   fi
 }
 
+expand_ansible_tags_with_tag() {
+  local tag="${1}"
+  local tag_regex="\<${tag}\>"
+  if [[ "${ANSIBLE_TAGS}" =~ ${tag_regex} ]]; then
+    return
+  fi
+  if empty "${ANSIBLE_TAGS}"; then
+    ANSIBLE_TAGS="${tag}"
+  else
+    ANSIBLE_TAGS="${tag},${ANSIBLE_TAGS}"
+  fi
+}
+
 fail() {
   local message="${1}"
-  local see_logs="${2}"
+  local exit_code="${2-${FAILURE_RESULT}}"
   log_and_print_err "*** $(translate errors.program_failed) ***"
   log_and_print_err "$message"
-  if isset "$see_logs"; then
-    log_and_print_err "$(translate errors.see_logs)"
-  fi
   print_err
   clean_up
-  exit "${3:-${FAILURE_RESULT}}"
+  exit "${exit_code}"
 }
 
 common_parse_options(){
@@ -403,7 +504,7 @@ init_kctl_dirs_and_links() {
 
 create_kctl_dirs_and_links() {
   mkdir -p "${LOG_DIR}" "${SSL_LOG_DIR}" "${INVENTORY_DIR}" "${KCTL_BIN_DIR}" "${WORKING_DIR}" &&
-    chmod 0700 "${ETC_DIR}" &&
+    chmod 0750 "${ETC_DIR}" &&
     ln -s "${ETC_DIR}" "${KCTL_ETC_DIR}" &&
     ln -s "${LOG_DIR}" "${KCTL_LOG_DIR}" &&
     ln -s "${WORKING_DIR}" "${KCTL_WORKING_DIR}"
@@ -431,7 +532,10 @@ delete_old_logs() {
   local log_filename
   log_dir="$(dirname "${log_filepath}")"
   log_filename="$(basename "${log_filepath}")"
-  find "${log_dir}" -name "${log_filename}-*" | sort | head -n -${LOGS_TO_KEEP} | xargs rm -f
+  /usr/bin/find "${log_dir}" -name "${log_filename}-*" | \
+    /usr/bin/sort | \
+    /usr/bin/head -n -${LOGS_TO_KEEP} | \
+    /usr/bin/xargs rm -f
 }
 
 create_log() {
@@ -460,7 +564,7 @@ on_exit_by_user_interrupt(){
   debug "Terminated by user"
   echo
   clean_up
-  fail "$(translate 'errors.terminated')" "" "${INTERRUPTED_BY_USER_RESULT}"
+  fail "$(translate 'errors.terminated')" "${INTERRUPTED_BY_USER_RESULT}"
 }
 
 print_content_of(){
@@ -486,11 +590,6 @@ print_err(){
   local color="${2}"
   print_with_color "$message" "$color" >&2
 }
-#
-
-
-
-
 
 print_translated(){
   local key="${1}"
@@ -610,7 +709,7 @@ really_run_command(){
     else
       fail_message=$(print_current_command_fail_message "$print_fail_message_method" "$current_command_script")
       remove_current_command "$current_command_script"
-      fail "${fail_message}" "see_logs"
+      fail "${fail_message}"
     fi
   else
     print_command_status "$command" 'OK' 'green' "$hide_output"
@@ -734,6 +833,18 @@ start_or_reload_nginx(){
   fi
 }
 
+TRACKER_VERSION_PHP="${TRACKER_ROOT}/version.php"
+
+get_tracker_version() {
+  if file_exists "${TRACKER_VERSION_PHP}"; then
+    cut -d "'" -f 2 "${TRACKER_VERSION_PHP}"
+  fi
+}
+
+tracker_supports_rbooster() {
+  (( $(as_version "$(get_tracker_version)") >= $(as_version "${TRACKER_SUPPORTS_RBOOSTER_SINCE}") ))
+}
+
 get_error(){
   local var_name="${1}"
   local validation_methods_string="${2}"
@@ -751,64 +862,6 @@ get_error(){
   done
   echo "${error}"
 }
-
-SELF_NAME=${0}
-
-KEITARO_URL='https://keitaro.io'
-
-RELEASE_VERSION='2.30.10'
-VERY_FIRST_VERSION='0.9'
-DEFAULT_BRANCH="releases/stable"
-BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
-
-if is_ci_mode; then
-  ROOT_PREFIX='.keitaro'
-else
-  ROOT_PREFIX=''
-fi
-
-declare -A VARS
-declare -A ARGS
-declare -A DETECTED_VARS
-
-WEBAPP_ROOT="${ROOT_PREFIX}/var/www/keitaro"
-
-KCTL_ROOT="${ROOT_PREFIX}/opt/keitaro"
-KCTL_BIN_DIR="${KCTL_ROOT}/bin"
-KCTL_LOG_DIR="${KCTL_ROOT}/log"
-KCTL_ETC_DIR="${KCTL_ROOT}/etc"
-KCTL_WORKING_DIR="${KCTL_ROOT}/tmp"
-
-ETC_DIR="${ROOT_PREFIX}/etc/keitaro"
-
-WORKING_DIR="${ROOT_PREFIX}/var/tmp/keitaro"
-
-LOG_DIR="${ROOT_PREFIX}/var/log/keitaro"
-SSL_LOG_DIR="${LOG_DIR}/ssl"
-
-LOG_FILENAME="${TOOL_NAME}.log"
-LOG_PATH="${LOG_DIR}/${LOG_FILENAME}"
-
-INVENTORY_DIR="${ETC_DIR}/config"
-INVENTORY_PATH="${INVENTORY_DIR}/inventory"
-DETECTED_INVENTORY_PATH=""
-
-NGINX_CONFIG_ROOT="/etc/nginx"
-NGINX_VHOSTS_DIR="${NGINX_CONFIG_ROOT}/conf.d"
-NGINX_KEITARO_CONF="${NGINX_VHOSTS_DIR}/keitaro.conf"
-
-SCRIPT_NAME="kctl-${TOOL_NAME}"
-
-CURRENT_COMMAND_OUTPUT_LOG="${WORKING_DIR}/current_command.output.log"
-CURRENT_COMMAND_ERROR_LOG="${WORKING_DIR}/current_command.error.log"
-CURRENT_COMMAND_SCRIPT_NAME="current_command.sh"
-
-CERTBOT_PREFERRED_CHAIN="ISRG Root X1"
-
-INDENTATION_LENGTH=2
-INDENTATION_SPACES=$(printf "%${INDENTATION_LENGTH}s")
-
-TOOL_ARGS="${*}"
 declare -A DICT
 
 DICT['en.errors.program_failed']='PROGRAM FAILED'
@@ -819,7 +872,6 @@ DICT['en.errors.run_command.fail_extra']=''
 DICT['en.errors.terminated']='Terminated by user'
 DICT['en.errors.unexpected']='Unexpected error'
 DICT['en.errors.cant_upgrade']='Cannot upgrade because installation process is not finished yet'
-DICT['en.errors.already_running']="Another installation process is running."
 DICT['en.certbot_errors.another_proccess']="Another certbot process is already running"
 DICT['en.messages.generating_nginx_vhost']="Generating nginx config for domain :domain:"
 DICT['en.messages.reloading_nginx']="Reloading nginx"
@@ -839,34 +891,130 @@ DICT['en.validation_errors.validate_presence']='Please enter value'
 DICT['en.validation_errors.validate_absence']='Should not be specified'
 DICT['en.validation_errors.validate_yes_no']='Please answer "yes" or "no"'
 
-get_kctl_install() {
-  curl -fsSL4 "${KEITARO_URL}/install.sh"
+kctl_features_usage() {
+  echo "Usage:"
+  echo "  kctl features enable <feature>                  enable feature"
+  echo "  kctl features disable <feature>                 disable feature"
+  echo "  kctl features list                              list supported features"
 }
 
-kctl_doctor() {
-  get_kctl_install | bash -s -- -C -o "${KCTL_LOG_DIR}/kctl-doctor.log"
-}
-
-MIN_ROLLBACK_VERSION='9.13.0'
-
-kctl_downgrade() {
-  local rollback_version="${1}"
-  assert_rollback_version_valid "${rollback_version}"
-  get_kctl_install | bash -s -- -U -t upgrade-tracker -a "${rollback_version}" -o "${KCTL_LOG_DIR}/kctl-downgrade.log"
-}
-
-assert_rollback_version_valid() {
-  local rollback_version="${1}"
-  if ! is_rollback_version_valid "${rollback_version}"; then
-    fail "$(translate errors.rollback_version_is_incorrect)"
+kctl_features_disable() {
+  local feature="${1}"
+  if empty "${feature}"; then
+    kctl_features_usage
+  else
+    case "${feature}" in
+      rbooster)
+        kctl_features_disable_rbooster
+      ;;
+      *)
+        kctl_features_usage
+    esac
   fi
 }
 
-is_rollback_version_valid() {
-  local rollback_version="${1}"
-  [[ "${rollback_version}" == "latest-stable" ]] ||
-     (( $(as_version "${rollback_version}") >=  $(as_version "${MIN_ROLLBACK_VERSION}") ))
+kctl_features_enable() {
+  local feature="${1}"
+  if empty "${feature}"; then
+    kctl_features_usage
+  else
+    case "${feature}" in
+      rbooster)
+        kctl_features_enable_rbooster
+      ;;
+      *)
+        kctl_features_usage
+    esac
+  fi
+}
 
+set_olap_db() {
+  local olap_db="${1}"
+  local log_path="${KCTL_LOG_DIR}/kctl-set-olap-db-to-${olap_db}.log"
+  local roles_to_replay="tune-clickhouse,tune-mariadb,tune-tracker"
+
+  assert_tracker_supports_rbooster
+ 
+  debug "Running command \`KCTL_OLAP_DB='${olap_db}' kctl-install -U -o '${log_path}' -t '${roles_to_replay}'\`"
+  KCTL_OLAP_DB="${olap_db}" kctl-install -U -o "${log_path}" -t "${roles_to_replay}"
+}
+
+assert_tracker_supports_rbooster() {
+  if ! tracker_supports_rbooster; then
+    fail "$(translate "errors.tracker_doesnt_support_feature" \
+                      'feature=rbooster' \
+                      "current_tracker_version=$(get_tracker_version)" \
+                      "featured_tracker_version=${TRACKER_SUPPORTS_RBOOSTER_SINCE}")"
+  fi
+}
+
+kctl_features_enable_rbooster() {
+  set_olap_db "${OLAP_DB_CLICKHOUSE}"
+  run_ch_migrator
+}
+
+kctl_features_disable_rbooster() {
+  set_olap_db "${OLAP_DB_MARIADB}"
+}
+
+kctl_features_list(){
+  echo "Feature list:"
+  echo " rbooster               ClickHouse as OLAP DB"
+}
+
+get_kctl_install() {
+  curl -fsSL4 "${FILES_KEITARO_URL}/install.sh"
+}
+
+kctl_auto_install(){
+  local install_exit_code
+  local sleeping_message
+
+  for (( count=0; count<=${#RETRY_INTERVALS[@]}; count++ ));  do
+    if kctl_install; then
+      installator_exit_code="${?}"
+    else
+      installator_exit_code="${?}"
+    fi
+    debug "Result code is '${installator_exit_code}'"
+
+    if [[ "${installator_exit_code}" != "0" ]] && [[ "${installator_exit_code}" != "200" ]]; then
+      if [[ "$count" == "${#RETRY_INTERVALS[@]}" ]]; then
+        fail "$(translate errors.unexpected)"
+      else
+        sleeping_message="$(translate "messages.sleeping_before_next_try" "retry_interval=${RETRY_INTERVALS[$count]}")"
+        echo "${sleeping_message}" >&2
+        debug "${sleeping_message}"
+        sleep "${RETRY_INTERVALS[$count]}"
+      fi
+    else
+      return "${SUCCESS_RESULT}"
+    fi
+
+  done
+}
+
+kctl_install(){
+  debug "Running \`curl -fsSL4 '${FILES_KEITARO_URL}/install.sh' | bash -s -- -o '${KCTL_LOG_DIR}/kctl-install.log'\`"
+  get_kctl_install | bash -s -- -o "${KCTL_LOG_DIR}/kctl-install.log"
+}
+
+kctl_features() {
+  local action="${2}"
+  local feature="${3}"
+  case "${action}" in
+    enable)
+      kctl_features_enable "${feature}"
+      ;;
+    disable)
+      kctl_features_disable "${feature}"
+      ;;
+    list)
+      kctl_features_list
+      ;;
+    *)
+      kctl_features_usage
+  esac
 }
 
 PEM_SPLITTER="-----BEGIN CERTIFICATE-----"
@@ -926,6 +1074,35 @@ remove_last_certificate_from_chain() {
   echo "${certificate_chain_wo_x3_content}" > "${certificate_path}"
 }
 
+kctl_install_tracker() {
+  local tracker_version_to_install="${1}"
+  local log_path="${KCTL_LOG_DIR}/kctl-install-tracker.log"
+
+  assert_tracker_version_to_install_valid "${tracker_version_to_install}"
+
+  debug "curl -fsSL4 '${FILES_KEITARO_URL}/install.sh' | bash -s -- -U -a ${tracker_version_to_install} -o ${log_path}"
+  get_kctl_install | bash -s -- -U -a "${tracker_version_to_install}" -o "${log_path}"
+}
+
+assert_tracker_version_to_install_valid() {
+  local tracker_version_to_install="${1}"
+
+  if empty "${tracker_version_to_install}"; then
+    fail "$(translate 'errors.tracker_version_to_install_is_empty')"
+  fi
+  if ! is_tracker_version_to_install_valid "${tracker_version_to_install}"; then
+    fail "$(translate errors.tracker_version_to_install_is_incorrect)"
+  fi
+}
+
+is_tracker_version_to_install_valid() {
+  local tracker_version_to_install="${1}"
+  [[ "${tracker_version_to_install}" == "latest" ]] || \
+    [[ "${tracker_version_to_install}" == "latest-stable" ]] || \
+    [[ "${tracker_version_to_install}" == "latest-unstable" ]] || \
+    (( $(as_version "${tracker_version_to_install}") >=  $(as_version "${MIN_TRACKER_VERSION_TO_INSTALL}") ))
+}
+
 kctl_renew_certificates() {
   local successfully_renewed_flag_filepath="/var/lib/letsencrypt/.renewed"
   local renew_args="--allow-subset-of-names --renew-hook 'touch ${successfully_renewed_flag_filepath}'"
@@ -951,21 +1128,36 @@ kctl_renew_certificates() {
   fi
 }
 
+kctl_rescue() {
+  debug "curl -fsSL4 '${FILES_KEITARO_URL}/install.sh' | | bash -s -- -C -o ${KCTL_LOG_DIR}/kctl-rescue.log"
+  get_kctl_install | bash -s -- -C -o "${KCTL_LOG_DIR}/kctl-rescue.log"
+}
+
 kctl_show_help(){
   echo "kctl - Keitaro management tool"
   echo ""
   echo "Usage:
-   kctl upgrade             - upgrades system & tracker
-   kctl doctor              - fixes common problems 
-   kctl renew-certificates  - renews LE certificates
-   kctl downgrade <version> - downgrades tracker to version"
+   kctl upgrade                           - upgrades system & tracker
+   kctl rescue                            - fixes common problems
+   kctl renew-certificates                - renews LE certificates
+   kctl install-tracker <version>         - installs tracker with specified version
+   kctl downgrade [version]               - downgrades tracker to version (by default downgrades to latest stable version)
+   kctl features                          - manage features"
 }
 
 kctl_show_version(){
-  echo "kctl v${RELEASE_VERSION}"
+  read_inventory
+  detect_installed_version
+  if is_keitaro_installed; then
+    translate 'messages.kctl_version' "kctl_version=${RELEASE_VERSION}"
+    translate 'messages.kctl_tracker' "tracker_version=$(get_tracker_version)"
+  else
+    fail "$(translate 'errors.tracker_not_installed')"
+  fi
 }
 
 kctl_upgrade(){
+  debug "curl -fsSL4 '${FILES_KEITARO_URL}/install.sh' |  bash -s -- -U -o ${KCTL_LOG_DIR}/kctl-upgrade.log"
   get_kctl_install | bash -s -- -U -o "${KCTL_LOG_DIR}/kctl-upgrade.log"
 }
 
@@ -973,44 +1165,73 @@ on_exit(){
   exit 1
 }
 
-CURRENT_DATETIME="$(date +%Y%m%d%H%M)"
-declare -A DICT
+run_ch_migrator(){
+  local command
+  command="kctl-ch-migrator --prefix=$(get_parameter_from_php_config 'db' 'prefix') \
+    --ms-host=$(get_parameter_from_php_config 'db' 'server') \
+    --ms-db=$(get_parameter_from_php_config 'db' 'name') \
+    --ms-user=$(get_parameter_from_php_config 'db' 'user') \
+    --ms-password=$(get_parameter_from_php_config 'db' 'password')  \
+    --ch-host=$(get_parameter_from_php_config 'clickhouse' 'ch_host')  \
+    --ch-db=$(get_parameter_from_php_config 'clickhouse' 'ch_db')  \
+    --ch-user=$(get_parameter_from_php_config 'clickhouse' 'ch_user')  \
+    --ch-password=$(get_parameter_from_php_config 'clickhouse' 'ch_password')"
 
-DICT['en.errors.rollback_version_is_empty']='Rollback version not specified'
-DICT['en.errors.rollback_version_is_incorrect']="Version can't be less than ${MIN_ROLLBACK_VERSION}"
-DICT['en.errors.see_logs']="Evaluating log saved to ${LOG_PATH}."
-DICT['en.errors.invalid_options']="Invalid option ${1}. Try 'kctl help' for more information."
-
-
-on_exit(){
-  exit 1
+  run_command "${command}"
 }
+CURRENT_DATETIME="$(date +%Y%m%d%H%M)"
+MIN_TRACKER_VERSION_TO_INSTALL='9.13.0'
+declare -a RETRY_INTERVALS=(60 180 300)
+declare -A DICT
+DICT['en.messages.sleeping_before_next_try']="Error while install, sleeping for :retry_interval: seconds before next try"
+DICT['en.messages.kctl_version']="Kctl:    :kctl_version:"
+DICT['en.messages.kctl_tracker']="Tracker: :tracker_version:"
+DICT['en.errors.tracker_version_to_install_is_empty']='Tracker version is not specified'
+DICT['en.errors.tracker_version_to_install_is_incorrect']="Tracker version can't be less than ${MIN_TRACKER_VERSION_TO_INSTALL}"
+DICT['en.errors.invalid_options']="Invalid option ${1}. Try 'kctl help' for more information."
+DICT['en.errors.tracker_doesnt_support_feature']="Current tracker v:current_tracker_version: doesn't support :feature:. Please upgrade tracker to v:featured_tracker_version:+"
+DICT['en.errors.tracker_not_installed']="Keitaro tracker not installed"
 
-detect_installed_version(){
-  if empty "${INSTALLED_VERSION}"; then
-    detect_inventory_path
-    if isset "${DETECTED_INVENTORY_PATH}"; then
-      INSTALLED_VERSION=$(grep "^installer_version=" "${DETECTED_INVENTORY_PATH}" | sed s/^installer_version=//g)
-      debug "Got installer_version='${INSTALLED_VERSION}' from ${DETECTED_INVENTORY_PATH}"
-    fi
-    if empty "${INSTALLED_VERSION}"; then
-      debug "Couldn't detect installer_version, resetting to ${VERY_FIRST_VERSION}"
-      INSTALLED_VERSION="${VERY_FIRST_VERSION}"
-    fi
+read_inventory(){
+  detect_inventory_path
+  if isset "${DETECTED_INVENTORY_PATH}"; then
+    parse_inventory "${DETECTED_INVENTORY_PATH}"
   fi
 }
 
-detect_inventory_path(){
-  debug "Detecting inventory path"
-  paths=("${INVENTORY_PATH}" /root/.keitaro/installer_config .keitaro/installer_config /root/hosts.txt hosts.txt)
-  for path in "${paths[@]}"; do
-    if [[ -f "${path}" ]]; then
-      DETECTED_INVENTORY_PATH="${path}"
-      debug "Inventory found - ${DETECTED_INVENTORY_PATH}"
-      return
+parse_inventory() {
+  local file="${1}"
+  debug "Found inventory file ${file}, reading defaults from it"
+  while IFS="" read -r line; do
+    if [[ "$line" =~ = ]]; then
+      parse_line_from_inventory_file "$line"
     fi
-  done
-  debug "Inventory file not found"
+  done < "${file}"
+}
+
+parse_line_from_inventory_file(){
+  local line="${1}"
+  local quoted_string_regex="^'.*'\$"
+  IFS="=" read -r var_name value <<< "$line"
+  if [[ "$var_name" != "db_restore_path" ]] && [[ "$var_name" != "without_key" ]]; then
+    if [[ "${value}" =~ ${quoted_string_regex} ]]; then
+      debug "# ${value} is quoted, removing quotes"
+      value_without_quotes="${value:1:-1}"
+      debug "# $var_name: quotes removed - ${value} -> ${value_without_quotes}"
+      value="${value_without_quotes}"
+    fi
+    if empty "${VARS[$var_name]}"; then
+      VARS[$var_name]=$value
+      debug "# read '$var_name' from inventory"
+    else
+      debug "# $var_name is set from options, skip inventory value"
+    fi
+    debug "  $var_name=${VARS[$var_name]}"
+  fi
+}
+
+on_exit(){
+  exit 1
 }
 
 # Based on https://stackoverflow.com/a/53400482/612799
@@ -1052,20 +1273,130 @@ as_minor_version() {
   printf "%d%0${zeroes_length}d" "${meaningful_version}"
 }
 
+detect_installed_version(){
+  if empty "${INSTALLED_VERSION}"; then
+    detect_inventory_path
+    if isset "${DETECTED_INVENTORY_PATH}"; then
+      INSTALLED_VERSION=$(grep "^installer_version=" "${DETECTED_INVENTORY_PATH}" | sed s/^installer_version=//g)
+      debug "Got installer_version='${INSTALLED_VERSION}' from ${DETECTED_INVENTORY_PATH}"
+    fi
+    if empty "${INSTALLED_VERSION}"; then
+      debug "Couldn't detect installer_version, resetting to ${VERY_FIRST_VERSION}"
+      INSTALLED_VERSION="${VERY_FIRST_VERSION}"
+    fi
+  fi
+}
 
-init "$@"
+get_parameter_from_php_config(){
+  local section="${1}"
+  local parameter="${2}"
+  sed -nr "/^\[${section}\]/ { :l /^${parameter}[ ]*=/ { s/.*=[ ]*//; p; q;}; n; b l;}" "${TRACKER_CONFIG_FILE}" | \
+          sed -r -e 's/"(.*)"/\1/g'
+}
+
+detect_inventory_path(){
+  debug "Detecting inventory path"
+  paths=("${INVENTORY_PATH}" /root/.keitaro/installer_config .keitaro/installer_config /root/hosts.txt hosts.txt)
+  for path in "${paths[@]}"; do
+    if [[ -f "${path}" ]]; then
+      DETECTED_INVENTORY_PATH="${path}"
+      debug "Inventory found - ${DETECTED_INVENTORY_PATH}"
+      return
+    fi
+  done
+  debug "Inventory file not found"
+}
+
+print_successful_message(){
+  print_with_color "$(translate 'messages.successful')" 'green'
+
+  if [[ "${RUNNING_MODE}" == "${RUNNING_MODE_INSTALL}" ]]; then
+    print_url
+  elif [[ "${RUNNING_MODE}" == "${RUNNING_MODE_RESTORE}" ]]; then 
+    print_url
+    print_credentials_notice
+  fi
+}
+
+print_url() {
+  print_with_color "http://${SERVER_IP}/admin" 'light.green'
+}
+
+print_credentials_notice() {
+  local notice=""
+  notice=$(translate 'messages.successful.use_old_credentials')
+  print_with_color "${notice}" 'yellow'
+}
+MYIP_KEITARO_IO="https://myip.keitaro.io"
+
+detect_server_ip() {
+  debug "Detecting server IP address"
+  debug "Getting url '${MYIP_KEITARO_IO}'"
+  SERVER_IP="$(curl -fsSL4 ${MYIP_KEITARO_IO} 2>&1)"
+  debug "Done, result is '${SERVER_IP}'"
+}
+
+
+read_inventory(){
+  detect_inventory_path
+  if isset "${DETECTED_INVENTORY_PATH}"; then
+    parse_inventory "${DETECTED_INVENTORY_PATH}"
+  fi
+}
+
+parse_inventory() {
+  local file="${1}"
+  debug "Found inventory file ${file}, reading defaults from it"
+  while IFS="" read -r line; do
+    if [[ "$line" =~ = ]]; then
+      parse_line_from_inventory_file "$line"
+    fi
+  done < "${file}"
+}
+
+parse_line_from_inventory_file(){
+  local line="${1}"
+  local quoted_string_regex="^'.*'\$"
+  IFS="=" read -r var_name value <<< "$line"
+  if [[ "$var_name" != "db_restore_path" ]] && [[ "$var_name" != "without_key" ]]; then
+    if [[ "${value}" =~ ${quoted_string_regex} ]]; then
+      debug "# ${value} is quoted, removing quotes"
+      value_without_quotes="${value:1:-1}"
+      debug "# $var_name: quotes removed - ${value} -> ${value_without_quotes}"
+      value="${value_without_quotes}"
+    fi
+    if empty "${VARS[$var_name]}"; then
+      VARS[$var_name]=$value
+      debug "# read '$var_name' from inventory"
+    else
+      debug "# $var_name is set from options, skip inventory value"
+    fi
+    debug "  $var_name=${VARS[$var_name]}"
+  fi
+}
+
+init "${@}"
+
 action="${1}"
 assert_caller_root
+
 case "${action}" in
   "upgrade")
     kctl_upgrade
     ;;
+  "rescue")
+    kctl_rescue
+    ;;
   "doctor")
-    kctl_doctor
+    kctl_rescue
     ;;
   "downgrade")
     rollback_version="${2:-latest-stable}"
-    kctl_downgrade "${rollback_version}"
+    kctl_install_tracker "${rollback_version}"
+    ;;
+  "install-tracker")
+    tracker_version_to_install="${2}"
+    kctl_install_tracker "${tracker_version_to_install}"
     ;;
   "renew-certificates")
     kctl_renew_certificates
@@ -1073,10 +1404,19 @@ case "${action}" in
   "fix-le-certs-2021-09-30-issues")
     kctl_fix_le_certs_2021_09_30_issues
     ;;
+  "features")
+    kctl_features "${@}"
+    ;;
+  "auto-install")
+    kctl_auto_install
+    ;;
   help)
     kctl_show_help
     ;;
   version)
+    kctl_show_version
+    ;;
+  "")
     kctl_show_version
     ;;
   *)

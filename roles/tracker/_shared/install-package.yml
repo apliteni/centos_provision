@@ -1,5 +1,7 @@
-- name: Set tracker_package_url
-  include_tasks: "../_shared/install-package/set-tracker-package-url.yml"
+- name: Set default tracker_package_url from tracker_version_to_install was set
+  set_fact:
+    tracker_package_url: "{{ keitaro_files }}/keitaro/releases/{{ tracker_version_to_install }}/package8.zip"
+  when: (tracker_package_url is undefined) and (tracker_version_to_install is defined)
 
 - name: Download and unpack tracker package
   shell: >

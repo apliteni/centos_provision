@@ -1,0 +1,22 @@
+- name: Remove app files on full upgrade
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - "{{ keitaro_app_dir }}/application/Core"
+    - "{{ keitaro_app_dir }}/application/Traffic"
+    - "{{ keitaro_app_dir }}/application/Admin"
+    - "{{ keitaro_app_dir }}/application/Component"
+    - "{{ keitaro_app_dir }}/application/Cron"
+    - "{{ keitaro_app_dir }}/bin"
+    - "{{ keitaro_app_dir }}/vendor"
+    - "{{ keitaro_app_dir }}/admin"
+
+- name: Download and unpack tracker package
+  include_tasks: "../_shared/install-package.yml"
+   
+- name: Migrate database
+  command: "{{ php_path }} bin/cli.php db:migrate"
+  args:
+    chdir: "{{ keitaro_app_dir }}"
+  become_user: "{{ keitaro_user }}"

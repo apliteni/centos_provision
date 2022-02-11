@@ -26,7 +26,7 @@
 
 - name: Change dirrectory owner
   file:
-    dest: "/var/opt/remi/{{ php_version }}/log/php-fpm/"
+    dest: "/var/opt/remi/{{ php_version }}/log/php-fpm"
     owner: "{{ keitaro_user }}"
-    group: "{{ keitaro_group }}"
+    group: "root"
     recurse: true

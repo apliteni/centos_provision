@@ -5,14 +5,6 @@
   become_user: "{{ keitaro_user }}"
   changed_when: false
 
-- name: Reload cache
-  command: "{{ php_path }} bin/cli.php system:reload_cache"
-  args:
-    chdir: "{{ keitaro_app_dir }}"
-  become_user: "{{ keitaro_user }}"
-  changed_when: false
-  when: not 'upgrade' in ansible_run_tags
-
 - name: Run cron.php to supress warnings in admin panel
   command: "{{ php_path }} cron.php"
   args:
@@ -35,7 +27,7 @@
     weekday: "{{ box_creation_time | extract_weekday }}"
     hour: "{{ box_creation_time | extract_hour | next_hour }}"
     minute: "{{ box_creation_time | extract_minute | next_minute }}"
-    job: "{{ php_path }} {{ keitaro_app_dir }}/bin/cli.php geodbs:update_all"
+    job: "{{ php_path }} {{ keitaro_app_dir }}/bin/cli.php geodbs:update_all > /dev/null"
 
 # daily task
 - name: Configure cron to remove old enable-ssl logs
@@ -43,10 +35,7 @@
     name: Remove old enable-ssl logs
     hour: "{{ box_creation_time | extract_hour }}"
     minute: "{{ box_creation_time | extract_minute }}"
-    job: >
-      find {{ kctl_enable_ssl_logs_dir }} -mtime +{{ kctl_enable_ssl_logs_keep_for_n_days }} -type f | \
-      head -n {{ kctl_enable_ssl_logs_max_removable_batch_size }} | \
-      xargs -r rm
+    job: /usr/bin/find {{ kctl_enable_ssl_logs_dir }} -mtime +{{ kctl_enable_ssl_logs_keep_for_n_days }} -type f -delete
 
 - name: Generate watch list if it doesn't exist.
   copy:

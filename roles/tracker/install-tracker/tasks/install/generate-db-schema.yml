@@ -1,0 +1,27 @@
+- name: Make temporary copy of schema.sql
+  copy:
+    src: "{{ keitaro_database_schema }}"
+    dest: "{{ keitaro_database_schema_temp_file }}"
+    remote_src: true
+    mode: '0644'
+
+- name: Change schema.sql engine to TokuDB
+  replace:
+    path: "{{ keitaro_database_schema_temp_file }}"
+    regexp: "ENGINE=InnoDB"
+    replace: "ENGINE={{ db_engine }}"
+
+- name: Import database .sql files
+  community.mysql.mysql_db:
+    state: import
+    name: "{{ db_name }}"
+    target: "{{ item }}"
+  with_items:
+    - "{{ keitaro_database_schema_temp_file }}"
+    - "{{ keitaro_database_data }}"
+  when: db_restore_path is not defined
+
+- name: Remove unneeded schema temp file
+  file:
+    path: "{{ keitaro_database_schema_temp_file }}"
+    state: absent

@@ -1,0 +1,20 @@
+- include: "../_shared/detect-installed-tracker-version.yml"
+
+- include: 1-generate-env-file.yml
+
+- include: 2-generate-application-config.yml
+
+- include: 3-migrate-db.yml
+
+- include: 4-register-license.yml
+
+- name: Keitaro 9.14 tasks
+  when: installed_tracker_version is version('9.14', '>=')
+  block:
+  - include: 5-set-default-language.yml
+
+  - include: 6-set-olap-db.yml
+
+  - include: 7-setup-clickhouse.yml
+    when: olap_db == 'clickhouse'
+

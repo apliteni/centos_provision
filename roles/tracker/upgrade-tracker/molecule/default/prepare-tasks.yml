@@ -8,5 +8,9 @@
     name: mariadb/wrap-up-db-configuration
 - include_role:
     name: php/install-php
+- set_fact:
+    kctl_running_mode: install
 - include_role:
     name: install-tracker
+- include_role:
+    name: tune-tracker

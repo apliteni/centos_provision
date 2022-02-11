@@ -7,4 +7,4 @@ redis_memory_mb: "{{ (0.40 * ansible_memtotal_mb) | int }}"
 # Database: 10% RAM
 mariadb_memory_mb: "{{ (0.10 * ansible_memtotal_mb) | int }}"
 # ClickHouse / MariaDB main size: 25% RAM
-big_data_engine_mb: "{{ (0.25 * ansible_memtotal_mb) | int }}"
+olap_db_mb: "{{ (0.25 * ansible_memtotal_mb) | int }}"

@@ -4,7 +4,12 @@
   register: lockfile
 
 - name: Install keitaro
-  include: install.yml
-  vars:
-    ansible_python_interpreter: "/usr/bin/python3"
   when: not lockfile.stat.exists
+  block:
+    - name: Install tracker package
+      include_tasks: "install-tracker-package.yml"
+
+    - name: Execute appropriate tasks
+      include_tasks: "{{ kctl_running_mode }}.yml"
+      vars:
+        ansible_python_interpreter: "/usr/bin/python3"

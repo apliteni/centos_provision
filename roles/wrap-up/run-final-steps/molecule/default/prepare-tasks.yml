@@ -1,7 +1,3 @@
-- file:
-    path: /etc/keitaro/config
-    state: directory
-
 - include_role:
     name: _init/create-tracker-user-and-dirs
 

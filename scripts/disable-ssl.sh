@@ -11,7 +11,7 @@ umask 22
 SUCCESS_RESULT=0
 TRUE=0
 FAILURE_RESULT=1
-INTERRUPTED_BY_USER_RESULT=130
+INTERRUPTED_BY_USER_RESULT=200
 FALSE=1
 ROOT_UID=0
 
@@ -54,12 +54,14 @@ TOOL_NAME='disable-ssl'
 
 SELF_NAME=${0}
 
-KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.30.10'
+RELEASE_VERSION='2.31.0'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
+
+KEITARO_URL='https://keitaro.io'
+FILES_KEITARO_URL="https://files.keitaro.io/scripts/${BRANCH}"
 
 if is_ci_mode; then
   ROOT_PREFIX='.keitaro'
@@ -71,7 +73,7 @@ declare -A VARS
 declare -A ARGS
 declare -A DETECTED_VARS
 
-WEBAPP_ROOT="${ROOT_PREFIX}/var/www/keitaro"
+TRACKER_ROOT="${ROOT_PREFIX}/var/www/keitaro"
 
 KCTL_ROOT="${ROOT_PREFIX}/opt/keitaro"
 KCTL_BIN_DIR="${KCTL_ROOT}/bin"
@@ -103,12 +105,32 @@ CURRENT_COMMAND_OUTPUT_LOG="${WORKING_DIR}/current_command.output.log"
 CURRENT_COMMAND_ERROR_LOG="${WORKING_DIR}/current_command.error.log"
 CURRENT_COMMAND_SCRIPT_NAME="current_command.sh"
 
-CERTBOT_PREFERRED_CHAIN="ISRG Root X1"
-
 INDENTATION_LENGTH=2
 INDENTATION_SPACES=$(printf "%${INDENTATION_LENGTH}s")
 
 TOOL_ARGS="${*}"
+
+DB_ENGINE_INNODB="innodb"
+DB_ENGINE_TOKUDB="tokudb"
+DB_ENGINE_DEFAULT="${DB_ENGINE_TOKUDB}"
+
+PHP_ENGINE_ROADRUNNER="roadrunner"
+PHP_ENGINE_DEFAULT="${PHP_ENGINE_ROADRUNNER}"
+
+OLAP_DB_MARIADB="mariadb"
+OLAP_DB_CLICKHOUSE="clickhouse"
+OLAP_DB_DEFAULT="${OLAP_DB_MARIADB}"
+
+TRACKER_STABILITY_STABLE="stable"
+TRACKER_STABILITY_UNSTABLE="unstable"
+TRACKER_STABILITY_DEFAULT="${TRACKER_STABILITY_STABLE}"
+
+TRACKER_SUPPORTS_RBOOSTER_SINCE='9.14.9.1'
+
+KEITARO_USER='keitaro'
+KEITARO_GROUP='keitaro'
+
+TRACKER_CONFIG_FILE="${TRACKER_ROOT}/application/config/config.ini.php"
 declare -A DICT
 
 DICT['en.errors.program_failed']='PROGRAM FAILED'
@@ -119,7 +141,6 @@ DICT['en.errors.run_command.fail_extra']=''
 DICT['en.errors.terminated']='Terminated by user'
 DICT['en.errors.unexpected']='Unexpected error'
 DICT['en.errors.cant_upgrade']='Cannot upgrade because installation process is not finished yet'
-DICT['en.errors.already_running']="Another installation process is running."
 DICT['en.certbot_errors.another_proccess']="Another certbot process is already running"
 DICT['en.messages.generating_nginx_vhost']="Generating nginx config for domain :domain:"
 DICT['en.messages.reloading_nginx']="Reloading nginx"
@@ -144,7 +165,6 @@ declare -a SUCCESSFUL_DOMAINS
 declare -a FAILED_DOMAINS
 DISABLE_SSL_LOG="${WORKING_DIR}/disable-ssl.log"
 CERTBOT_LOCK_FILE="/var/lib/letsencrypt/.certbot.lock"
-DICT['en.errors.see_logs']="Evaluating log saved to ${LOG_PATH}."
 DICT['en.errors.domain_invalid']=":domain: doesn't look as valid domain"
 DICT['en.certbot_errors.wrong_a_entry']="Please make sure that your domain name was entered correctly and the DNS A record for that domain contains the right IP address. You need to wait a little if the DNS A record was updated recently."
 DICT['en.certbot_errors.too_many_requests']="There were too many requests. See https://letsencrypt.org/docs/rate-limits/."
@@ -155,7 +175,7 @@ DICT['en.messages.ssl_not_disabled_for_domains']="There were errors while delete
 
 
 assert_caller_root(){
-  debug 'Ensure script has been running by root'
+  debug 'Ensure current user is root'
   if [[ "$EUID" == "$ROOT_UID" ]]; then
     debug 'OK: current user is root'
   else
@@ -170,7 +190,7 @@ assert_installed(){
   local program="${1}"
   local error="${2}"
   if ! is_installed "$program"; then
-    fail "$(translate "${error}")" "see_logs"
+    fail "$(translate "${error}")"
   fi
 }
 
@@ -227,10 +247,9 @@ build_certbot_command() {
   if is_ci_mode; then
     echo "/usr/bin/certbot"
   else
-    echo "/usr/bin/docker run --network host --rm -it $(dockerized_certbot_volumes) certbot/certbot"
+    echo "/usr/bin/docker run --network host --rm $(dockerized_certbot_volumes) certbot/certbot"
   fi
 }
-
 DOCKERIZED_CERTBOT_VOLUME_PATHS="/etc/letsencrypt /var/lib/letsencrypt /var/log/letsencrypt /var/www/keitaro"
 
 dockerized_certbot_volumes() {
@@ -538,15 +557,12 @@ debug() {
 
 fail() {
   local message="${1}"
-  local see_logs="${2}"
+  local exit_code="${2-${FAILURE_RESULT}}"
   log_and_print_err "*** $(translate errors.program_failed) ***"
   log_and_print_err "$message"
-  if isset "$see_logs"; then
-    log_and_print_err "$(translate errors.see_logs)"
-  fi
   print_err
   clean_up
-  exit "${3:-${FAILURE_RESULT}}"
+  exit "${exit_code}"
 }
 
 init() {
@@ -584,7 +600,7 @@ init_kctl_dirs_and_links() {
 
 create_kctl_dirs_and_links() {
   mkdir -p "${LOG_DIR}" "${SSL_LOG_DIR}" "${INVENTORY_DIR}" "${KCTL_BIN_DIR}" "${WORKING_DIR}" &&
-    chmod 0700 "${ETC_DIR}" &&
+    chmod 0750 "${ETC_DIR}" &&
     ln -s "${ETC_DIR}" "${KCTL_ETC_DIR}" &&
     ln -s "${LOG_DIR}" "${KCTL_LOG_DIR}" &&
     ln -s "${WORKING_DIR}" "${KCTL_WORKING_DIR}"
@@ -612,7 +628,10 @@ delete_old_logs() {
   local log_filename
   log_dir="$(dirname "${log_filepath}")"
   log_filename="$(basename "${log_filepath}")"
-  find "${log_dir}" -name "${log_filename}-*" | sort | head -n -${LOGS_TO_KEEP} | xargs rm -f
+  /usr/bin/find "${log_dir}" -name "${log_filename}-*" | \
+    /usr/bin/sort | \
+    /usr/bin/head -n -${LOGS_TO_KEEP} | \
+    /usr/bin/xargs rm -f
 }
 
 create_log() {
@@ -656,11 +675,6 @@ print_err(){
   local color="${2}"
   print_with_color "$message" "$color" >&2
 }
-#
-
-
-
-
 
 print_translated(){
   local key="${1}"
@@ -791,7 +805,7 @@ really_run_command(){
     else
       fail_message=$(print_current_command_fail_message "$print_fail_message_method" "$current_command_script")
       remove_current_command "$current_command_script"
-      fail "${fail_message}" "see_logs"
+      fail "${fail_message}"
     fi
   else
     print_command_status "$command" 'OK' 'green' "$hide_output"
@@ -1132,8 +1146,7 @@ disable_domain(){
   local domain="${1}"
   local args="${2}"
   local certbot_command=""
-
-  rm -rf "/etc/nginx/conf.d/${domain}.conf;"
+  rm -rf "/etc/nginx/conf.d/${domain}.conf"
   certbot_command="$(build_certbot_command) delete -n --cert-name $domain"
   run_command "${certbot_command}" "" "hide_output" "allow_errors" "" "" "$DISABLE_SSL_LOG"
 

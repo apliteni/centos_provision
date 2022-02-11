@@ -11,7 +11,7 @@ umask 22
 SUCCESS_RESULT=0
 TRUE=0
 FAILURE_RESULT=1
-INTERRUPTED_BY_USER_RESULT=130
+INTERRUPTED_BY_USER_RESULT=200
 FALSE=1
 ROOT_UID=0
 
@@ -55,12 +55,14 @@ TOOL_NAME='install'
 
 SELF_NAME=${0}
 
-KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.30.10'
+RELEASE_VERSION='2.31.0'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
+
+KEITARO_URL='https://keitaro.io'
+FILES_KEITARO_URL="https://files.keitaro.io/scripts/${BRANCH}"
 
 if is_ci_mode; then
   ROOT_PREFIX='.keitaro'
@@ -72,7 +74,7 @@ declare -A VARS
 declare -A ARGS
 declare -A DETECTED_VARS
 
-WEBAPP_ROOT="${ROOT_PREFIX}/var/www/keitaro"
+TRACKER_ROOT="${ROOT_PREFIX}/var/www/keitaro"
 
 KCTL_ROOT="${ROOT_PREFIX}/opt/keitaro"
 KCTL_BIN_DIR="${KCTL_ROOT}/bin"
@@ -104,12 +106,32 @@ CURRENT_COMMAND_OUTPUT_LOG="${WORKING_DIR}/current_command.output.log"
 CURRENT_COMMAND_ERROR_LOG="${WORKING_DIR}/current_command.error.log"
 CURRENT_COMMAND_SCRIPT_NAME="current_command.sh"
 
-CERTBOT_PREFERRED_CHAIN="ISRG Root X1"
-
 INDENTATION_LENGTH=2
 INDENTATION_SPACES=$(printf "%${INDENTATION_LENGTH}s")
 
 TOOL_ARGS="${*}"
+
+DB_ENGINE_INNODB="innodb"
+DB_ENGINE_TOKUDB="tokudb"
+DB_ENGINE_DEFAULT="${DB_ENGINE_TOKUDB}"
+
+PHP_ENGINE_ROADRUNNER="roadrunner"
+PHP_ENGINE_DEFAULT="${PHP_ENGINE_ROADRUNNER}"
+
+OLAP_DB_MARIADB="mariadb"
+OLAP_DB_CLICKHOUSE="clickhouse"
+OLAP_DB_DEFAULT="${OLAP_DB_MARIADB}"
+
+TRACKER_STABILITY_STABLE="stable"
+TRACKER_STABILITY_UNSTABLE="unstable"
+TRACKER_STABILITY_DEFAULT="${TRACKER_STABILITY_STABLE}"
+
+TRACKER_SUPPORTS_RBOOSTER_SINCE='9.14.9.1'
+
+KEITARO_USER='keitaro'
+KEITARO_GROUP='keitaro'
+
+TRACKER_CONFIG_FILE="${TRACKER_ROOT}/application/config/config.ini.php"
 declare -A DICT
 
 DICT['en.errors.program_failed']='PROGRAM FAILED'
@@ -120,7 +142,6 @@ DICT['en.errors.run_command.fail_extra']=''
 DICT['en.errors.terminated']='Terminated by user'
 DICT['en.errors.unexpected']='Unexpected error'
 DICT['en.errors.cant_upgrade']='Cannot upgrade because installation process is not finished yet'
-DICT['en.errors.already_running']="Another installation process is running."
 DICT['en.certbot_errors.another_proccess']="Another certbot process is already running"
 DICT['en.messages.generating_nginx_vhost']="Generating nginx config for domain :domain:"
 DICT['en.messages.reloading_nginx']="Reloading nginx"
@@ -142,7 +163,7 @@ DICT['en.validation_errors.validate_yes_no']='Please answer "yes" or "no"'
 
 
 assert_caller_root(){
-  debug 'Ensure script has been running by root'
+  debug 'Ensure current user is root'
   if [[ "$EUID" == "$ROOT_UID" ]]; then
     debug 'OK: current user is root'
   else
@@ -157,18 +178,18 @@ assert_installed(){
   local program="${1}"
   local error="${2}"
   if ! is_installed "$program"; then
-    fail "$(translate "${error}")" "see_logs"
+    fail "$(translate "${error}")"
   fi
 }
 
 USE_NEW_ALGORITHM_FOR_INSTALLATION_CHECK_SINCE="2.12"
-KEITARO_LOCK_FILEPATH="${WEBAPP_ROOT}/var/install.lock"
+KEITARO_LOCK_FILEPATH="${TRACKER_ROOT}/var/install.lock"
 
 assert_keitaro_not_installed(){
   debug 'Ensure keitaro is not installed yet'
   if is_keitaro_installed; then
     debug 'NOK: keitaro is already installed'
-    print_err "$(translate messages.keitaro_already_installed)" 'yellow'
+    print_with_color "$(translate messages.keitaro_already_installed)" 'yellow'
     clean_up
     print_url
     exit "${KEITARO_ALREADY_INSTALLED_RESULT}"
@@ -190,6 +211,18 @@ is_keitaro_installed() {
 
 should_use_new_algorithm_for_installation_check() {
   (( $(as_version "${INSTALLED_VERSION}") >= $(as_version "${USE_NEW_ALGORITHM_FOR_INSTALLATION_CHECK_SINCE}") ))
+}
+assert_no_another_process_running(){
+
+  exec 8>/var/run/kctl-process.lock
+
+  debug "Check if another process is running"
+
+  if flock -n -x 8; then
+    debug "No other installer process is running"
+  else
+    fail "$(translate 'errors.already_running')"
+  fi
 }
 # Check if lock file exist
 #https://certbot.eff.org/docs/using.html#id5
@@ -316,6 +349,13 @@ detect_installed_version(){
   fi
 }
 
+get_parameter_from_php_config(){
+  local section="${1}"
+  local parameter="${2}"
+  sed -nr "/^\[${section}\]/ { :l /^${parameter}[ ]*=/ { s/.*=[ ]*//; p; q;}; n; b l;}" "${TRACKER_CONFIG_FILE}" | \
+          sed -r -e 's/"(.*)"/\1/g'
+}
+
 get_centos_major_release() {
   grep -oP '(?<=release )\d+' /etc/centos-release
 }
@@ -372,6 +412,76 @@ interpolate(){
   IFS="=" read -r name value <<< "${substitution}"
   string="${string//:${name}:/${value}}"
   echo "${string}"
+}
+
+install_package(){
+  local package="${1}"
+  if ! is_package_installed "${package}"; then
+    debug "Installing ${package}"
+    run_command "yum install -y ${package}"
+  else
+    debug "Package ${package} is already installed"
+  fi
+}
+
+is_installed(){
+  local command="${1}"
+  debug "Try to find command '$command'"
+  if [[ $(sh -c "command -v '$command' -gt /dev/null") ]]; then
+    debug "FOUND: Command '$command' found"
+  else
+    debug "NOT FOUND: Command '$command' not found"
+    return ${FAILURE_RESULT}
+  fi
+}
+
+is_package_installed(){
+  local package="${1}"
+  debug "Try to find package '$package'"
+  if yum list installed --quiet "$package" &> /dev/null; then
+    debug "FOUND: Package '$package' found"
+  else
+    debug "NOT FOUND: Package '$package' not found"
+    return ${FAILURE_RESULT}
+  fi
+  
+}
+
+detect_inventory_path(){
+  debug "Detecting inventory path"
+  paths=("${INVENTORY_PATH}" /root/.keitaro/installer_config .keitaro/installer_config /root/hosts.txt hosts.txt)
+  for path in "${paths[@]}"; do
+    if [[ -f "${path}" ]]; then
+      DETECTED_INVENTORY_PATH="${path}"
+      debug "Inventory found - ${DETECTED_INVENTORY_PATH}"
+      return
+    fi
+  done
+  debug "Inventory file not found"
+}
+
+fix_db_engine() {
+  debug "Detected installer with version ${INSTALLED_VERSION} which possibly sets wrong db_engine"
+  local detected_db_engine
+  detected_db_engine=$(detect_db_engine)
+  debug "Detected engine - '${detected_db_engine}', engine in the inventory - '${VARS['db_engine']}'"
+  if decteted_db_engine_doesnt_match_inventory "${detected_db_engine}"; then
+    debug "Detected engine and engine in the inventory are not matching, reconfiguring"
+    VARS['db_engine']="${detected_db_engine}"
+    write_inventory_file
+    ANSIBLE_TAGS="${ANSIBLE_TAGS},tune-mariadb"
+  else
+    debug "Everything looks good, don't need to reconfigure db engine"
+  fi
+}
+
+
+decteted_db_engine_doesnt_match_inventory() {
+  local detected_db_engine="${1}"
+  [[
+    ("${detected_db_engine}" == "${DB_ENGINE_INNODB}" || "${detected_db_engine}" == "${DB_ENGINE_INNODB}") &&
+      "${detected_db_engine}" != "${VARS['db_engine']}"
+  ]]
 }
 
 add_indentation(){
@@ -456,76 +566,6 @@ read_stdin(){
   echo "$variable"
 }
 
-install_package(){
-  local package="${1}"
-  if ! is_package_installed "${package}"; then
-    debug "Installing ${package}"
-    run_command "yum install -y ${package}"
-  else
-    debug "Package ${package} is already installed"
-  fi
-}
-
-is_installed(){
-  local command="${1}"
-  debug "Try to find command '$command'"
-  if [[ $(sh -c "command -v '$command' -gt /dev/null") ]]; then
-    debug "FOUND: Command '$command' found"
-  else
-    debug "NOT FOUND: Command '$command' not found"
-    return ${FAILURE_RESULT}
-  fi
-}
-
-is_package_installed(){
-  local package="${1}"
-  debug "Try to find package '$package'"
-  if yum list installed --quiet "$package" &> /dev/null; then
-    debug "FOUND: Package '$package' found"
-  else
-    debug "NOT FOUND: Package '$package' not found"
-    return ${FAILURE_RESULT}
-  fi
-  
-}
-
-detect_inventory_path(){
-  debug "Detecting inventory path"
-  paths=("${INVENTORY_PATH}" /root/.keitaro/installer_config .keitaro/installer_config /root/hosts.txt hosts.txt)
-  for path in "${paths[@]}"; do
-    if [[ -f "${path}" ]]; then
-      DETECTED_INVENTORY_PATH="${path}"
-      debug "Inventory found - ${DETECTED_INVENTORY_PATH}"
-      return
-    fi
-  done
-  debug "Inventory file not found"
-}
-
-fix_db_engine() {
-  debug "Detected installer with version ${INSTALLED_VERSION} which possibly sets wrong db_engine"
-  local detected_db_engine
-  detected_db_engine=$(detect_db_engine)
-  debug "Detected engine - '${detected_db_engine}', engine in the inventory - '${VARS['db_engine']}'"
-  if decteted_db_engine_doesnt_match_inventory "${detected_db_engine}"; then
-    debug "Detected engine and engine in the inventory are not matching, reconfiguring"
-    VARS['db_engine']="${detected_db_engine}"
-    write_inventory_file
-    ANSIBLE_TAGS="${ANSIBLE_TAGS},tune-mariadb"
-  else
-    debug "Everything looks good, don't need to reconfigure db engine"
-  fi
-}
-
-
-decteted_db_engine_doesnt_match_inventory() {
-  local detected_db_engine="${1}"
-  [[
-    ("${detected_db_engine}" == "innodb" || "${detected_db_engine}" == "tokudb") &&
-            "${detected_db_engine}" != "${VARS['db_engine']}"
-  ]]
-}
-
 clean_up(){
   debug 'called clean_up()'
 }
@@ -538,17 +578,27 @@ debug() {
   fi
 }
 
+expand_ansible_tags_with_tag() {
+  local tag="${1}"
+  local tag_regex="\<${tag}\>"
+  if [[ "${ANSIBLE_TAGS}" =~ ${tag_regex} ]]; then
+    return
+  fi
+  if empty "${ANSIBLE_TAGS}"; then
+    ANSIBLE_TAGS="${tag}"
+  else
+    ANSIBLE_TAGS="${tag},${ANSIBLE_TAGS}"
+  fi
+}
+
 fail() {
   local message="${1}"
-  local see_logs="${2}"
+  local exit_code="${2-${FAILURE_RESULT}}"
   log_and_print_err "*** $(translate errors.program_failed) ***"
   log_and_print_err "$message"
-  if isset "$see_logs"; then
-    log_and_print_err "$(translate errors.see_logs)"
-  fi
   print_err
   clean_up
-  exit "${3:-${FAILURE_RESULT}}"
+  exit "${exit_code}"
 }
 
 common_parse_options(){
@@ -656,7 +706,7 @@ init_kctl_dirs_and_links() {
 
 create_kctl_dirs_and_links() {
   mkdir -p "${LOG_DIR}" "${SSL_LOG_DIR}" "${INVENTORY_DIR}" "${KCTL_BIN_DIR}" "${WORKING_DIR}" &&
-    chmod 0700 "${ETC_DIR}" &&
+    chmod 0750 "${ETC_DIR}" &&
     ln -s "${ETC_DIR}" "${KCTL_ETC_DIR}" &&
     ln -s "${LOG_DIR}" "${KCTL_LOG_DIR}" &&
     ln -s "${WORKING_DIR}" "${KCTL_WORKING_DIR}"
@@ -684,7 +734,10 @@ delete_old_logs() {
   local log_filename
   log_dir="$(dirname "${log_filepath}")"
   log_filename="$(basename "${log_filepath}")"
-  find "${log_dir}" -name "${log_filename}-*" | sort | head -n -${LOGS_TO_KEEP} | xargs rm -f
+  /usr/bin/find "${log_dir}" -name "${log_filename}-*" | \
+    /usr/bin/sort | \
+    /usr/bin/head -n -${LOGS_TO_KEEP} | \
+    /usr/bin/xargs rm -f
 }
 
 create_log() {
@@ -713,7 +766,7 @@ on_exit_by_user_interrupt(){
   debug "Terminated by user"
   echo
   clean_up
-  fail "$(translate 'errors.terminated')" "" "${INTERRUPTED_BY_USER_RESULT}"
+  fail "$(translate 'errors.terminated')" "${INTERRUPTED_BY_USER_RESULT}"
 }
 
 print_content_of(){
@@ -739,11 +792,6 @@ print_err(){
   local color="${2}"
   print_with_color "$message" "$color" >&2
 }
-#
-
-
-
-
 
 print_translated(){
   local key="${1}"
@@ -863,7 +911,7 @@ really_run_command(){
     else
       fail_message=$(print_current_command_fail_message "$print_fail_message_method" "$current_command_script")
       remove_current_command "$current_command_script"
-      fail "${fail_message}" "see_logs"
+      fail "${fail_message}"
     fi
   else
     print_command_status "$command" 'OK' 'green' "$hide_output"
@@ -985,6 +1033,18 @@ start_or_reload_nginx(){
     print_with_color "$(translate 'messages.nginx_is_not_running')" "yellow"
     run_command "systemctl start nginx" "$(translate 'messages.starting_nginx')" 'hide_output'
   fi
+}
+
+TRACKER_VERSION_PHP="${TRACKER_ROOT}/version.php"
+
+get_tracker_version() {
+  if file_exists "${TRACKER_VERSION_PHP}"; then
+    cut -d "'" -f 2 "${TRACKER_VERSION_PHP}"
+  fi
+}
+
+tracker_supports_rbooster() {
+  (( $(as_version "$(get_tracker_version)") >= $(as_version "${TRACKER_SUPPORTS_RBOOSTER_SINCE}") ))
 }
 
 join_by(){
@@ -1205,21 +1265,18 @@ validate_yes_no(){
 PROVISION_DIRECTORY="centos_provision"
 PROVISION_BIN_DIRECTORY="../bin"
 PLAYBOOK_DIRECTORY="${PROVISION_DIRECTORY}/playbook"
-KEITARO_ALREADY_INSTALLED_RESULT=2
-PHP_ENGINE=${PHP_ENGINE:-roadrunner}
+KEITARO_ALREADY_INSTALLED_RESULT=0
 DETECTED_PREFIX_PATH="${WORKING_DIR}/detected_prefix"
 
 SERVER_IP=""
 
 INSTALLED_VERSION=""
 
-
 DICT['en.messages.keitaro_already_installed']='Keitaro is already installed'
 DICT['en.messages.check_keitaro_dump_get_tables_prefix']="Getting tables prefix from dump"
 DICT['en.messages.check_keitaro_dump_validity']="Checking SQL dump"
 DICT['en.messages.validate_nginx_conf']='Checking nginx config'
 DICT['en.messages.successful.use_old_credentials']="The database was successfully restored from the archive. Use old login data"
-DICT['en.errors.see_logs']="Installation log saved to ${LOG_PATH}. Configuration settings saved to ${INVENTORY_PATH}."
 DICT['en.errors.wrong_distro']='This installer works only on CentOS 7.x. and 8.x. Please reinstall the operating system in the Server control panel on the hosting.'
 DICT['en.errors.not_enough_ram']='The size of RAM on your server should be at least 2 GB'
 DICT['en.errors.not_enough_free_disk_space']='The free disk space on your server must be at least 2 GB.'
@@ -1230,9 +1287,10 @@ DICT['en.errors.apache_installed']='You can not install Keitaro on the server wi
 DICT['en.errors.systemctl_doesnt_work_properly']="You can not install Keitaro on the server where systemctl doesn't work properly. Please run this program on another CentOS server."
 DICT['en.errors.cant_detect_server_ip']="The installer couldn't detect the server IP address, please contact Keitaro support team"
 DICT['en.errors.cant_detect_table_prefix']="The installer couldn't detect dump table prefix"
+DICT['en.errors.already_running']="Another installation process is already running"
 
 DICT['en.prompts.db_restore_path']='Please enter the path to the SQL dump file'
-DICT['en.prompts.db_restore_salt']='Please enter "salt" parameter (see old application/config/config.ini.php)'
+DICT['en.prompts.salt']='Please enter "salt" parameter (see old application/config/config.ini.php)'
 DICT['en.welcome']='This installer will guide you through the steps required to install Keitaro on your server.'
 DICT['en.validation_errors.validate_alnumdashdot']='Only Latin letters, numbers, dashes, underscores and dots allowed'
 DICT['en.validation_errors.validate_file_existence']='The file was not found by the specified path, please enter the correct path to the file'
@@ -1263,12 +1321,6 @@ get_ansible_package_name() {
   fi
 }
 
-is_ram_size_mb_changed() {
-  ( isset "${VARS['previous_ram_size_mb']}" && [[ "${VARS['previous_ram_size_mb']}" != "${VARS['ram_size_mb']}" ]] ) \
-      || ( isset "${VARS['ram_size_mb']}" && [[ "${VARS['ram_size_mb']}" != "$(get_ram_size_mb)" ]] )
-}
-
-
 get_var_from_config(){
   local var="${1}"
   local file="${2}"
@@ -1282,17 +1334,8 @@ get_var_from_config(){
     sed -r -e "s/^'(.*)'\$/\\1/g" -e 's/^"(.*)"$/\1/g'
   }
 
-DETECTED_RAM_SIZE_MB=""
-
 get_ram_size_mb() {
-  if empty "${DETECTED_RAM_SIZE_MB}"; then
-    if is_ci_mode; then
-      DETECTED_RAM_SIZE_MB=2048
-    else
-      DETECTED_RAM_SIZE_MB=$( (free -m | grep Mem: | awk '{print $2}') 2>/dev/null)
-    fi
-  fi
-  echo "${DETECTED_RAM_SIZE_MB}"
+  (free -m | grep Mem: | awk '{print $2}') 2>/dev/null
 }
 
 clean_up(){
@@ -1307,47 +1350,18 @@ write_inventory_on_upgrade() {
   debug "Stages 3-5: write inventory on upgrade"
   if empty "${DETECTED_INVENTORY_PATH}"; then
     debug "Detecting inventory variables"
-    reset_vars_on_upgrade
     detect_inventory_variables
   fi
   VARS['installer_version']="${INSTALLED_VERSION}"
-  VARS['php_engine']="${PHP_ENGINE}"
   write_inventory_file
 }
 
-
-reset_vars_on_upgrade() {
-  VARS['db_name']=''
-  VARS['db_user']=''
-  VARS['db_password']=''
-  VARS['db_root_password']=''
-  VARS['db_engine']=''
-}
-
-
 detect_inventory_variables() {
-  if empty "${VARS['db_name']}"; then
-    VARS['db_name']="$(get_var_from_keitaro_app_config name)"
-    debug "Detected db name: ${VARS['db_name']}"
-  fi
-  if empty "${VARS['db_user']}"; then
-    VARS['db_user']="$(get_var_from_keitaro_app_config user)"
-    debug "Detected db user: ${VARS['db_user']}"
-  fi
-  if empty "${VARS['db_password']}"; then
-    VARS['db_password']="$(get_var_from_keitaro_app_config password)"
-    debug "Detected db password: ${VARS['db_password']}"
-  fi
-  if empty "${VARS['db_root_password']}"; then
-    VARS['db_root_password']="$(get_var_from_config password ~/.my.cnf '=')"
-    debug "Detected db root password: ${VARS['db_root_password']}"
-  fi
-}
-
-
-get_var_from_keitaro_app_config() {
-  local var="${1}"
-  get_var_from_config "${var}" "${WEBAPP_ROOT}/application/config/config.ini.php" '='
+  VARS['db_name']="$(get_parameter_from_php_config 'db' 'name')"
+  VARS['db_user']="$(get_parameter_from_php_config 'db' 'user')"
+  VARS['db_password']="$(get_parameter_from_php_config 'db' 'password')"
+  VARS['db_root_password']="$(get_var_from_config password ~/.my.cnf '=')"
+  VARS["db_engine"]=""
 }
 
 get_free_disk_space_mb() {
@@ -1387,10 +1401,10 @@ parse_options(){
         VARS['db_restore_path']="${argument}"
         ;;
       S)
-        VARS['db_restore_salt']="${argument}"
+        VARS['salt']="${argument}"
         ;;
       a)
-        CUSTOM_PACKAGE="${argument}"
+        KCTL_TRACKER_VERSION_TO_INSTALL="${argument}"
         ;;
       t)
         ANSIBLE_TAGS="${argument}"
@@ -1441,7 +1455,11 @@ parse_options(){
     RUNNING_MODE="${RUNNING_MODE_RESTORE}"
     RESTORING_MODE="${RESTORING_MODE_NONINTERACTIVE}"
     ensure_valid F db_restore_path "validate_presence validate_file_existence validate_enough_space_for_dump"
-    ensure_valid S db_restore_salt "validate_presence validate_alnumdashdot"
+    ensure_valid S salt "validate_presence validate_alnumdashdot"
+  fi
+  if [[ "${RUNNING_MODE}" == "${RUNNING_MODE_UPGRADE}" ]] && isset "${KCTL_TRACKER_VERSION_TO_INSTALL}"; then
+    expand_ansible_tags_with_tag "upgrade-tracker"
+    expand_ansible_tags_with_tag "tune-tracker"
   fi
   ensure_options_correct
   if empty "${VARS['tracker_language']}"; then
@@ -1516,18 +1534,6 @@ assert_not_running_under_openvz() {
     fail "Servers with OpenVZ virtualization are not supported"
   fi
 }
-assert_no_another_installer_process_running(){
-  
-  exec 8>/var/run/kctl-install.lock
-
-  debug "Check if another installer process is running"
-
-  if flock -n -x 8; then
-    debug "No other installer process is running"
-  else
-    fail "$(translate 'errors.already_running')"
-  fi
-}
 
 assert_systemctl_works_properly () {
   if ! run_command "systemctl > /dev/null" "Checking systemd" 'hide_output' 'allow_errors'; then
@@ -1538,7 +1544,7 @@ assert_systemctl_works_properly () {
 assert_centos_distro(){
   assert_installed 'yum' 'errors.wrong_distro'
   if ! file_exists /etc/centos-release; then
-    fail "$(translate errors.wrong_distro)" "see_logs"
+    fail "$(translate errors.wrong_distro)"
   fi
 }
 MIN_RAM_SIZE_MB=1500
@@ -1634,7 +1640,7 @@ assert_apache_not_installed(){
 
 assert_server_ip_is_valid() {
   if ! valid_ip "${SERVER_IP}"; then
-    fail "$(translate 'errors.cant_detect_server_ip')" "see_logs"
+    fail "$(translate 'errors.cant_detect_server_ip')"
   fi
 }
 
@@ -1662,7 +1668,7 @@ valid_ip_segment(){
 
 stage2(){
   debug "Starting stage 2: make some asserts"
-  assert_no_another_installer_process_running 
+  assert_no_another_process_running 
   assert_caller_root
   assert_apache_not_installed
   assert_centos_distro
@@ -1675,27 +1681,48 @@ stage2(){
   assert_server_ip_is_valid
 }
 
-setup_vars(){
+setup_vars() {
   setup_default_value db_name 'keitaro'
-  setup_default_value db_user 'keitaro'
-  setup_default_value db_password "$(generate_password)"
   setup_default_value ch_password "$(generate_password)"
-  setup_default_value db_root_password "$(generate_password)"
-  setup_default_value db_engine 'tokudb'
-  setup_default_value php_engine "${PHP_ENGINE}"
-  setup_default_value big_data_engine "${KCTL_BIG_DATA_ENGINE:-mariadb}"
-  setup_default_value tracker_stability "${KCTL_TRACKER_STABILITY:-stable}"
-  setup_default_value salt "$(uuidgen | tr -d '-')"
+  if ! file_exists "${INVENTORY_DIR}/tracker.env"; then
+    setup_default_value salt "$(detect_or_generate_salt)"
+    setup_default_value db_user 'keitaro'
+    setup_default_value db_password "$(generate_password)"
+    setup_default_value db_root_password "$(generate_password)"
+  fi
+  VARS['php_engine']="${PHP_ENGINE_DEFAULT}"
+  VARS['db_engine']="${DB_ENGINE_DEFAULT}"
 }
 
-setup_default_value(){
+detect_or_generate_salt() {
+  if file_exists "${TRACKER_CONFIG_FILE}"; then
+    get_parameter_from_php_config 'system' 'salt'
+  else
+    uuidgen | tr -d '-'
+  fi
+}
+
+setup_default_value() {
   local var_name="${1}"
   local default_value="${2}"
   if empty "${VARS[${var_name}]}"; then
     debug "VARS['${var_name}'] is empty, set to '${default_value}'"
-    VARS[${var_name}]=$default_value
+    VARS["${var_name}"]="${default_value}"
   else
     debug "VARS['${var_name}'] is set to '${VARS[$var_name]}'"
+  fi
+}
+
+setup_default_value_from_env() {
+  local var_name="${1}"
+  local env_var_name="KCTL_${var_name^^}" # transforms some_var_name to KCTL_SOME_VAR_NAME
+  local env_var_value="${!env_var_name}"
+  local default_value="${2}"
+  if isset "${env_var_value}"; then
+    debug "VARS['${var_name}'] is set to '${env_var_value}' (got from ${env_var_name} env variable)"
+    VARS["${var_name}"]="${env_var_value}"
+  else
+    setup_default_value "${var_name}" "${default_value}"
   fi
 }
 
@@ -1754,7 +1781,7 @@ get_user_vars_to_restore_from_dump(){
   hack_stdin_if_pipe_mode
   print_translated "welcome"
   get_user_var 'db_restore_path' 'validate_presence validate_file_existence validate_enough_space_for_dump'
-  get_user_var 'db_restore_salt' 'validate_presence validate_alnumdashdot'
+  get_user_var 'salt' 'validate_presence validate_alnumdashdot'
   tables_prefix=$(detect_table_prefix "${VARS['db_restore_path']}")
   if empty "${tables_prefix}"; then
     fail "$(translate 'errors.cant_detect_table_prefix')"
@@ -1771,19 +1798,23 @@ get_ssh_port(){
   echo "${ssh_port}"
 }
 
-detect_sshd_port(){
+DEFAULT_SSH_PORT="22"
+
+detect_sshd_port() {
   local port
-  port=$(ss -l -4 -p -n | grep -w tcp | grep -w sshd | awk '{ print $5 }' | awk -F: '{ print $2 }' | head -n1)
-  debug "Detected sshd port: ${port}"
+  if ! is_ci_mode && is_installed ss; then
+    debug "Detecting sshd port"
+    port=$(ss -l -4 -p -n | grep -w tcp | grep -w sshd | awk '{ print $5 }' | awk -F: '{ print $2 }' | head -n1)
+    debug "Detected sshd port: ${port}"
+  fi
   if empty "${port}"; then
-    debug "Reset detected ssh port to 22"
-    port="22"
+    debug "Reset detected sshd port to 22"
+    port="${DEFAULT_SSH_PORT}"
   fi
   echo "${port}"
 }
 
 write_inventory_file(){
-  local current_ram_size_mb
   debug "Writing inventory file: STARTED"
   create_inventory_file
   print_line_to_inventory_file "[server]"
@@ -1791,57 +1822,74 @@ write_inventory_file(){
   print_line_to_inventory_file
   print_line_to_inventory_file "[server:vars]"
   print_line_to_inventory_file "server_ip=${SERVER_IP}"
-  print_line_to_inventory_file "db_root_password=${VARS['db_root_password']}"
-  print_line_to_inventory_file "db_name=${VARS['db_name']}"
-  print_line_to_inventory_file "db_user=${VARS['db_user']}"
-  print_line_to_inventory_file "db_password=${VARS['db_password']}"
-  print_line_to_inventory_file "ch_password=${VARS['ch_password']}"
-  print_line_to_inventory_file "salt=${VARS['salt']}"
-  print_line_to_inventory_file "evaluated_by_installer=yes"
   print_line_to_inventory_file "php_engine=${VARS['php_engine']}"
   print_line_to_inventory_file "cpu_cores=$(get_cpu_cores)"
   print_line_to_inventory_file "ssh_port=$(get_ssh_port)"
   print_line_to_inventory_file "sshd_port=$(detect_sshd_port)"
-  if isset "${VARS['tracker_language']}"; then
-    print_line_to_inventory_file "tracker_language=${VARS['tracker_language']}"
-  fi
-  if isset "${VARS['license_key']}"; then
-    print_line_to_inventory_file "license_key=${VARS['license_key']}"
-  fi
-  if isset "${VARS['db_restore_path']}"; then
-    print_line_to_inventory_file "db_restore_path=${VARS['db_restore_path']}"
-    print_line_to_inventory_file "db_restore_salt=${VARS['db_restore_salt']}"
-  fi
-  current_ram_size_mb="$(get_ram_size_mb)"
-  if is_ram_size_mb_changed; then
-     local previous_ram_size_mb="${VARS['previous_ram_size_mb']:-${VARS['ram_size_mb']}}"
-     print_line_to_inventory_file "previous_ram_size_mb=${previous_ram_size_mb}"
-     print_line_to_inventory_file "ram_size_mb=${current_ram_size_mb}"
-  else
-     print_line_to_inventory_file "ram_size_mb=${current_ram_size_mb}"
-  fi
+  print_line_to_inventory_file "db_engine=${VARS['db_engine']}"
+
+  print_nonempty_inventory_item "salt"
+  print_nonempty_inventory_item "license_key" "'"
+  print_nonempty_inventory_item "ch_password"
+  print_nonempty_inventory_item "db_name"
+  print_nonempty_inventory_item "db_user"
+  print_nonempty_inventory_item "db_password"
+  print_nonempty_inventory_item "db_root_password"
+  print_nonempty_inventory_item "db_restore_path"
+  print_nonempty_inventory_item "tracker_language"
+  print_nonempty_inventory_item "tracker_stability"
+  print_nonempty_inventory_item "installed"
+
+  handle_changeable_inventory_item "olap_db" "${KCTL_OLAP_DB}" "${OLAP_DB_DEFAULT}"
+  handle_changeable_inventory_item "ram_size_mb" "$(get_ram_size_mb)" "$(get_ram_size_mb)"
+
   if isset "${VARS['installer_version']}"; then
     print_line_to_inventory_file "installer_version=${VARS['installer_version']}"
   else
     print_line_to_inventory_file "installer_version=${RELEASE_VERSION}"
   fi
-  if isset "${VARS['db_engine']}"; then
-    print_line_to_inventory_file "db_engine=${VARS['db_engine']}"
-  fi
-  print_line_to_inventory_file "big_data_engine=${VARS['big_data_engine']}"
-  print_line_to_inventory_file "tracker_stability=${VARS['tracker_stability']}"
-  if isset "$CUSTOM_PACKAGE"; then
-    print_line_to_inventory_file "custom_package=$CUSTOM_PACKAGE"
-  fi
-  if isset "${VARS['installed']}"; then
-    print_line_to_inventory_file "installed=${VARS['installed']}"
-  fi
+
   debug "Writing inventory file: DONE"
+}
+
+print_nonempty_inventory_item() {
+  local key="${1}"
+  local quote="${2}"
+  local value="${VARS[$key]}"
+  if isset "${value}"; then
+    print_line_to_inventory_file "${key}=${quote}${value}${quote}"
+  fi
+}
+
+handle_changeable_inventory_item() {
+  local key="${1}"
+  local key_changed="${key}_changed"
+  local new_value="${2}"
+  local default_value="${3}"
+  local current_value="${VARS["${key}"]}"
+
+  if is_inventory_value_changed "${key_changed}" "${new_value}" "${current_value}"; then
+    VARS["${key}"]="${new_value:-${default_value}}"
+    VARS["${key_changed}"]="true"
+    print_line_to_inventory_file "${key}=${VARS[${key}]}"
+    print_line_to_inventory_file "${key_changed}=true"
+  else
+    print_line_to_inventory_file "${key}=${current_value:-${default_value}}"
+  fi
+}
+
+is_inventory_value_changed() {
+  local key_changed="${1}"
+  local new_value="${2}"
+  local current_value="${3}"
+
+  ( isset "${VARS[${key_changed}]}" ) || \
+    ( isset "${new_value}" && [[ "${new_value}" != "${current_value}" ]] )
 }
 
 create_inventory_file() {
   mkdir -p "${INVENTORY_DIR}" || fail "Cant't create keitaro inventory dir ${INVENTORY_DIR}"
-  chmod 0700 "${INVENTORY_DIR}" || fail "Cant't set permissions keitaro inventory dir ${INVENTORY_DIR}"
+  chmod 0750 "${INVENTORY_DIR}" || fail "Cant't set permissions keitaro inventory dir ${INVENTORY_DIR}"
   (echo -n > "${INVENTORY_PATH}" && chmod 0600 "${INVENTORY_PATH}") || \
     fail "Cant't create keitaro inventory file ${INVENTORY_PATH}"
 }
@@ -2123,18 +2171,27 @@ json2dict() {
 
 write_inventory_on_finish() {
   debug "Signaling successful installation by writing 'installed' flag to the inventory file"
+  VARS['db_password']=""
+  VARS['db_restore_path']=""
+  VARS['db_root_password']=""
   VARS['installed']=true
   VARS['installer_version']="${RELEASE_VERSION}"
-  VARS['ram_size_mb']="$(get_ram_size_mb)"
-  VARS['previous_ram_size_mb']="${VARS['ram_size_mb']}"
-  VARS['db_restore_path']=""
-  VARS['db_restore_salt']=""
-  VARS['salt']=""
-  VARS['custom_package']=""
-  VARS['tracker_stability']=""
-  VARS['tracker_language']=""
   VARS['license_key']=""
+  VARS['salt']=""
+  VARS['tracker_language']=""
+  VARS['tracker_stability']=""
+  reset_changeable_values
   write_inventory_file
+}
+
+
+reset_changeable_values() {
+  for key in "${!VARS[@]}"; do
+    if [[ "${key}" =~ _changed$ ]]; then
+      debug "resetting key VARS[${key}]"
+      VARS["${key}"]=""
+    fi
+  done
 }
 
 
@@ -2145,10 +2202,12 @@ ANSIBLE_LAST_TASK_LOG="${WORKING_DIR}/ansible_last_task.log"
 
 run_ansible_playbook(){
   local env=""
-  env="${env} KCTL_BRANCH=${BRANCH}"
   env="${env} ANSIBLE_FORCE_COLOR=true"
   env="${env} ANSIBLE_CONFIG=${PLAYBOOK_DIRECTORY}/ansible.cfg"
+  env="${env} KCTL_BRANCH=${BRANCH}"
   env="${env} PROVISION_BIN_DIRECTORY=${PROVISION_BIN_DIRECTORY}"
+  env="${env} KCTL_RUNNING_MODE=${RUNNING_MODE}"
+  env="${env} KCTL_TRACKER_VERSION_TO_INSTALL=${KCTL_TRACKER_VERSION_TO_INSTALL}"
 
   if [ -f "$DETECTED_PREFIX_PATH" ]; then
     env="${env} TABLES_PREFIX='$(cat "${DETECTED_PREFIX_PATH}" | head -n1)'"
@@ -2316,7 +2375,7 @@ stage6() {
 #   then ansible tags will be expanded by `enable-swap` tag
 declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['install-nginx']='2.29.15'
-  ['create-tracker-user-and-dirs']='2.22.0'
+  ['create-tracker-user-and-dirs']='2.30.10'
   ['disable-selinux']='2.25.0'
   ['disable-thp']='0.9'
   ['install-certs']='1.0'
@@ -2328,17 +2387,20 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['setup-journald']='2.12'
   ['setup-timezone']='0.9'
   ['tune-swap']='2.27.7'
-  ['install-php']='2.28.5'
-  ['install-roadrunner']='2.20.4'
-  ['tune-php']='2.30.8'
-  ['tune-roadrunner']='2.27.7'
+  ['install-clickhouse']='2.30.10'
   ['install-mariadb']='1.17'
+  ['install-php']='2.30.10'
+  ['install-roadrunner']='2.20.4'
+  ['tune-clickhouse']='2.30.10'
+  ['tune-tracker']='2.30.10'
+  ['tune-php']='2.30.10'
+  ['tune-roadrunner']='2.27.7'
   ['tune-mariadb']='2.29.8'
   ['tune-redis']='2.27.7'
   ['tune-sysctl']='2.27.7'
   ['tune-nginx']='2.30.8'
   ['upgrade-tracker']='2.12'
-  ['wrap-up-tracker-configuration']='2.27.4'
+  ['wrap-up-tracker-configuration']='2.30.10'
 )
 
 expand_ansible_tags_on_upgrade() {
@@ -2347,27 +2409,25 @@ expand_ansible_tags_on_upgrade() {
   installed_version=$(get_installed_version_on_upgrade)
   debug "Upgrading ${installed_version} -> ${RELEASE_VERSION}"
   expand_ansible_tags_with_upgrade_tag
-  expand_ansible_tags_with_tune_tag
+  expand_ansible_tags_with_tune_tag_on_changing_ram_size
   expand_ansible_tags_with_role_tags "${installed_version}"
   expand_ansible_tags_with_install_kctl_tools_tag "${installed_version}"
   debug "ANSIBLE_TAGS is set to ${ANSIBLE_TAGS}"
 }
 
 expand_ansible_tags_with_upgrade_tag() {
-  if empty "${ANSIBLE_TAGS}"; then
-    ANSIBLE_TAGS="upgrade"
-  else
-    ANSIBLE_TAGS="upgrade,${ANSIBLE_TAGS}"
-  fi
+  expand_ansible_tags_with_tag "upgrade"
   if is_upgrading_mode_full; then
-    ANSIBLE_TAGS="full-upgrade,${ANSIBLE_TAGS}"
+    expand_ansible_tags_with_tag "full-upgrade"
   fi
 }
 
-expand_ansible_tags_with_tune_tag() {
-  if is_ram_size_mb_changed; then
+expand_ansible_tags_with_tune_tag_on_changing_ram_size() {
+  if isset "${VARS['ram_size_mb_changed']}"; then
     debug 'RAM size was changed recently, force tuning'
-    ANSIBLE_TAGS="${ANSIBLE_TAGS},tune"
+    expand_ansible_tags_with_tag "tune"
+  else
+    debug 'RAM size is not changed recently'
   fi
 }
 
@@ -2376,7 +2436,7 @@ expand_ansible_tags_with_role_tags() {
   for role_tag in "${!REPLAY_ROLE_TAGS_SINCE[@]}"; do
     replay_role_tag_since=${REPLAY_ROLE_TAGS_SINCE[${role_tag}]}
     if (( $(as_version "${installed_version}") <= $(as_version "${replay_role_tag_since}") )); then
-      ANSIBLE_TAGS="${ANSIBLE_TAGS},${role_tag}"
+      expand_ansible_tags_with_tag "${role_tag}"
     fi
   done
 }
@@ -2384,7 +2444,7 @@ expand_ansible_tags_with_role_tags() {
 expand_ansible_tags_with_install_kctl_tools_tag() {
   local installed_version=${1}
   if (( $(as_version "${installed_version}") < $(as_version "${RELEASE_VERSION}") )); then
-    ANSIBLE_TAGS="${ANSIBLE_TAGS},install-kctl-tools"
+    expand_ansible_tags_with_tag "install-kctl-tools"
   fi
 }
 

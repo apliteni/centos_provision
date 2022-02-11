@@ -7,6 +7,7 @@
       - kctl_ansible_hostname
       - kctl_ansible_swaptotal_mb
       - kctl_tools_branch
+      - kctl_tracker_version_to_install
       - kctl_version
       - keitaro_user
       - mariadb_join_buffer_size_kb

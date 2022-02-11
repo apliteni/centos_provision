@@ -1,23 +1,13 @@
 - name: Get mime of dump
   shell: "file '{{ db_restore_path }}' --mime-type --brief"
   args:
-    chdir: ../
+    chdir: ../../
   register: db_restore_dump_file_mime
 
-- name: Drop newly created keitaro DB
-  community.mysql.mysql_db:
-    name: "{{ db_name }}"
-    state: absent
-
-- name: Create a new keitaro DB
-  community.mysql.mysql_db:
-    name: "{{ db_name }}"
-    state: present
-
 - name: Restore DB from gzipped SQL dump
-  include: restore_db/restore_from_dump.yml cat=zcat
+  include: restore/restore-from-dump.yml cat=zcat
   when: "db_restore_dump_file_mime.stdout == 'application/x-gzip'"
 
 - name: Restore DB from unpacked SQL dump
-  include: restore_db/restore_from_dump.yml cat=cat
+  include: restore/restore-from-dump.yml cat=cat
   when: "db_restore_dump_file_mime.stdout != 'application/x-gzip'"

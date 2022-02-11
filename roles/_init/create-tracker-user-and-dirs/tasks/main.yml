@@ -65,3 +65,20 @@
   with_items:
     - /etc/nginx/conf.d/keitaro
     - /etc/nginx/conf.d/local/keitaro
+
+
+- name: Ensure /etc/keitaro dir exists with proper permissions
+  file:
+    path: "/etc/keitaro"
+    state: directory
+    owner: root
+    group: "{{ keitaro_group }}"
+    mode: "0750"
+
+- name: Ensure kctl config dir exists with proper permissions
+  file:
+    path: "/etc/keitaro/config"
+    state: directory
+    owner: root
+    group: "{{ keitaro_group }}"
+    mode: "0750"

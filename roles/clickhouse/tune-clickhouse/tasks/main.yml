@@ -1,0 +1,12 @@
+- name: Replace users config
+  template:
+    src: users.xml.j2
+    dest: "{{ clickhouse_config_path }}/users.xml"
+    mode: '0644'
+  notify: restart clickhouse
+
+- name: Start service clickhouse-server if not started
+  service:
+    name: clickhouse-server
+    state: started
+    enabled: true

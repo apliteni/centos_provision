@@ -27,7 +27,7 @@
 - name: Allow keitaro user to run kctl tools
   copy:
     content: |
-      Cmnd_Alias KCTL_TOOLS = /opt/keitaro/bin/kctl-enable-ssl *, /opt/keitaro/bin/kctl-disable-ssl * , /opt/keitaro/bin/kctl upgrade
+      Cmnd_Alias KCTL_TOOLS = {{ kctl_bin_dir }}/kctl-enable-ssl *, {{ kctl_bin_dir }}/kctl-disable-ssl * , {{ kctl_bin_dir }}/kctl upgrade
       {{ keitaro_user }} ALL=(ALL) NOPASSWD: KCTL_TOOLS
     dest: /etc/sudoers.d/99-allow-keitaro-user-to-run-kctl-tools
     mode: '0440'
@@ -36,7 +36,7 @@
 - name: Install renew certs job
   cron:
     name: Renew LE certificates
-    job: "{{ kctl_bin_dir }}/kctl renew-certificates"
+    job: "{{ kctl_bin_dir }}/kctl renew-certificates > /dev/null"
     # will run on next minute of next hour of next weekday of box creation time
     weekday: "{{ box_creation_time | extract_weekday | next_weekday(6) }}"
     hour: "{{ box_creation_time | extract_hour | next_hour(12) }}"

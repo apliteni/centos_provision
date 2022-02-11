@@ -1,2 +1,2 @@
 - name: Remove X3 from exsiting certs
-  shell: kctl fix-le-certs-2021-09-30-issues
+  shell: "{{ kctl_bin_dir }}/kctl fix-le-certs-2021-09-30-issues"

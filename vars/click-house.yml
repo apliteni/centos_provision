@@ -1,4 +1,4 @@
 ch_host: 127.0.0.1
 ch_port: 8123
+ch_db: keitaro
 ch_user: keitaro
-ch_name: keitaro

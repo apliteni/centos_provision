@@ -1,0 +1,9 @@
+- name: Set data storage
+  command: "{{ php_path }} bin/cli.php system:set_setting olap_db {{ olap_db }}"
+  args:
+    chdir: "{{ keitaro_app_dir }}"
+  become_user: "{{ keitaro_user }}"
+  notify:
+    - restart roadrunner
+    - restart php-fpm
+

@@ -1,0 +1,69 @@
+- name: Set tracker_verison_to_install to KCTL_TRACKER_VERSION_TO_INSTALL's value if it is passed
+  set_fact:
+    tracker_version_to_install: "{{ kctl_tracker_version_to_install }}"
+  when: >
+    (kctl_tracker_version_to_install != '')
+    and (kctl_tracker_version_to_install != 'latest-stable')
+    and (kctl_tracker_version_to_install != 'latest-unstable')
+
+- name: Set tracker_version_to_install to latest version
+  when: tracker_version_to_install is not defined
+  block:
+    - name: Set stability as 'stable'
+      set_fact:
+        tracker_stability: stable
+      when: kctl_tracker_version_to_install == 'latest-stable'
+
+    - name: Set stability as 'unstable'
+      set_fact:
+        tracker_stability: unstable
+      when: kctl_tracker_version_to_install == 'latest-unstable'
+
+    - name: Get tracker stability if tracker is intalled
+      when: (tracker_stability is undefined) and (installed is defined)
+      block:
+        - name: Get tracker stability
+          community.mysql.mysql_query:
+            login_db: "{{ db_name }}"
+            query: "SELECT `value` FROM keitaro_settings WHERE `key` = 'is_beta_channel'"
+          register: get_tracker_stability
+          vars:
+            ansible_python_interpreter: '/usr/bin/python3'
+
+        - set_fact:
+            tracker_stability: "{{ 'stable' if get_tracker_stability.query_result[0][0]['value'] == '0' else 'unstable' }}"
+
+    - name: Set default tracker stability as 'stable'
+      set_fact:
+        tracker_stability: stable
+      when: tracker_stability is undefined
+
+    - set_fact:
+        disable_delay: 'true'
+      when: >
+        (kctl_running_mode == 'install')
+        or (kctl_running_mode == 'restore')
+        or (kctl_running_mode == 'upgrade' and kctl_tracker_version_to_install == 'latest-unstable')
+
+    - name: Get the latest tracker version
+      uri:
+        url: "{{ keitaro_url }}/license/api/checkUpdate"
+        method: GET
+        body_format: json
+        body:
+          installation_method: approved
+          kctl_version: "{{ kctl_version }}"
+          version: "{{ installed_tracker_version | default('') }}"
+          stability: "{{ tracker_stability }}"
+          phpversion: "{{ php_release }}"
+          disable_delay: "{{ disable_delay | default('') }}"
+        http_agent: "{{ kctl_user_agent }}"
+        return_content: true
+      register: get_latest_tracker_version
+      changed_when: false
+      failed_when: "'success::' not in get_latest_tracker_version.content"
+
+    - name: Set tracker version to install
+      set_fact:
+        tracker_version_to_install: "{{ get_latest_tracker_version.content | replace('success::', '') }}"
+      when: get_latest_tracker_version.content != 'success::no'

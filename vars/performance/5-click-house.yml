@@ -1,1 +1,1 @@
-clickhouse_db_memory_kb: "{{  big_data_engine_mb | int * 1000000 }}"
+clickhouse_db_memory_kb: "{{  olap_db_mb | int * 1000000 }}"

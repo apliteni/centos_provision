@@ -11,7 +11,7 @@ umask 22
 SUCCESS_RESULT=0
 TRUE=0
 FAILURE_RESULT=1
-INTERRUPTED_BY_USER_RESULT=130
+INTERRUPTED_BY_USER_RESULT=200
 FALSE=1
 ROOT_UID=0
 
@@ -54,12 +54,14 @@ TOOL_NAME='enable-ssl'
 
 SELF_NAME=${0}
 
-KEITARO_URL='https://keitaro.io'
 
-RELEASE_VERSION='2.30.10'
+RELEASE_VERSION='2.31.0'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
+
+KEITARO_URL='https://keitaro.io'
+FILES_KEITARO_URL="https://files.keitaro.io/scripts/${BRANCH}"
 
 if is_ci_mode; then
   ROOT_PREFIX='.keitaro'
@@ -71,7 +73,7 @@ declare -A VARS
 declare -A ARGS
 declare -A DETECTED_VARS
 
-WEBAPP_ROOT="${ROOT_PREFIX}/var/www/keitaro"
+TRACKER_ROOT="${ROOT_PREFIX}/var/www/keitaro"
 
 KCTL_ROOT="${ROOT_PREFIX}/opt/keitaro"
 KCTL_BIN_DIR="${KCTL_ROOT}/bin"
@@ -103,12 +105,32 @@ CURRENT_COMMAND_OUTPUT_LOG="${WORKING_DIR}/current_command.output.log"
 CURRENT_COMMAND_ERROR_LOG="${WORKING_DIR}/current_command.error.log"
 CURRENT_COMMAND_SCRIPT_NAME="current_command.sh"
 
-CERTBOT_PREFERRED_CHAIN="ISRG Root X1"
-
 INDENTATION_LENGTH=2
 INDENTATION_SPACES=$(printf "%${INDENTATION_LENGTH}s")
 
 TOOL_ARGS="${*}"
+
+DB_ENGINE_INNODB="innodb"
+DB_ENGINE_TOKUDB="tokudb"
+DB_ENGINE_DEFAULT="${DB_ENGINE_TOKUDB}"
+
+PHP_ENGINE_ROADRUNNER="roadrunner"
+PHP_ENGINE_DEFAULT="${PHP_ENGINE_ROADRUNNER}"
+
+OLAP_DB_MARIADB="mariadb"
+OLAP_DB_CLICKHOUSE="clickhouse"
+OLAP_DB_DEFAULT="${OLAP_DB_MARIADB}"
+
+TRACKER_STABILITY_STABLE="stable"
+TRACKER_STABILITY_UNSTABLE="unstable"
+TRACKER_STABILITY_DEFAULT="${TRACKER_STABILITY_STABLE}"
+
+TRACKER_SUPPORTS_RBOOSTER_SINCE='9.14.9.1'
+
+KEITARO_USER='keitaro'
+KEITARO_GROUP='keitaro'
+
+TRACKER_CONFIG_FILE="${TRACKER_ROOT}/application/config/config.ini.php"
 declare -A DICT
 
 DICT['en.errors.program_failed']='PROGRAM FAILED'
@@ -119,7 +141,6 @@ DICT['en.errors.run_command.fail_extra']=''
 DICT['en.errors.terminated']='Terminated by user'
 DICT['en.errors.unexpected']='Unexpected error'
 DICT['en.errors.cant_upgrade']='Cannot upgrade because installation process is not finished yet'
-DICT['en.errors.already_running']="Another installation process is running."
 DICT['en.certbot_errors.another_proccess']="Another certbot process is already running"
 DICT['en.messages.generating_nginx_vhost']="Generating nginx config for domain :domain:"
 DICT['en.messages.reloading_nginx']="Reloading nginx"
@@ -152,12 +173,13 @@ SSL_ENABLER_ERRORS_LOG="${WORKING_DIR}/ssl_enabler_errors.log"
 FORCE_ISSUING_CERTS=''
 DICT['en.prompts.ssl_domains']='Please enter domains separated by comma without spaces'
 DICT['en.prompts.ssl_domains.help']='Make sure all the domains are already linked to this server in the DNS'
-DICT['en.errors.see_logs']="Evaluating log saved to ${LOG_PATH}."
 DICT['en.errors.domain_invalid']=":domain: doesn't look as valid domain"
 DICT['en.certbot_errors.wrong_a_entry']="Please make sure that your domain name was entered correctly and the DNS A record for that domain contains the right IP address. You need to wait a little if the DNS A record was updated recently."
 DICT['en.certbot_errors.too_many_requests']="There were too many requests. See https://letsencrypt.org/docs/rate-limits/."
 DICT['en.certbot_errors.fetching']="There was connection error while issuing certificate. Try running the script again in an hour. If the error persists, contact support."
 DICT['en.certbot_errors.unknown_error']="There was unknown error while issuing certificate, please contact support team"
+DICT['en.errors.already_running']="Another certificate issue process is running."
+
 DICT['en.messages.check_renewal_job_scheduled']="Check that the renewal job is scheduled"
 DICT['en.messages.make_ssl_cert_links']="Make SSL certificate links"
 DICT['en.messages.requesting_certificate_for']="Requesting certificate for"
@@ -168,22 +190,8 @@ DICT['en.warnings.nginx_config_exists_for_domain']="nginx config already exists"
 DICT['en.warnings.certificate_exists_for_domain']="certificate already exists"
 DICT['en.warnings.skip_nginx_config_generation']="skipping nginx config generation"
 
-# Check if lock file exist
-#https://certbot.eff.org/docs/using.html#id5
-#
-assert_that_another_certbot_process_not_runing() {
-  debug
-  if [ -f "${CERTBOT_LOCK_FILE}" ]; then
-    debug "Find lock file, raise error"
-    fail "$(translate 'certbot_errors.another_proccess')"
-  else
-    debug "another certbot proccess not running"
-  fi
-
-}
-
 assert_caller_root(){
-  debug 'Ensure script has been running by root'
+  debug 'Ensure current user is root'
   if [[ "$EUID" == "$ROOT_UID" ]]; then
     debug 'OK: current user is root'
   else
@@ -198,18 +206,74 @@ assert_installed(){
   local program="${1}"
   local error="${2}"
   if ! is_installed "$program"; then
-    fail "$(translate "${error}")" "see_logs"
+    fail "$(translate "${error}")"
   fi
 }
 
-file_exists(){
-  local file="${1}"
-  debug "Checking ${file} file existence"
-  if [ -f "${file}" ]; then
-    debug "YES: ${file} file exists"
+USE_NEW_ALGORITHM_FOR_INSTALLATION_CHECK_SINCE="2.12"
+KEITARO_LOCK_FILEPATH="${TRACKER_ROOT}/var/install.lock"
+
+assert_keitaro_not_installed(){
+  debug 'Ensure keitaro is not installed yet'
+  if is_keitaro_installed; then
+    debug 'NOK: keitaro is already installed'
+    print_with_color "$(translate messages.keitaro_already_installed)" 'yellow'
+    clean_up
+    print_url
+    exit "${KEITARO_ALREADY_INSTALLED_RESULT}"
+  else
+    debug 'OK: keitaro is not installed yet'
+  fi
+}
+
+is_keitaro_installed() {
+   debug "We will use new algorithm for installation check sicne ${USE_NEW_ALGORITHM_FOR_INSTALLATION_CHECK_SINCE} (incl.)"
+   if should_use_new_algorithm_for_installation_check; then
+     debug "Current version is ${INSTALLED_VERSION} - using new algorithm (check 'installed' flag in the inventory file)"
+     isset "${VARS['installed']}"
+   else
+     debug "Current version is ${INSTALLED_VERSION} - using old algorithm (check '${KEITARO_LOCK_FILEPATH}' file)"
+     file_exists "${KEITARO_LOCK_FILEPATH}"
+   fi
+}
+
+should_use_new_algorithm_for_installation_check() {
+  (( $(as_version "${INSTALLED_VERSION}") >= $(as_version "${USE_NEW_ALGORITHM_FOR_INSTALLATION_CHECK_SINCE}") ))
+}
+assert_no_another_process_running(){
+
+  exec 8>/var/run/kctl-process.lock
+
+  debug "Check if another process is running"
+
+  if flock -n -x 8; then
+    debug "No other installer process is running"
+  else
+    fail "$(translate 'errors.already_running')"
+  fi
+}
+# Check if lock file exist
+#https://certbot.eff.org/docs/using.html#id5
+#
+assert_that_another_certbot_process_not_runing() {
+  debug
+  if [ -f "${CERTBOT_LOCK_FILE}" ]; then
+    debug "Find lock file, raise error"
+    fail "$(translate 'certbot_errors.another_proccess')"
+  else
+    debug "another certbot proccess not running"
+  fi
+
+}
+
+directory_exists(){
+  local directory="${1}"
+  debug "Checking ${directory} directory existence"
+  if [ -d "${directory}" ]; then
+    debug "YES: ${directory} directory exists"
     return ${SUCCESS_RESULT}
   else
-    debug "NO: ${file} file does not exist"
+    debug "NO: ${directory} directory does not exist"
     return ${FAILURE_RESULT}
   fi
 }
@@ -227,14 +291,14 @@ file_content_matches(){
   fi
 }
 
-directory_exists(){
-  local directory="${1}"
-  debug "Checking ${directory} directory existence"
-  if [ -d "${directory}" ]; then
-    debug "YES: ${directory} directory exists"
+file_exists(){
+  local file="${1}"
+  debug "Checking ${file} file existence"
+  if [ -f "${file}" ]; then
+    debug "YES: ${file} file exists"
     return ${SUCCESS_RESULT}
   else
-    debug "NO: ${directory} directory does not exist"
+    debug "NO: ${file} file does not exist"
     return ${FAILURE_RESULT}
   fi
 }
@@ -242,10 +306,9 @@ build_certbot_command() {
   if is_ci_mode; then
     echo "/usr/bin/certbot"
   else
-    echo "/usr/bin/docker run --network host --rm -it $(dockerized_certbot_volumes) certbot/certbot"
+    echo "/usr/bin/docker run --network host --rm $(dockerized_certbot_volumes) certbot/certbot"
   fi
 }
-
 DOCKERIZED_CERTBOT_VOLUME_PATHS="/etc/letsencrypt /var/lib/letsencrypt /var/log/letsencrypt /var/www/keitaro"
 
 dockerized_certbot_volumes() {
@@ -296,6 +359,27 @@ as_minor_version() {
   printf "%d%0${zeroes_length}d" "${meaningful_version}"
 }
 
+assert_upgrade_allowed() {
+  if is_keitaro_installed; then
+    ensure_nginx_config_correct
+    debug 'Everything looks good, running upgrade'
+  else
+    debug "Can't upgrade because installation process is not finished yet"
+    fail "$(translate errors.cant_upgrade)"
+  fi
+}
+
+ensure_nginx_config_correct() {
+  run_command "nginx -t" "$(translate 'messages.validate_nginx_conf')" "hide_output"
+}
+detect_db_engine() {
+  local sql="SELECT lower(engine) FROM information_schema.tables WHERE table_name = 'keitaro_clicks'"
+  local db_engine
+  db_engine="$(mysql "${VARS['db_name']}" -se "${sql}" 2>/dev/null)"
+  debug "Detected engine from keitaro_clicks table - '${db_engine}'"
+  echo "${db_engine}"
+}
+
 detect_installed_version(){
   if empty "${INSTALLED_VERSION}"; then
     detect_inventory_path
@@ -308,6 +392,25 @@ detect_installed_version(){
       INSTALLED_VERSION="${VERY_FIRST_VERSION}"
     fi
   fi
+}
+
+get_parameter_from_php_config(){
+  local section="${1}"
+  local parameter="${2}"
+  sed -nr "/^\[${section}\]/ { :l /^${parameter}[ ]*=/ { s/.*=[ ]*//; p; q;}; n; b l;}" "${TRACKER_CONFIG_FILE}" | \
+          sed -r -e 's/"(.*)"/\1/g'
+}
+
+get_centos_major_release() {
+  grep -oP '(?<=release )\d+' /etc/centos-release
+}
+
+installed_version_has_db_engine_bug() {
+  (( $(as_version ${INSTALLED_VERSION}) <= $(as_version "1.5.0") )) || \
+    (
+      (( $(as_version ${INSTALLED_VERSION}) >= $(as_version "2.23.0") )) && \
+      (( $(as_version ${INSTALLED_VERSION}) < $(as_version "2.29.0") ))
+    )
 }
 
 is_compatible_with_current_release() {
@@ -394,6 +497,11 @@ detect_inventory_path(){
 
 add_indentation(){
   sed -r "s/^/$INDENTATION_SPACES/g"
+}
+
+detect_mime_type(){
+  local file="${1}"
+  file --brief --mime-type "$file"
 }
 
 get_user_var(){
@@ -572,17 +680,97 @@ debug() {
   fi
 }
 
+expand_ansible_tags_with_tag() {
+  local tag="${1}"
+  local tag_regex="\<${tag}\>"
+  if [[ "${ANSIBLE_TAGS}" =~ ${tag_regex} ]]; then
+    return
+  fi
+  if empty "${ANSIBLE_TAGS}"; then
+    ANSIBLE_TAGS="${tag}"
+  else
+    ANSIBLE_TAGS="${tag},${ANSIBLE_TAGS}"
+  fi
+}
+
 fail() {
   local message="${1}"
-  local see_logs="${2}"
+  local exit_code="${2-${FAILURE_RESULT}}"
   log_and_print_err "*** $(translate errors.program_failed) ***"
   log_and_print_err "$message"
-  if isset "$see_logs"; then
-    log_and_print_err "$(translate errors.see_logs)"
-  fi
   print_err
   clean_up
-  exit "${3:-${FAILURE_RESULT}}"
+  exit "${exit_code}"
+}
+
+common_parse_options(){
+  local option="${1}"
+  local argument="${2}"
+  case $option in
+    l|L)
+      print_deprecation_warning '-L option is ignored'
+      ;;
+    v)
+      version
+      ;;
+    h)
+      help
+      ;;
+    *)
+      wrong_options
+      ;;
+  esac
+}
+
+
+help(){
+  usage_en_header
+  help_en
+  help_en_common
+  exit ${SUCCESS_RESULT}
+}
+
+
+usage(){
+  usage_en
+  exit ${FAILURE_RESULT}
+}
+
+
+version(){
+  echo "${SCRIPT_NAME} v${RELEASE_VERSION}"
+  exit ${SUCCESS_RESULT}
+}
+
+
+wrong_options(){
+  WRONG_OPTIONS="wrong_options"
+}
+
+
+ensure_options_correct(){
+  if isset "${WRONG_OPTIONS}"; then
+    usage
+  fi
+}
+
+
+usage_en(){
+  usage_en_header
+  print_err "Try '${SCRIPT_NAME} -h' for more information."
+  print_err
+}
+
+usage_en_header(){
+  print_err "Usage: ${SCRIPT_NAME} [OPTION]..."
+}
+
+help_en_common(){
+  print_err "Miscellaneous:"
+  print_err "  -h                       display this help text and exit"
+  print_err
+  print_err "  -v                       display version information and exit"
+  print_err
 }
 
 init() {
@@ -620,7 +808,7 @@ init_kctl_dirs_and_links() {
 
 create_kctl_dirs_and_links() {
   mkdir -p "${LOG_DIR}" "${SSL_LOG_DIR}" "${INVENTORY_DIR}" "${KCTL_BIN_DIR}" "${WORKING_DIR}" &&
-    chmod 0700 "${ETC_DIR}" &&
+    chmod 0750 "${ETC_DIR}" &&
     ln -s "${ETC_DIR}" "${KCTL_ETC_DIR}" &&
     ln -s "${LOG_DIR}" "${KCTL_LOG_DIR}" &&
     ln -s "${WORKING_DIR}" "${KCTL_WORKING_DIR}"
@@ -648,7 +836,10 @@ delete_old_logs() {
   local log_filename
   log_dir="$(dirname "${log_filepath}")"
   log_filename="$(basename "${log_filepath}")"
-  find "${log_dir}" -name "${log_filename}-*" | sort | head -n -${LOGS_TO_KEEP} | xargs rm -f
+  /usr/bin/find "${log_dir}" -name "${log_filename}-*" | \
+    /usr/bin/sort | \
+    /usr/bin/head -n -${LOGS_TO_KEEP} | \
+    /usr/bin/xargs rm -f
 }
 
 create_log() {
@@ -671,6 +862,13 @@ on_exit(){
   echo
   clean_up
   fail "$(translate 'errors.terminated')"
+}
+
+on_exit_by_user_interrupt(){
+  debug "Terminated by user"
+  echo
+  clean_up
+  fail "$(translate 'errors.terminated')" "${INTERRUPTED_BY_USER_RESULT}"
 }
 
 print_content_of(){
@@ -696,11 +894,6 @@ print_err(){
   local color="${2}"
   print_with_color "$message" "$color" >&2
 }
-#
-
-
-
-
 
 print_translated(){
   local key="${1}"
@@ -740,17 +933,6 @@ print_with_color(){
     echo -e "${escape_sequence}${message}${RESET_FORMATTING}"
   else
     echo "$message"
-  fi
-}
-
-start_or_reload_nginx(){
-  if (file_exists "/run/nginx.pid" && [[ -s "/run/nginx.pid" ]]) || is_ci_mode; then
-    debug "Nginx is started, reloading"
-    run_command "systemctl reload nginx" "$(translate 'messages.reloading_nginx')" 'hide_output'
-  else
-    debug "Nginx is not running, starting"
-    print_with_color "$(translate 'messages.nginx_is_not_running')" "yellow"
-    run_command "systemctl start nginx" "$(translate 'messages.starting_nginx')" 'hide_output'
   fi
 }
 
@@ -831,7 +1013,7 @@ really_run_command(){
     else
       fail_message=$(print_current_command_fail_message "$print_fail_message_method" "$current_command_script")
       remove_current_command "$current_command_script"
-      fail "${fail_message}" "see_logs"
+      fail "${fail_message}"
     fi
   else
     print_command_status "$command" 'OK' 'green' "$hide_output"
@@ -944,74 +1126,15 @@ remove_current_command(){
   rmdir "$(dirname "$current_command_script")"
 }
 
-common_parse_options(){
-  local option="${1}"
-  local argument="${2}"
-  case $option in
-    l|L)
-      print_deprecation_warning '-L option is ignored'
-      ;;
-    v)
-      version
-      ;;
-    h)
-      help
-      ;;
-    *)
-      wrong_options
-      ;;
-  esac
-}
-
-
-help(){
-  usage_en_header
-  help_en
-  help_en_common
-  exit ${SUCCESS_RESULT}
-}
-
-
-usage(){
-  usage_en
-  exit ${FAILURE_RESULT}
-}
-
-
-version(){
-  echo "${SCRIPT_NAME} v${RELEASE_VERSION}"
-  exit ${SUCCESS_RESULT}
-}
-
-
-wrong_options(){
-  WRONG_OPTIONS="wrong_options"
-}
-
-
-ensure_options_correct(){
-  if isset "${WRONG_OPTIONS}"; then
-    usage
+start_or_reload_nginx(){
+  if (file_exists "/run/nginx.pid" && [[ -s "/run/nginx.pid" ]]) || is_ci_mode; then
+    debug "Nginx is started, reloading"
+    run_command "systemctl reload nginx" "$(translate 'messages.reloading_nginx')" 'hide_output'
+  else
+    debug "Nginx is not running, starting"
+    print_with_color "$(translate 'messages.nginx_is_not_running')" "yellow"
+    run_command "systemctl start nginx" "$(translate 'messages.starting_nginx')" 'hide_output'
   fi
-}
-
-
-usage_en(){
-  usage_en_header
-  print_err "Try '${SCRIPT_NAME} -h' for more information."
-  print_err
-}
-
-usage_en_header(){
-  print_err "Usage: ${SCRIPT_NAME} [OPTION]..."
-}
-
-help_en_common(){
-  print_err "Miscellaneous:"
-  print_err "  -h                       display this help text and exit"
-  print_err
-  print_err "  -v                       display version information and exit"
-  print_err
 }
 
 join_by(){
@@ -1025,6 +1148,55 @@ join_by(){
 to_lower(){
   local string="${1}"
   echo "${string,,}"
+}
+#
+
+
+FIRST_KEITARO_TABLE_NAME="acl"
+
+detect_table_prefix(){
+  local file="${1}"
+  if empty "$file"; then
+    return ${SUCCESS_RESULT}
+  fi
+  local mime_type
+  mime_type="$(detect_mime_type "${file}")"
+  debug "Detected mime type: ${mime_type}"
+  local get_head_chunk
+  get_head_chunk="$(build_get_chunk_command "${mime_type}" "${file}" "head -n 100")"
+  if empty "${get_head_chunk}"; then
+    return ${FAILURE_RESULT}
+  fi
+  local command="${get_head_chunk}"
+  command="${command} | grep -P $(build_check_table_exists_expression ".*${FIRST_KEITARO_TABLE_NAME}")"
+  command="${command} | head -n 1"
+  command="${command} | grep -oP '\`.*\`'"
+  command="${command} | sed -e 's/\`//g' -e 's/${FIRST_KEITARO_TABLE_NAME}\$//'"
+  command="(set +o pipefail && ${command})"
+  message="$(translate 'messages.check_keitaro_dump_get_tables_prefix')"
+  rm -f "${DETECTED_PREFIX_PATH}"
+  if run_command "$command" "$message" 'hide_output' 'allow_errors' '' '' "$DETECTED_PREFIX_PATH" > /dev/stderr; then
+    cat "$DETECTED_PREFIX_PATH" | head -n1
+  fi
+}
+
+
+build_check_table_exists_expression() {
+  local table="${1}"
+  echo "'^CREATE TABLE( IF NOT EXISTS)? \`${table}\`'"
+}
+
+
+build_get_chunk_command() {
+  local mime_type="${1}"
+  local file="${2}"
+  local filter="${3}"
+  if [[ "$mime_type" == 'text/plain' ]]; then
+    echo "${filter} '${file}'"
+  fi
+  if [[ "$mime_type" == 'application/x-gzip' ]]; then
+    echo "zcat '${file}' | ${filter}"
+  fi
 }
 
 ensure_valid() {
@@ -1055,6 +1227,22 @@ get_error(){
   done
   echo "${error}"
 }
+
+
+validate_absence(){
+  local value="${1}"
+  empty "$value"
+}
+
+validate_alnumdashdot(){
+  local value="${1}"
+  [[ "$value" =~  ^([0-9A-Za-z_\.\-]+)$ ]]
+}
+
+validate_directory_existence(){
+  local value="${1}"
+  [[ -d "$value" ]]
+}
 SUBDOMAIN_REGEXP="[[:alnum:]-]+"
 DOMAIN_REGEXP="(${SUBDOMAIN_REGEXP}\.)+[[:alpha:]]${SUBDOMAIN_REGEXP}"
 MAX_DOMAIN_LENGTH=64
@@ -1073,10 +1261,67 @@ validate_domains_list(){
   [[ "$value" =~ ^${DOMAIN_LIST_REGEXP}$ ]] && [[ "${value}" =~ ^${DOMAIN_LIST_LENGTH_REGEXP}$ ]]
 }
 
+validate_enough_space_for_dump() {
+  local file="${1}"
+  local dump_size_in_kb
+  local needed_space_in_kb
+  local available_space_in_mb
+  local available_space_in_kb
+  local unpacked_dump_size_in_kb
+
+  if empty "$file"; then
+    return ${SUCCESS_RESULT}
+  fi
+  dump_size_in_kb=$(du -k "$file" | cut -f1)
+  available_space_in_mb=$(get_free_disk_space_mb)
+  available_space_in_kb=$((available_space_in_mb * 1024))
+
+  if file --mime-type "$file" | grep -q gzip$; then
+    unpacked_dump_size_in_kb=$((dump_size_in_kb * 7))
+    needed_space_in_kb=$((unpacked_dump_size_in_kb * 25 / 10))
+  else
+    needed_space_in_kb=$((dump_size_in_kb * 15 / 10))
+  fi
+
+  if [[ "$needed_space_in_kb" -gt "$available_space_in_kb" ]]; then
+    return ${FAILURE_RESULT}
+  else
+    return ${SUCCESS_RESULT}
+  fi
+}
+#
+
+
+
+
+
+validate_file_existence(){
+  local value="${1}"
+  if empty "$value"; then
+    return ${SUCCESS_RESULT}
+  fi
+  [[ -f "$value" ]]
+}
+
+validate_not_reserved_word(){
+  local value="${1}"
+  [[ "$value" !=  'yes' ]] && [[ "$value" != 'no' ]] && [[ "$value" != 'true' ]] && [[ "$value" != 'false' ]]
+}
+
+validate_not_root(){
+  local value="${1}"
+  [[ "$value" !=  'root' ]]
+}
+
 
 validate_presence(){
   local value="${1}"
   isset "$value"
+}
+
+validate_starts_with_latin_letter(){
+  local value="${1}"
+  [[ "$value" =~  ^[A-Za-z] ]]
 }
 
 is_no(){
@@ -1171,6 +1416,7 @@ help_en(){
 stage2(){
   debug "Starting stage 2: make some asserts"
   assert_caller_root
+  assert_no_another_process_running
   assert_that_another_certbot_process_not_runing
   detect_installed_version
   run_obsolete_tool_version_if_need
@@ -1264,7 +1510,7 @@ finalize_additional_ssl_logging_for_domain() {
   if mv "${additional_log_path}" "${domain_ssl_log_path}"; then
     debug "Done"
   else
-    fail "errors.unexpected" "see_logs"
+    fail "errors.unexpected"
   fi
 }
 
@@ -1273,12 +1519,14 @@ certificate_exists_for_domain(){
   directory_exists "/etc/letsencrypt/live/${domain}"
 }
 
+CERTBOT_PREFERRED_CHAIN="ISRG Root X1"
+
 request_certificate_for(){
   local domain="${1}"
   local certbot_command=""
   debug "Requesting certificate for domain ${domain}"
   certbot_command="$(build_certbot_command) certonly"
-  certbot_command="${certbot_command} --webroot --webroot-path=${WEBAPP_ROOT}"
+  certbot_command="${certbot_command} --webroot --webroot-path=${TRACKER_ROOT}"
   certbot_command="${certbot_command} --agree-tos --non-interactive"
   certbot_command="${certbot_command} --domain ${domain}"
   certbot_command="${certbot_command} --register-unsafely-without-email"
@@ -1308,6 +1556,31 @@ generate_vhost_ssl_enabler() {
   generate_vhost "$domain" \
       "s|ssl_certificate .*|ssl_certificate ${certs_root_path}/fullchain.pem;|" \
       "s|ssl_certificate_key .*|ssl_certificate_key ${certs_root_path}/privkey.pem;|"
+}
+
+
+recognize_error() {
+  local certbot_log="${1}"
+  local key="unknown_error"
+  debug "$(print_content_of "${certbot_log}")"
+  if grep -q '^There were too many requests' "${certbot_log}"; then
+    key="too_many_requests"
+  else
+    local error_detail
+    error_detail=$(grep '^   Detail:' "${certbot_log}" 2>/dev/null)
+    debug "certbot error detail from ${certbot_log}: ${error_detail}"
+    if [[ $error_detail =~ "NXDOMAIN looking up A" ]]; then
+      key="wrong_a_entry"
+    elif [[ $error_detail =~ "No valid IP addresses found" ]]; then
+      key="wrong_a_entry"
+    elif [[ $error_detail =~ "Invalid response from" ]]; then
+      key="wrong_a_entry"
+    elif [[ $error_detail =~ "Fetching" ]]; then
+      key="fetching"
+    fi
+  fi
+  debug "The error key is ${key}"
+  print_translated "certbot_errors.${key}"
 }
 #
 
@@ -1347,31 +1620,6 @@ print_not_enabled_domains(){
   domains=$(join_by ", " "${FAILED_DOMAINS[@]}")
   print_with_color "NOK. ${message} ${domains}" "${color}"
   print_with_color "$(cat "$SSL_ENABLER_ERRORS_LOG")" "${color}"
-}
-
-
-recognize_error() {
-  local certbot_log="${1}"
-  local key="unknown_error"
-  debug "$(print_content_of "${certbot_log}")"
-  if grep -q '^There were too many requests' "${certbot_log}"; then
-    key="too_many_requests"
-  else
-    local error_detail
-    error_detail=$(grep '^   Detail:' "${certbot_log}" 2>/dev/null)
-    debug "certbot error detail from ${certbot_log}: ${error_detail}"
-    if [[ $error_detail =~ "NXDOMAIN looking up A" ]]; then
-      key="wrong_a_entry"
-    elif [[ $error_detail =~ "No valid IP addresses found" ]]; then
-      key="wrong_a_entry"
-    elif [[ $error_detail =~ "Invalid response from" ]]; then
-      key="wrong_a_entry"
-    elif [[ $error_detail =~ "Fetching" ]]; then
-      key="fetching"
-    fi
-  fi
-  debug "The error key is ${key}"
-  print_translated "certbot_errors.${key}"
 }
 
 
