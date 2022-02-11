@@ -55,7 +55,7 @@ TOOL_NAME='enable-ssl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.31.0'
+RELEASE_VERSION='2.31.1'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -242,7 +242,7 @@ should_use_new_algorithm_for_installation_check() {
 }
 assert_no_another_process_running(){
 
-  exec 8>/var/run/kctl-process.lock
+  exec 8>/var/run/${SCRIPT_NAME}.lock
 
   debug "Check if another process is running"
 

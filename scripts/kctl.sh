@@ -54,7 +54,7 @@ TOOL_NAME='kctl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.31.0'
+RELEASE_VERSION='2.31.1'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -183,7 +183,7 @@ should_use_new_algorithm_for_installation_check() {
 }
 assert_no_another_process_running(){
 
-  exec 8>/var/run/kctl-process.lock
+  exec 8>/var/run/${SCRIPT_NAME}.lock
 
   debug "Check if another process is running"
 
@@ -891,28 +891,6 @@ DICT['en.validation_errors.validate_presence']='Please enter value'
 DICT['en.validation_errors.validate_absence']='Should not be specified'
 DICT['en.validation_errors.validate_yes_no']='Please answer "yes" or "no"'
 
-kctl_features_usage() {
-  echo "Usage:"
-  echo "  kctl features enable <feature>                  enable feature"
-  echo "  kctl features disable <feature>                 disable feature"
-  echo "  kctl features list                              list supported features"
-}
-
-kctl_features_disable() {
-  local feature="${1}"
-  if empty "${feature}"; then
-    kctl_features_usage
-  else
-    case "${feature}" in
-      rbooster)
-        kctl_features_disable_rbooster
-      ;;
-      *)
-        kctl_features_usage
-    esac
-  fi
-}
-
 kctl_features_enable() {
   local feature="${1}"
   if empty "${feature}"; then
@@ -926,6 +904,22 @@ kctl_features_enable() {
         kctl_features_usage
     esac
   fi
+}
+
+kctl_features_usage() {
+  echo "Usage:"
+  echo "  kctl features enable <feature>                  enable feature"
+  echo "  kctl features disable <feature>                 disable feature"
+  echo "  kctl features list                              list supported features"
+}
+
+kctl_features_enable_rbooster() {
+  set_olap_db "${OLAP_DB_CLICKHOUSE}"
+  run_ch_migrator
+}
+
+kctl_features_disable_rbooster() {
+  set_olap_db "${OLAP_DB_MARIADB}"
 }
 
 set_olap_db() {
@@ -948,13 +942,19 @@ assert_tracker_supports_rbooster() {
   fi
 }
 
-kctl_features_enable_rbooster() {
-  set_olap_db "${OLAP_DB_CLICKHOUSE}"
-  run_ch_migrator
-}
-
-kctl_features_disable_rbooster() {
-  set_olap_db "${OLAP_DB_MARIADB}"
+kctl_features_disable() {
+  local feature="${1}"
+  if empty "${feature}"; then
+    kctl_features_usage
+  else
+    case "${feature}" in
+      rbooster)
+        kctl_features_disable_rbooster
+      ;;
+      *)
+        kctl_features_usage
+    esac
+  fi
 }
 
 kctl_features_list(){
