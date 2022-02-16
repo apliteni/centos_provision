@@ -55,7 +55,7 @@ TOOL_NAME='disable-ssl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.31.2'
+RELEASE_VERSION='2.31.3'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -1123,7 +1123,7 @@ stage2(){
 stage3(){
   debug "Starting stage 3: remove certificates"
   delete_certificates
-  if isset "$SUCCESSFUL_DOMAINS"; then
+  if isset "${SUCCESSFUL_DOMAINS[@]}"; then
     start_or_reload_nginx
   fi
   show_finishing_message
@@ -1155,15 +1155,15 @@ disable_domain(){
 
 show_finishing_message(){
   local color=""
-  if isset "$SUCCESSFUL_DOMAINS" && empty "$FAILED_DOMAINS"; then
+  if isset "${SUCCESSFUL_DOMAINS[@]}" && empty "${FAILED_DOMAINS[@]}"; then
     print_with_color "$(translate 'messages.successful')" 'green'
     print_disabled_domains
   fi
-  if isset "$SUCCESSFUL_DOMAINS" && isset "$FAILED_DOMAINS"; then
+  if isset "${SUCCESSFUL_DOMAINS[@]}" && isset "${FAILED_DOMAINS[@]}"; then
     print_disabled_domains
     print_not_disabled_domains 'yellow'
   fi
-  if empty "$SUCCESSFUL_DOMAINS" && isset "$FAILED_DOMAINS"; then
+  if empty "${SUCCESSFUL_DOMAINS[@]}" && isset "${FAILED_DOMAINS[@]}"; then
     print_not_disabled_domains 'red'
   fi
 }

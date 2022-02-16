@@ -3,16 +3,5 @@
     name: podman-docker
     state: installed
 
-- name: Create letsencrypt mountable dirs
-  file:
-    path: "{{ item }}"
-    state: directory
-    mode: '0644'
-  with_items:
-    - /etc/letsencrypt
-    - /var/lib/letsencrypt
-    - /var/log/letsencrypt
+- include_tasks: tune-certbot.yml
 
-- name: Pull certbot image
-  containers.podman.podman_image:
-    name: certbot/certbot

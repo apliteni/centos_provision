@@ -4,16 +4,21 @@ driver:
   name: docker
 platforms:
   - name: centos-stream8
-    image: "quay.io/centos/centos:stream8"
     # path relative to molecule scenario directory
-    dockerfile: ../../../../../roles/_common/molecule/docker/Dockerfile.centos8.j2 
+    image: gitlab.x.apli.tech:1443/apliteni/third-party/centos-extended:stream8
+    pre_build_image: true
+    pull: true
     privileged: true
     tty: true
     command: ${MOLECULE_DOCKER_COMMAND:-""}
     environment:
       container: docker
+    tmpfs:
+      - /run
+      - /tmp
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    command: /sbin/init
 provisioner:
   name: ansible
   env:

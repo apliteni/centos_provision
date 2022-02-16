@@ -54,7 +54,7 @@ TOOL_NAME='kctl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.31.2'
+RELEASE_VERSION='2.31.3'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -168,18 +168,19 @@ assert_keitaro_not_installed(){
 }
 
 is_keitaro_installed() {
-   debug "We will use new algorithm for installation check sicne ${USE_NEW_ALGORITHM_FOR_INSTALLATION_CHECK_SINCE} (incl.)"
-   if should_use_new_algorithm_for_installation_check; then
-     debug "Current version is ${INSTALLED_VERSION} - using new algorithm (check 'installed' flag in the inventory file)"
-     isset "${VARS['installed']}"
-   else
+   if isset "${VARS['installed']}"; then
+     debug "installed flag is set"
+     return ${SUCCESS_RESULT}
+   fi
+   if use_old_algorithm_for_installation_check; then
      debug "Current version is ${INSTALLED_VERSION} - using old algorithm (check '${KEITARO_LOCK_FILEPATH}' file)"
      file_exists "${KEITARO_LOCK_FILEPATH}"
    fi
+   return ${FAILURE_RESULT}
 }
 
-should_use_new_algorithm_for_installation_check() {
-  (( $(as_version "${INSTALLED_VERSION}") >= $(as_version "${USE_NEW_ALGORITHM_FOR_INSTALLATION_CHECK_SINCE}") ))
+use_old_algorithm_for_installation_check() {
+  (( $(as_version "${INSTALLED_VERSION}") <= $(as_version "${USE_NEW_ALGORITHM_FOR_INSTALLATION_CHECK_SINCE}") ))
 }
 assert_no_another_process_running(){
 
@@ -898,21 +899,6 @@ kctl_features_usage() {
   echo "  kctl features list                              list supported features"
 }
 
-kctl_features_disable() {
-  local feature="${1}"
-  if empty "${feature}"; then
-    kctl_features_usage
-  else
-    case "${feature}" in
-      rbooster)
-        kctl_features_disable_rbooster
-      ;;
-      *)
-        kctl_features_usage
-    esac
-  fi
-}
-
 kctl_features_enable() {
   local feature="${1}"
   if empty "${feature}"; then
@@ -926,6 +912,11 @@ kctl_features_enable() {
         kctl_features_usage
     esac
   fi
+}
+
+kctl_features_enable_rbooster() {
+  set_olap_db "${OLAP_DB_CLICKHOUSE}"
+  run_ch_migrator
 }
 
 set_olap_db() {
@@ -948,11 +939,6 @@ assert_tracker_supports_rbooster() {
   fi
 }
 
-kctl_features_enable_rbooster() {
-  set_olap_db "${OLAP_DB_CLICKHOUSE}"
-  run_ch_migrator
-}
-
 kctl_features_disable_rbooster() {
   set_olap_db "${OLAP_DB_MARIADB}"
 }
@@ -960,6 +946,21 @@ kctl_features_disable_rbooster() {
 kctl_features_list(){
   echo "Feature list:"
   echo " rbooster               ClickHouse as OLAP DB"
+}
+
+kctl_features_disable() {
+  local feature="${1}"
+  if empty "${feature}"; then
+    kctl_features_usage
+  else
+    case "${feature}" in
+      rbooster)
+        kctl_features_disable_rbooster
+      ;;
+      *)
+        kctl_features_usage
+    esac
+  fi
 }
 
 get_kctl_install() {
@@ -1161,27 +1162,16 @@ kctl_upgrade(){
   get_kctl_install | bash -s -- -U -o "${KCTL_LOG_DIR}/kctl-upgrade.log"
 }
 
+run_ch_migrator(){
+  local command
+  command="kctl-ch-migrator --prefix=$(get_tracker_config_value 'db' 'prefix') \
+    --env-file-path=${INVENTORY_DIR}//tracker.env"
+  run_command "${command}"
+}
+
 on_exit(){
   exit 1
 }
-
-run_ch_migrator(){
-  local command
-  command="kctl-ch-migrator --prefix=$(get_parameter_from_php_config 'db' 'prefix') \
-    --ms-host=$(get_parameter_from_php_config 'db' 'server') \
-    --ms-db=$(get_parameter_from_php_config 'db' 'name') \
-    --ms-user=$(get_parameter_from_php_config 'db' 'user') \
-    --ms-password=$(get_parameter_from_php_config 'db' 'password')  \
-    --ch-host=$(get_parameter_from_php_config 'clickhouse' 'ch_host')  \
-    --ch-db=$(get_parameter_from_php_config 'clickhouse' 'ch_db')  \
-    --ch-user=$(get_parameter_from_php_config 'clickhouse' 'ch_user')  \
-    --ch-password=$(get_parameter_from_php_config 'clickhouse' 'ch_password')"
-
-  run_command "${command}"
-}
-CURRENT_DATETIME="$(date +%Y%m%d%H%M)"
-MIN_TRACKER_VERSION_TO_INSTALL='9.13.0'
-declare -a RETRY_INTERVALS=(60 180 300)
 declare -A DICT
 DICT['en.messages.sleeping_before_next_try']="Error while install, sleeping for :retry_interval: seconds before next try"
 DICT['en.messages.kctl_version']="Kctl:    :kctl_version:"
@@ -1191,6 +1181,9 @@ DICT['en.errors.tracker_version_to_install_is_incorrect']="Tracker version can't
 DICT['en.errors.invalid_options']="Invalid option ${1}. Try 'kctl help' for more information."
 DICT['en.errors.tracker_doesnt_support_feature']="Current tracker v:current_tracker_version: doesn't support :feature:. Please upgrade tracker to v:featured_tracker_version:+"
 DICT['en.errors.tracker_not_installed']="Keitaro tracker not installed"
+CURRENT_DATETIME="$(date +%Y%m%d%H%M)"
+MIN_TRACKER_VERSION_TO_INSTALL='9.13.0'
+declare -a RETRY_INTERVALS=(60 180 300)
 
 read_inventory(){
   detect_inventory_path
@@ -1287,11 +1280,13 @@ detect_installed_version(){
   fi
 }
 
-get_parameter_from_php_config(){
+get_tracker_config_value() {
   local section="${1}"
   local parameter="${2}"
-  sed -nr "/^\[${section}\]/ { :l /^${parameter}[ ]*=/ { s/.*=[ ]*//; p; q;}; n; b l;}" "${TRACKER_CONFIG_FILE}" | \
-          sed -r -e 's/"(.*)"/\1/g'
+  local expression="/^\[${section}\]/ { :l /^${parameter}\s*=/ { s/.*=\s*//; p; q;}; n; b l;}"
+  if file_exists "${TRACKER_CONFIG_FILE}"; then
+    sed -nr "${expression}" "${TRACKER_CONFIG_FILE}" | unquote
+  fi
 }
 
 detect_inventory_path(){

@@ -1,0 +1,13 @@
+- name: Pull certbot image
+  containers.podman.podman_image:
+    name: certbot/certbot
+
+- name: Create letsencrypt mountable dirs
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0644'
+  with_items:
+    - /etc/letsencrypt
+    - /var/lib/letsencrypt
+    - /var/log/letsencrypt

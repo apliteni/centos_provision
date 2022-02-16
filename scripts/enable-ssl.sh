@@ -55,7 +55,7 @@ TOOL_NAME='enable-ssl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.31.2'
+RELEASE_VERSION='2.31.3'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -227,18 +227,19 @@ assert_keitaro_not_installed(){
 }
 
 is_keitaro_installed() {
-   debug "We will use new algorithm for installation check sicne ${USE_NEW_ALGORITHM_FOR_INSTALLATION_CHECK_SINCE} (incl.)"
-   if should_use_new_algorithm_for_installation_check; then
-     debug "Current version is ${INSTALLED_VERSION} - using new algorithm (check 'installed' flag in the inventory file)"
-     isset "${VARS['installed']}"
-   else
+   if isset "${VARS['installed']}"; then
+     debug "installed flag is set"
+     return ${SUCCESS_RESULT}
+   fi
+   if use_old_algorithm_for_installation_check; then
      debug "Current version is ${INSTALLED_VERSION} - using old algorithm (check '${KEITARO_LOCK_FILEPATH}' file)"
      file_exists "${KEITARO_LOCK_FILEPATH}"
    fi
+   return ${FAILURE_RESULT}
 }
 
-should_use_new_algorithm_for_installation_check() {
-  (( $(as_version "${INSTALLED_VERSION}") >= $(as_version "${USE_NEW_ALGORITHM_FOR_INSTALLATION_CHECK_SINCE}") ))
+use_old_algorithm_for_installation_check() {
+  (( $(as_version "${INSTALLED_VERSION}") <= $(as_version "${USE_NEW_ALGORITHM_FOR_INSTALLATION_CHECK_SINCE}") ))
 }
 assert_no_another_process_running(){
 
@@ -394,24 +395,19 @@ detect_installed_version(){
   fi
 }
 
-get_parameter_from_php_config(){
+get_tracker_config_value() {
   local section="${1}"
   local parameter="${2}"
-  sed -nr "/^\[${section}\]/ { :l /^${parameter}[ ]*=/ { s/.*=[ ]*//; p; q;}; n; b l;}" "${TRACKER_CONFIG_FILE}" | \
-          sed -r -e 's/"(.*)"/\1/g'
+  local expression="/^\[${section}\]/ { :l /^${parameter}\s*=/ { s/.*=\s*//; p; q;}; n; b l;}"
+  if file_exists "${TRACKER_CONFIG_FILE}"; then
+    sed -nr "${expression}" "${TRACKER_CONFIG_FILE}" | unquote
+  fi
 }
 
 get_centos_major_release() {
   grep -oP '(?<=release )\d+' /etc/centos-release
 }
 
-installed_version_has_db_engine_bug() {
-  (( $(as_version ${INSTALLED_VERSION}) <= $(as_version "1.5.0") )) || \
-    (
-      (( $(as_version ${INSTALLED_VERSION}) >= $(as_version "2.23.0") )) && \
-      (( $(as_version ${INSTALLED_VERSION}) < $(as_version "2.29.0") ))
-    )
-}
 
 is_compatible_with_current_release() {
   [[ "${RELEASE_VERSION}" == "${INSTALLED_VERSION}" ]]
@@ -1149,6 +1145,11 @@ to_lower(){
   local string="${1}"
   echo "${string,,}"
 }
+
+unquote() {
+  sed -r -e "s/^'(.*)'\$/\\1/g" -e 's/^"(.*)"$/\1/g'
+}
+
 #
 
 
@@ -1439,7 +1440,7 @@ get_user_vars() {
 stage4(){
   debug "Starting stage 4: install LE certificates"
   generate_certificates
-  if isset "$SUCCESSFUL_DOMAINS"; then
+  if isset "${SUCCESSFUL_DOMAINS[@]}"; then
     start_or_reload_nginx
   fi
   show_finishing_message
@@ -1591,15 +1592,15 @@ recognize_error() {
 
 show_finishing_message(){
   local color=""
-  if isset "$SUCCESSFUL_DOMAINS" && empty "$FAILED_DOMAINS"; then
+  if isset "${SUCCESSFUL_DOMAINS[@]}" && empty "${FAILED_DOMAINS[@]}"; then
     print_with_color "$(translate 'messages.successful')" 'green'
     print_enabled_domains
   fi
-  if isset "$SUCCESSFUL_DOMAINS" && isset "$FAILED_DOMAINS"; then
+  if isset "${SUCCESSFUL_DOMAINS[@]}" && isset "${FAILED_DOMAINS[@]}"; then
     print_enabled_domains
     print_not_enabled_domains 'yellow'
   fi
-  if empty "$SUCCESSFUL_DOMAINS" && isset "$FAILED_DOMAINS"; then
+  if empty "${SUCCESSFUL_DOMAINS[@]}" && isset "${FAILED_DOMAINS[@]}"; then
     print_not_enabled_domains 'red'
   fi
 }
