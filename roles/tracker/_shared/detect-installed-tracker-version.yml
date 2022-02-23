@@ -1,5 +1,5 @@
 - name: Get tracker version
-  when: installed_tracker_version is not defined or force_redetect_installed_tracker_version is true
+  when: installed_tracker_version is not defined or force_redetect_installed_tracker_version|bool == true
   block:
   - name: Get tracker's verion.php content
     slurp:
