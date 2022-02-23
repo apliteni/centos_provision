@@ -1,7 +1,9 @@
 - name: Get list of allowed ports from firewall.bash
   shell: >
-    awk '/# Open ports./{flag=1;next}/# Accept icmp ping requests./{flag=0}flag' /etc/firewall.bash | \
+    set -o pipefail && \
+      awk '/# Open ports./{flag=1;next}/# Accept icmp ping requests./{flag=0}flag' /etc/firewall.bash | \
       sed -e '/^$/,$d' | awk '{print $9}' | uniq
+  changed_when: false
   register: user_allowed_ports
 
 - name: Convert to ansible list

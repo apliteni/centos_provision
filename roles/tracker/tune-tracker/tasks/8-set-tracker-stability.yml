@@ -1,0 +1,28 @@
+- name: Detect tracker stability
+  when: tracker_stability is undefined
+  block:
+    - name: Get tracker stability by version
+      uri:
+        url: "{{ keitaro_url }}/external_api/updates/stability"
+        method: GET
+        body_format: json
+        body:
+          version: "{{ installed_tracker_version }}"
+        return_content: true
+      failed_when: >-
+         get_installed_tracker_stability_result.content != 'stable'
+         and get_installed_tracker_stability_result.content != 'unstable'
+      register: get_installed_tracker_stability_result
+      changed_when: false
+
+    - name: Set installed_tracker_stability variable
+      set_fact:
+        tracker_stability: "{{ get_installed_tracker_stability_result.content }}"
+
+- name: Set tracker stability
+  command: >
+    kctl-php bin/cli.php system:set_setting is_beta_channel '{{ "1" if tracker_stability == "unstable" else "" }}'
+  args:
+    chdir: "{{ keitaro_app_dir }}"
+  become_user: "{{ keitaro_user }}"
+  changed_when: false

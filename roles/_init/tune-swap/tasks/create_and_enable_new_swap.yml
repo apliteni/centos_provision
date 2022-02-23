@@ -1,4 +1,5 @@
-- debug:
+- name: Print swap_size_to_add_mb
+  debug:
     msg: "swap_size_to_add_mb: {{ swap_size_to_add_mb }}"
 
 - name: Create swap file

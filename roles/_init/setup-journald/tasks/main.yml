@@ -13,7 +13,7 @@
   register: systemd_configuration_status
 
 - name: Create journal service
-  shell: "systemd-tmpfiles --create --prefix {{ journald_log_path }}"
+  command: "systemd-tmpfiles --create --prefix {{ journald_log_path }}"
   args:
     creates: "{{ journald_log_path }}"
   register: systemd_journald_status

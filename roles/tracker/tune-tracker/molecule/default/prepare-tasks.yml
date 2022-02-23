@@ -10,5 +10,6 @@
     name: php/install-php
 - set_fact:
     kctl_running_mode: install
+    kctl_tracker_version_to_install: "9.14.9.1"
 - include_role:
     name: install-tracker

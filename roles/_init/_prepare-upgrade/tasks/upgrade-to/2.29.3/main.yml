@@ -3,7 +3,8 @@
     state: absent
     path: /var/log/mysql/slow_queries.log
 
-- set_fact:
+- name: Set keitaro_stats_json_tmp_file_name
+  set_fact:
     keitaro_stats_json_tmp_file_name: "{{ keitaro_stats_json_path | basename }}-*.tmp"
 
 - name: Find and delete temporary stats.json

@@ -1,23 +1,29 @@
 # Based on https://stackoverflow.com/a/64294534/612799
-- debug:
+- name: Print swap_size_minimal_mb
+  debug:
     msg: "swap_size_minimal_mb: {{ swap_size_minimal_mb }}"
 
-- set_fact:
+- name: Set kctl_root_mount_point
+  set_fact:
     kctl_root_mount_point: "{{ ansible_mounts | first }}"
   when: is_ci_mode
 
-- set_fact:
+- name: Set kctl_root_mount_point
+  set_fact:
     kctl_root_mount_point: "{{ ansible_mounts | selectattr('mount','equalto','/') | list | first }}"
   when: not is_ci_mode
 
-- set_fact:
+- name: Set available_space
+  set_fact:
     available_space: "{{ kctl_root_mount_point.size_available }}"
 
-- set_fact:
+- name: Set available_space_in_mb
+  set_fact:
     available_space_in_mb: "{{ ( (available_space|float) / 1000000) | round | int }}"
 
-- debug:
-    msg: "test current available space {{ available_space_in_mb }}"
+- name: Print available_space_in_mb
+  debug:
+    msg: "Current available space {{ available_space_in_mb }}mb"
 
 # 1 gb need to another packages
 - name: "[Re]create swap if its size is too small"

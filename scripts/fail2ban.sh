@@ -53,12 +53,13 @@ TOOL_NAME='kctl-fail2ban'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.31.3'
+RELEASE_VERSION='2.31.4'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
 
 KEITARO_URL='https://keitaro.io'
+FILES_KEITARO_ROOT_URL="https://files.keitaro.io"
 FILES_KEITARO_URL="https://files.keitaro.io/scripts/${BRANCH}"
 
 if is_ci_mode; then

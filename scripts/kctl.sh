@@ -54,12 +54,13 @@ TOOL_NAME='kctl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.31.3'
+RELEASE_VERSION='2.31.4'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
 
 KEITARO_URL='https://keitaro.io'
+FILES_KEITARO_ROOT_URL="https://files.keitaro.io"
 FILES_KEITARO_URL="https://files.keitaro.io/scripts/${BRANCH}"
 
 if is_ci_mode; then
@@ -222,9 +223,10 @@ directory_exists(){
 
 file_content_matches(){
   local file="${1}"
-  local pattern="${2}"
+  local mode="${2}"
+  local pattern="${3}"
   debug "Checking ${file} file matching with pattern '${pattern}'"
-  if test -f "$file" && grep -q "$pattern" "$file"; then
+  if test -f "$file" && grep -q "${mode}" "$pattern" "$file"; then
     debug "YES: ${file} file matches '${pattern}'"
     return ${SUCCESS_RESULT}
   else
@@ -892,13 +894,6 @@ DICT['en.validation_errors.validate_presence']='Please enter value'
 DICT['en.validation_errors.validate_absence']='Should not be specified'
 DICT['en.validation_errors.validate_yes_no']='Please answer "yes" or "no"'
 
-kctl_features_usage() {
-  echo "Usage:"
-  echo "  kctl features enable <feature>                  enable feature"
-  echo "  kctl features disable <feature>                 disable feature"
-  echo "  kctl features list                              list supported features"
-}
-
 kctl_features_enable() {
   local feature="${1}"
   if empty "${feature}"; then
@@ -914,9 +909,20 @@ kctl_features_enable() {
   fi
 }
 
+kctl_features_usage() {
+  echo "Usage:"
+  echo "  kctl features enable <feature>                  enable feature"
+  echo "  kctl features disable <feature>                 disable feature"
+  echo "  kctl features list                              list supported features"
+}
+
 kctl_features_enable_rbooster() {
   set_olap_db "${OLAP_DB_CLICKHOUSE}"
   run_ch_migrator
+}
+
+kctl_features_disable_rbooster() {
+  set_olap_db "${OLAP_DB_MARIADB}"
 }
 
 set_olap_db() {
@@ -939,15 +945,6 @@ assert_tracker_supports_rbooster() {
   fi
 }
 
-kctl_features_disable_rbooster() {
-  set_olap_db "${OLAP_DB_MARIADB}"
-}
-
-kctl_features_list(){
-  echo "Feature list:"
-  echo " rbooster               ClickHouse as OLAP DB"
-}
-
 kctl_features_disable() {
   local feature="${1}"
   if empty "${feature}"; then
@@ -963,6 +960,11 @@ kctl_features_disable() {
   fi
 }
 
+kctl_features_list(){
+  echo "Feature list:"
+  echo " rbooster               ClickHouse as OLAP DB"
+}
+
 get_kctl_install() {
   curl -fsSL4 "${FILES_KEITARO_URL}/install.sh"
 }
@@ -970,9 +972,11 @@ get_kctl_install() {
 kctl_auto_install(){
   local install_exit_code
   local sleeping_message
+  local install_args="${1}"
+  local log_file="${2}"
 
   for (( count=0; count<=${#RETRY_INTERVALS[@]}; count++ ));  do
-    if kctl_install; then
+    if kctl_install "${install_args}" "${log_file}"; then
       installator_exit_code="${?}"
     else
       installator_exit_code="${?}"
@@ -996,8 +1000,10 @@ kctl_auto_install(){
 }
 
 kctl_install(){
-  debug "Running \`curl -fsSL4 '${FILES_KEITARO_URL}/install.sh' | bash -s -- -o '${KCTL_LOG_DIR}/kctl-install.log'\`"
-  get_kctl_install | bash -s -- -o "${KCTL_LOG_DIR}/kctl-install.log"
+  local install_args="${1}"
+  local log_file="${2}"
+  debug "Running \`curl -fsSL4 '${FILES_KEITARO_URL}/install.sh' | bash -s -- ${install_args} -o '${KCTL_LOG_DIR}/${log_file}' \`"
+  get_kctl_install | bash -s -- "${install_args}" -o "${KCTL_LOG_DIR}/${log_file}"
 }
 
 kctl_features() {
@@ -1157,9 +1163,8 @@ kctl_show_version(){
   fi
 }
 
-kctl_upgrade(){
-  debug "curl -fsSL4 '${FILES_KEITARO_URL}/install.sh' |  bash -s -- -U -o ${KCTL_LOG_DIR}/kctl-upgrade.log"
-  get_kctl_install | bash -s -- -U -o "${KCTL_LOG_DIR}/kctl-upgrade.log"
+on_exit(){
+  exit 1
 }
 
 run_ch_migrator(){
@@ -1168,10 +1173,9 @@ run_ch_migrator(){
     --env-file-path=${INVENTORY_DIR}//tracker.env"
   run_command "${command}"
 }
-
-on_exit(){
-  exit 1
-}
+CURRENT_DATETIME="$(date +%Y%m%d%H%M)"
+MIN_TRACKER_VERSION_TO_INSTALL='9.13.0'
+declare -a RETRY_INTERVALS=(60 180 300)
 declare -A DICT
 DICT['en.messages.sleeping_before_next_try']="Error while install, sleeping for :retry_interval: seconds before next try"
 DICT['en.messages.kctl_version']="Kctl:    :kctl_version:"
@@ -1181,9 +1185,6 @@ DICT['en.errors.tracker_version_to_install_is_incorrect']="Tracker version can't
 DICT['en.errors.invalid_options']="Invalid option ${1}. Try 'kctl help' for more information."
 DICT['en.errors.tracker_doesnt_support_feature']="Current tracker v:current_tracker_version: doesn't support :feature:. Please upgrade tracker to v:featured_tracker_version:+"
 DICT['en.errors.tracker_not_installed']="Keitaro tracker not installed"
-CURRENT_DATETIME="$(date +%Y%m%d%H%M)"
-MIN_TRACKER_VERSION_TO_INSTALL='9.13.0'
-declare -a RETRY_INTERVALS=(60 180 300)
 
 read_inventory(){
   detect_inventory_path
@@ -1377,7 +1378,7 @@ assert_caller_root
 
 case "${action}" in
   "upgrade")
-    kctl_upgrade
+    kctl_auto_install -U "kctl-upgrade.log"
     ;;
   "rescue")
     kctl_rescue
@@ -1402,8 +1403,8 @@ case "${action}" in
   "features")
     kctl_features "${@}"
     ;;
-  "auto-install")
-    kctl_auto_install
+  "install")
+    kctl_auto_install "" "kctl-install.log"
     ;;
   help)
     kctl_show_help

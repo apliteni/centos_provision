@@ -11,4 +11,3 @@
   notify:
     - restart roadrunner
     - restart php-fpm
-

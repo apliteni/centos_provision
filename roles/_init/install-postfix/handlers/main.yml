@@ -4,4 +4,4 @@
     state: restarted
 
 - name: apply changing mail aliases
-  shell: newaliases
+  command: newaliases

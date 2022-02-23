@@ -9,7 +9,9 @@
     patterns: "*.conf"
   register: renewal_files
 
-- block:
+- name: Set preferred chain
+  when: renewal_files.matched | int > 0
+  block:
     - name: Build list of renewalparams needed to fix
       shell: grep -L 'preferred_chain = ISRG Root X1' /etc/letsencrypt/renewal/*.conf
       register: renewal_params_without_correct_preferred_chain
@@ -24,5 +26,3 @@
         grep -L 'preferred_chain = ISRG Root X1' /etc/letsencrypt/renewal/*.conf | \
         sed -i -e /preferred_chain/d -e '/\[renewalparams\]/apreferred_chain = ISRG Root X1' /etc/letsencrypt/renewal/*.conf
       when: renewal_params_without_correct_preferred_chain.stdout | length > 0
-
-  when: renewal_files.matched | int > 0

@@ -4,4 +4,3 @@
     state: installed
 
 - include_tasks: tune-certbot.yml
-

@@ -1,0 +1,5 @@
+- name: Install PyMySQL
+  pip:
+    name: pymysql
+    state: present
+    executable: pip3

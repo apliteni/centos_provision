@@ -1,4 +1,5 @@
-- set_fact:
+- name: Set table_prefix_from var
+  set_fact:
     table_prefix_from: '{{ ansible_env.TABLES_PREFIX | default("keitaro") }}'
 
 - name: Restore DB from SQL dump
@@ -7,5 +8,6 @@
     {{ cat }} '{{ db_restore_path }}' \
       | sed -r -e 's/engine=\w+/engine={{ db_engine }}/ig' -e 's/{{ table_prefix_from }}/keitaro_/g' \
       | mysql {{ db_name }}
+  changed_when: true
   args:
     chdir: ../../

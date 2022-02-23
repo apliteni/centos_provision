@@ -27,18 +27,17 @@
             login_db: "{{ db_name }}"
             query: "SELECT `value` FROM keitaro_settings WHERE `key` = 'is_beta_channel'"
           register: get_tracker_stability
-          vars:
-            ansible_python_interpreter: '/usr/bin/python3'
 
         - set_fact:
-            tracker_stability: "{{ 'stable' if get_tracker_stability.query_result[0][0]['value'] == '0' else 'unstable' }}"
+            tracker_stability: "{{ 'unstable' if get_tracker_stability.query_result[0][0]['value'] == '1' else 'stable' }}"
 
     - name: Set default tracker stability as 'stable'
       set_fact:
         tracker_stability: stable
       when: tracker_stability is undefined
 
-    - set_fact:
+    - name: Set disable_delay
+      set_fact:
         disable_delay: 'true'
       when: >
         (kctl_running_mode == 'install')

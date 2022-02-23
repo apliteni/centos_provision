@@ -3,7 +3,9 @@
 
 - name: Get installed tracker version
   include_tasks: "../_shared/detect-tracker-version-to-install.yml"
+  vars:
+    ansible_python_interpreter: '/usr/bin/python3'
 
 - name: Download and unpack tracker package
-  include_tasks: "upgrade-tracker.yml"
+  include_tasks: "../_shared/install-package.yml"
   when: tracker_version_to_install is defined

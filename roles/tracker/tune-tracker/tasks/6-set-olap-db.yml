@@ -3,7 +3,7 @@
   args:
     chdir: "{{ keitaro_app_dir }}"
   become_user: "{{ keitaro_user }}"
+  changed_when: false
   notify:
     - restart roadrunner
     - restart php-fpm
-

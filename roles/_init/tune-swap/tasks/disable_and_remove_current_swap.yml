@@ -4,7 +4,7 @@
   register: swap_file_info
 
 - name: Check if swap is enabled
-  shell: 'swapon --show | grep "^{{ swap_path }}\s"'
+  shell: 'set -o pipefail && swapon --show | grep "^{{ swap_path }}\s"'
   when: file_exists
   register: check_swap_enabled_result
   changed_when: false
@@ -17,7 +17,8 @@
   changed_when: disabled_result.rc == 0
   failed_when: false
 
-- set_fact:
+- name: Set can_remove_swap
+  set_fact:
     can_remove_swap: "{{ file_exists and (check_swap_enabled_result.rc != 0 or disabled_result.rc == 0 ) }}"
 
 - name: Remove the swap file

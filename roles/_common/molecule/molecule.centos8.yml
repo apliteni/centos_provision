@@ -35,3 +35,6 @@ provisioner:
     prepare: ../../../../../roles/_common/molecule/playbooks/prepare.yml
     converge: ../../../../../roles/_common/molecule/playbooks/converge.yml
     verify: ../../../../../roles/_common/molecule/playbooks/verify.yml
+  config_options:
+    defaults:
+      verbosity: 1

@@ -3,16 +3,20 @@
     name: postfix
     state: present
 
-- set_fact:
+- name: Set hostname_ending
+  set_fact:
     hostname_ending: "{{ kctl_ansible_hostname.split('.') | last }}"
 
-- set_fact:
+- name: Set hostname_ending_first_letter
+  set_fact:
     hostname_ending_first_letter: "{{ hostname_ending | lower | regex_search('[a-z]') }}"
 
-- set_fact:
+- name: Set hostname_ending_contains_letter
+  set_fact:
     hostname_ending_contains_letter: "{{ hostname_ending_first_letter != '' }}"
 
-- set_fact:
+- name: Set postfix_hostname
+  set_fact:
     postfix_hostname: "{{ kctl_ansible_hostname if hostname_ending_contains_letter else kctl_ansible_hostname + 'a' }}"
 
 - name: Update Postfix configuration.

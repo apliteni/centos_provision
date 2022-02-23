@@ -16,9 +16,9 @@
 - name: Install MariaDB packages
   package:
     name:
-      - MariaDB-server-10.3.32
-      - MariaDB-client-10.3.32
-      - MariaDB-tokudb-engine-10.3.32
+      - MariaDB-server
+      - MariaDB-client
+      - MariaDB-tokudb-engine
     state: installed
     enablerepo: "mariadb"
 

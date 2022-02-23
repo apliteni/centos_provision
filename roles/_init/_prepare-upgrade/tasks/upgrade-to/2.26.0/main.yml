@@ -39,7 +39,7 @@
     - /etc/nginx/conf.d/vhosts.conf
 
 - name: Remove all cron tasks of nginx user
-  shell: "crontab -r -u {{ nginx_user }}"
+  command: "crontab -r -u {{ nginx_user }}"
   register: remove_all_nginx_cron_tasks_result
   failed_when: false
   changed_when: remove_all_nginx_cron_tasks_result.rc == 0

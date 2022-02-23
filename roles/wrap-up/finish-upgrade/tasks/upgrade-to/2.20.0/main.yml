@@ -1,10 +1,13 @@
 - name: Get php-fpm SystemD units
   shell: >
-    systemctl list-unit-files | \
+    set -o pipefail && \
+      systemctl list-unit-files | \
       grep -P 'php\d+-php-fpm\.service' | \
       grep -v '{{ php_version }}-php-fpm.service' | \
       awk -F. '{print $1}'
   register: get_unneeded_php_fpm_services
+  # grep will fail with 1 error code if there are no matches, so rc == 1 is ok
+  failed_when: get_unneeded_php_fpm_services.rc != 0 and get_unneeded_php_fpm_services.rc != 1
   changed_when: false
 
 - name: Stop and disable old php-fpm

@@ -1,7 +1,8 @@
 - name: Get mime of dump
-  shell: "file '{{ db_restore_path }}' --mime-type --brief"
+  command: "file '{{ db_restore_path }}' --mime-type --brief"
   args:
     chdir: ../../
+  changed_when: false
   register: db_restore_dump_file_mime
 
 - name: Restore DB from gzipped SQL dump

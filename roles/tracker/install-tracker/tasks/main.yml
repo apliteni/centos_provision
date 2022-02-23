@@ -8,6 +8,8 @@
   block:
     - name: Install tracker package
       include_tasks: "install-tracker-package.yml"
+      vars:
+        ansible_python_interpreter: '/usr/bin/python3'
 
     - name: Execute appropriate tasks
       include_tasks: "{{ kctl_running_mode }}.yml"

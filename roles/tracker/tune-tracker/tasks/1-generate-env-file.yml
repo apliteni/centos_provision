@@ -5,7 +5,7 @@
 
 - name: Generate tracker.env
   template:
-    src: tracker.env.j2 
+    src: tracker.env.j2
     dest: /etc/keitaro/config/tracker.env
     group: "{{ keitaro_group }}"
     mode: 0640

@@ -1,5 +1,5 @@
 - name: Check that dhparms exists and is valid
-  shell: "openssl dhparam -check -in {{ ssl_dhparam_path }}  -noout"
+  command: "openssl dhparam -check -in {{ ssl_dhparam_path }}  -noout"
   changed_when: false
   failed_when: false
   register: get_ssl_dhparam_validation_command_result

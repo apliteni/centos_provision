@@ -5,7 +5,7 @@
     enabled: true
 
 - name: Force service restarts
-  shell: /bin/true
+  command: /bin/true
   notify:
     - restart mariadb
     - restart php-fpm

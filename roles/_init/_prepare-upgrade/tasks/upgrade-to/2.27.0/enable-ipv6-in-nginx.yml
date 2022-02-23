@@ -1,13 +1,20 @@
-- set_fact:
-    list_ipv4_keitaro_generated_configs_command: "grep -LF '[::]'  {{ nginx_conf_path }}/*.conf | xargs grep -lP '^#.*Keitaro'"
+- name: Set list_ipv4_keitaro_generated_configs_command
+  set_fact:
+    list_ipv4_keitaro_generated_configs_command: >-
+      set -o pipefail && grep -LF '[::]'  {{ nginx_conf_path }}/*.conf | xargs grep -lP '^#.*Keitaro'
 
-- name: List of the ssl .conf files and store it in register
+- name: List of the ssl .conf files and store it in register          # noqa command-instead-of-shell risky-shell-pipe
   shell: "{{ list_ipv4_keitaro_generated_configs_command }}"
   register: list_ipv4_keitaro_generated_configs_command_result
   changed_when: false
-  failed_when: false
+  # grep will fail with 1 error code if there are no matches, so rc == 1 is ok
+  # xargs will fail with 123 code if any grep invocation exited with a non-zero status, so rc == 123 is ok too
+  failed_when: >-
+    list_ipv4_keitaro_generated_configs_command_result.rc != 0
+    and list_ipv4_keitaro_generated_configs_command_result.rc != 1
+    and list_ipv4_keitaro_generated_configs_command_result.rc != 123
 
-- name: Add ipv6 support
+- name: Add ipv6 support                                              # noqa risky-shell-pipe
   shell: |-
     {{ list_ipv4_keitaro_generated_configs_command }} | \
       xargs sed -i -r -e '/listen 80/a \  listen [::]:80;' -e '/listen 443/a \  listen [::]:443 ssl;'
