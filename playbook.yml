@@ -18,6 +18,7 @@
     - {role: '_init/install-fail2ban',                      tags: 'install-fail2ban'}                       # noqa yaml
     - {role: '_init/install-firewalld',                     tags: 'install-firewalld'}                      # noqa yaml
     - {role: '_init/install-kctl-tools',                    tags: 'install-kctl-tools'}                     # noqa yaml
+    - {role: '_init/install-htop-config',                   tags: 'install-htop-config'}                    # noqa yaml
     - {role: '_init/install-postfix',                       tags: 'install-postfix'}                        # noqa yaml
     - {role: '_init/setup-journald',                        tags: 'setup-journald'}                         # noqa yaml
     - {role: '_init/setup-timezone',                        tags: 'setup-timezone'}                         # noqa yaml

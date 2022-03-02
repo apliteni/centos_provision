@@ -1,0 +1,30 @@
+# Allow access to the status page of the www pool only from localhost
+location = /status-admin {
+  allow 127.0.0.1;
+  deny all;
+  access_log off;
+
+  include {{ nginx_conf_path }}/keitaro/locations/php-fpm/admin.inc;
+}
+
+# Admin locations
+location = /admin {
+   return 301 /admin/;
+}
+
+location /admin/ {
+  location /admin/assets/ {
+    access_log off;
+  }
+
+  location = /admin/index.php {
+    include {{ nginx_conf_path }}/keitaro/locations/php-fpm/admin.inc;
+  }
+
+  try_files $uri /admin/index.php$is_args$args;
+}
+
+location /admin_api/ {
+  include {{ nginx_conf_path }}/keitaro/locations/php-fpm/admin.inc;
+  fastcgi_param SCRIPT_FILENAME $document_root/index.php;
+}

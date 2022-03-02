@@ -1,0 +1,43 @@
+- set_fact:
+    files_to_be_deleted:
+      - /etc/php/roadrunner.yml
+      - /etc/firewall.bash
+      - /etc/nginx/conf.d/keitaro/tracker.roadrunner.inc
+
+- name: Get old files stats
+  stat:
+    path: "{{ item }}"
+  with_items: "{{ files_to_be_deleted }}"
+  register: old_files_stats
+
+- name: Test old files does not exist
+  assert:
+    that: not item.stat.exists
+  with_items: "{{ old_files_stats.results }}"
+
+
+- name: Test site config contains correct `include` entries
+  lineinfile:
+    path: '/etc/nginx/conf.d/some.site.conf'
+    line: '  include /etc/nginx/conf.d/keitaro/locations/{{ item }};'
+    state: present
+  check_mode: yes
+  register: result
+  failed_when: result is changed
+  with_items:
+    - 1-common.inc
+    - 2-www.inc
+    - 3-admin.inc
+    - 4-tracker.inc
+
+- name: Test site config doesn't contain incorrect `include` entries
+  lineinfile:
+    path: '/etc/nginx/conf.d/some.site.conf'
+    line: '  include /etc/nginx/conf.d/keitaro/{{ item }};'
+    state: present
+  check_mode: yes
+  register: result
+  failed_when: result is not changed
+  with_items:
+    - locations-common.inc
+    - locations-tracker.inc

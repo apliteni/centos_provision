@@ -1,0 +1,18 @@
+[{{ pool.name }}]
+user = keitaro
+group = keitaro
+
+listen.owner = {{ php_fpm_user }}
+listen.group = {{ php_fpm_group }}
+listen = '/var/run/{{ php_version }}-php-fpm-{{ pool.name }}.sock'
+
+pm = dynamic
+pm.max_children =      {{ pool.workers_count | int }}
+pm.start_servers =     {{ ((pool.workers_count|float) * php_fpm_workers_start_factor) | round(0, 'ceil') | int }}
+pm.min_spare_servers = {{ ((pool.workers_count|float) * php_fpm_workers_min_spare_factor) | round(0, 'ceil') | int }}
+pm.max_spare_servers = {{ ((pool.workers_count|float) * php_fpm_workers_max_spare_factor) | round(0, 'ceil') | int }}
+pm.max_requests =      {{ php_fpm_worker_max_requests }}
+pm.status_path =       /status-{{ pool.name }}
+
+php_admin_value[error_log] = /var/log/php-fpm/keitaro-{{ pool.name }}-error.log
+php_admin_flag[log_errors] = on

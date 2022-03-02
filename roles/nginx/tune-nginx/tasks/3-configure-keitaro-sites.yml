@@ -1,32 +1,44 @@
+- name: Create keitaro nginx dir
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  with_items:
+    - /etc/nginx/conf.d/keitaro
+    - /etc/nginx/conf.d/keitaro/locations
+    - /etc/nginx/conf.d/keitaro/locations/php-fpm
+    - /etc/nginx/conf.d/local/keitaro
+
 - name: Make sure local setting files exist
   copy:
     content: ""
     dest: "{{ item }}"
     force: false
-    mode: '0644'
+    mode: "0644"
   with_items:
-    - "{{ nginx_conf_path }}/local/keitaro/server.inc"
     - "{{ nginx_conf_path }}/local/keitaro/admin.inc"
-    - "{{ nginx_conf_path }}/local/keitaro/nontracker.inc"
-    - "{{ nginx_conf_path }}/local/keitaro/tracker.inc"
     - "{{ nginx_conf_path }}/local/keitaro/realip.inc"
+    - "{{ nginx_conf_path }}/local/keitaro/server.inc"
+    - "{{ nginx_conf_path }}/local/keitaro/tracker.inc"
+    - "{{ nginx_conf_path }}/local/keitaro/www.inc"
 
 - name: Generate nginx configs
   template:
     src: "{{ item }}.j2"
     dest: "/etc/{{ item }}"
-    mode: '0644'
+    mode: "0644"
   with_items:
     - nginx/conf.d/keitaro.conf
-    - nginx/conf.d/keitaro/admin.inc
-    - nginx/conf.d/keitaro/locations-common.inc
-    - nginx/conf.d/keitaro/locations-tracker.inc
-    - nginx/conf.d/keitaro/nontracker.inc
-    - nginx/conf.d/keitaro/nontracker.php-fpm.inc
-    - nginx/conf.d/keitaro/tracker.inc
+    - nginx/conf.d/keitaro/locations/1-common.inc
+    - nginx/conf.d/keitaro/locations/2-www.inc
+    - nginx/conf.d/keitaro/locations/3-admin.inc
+    - nginx/conf.d/keitaro/locations/4-tracker.inc
+    - nginx/conf.d/keitaro/locations/php-fpm/_fcgi.inc
+    - nginx/conf.d/keitaro/locations/php-fpm/admin.inc
+    - nginx/conf.d/keitaro/locations/php-fpm/www.inc
+    - nginx/conf.d/keitaro/locations/roadrunner.inc
     - nginx/conf.d/keitaro/realip.inc
-  notify:
-    - reload nginx
+  register: nginx_configs_generation_status
 
 - name: Remove default nginx keitaro config file (if configured).
   file:

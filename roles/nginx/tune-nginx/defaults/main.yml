@@ -1,6 +1,4 @@
 nginx_access_log_keitaro_admin: "{{ nginx_log_dir }}/keitaro-admin.access.log"
-nginx_access_log_keitaro_nontracker: "{{ nginx_log_dir }}/access.log"
-nginx_access_log_keitaro_tracker: "{{ nginx_log_dir }}/access.log"
 nginx_access_log_keitaro_tracker_status: "{{ nginx_log_dir }}/tracker.status"
 nginx_ip_list_cf_v4_path: "{{ nginx_conf_path }}/keitaro/realip.cloudflare-ipv4.inc"
 nginx_ip_list_cf_v6_path: "{{ nginx_conf_path }}/keitaro/realip.cloudflare-ipv6.inc"

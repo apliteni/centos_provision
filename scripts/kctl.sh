@@ -54,7 +54,7 @@ TOOL_NAME='kctl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.31.5'
+RELEASE_VERSION='2.32.0'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -894,6 +894,28 @@ DICT['en.validation_errors.validate_presence']='Please enter value'
 DICT['en.validation_errors.validate_absence']='Should not be specified'
 DICT['en.validation_errors.validate_yes_no']='Please answer "yes" or "no"'
 
+kctl_features_usage() {
+  echo "Usage:"
+  echo "  kctl features enable <feature>                  enable feature"
+  echo "  kctl features disable <feature>                 disable feature"
+  echo "  kctl features list                              list supported features"
+}
+
+kctl_features_disable() {
+  local feature="${1}"
+  if empty "${feature}"; then
+    kctl_features_usage
+  else
+    case "${feature}" in
+      rbooster)
+        kctl_features_disable_rbooster
+      ;;
+      *)
+        kctl_features_usage
+    esac
+  fi
+}
+
 kctl_features_enable() {
   local feature="${1}"
   if empty "${feature}"; then
@@ -907,22 +929,6 @@ kctl_features_enable() {
         kctl_features_usage
     esac
   fi
-}
-
-kctl_features_usage() {
-  echo "Usage:"
-  echo "  kctl features enable <feature>                  enable feature"
-  echo "  kctl features disable <feature>                 disable feature"
-  echo "  kctl features list                              list supported features"
-}
-
-kctl_features_enable_rbooster() {
-  set_olap_db "${OLAP_DB_CLICKHOUSE}"
-  run_ch_migrator
-}
-
-kctl_features_disable_rbooster() {
-  set_olap_db "${OLAP_DB_MARIADB}"
 }
 
 set_olap_db() {
@@ -945,19 +951,13 @@ assert_tracker_supports_rbooster() {
   fi
 }
 
-kctl_features_disable() {
-  local feature="${1}"
-  if empty "${feature}"; then
-    kctl_features_usage
-  else
-    case "${feature}" in
-      rbooster)
-        kctl_features_disable_rbooster
-      ;;
-      *)
-        kctl_features_usage
-    esac
-  fi
+kctl_features_enable_rbooster() {
+  set_olap_db "${OLAP_DB_CLICKHOUSE}"
+  run_ch_migrator
+}
+
+kctl_features_disable_rbooster() {
+  set_olap_db "${OLAP_DB_MARIADB}"
 }
 
 kctl_features_list(){
@@ -1304,14 +1304,9 @@ detect_inventory_path(){
 }
 
 print_successful_message(){
-  print_with_color "$(translate 'messages.successful')" 'green'
-
-  if [[ "${RUNNING_MODE}" == "${RUNNING_MODE_INSTALL}" ]]; then
+    print_with_color "$(translate "messages.successful_${RUNNING_MODE}")" 'green'
+    print_with_color "$(translate 'messages.visit_url')" 'green'
     print_url
-  elif [[ "${RUNNING_MODE}" == "${RUNNING_MODE_RESTORE}" ]]; then 
-    print_url
-    print_credentials_notice
-  fi
 }
 
 print_url() {

@@ -9,15 +9,6 @@ location ~ /\..* {
   }
 }
 
-# Allow access to status page only from localhost
-location = /status-nontracker {
-  allow 127.0.0.1;
-  deny all;
-  access_log off;
-
-  include {{ nginx_conf_path }}/keitaro/nontracker.php-fpm.inc;
-}
-
 # Cache assets
 location ~* \.(jpg|jpeg|gif|png|js|css|txt|zip|ico|gz|csv|svg|ttf|woff|mp.|mpeg|mkv|woff2)$ {
   add_header Access-Control-Allow-Origin *;
@@ -32,11 +23,3 @@ location ~* \.js@ {
   expires 10d;
 }
 
-# Serve PHP pages via nontracker engine
-location ~ \.php$ {
-  add_header Access-Control-Allow-Origin *;
-
-  try_files $uri =404;
-
-  include {{ nginx_conf_path }}/keitaro/nontracker.inc;
-}

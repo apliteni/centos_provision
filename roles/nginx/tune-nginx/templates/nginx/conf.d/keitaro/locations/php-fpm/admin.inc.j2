@@ -2,6 +2,6 @@ include {{ nginx_conf_path }}/local/keitaro/admin.inc;
 
 access_log {{ nginx_access_log_keitaro_admin }} main {{ nginx_access_log_options }};
 
-include {{ nginx_conf_path }}/keitaro/nontracker.php-fpm.inc;
-
+include {{ nginx_conf_path }}/keitaro/locations/php-fpm/_fcgi.inc;
+fastcgi_pass unix:/var/run/{{ php_version }}-php-fpm-admin.sock;
 fastcgi_read_timeout 600;

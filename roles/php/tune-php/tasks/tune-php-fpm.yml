@@ -1,19 +1,34 @@
-- name: Remove default pool www.conf
-  file:
-    path: "/etc/php/php-fpm.d/www.conf"
-    state: absent
-  notify:
-    - restart php-fpm
+- name: Create phpfpm group
+  group:
+    name: "{{ php_fpm_group }}"
+    system: true
+
+- name: Create phpfpm user
+  user:
+    name: "{{ php_fpm_group }}"
+    system: true
+    shell: /sbin/nologin
+    createhome: false
+
+- name: Add keitaro & nginx users to the phpfpm group
+  user:
+    name: "{{ item }}"
+    groups: "{{ php_fpm_group }}"
+    append: true
+  with_items:
+    - nginx
+    - keitaro
 
 - name: Generate a pool config
   template:
-    src: "php-fpm.d/{{ item }}.j2"
-    dest: "/etc/php/php-fpm.d/{{ item }}"
+    src: "php-fpm.d/pool.conf.j2"
+    dest: "/etc/php/php-fpm.d/{{ pool.name }}.conf"
     owner: root
     group: root
     mode: '0644'
-  with_items:
-    - keitaro-nontracker.conf
+  with_items: "{{ php_fpm_pools }}"
+  loop_control:
+    loop_var: pool
   notify:
     - restart php-fpm
 

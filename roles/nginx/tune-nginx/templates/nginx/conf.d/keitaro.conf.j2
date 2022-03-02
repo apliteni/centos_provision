@@ -16,7 +16,7 @@ server {
   ssl_dhparam {{ ssl_dhparam_path }};
   add_header X-Content-Type-Options nosniff;
 
-  access_log {{ nginx_access_log_keitaro_nontracker }} main {{ nginx_access_log_options }};
+  access_log {{ nginx_access_log }} main {{ nginx_access_log_options }};
 
   include {{ nginx_conf_path }}/local/keitaro/server.inc;
 
@@ -26,6 +26,8 @@ server {
 
   include {{ nginx_conf_path }}/keitaro/realip.inc;
 
-  include {{ nginx_conf_path }}/keitaro/locations-common.inc;
-  include {{ nginx_conf_path }}/keitaro/locations-tracker.inc;
+  include {{ nginx_conf_path }}/keitaro/locations/1-common.inc;
+  include {{ nginx_conf_path }}/keitaro/locations/2-www.inc;
+  include {{ nginx_conf_path }}/keitaro/locations/3-admin.inc;
+  include {{ nginx_conf_path }}/keitaro/locations/4-tracker.inc;
 }

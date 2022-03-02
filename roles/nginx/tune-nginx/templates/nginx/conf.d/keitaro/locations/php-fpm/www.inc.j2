@@ -1,0 +1,6 @@
+include /etc/nginx/conf.d/local/keitaro/www.inc;
+
+access_log {{ nginx_access_log }} main {{ nginx_access_log_options }};
+
+include {{ nginx_conf_path }}/keitaro/locations/php-fpm/_fcgi.inc;
+fastcgi_pass unix:/var/run/{{ php_version }}-php-fpm-www.sock;
