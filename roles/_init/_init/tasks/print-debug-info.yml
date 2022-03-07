@@ -28,12 +28,8 @@
       - opened_files_roadrunner
       - opened_files_system
       - php_fpm_memory_mb
-      - php_fpm_worker_max_requests
-      - php_fpm_worker_size_mb
+      - php_fpm_pools
       - php_fpm_workers_count
-      - php_fpm_workers_idle_count_max
-      - php_fpm_workers_idle_count_min
-      - php_fpm_workers_start_count
       - ram_size_mb
       - redis_memory_mb
       - roadrunner_memory_mb

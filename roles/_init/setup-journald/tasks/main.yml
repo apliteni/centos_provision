@@ -5,10 +5,11 @@
     mode: '0755'
 
 - name: Uncomment config line
-  replace:
+  lineinfile:
     path: /etc/systemd/journald.conf
-    regexp: '^#?{{ item.name }}=.+'
-    replace: '{{ item.name }}={{ item.value }}'
+    line: '{{ item.name }}={{ item.value }}'
+    regexp: '^#?{{ item.name }}=.*'
+    state: present
   with_items: "{{ journald_parameters }}"
   register: systemd_configuration_status
 

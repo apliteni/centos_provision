@@ -12,6 +12,7 @@ SUCCESS_RESULT=0
 TRUE=0
 FAILURE_RESULT=1
 INTERRUPTED_BY_USER_RESULT=200
+INTERRUPTED_ON_PARALLEL_RUN=201
 FALSE=1
 ROOT_UID=0
 
@@ -55,7 +56,7 @@ TOOL_NAME='enable-ssl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.32.0'
+RELEASE_VERSION='2.32.1'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -251,7 +252,7 @@ assert_no_another_process_running(){
   if flock -n -x 8; then
     debug "No other installer process is running"
   else
-    fail "$(translate 'errors.already_running')"
+    fail "$(translate 'errors.already_running')" "${INTERRUPTED_ON_PARALLEL_RUN}"
   fi
 }
 # Check if lock file exist
@@ -693,7 +694,9 @@ fail() {
   log_and_print_err "*** $(translate errors.program_failed) ***"
   log_and_print_err "$message"
   print_err
-  clean_up
+  if [[ "${exit_code}" != "${INTERRUPTED_ON_PARALLEL_RUN}" ]]; then
+    clean_up
+  fi
   exit "${exit_code}"
 }
 
