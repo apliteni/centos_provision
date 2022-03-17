@@ -55,7 +55,7 @@ TOOL_NAME='kctl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.32.1'
+RELEASE_VERSION='2.32.2'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -904,21 +904,6 @@ kctl_features_usage() {
   echo "  kctl features list                              list supported features"
 }
 
-kctl_features_disable() {
-  local feature="${1}"
-  if empty "${feature}"; then
-    kctl_features_usage
-  else
-    case "${feature}" in
-      rbooster)
-        kctl_features_disable_rbooster
-      ;;
-      *)
-        kctl_features_usage
-    esac
-  fi
-}
-
 kctl_features_enable() {
   local feature="${1}"
   if empty "${feature}"; then
@@ -932,6 +917,11 @@ kctl_features_enable() {
         kctl_features_usage
     esac
   fi
+}
+
+kctl_features_enable_rbooster() {
+  set_olap_db "${OLAP_DB_CLICKHOUSE}"
+  run_ch_migrator
 }
 
 set_olap_db() {
@@ -954,11 +944,6 @@ assert_tracker_supports_rbooster() {
   fi
 }
 
-kctl_features_enable_rbooster() {
-  set_olap_db "${OLAP_DB_CLICKHOUSE}"
-  run_ch_migrator
-}
-
 kctl_features_disable_rbooster() {
   set_olap_db "${OLAP_DB_MARIADB}"
 }
@@ -966,6 +951,21 @@ kctl_features_disable_rbooster() {
 kctl_features_list(){
   echo "Feature list:"
   echo " rbooster               ClickHouse as OLAP DB"
+}
+
+kctl_features_disable() {
+  local feature="${1}"
+  if empty "${feature}"; then
+    kctl_features_usage
+  else
+    case "${feature}" in
+      rbooster)
+        kctl_features_disable_rbooster
+      ;;
+      *)
+        kctl_features_usage
+    esac
+  fi
 }
 
 get_kctl_install() {
@@ -1146,16 +1146,46 @@ kctl_rescue() {
   get_kctl_install | bash -s -- -C -o "${KCTL_LOG_DIR}/kctl-rescue.log"
 }
 
+DNS_GOOGLE="8.8.8.8"
+RESOLV_CONF=/etc/resolv.conf
+
+kctl_resolving() {
+  local action="${1}"
+  case "${action}" in
+    set_google)
+      kctl_resolving_set_google
+      ;;
+    reset)
+      kctl_resolving_reset
+      ;;
+    *)
+      kctl_resolving_usage
+  esac
+}
+
 kctl_show_help(){
   echo "kctl - Keitaro management tool"
   echo ""
-  echo "Usage:
+  cat <<-END
+Usage:
+
+  kctl [module] [action] [options]
+
+Example:
+
+  kctl install
+
+Actions:
+   kctl install                           - install and tune tracker and system components
    kctl upgrade                           - upgrades system & tracker
    kctl rescue                            - fixes common problems
-   kctl renew-certificates                - renews LE certificates
-   kctl install-tracker <version>         - installs tracker with specified version
    kctl downgrade [version]               - downgrades tracker to version (by default downgrades to latest stable version)
-   kctl features                          - manage features"
+   kctl install-tracker <version>         - installs tracker with specified version
+   kctl renew-certificates                - renews LE certificates
+
+Modules:
+   kctl features                          - manage features (run "kctl features help" to see more details)
+END
 }
 
 kctl_show_version(){
@@ -1165,12 +1195,8 @@ kctl_show_version(){
     translate 'messages.kctl_version' "kctl_version=${RELEASE_VERSION}"
     translate 'messages.kctl_tracker' "tracker_version=$(get_tracker_version)"
   else
-    fail "$(translate 'errors.tracker_not_installed')"
+    fail "$(translate 'errors.tracker_is_not_installed')"
   fi
-}
-
-on_exit(){
-  exit 1
 }
 
 run_ch_migrator(){
@@ -1179,9 +1205,42 @@ run_ch_migrator(){
     --env-file-path=${INVENTORY_DIR}//tracker.env"
   run_command "${command}"
 }
-CURRENT_DATETIME="$(date +%Y%m%d%H%M)"
-MIN_TRACKER_VERSION_TO_INSTALL='9.13.0'
-declare -a RETRY_INTERVALS=(60 180 300)
+
+on_exit(){
+  exit 1
+}
+
+kctl_resolving_usage() {
+  echo "Usage:"
+  echo "  kctl resolving set_google                        sets google dns"
+  echo "  kctl resolving reset                             resets settings"
+  echo "  kctl resolving usage                             prints this page"
+}
+
+kctl_resolving_reset() {
+  local resolving_entry="nameserver ${DNS_GOOGLE}"
+  if file_content_matches "${RESOLV_CONF}" '-F' "${resolving_entry}"; then
+    other_ipv4_entries=$(grep "^nameserver" ${RESOLV_CONF} | grep -vF "${resolving_entry}" | grep '\.')
+    debug "Other ipv4 entries: ${other_ipv4_entries}"
+    if isset "${other_ipv4_entries}"; then
+      debug "${RESOLV_CONF} contains 'nameserver ${DNS_GOOGLE}', deleting"
+      run_command "sed -r -i '/^nameserver ${DNS_GOOGLE}$/d' '${RESOLV_CONF}'"
+    else
+      debug "${RESOLV_CONF} contains only one ipv4 nameserver keeping"
+    fi
+  else
+    debug "${RESOLV_CONF} doesn't contain 'nameserver ${DNS_GOOGLE}', skipping"
+  fi
+}
+
+kctl_resolving_set_google() {
+  if file_content_matches ${RESOLV_CONF} '-F' "nameserver ${DNS_GOOGLE}"; then
+    debug "${RESOLV_CONF} already contains 'nameserver ${DNS_GOOGLE}', skipping"
+  else
+    debug "${RESOLV_CONF} doesn't contain 'nameserver ${DNS_GOOGLE}', adding"
+    run_command "sed -i '1inameserver ${DNS_GOOGLE}' ${RESOLV_CONF}"
+  fi
+}
 declare -A DICT
 DICT['en.messages.sleeping_before_next_try']="Error while install, sleeping for :retry_interval: seconds before next try"
 DICT['en.messages.kctl_version']="Kctl:    :kctl_version:"
@@ -1190,7 +1249,10 @@ DICT['en.errors.tracker_version_to_install_is_empty']='Tracker version is not sp
 DICT['en.errors.tracker_version_to_install_is_incorrect']="Tracker version can't be less than ${MIN_TRACKER_VERSION_TO_INSTALL}"
 DICT['en.errors.invalid_options']="Invalid option ${1}. Try 'kctl help' for more information."
 DICT['en.errors.tracker_doesnt_support_feature']="Current tracker v:current_tracker_version: doesn't support :feature:. Please upgrade tracker to v:featured_tracker_version:+"
-DICT['en.errors.tracker_not_installed']="Keitaro tracker not installed"
+DICT['en.errors.tracker_is_not_installed']="Keitaro tracker is not installed"
+CURRENT_DATETIME="$(date +%Y%m%d%H%M)"
+MIN_TRACKER_VERSION_TO_INSTALL='9.13.0'
+declare -a RETRY_INTERVALS=(60 180 300)
 
 read_inventory(){
   detect_inventory_path
@@ -1375,25 +1437,29 @@ parse_line_from_inventory_file(){
 init "${@}"
 
 action="${1}"
+shift || true
+
 assert_caller_root
 
 case "${action}" in
+  "install")
+    kctl_auto_install "" "kctl-install.log"
+    ;;
   "upgrade")
     kctl_auto_install -U "kctl-upgrade.log"
     ;;
   "rescue")
-    kctl_rescue
+    kctl_auto_install -C "kctl-rescue.log"
     ;;
   "doctor")
-    kctl_rescue
+    kctl_auto_install -C "kctl-rescue.log"
     ;;
   "downgrade")
-    rollback_version="${2:-latest-stable}"
+    rollback_version="${1:-latest-stable}"
     kctl_install_tracker "${rollback_version}"
     ;;
   "install-tracker")
-    tracker_version_to_install="${2}"
-    kctl_install_tracker "${tracker_version_to_install}"
+    kctl_install_tracker "${@}"
     ;;
   "renew-certificates")
     kctl_renew_certificates
@@ -1404,8 +1470,8 @@ case "${action}" in
   "features")
     kctl_features "${@}"
     ;;
-  "install")
-    kctl_auto_install "" "kctl-install.log"
+  "resolving")
+    kctl_resolving "${@}"
     ;;
   help)
     kctl_show_help
