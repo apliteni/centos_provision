@@ -7,9 +7,9 @@
       - httpd-tools
       - jemalloc
       - lsof
-      - mailx
       - nano
-      - python2
+      - python3
+      - python3-pip
       - rsync
       - socat
       - strace

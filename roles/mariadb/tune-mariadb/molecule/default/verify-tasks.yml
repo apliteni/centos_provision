@@ -1,2 +1,0 @@
-- name: Check if logroatae tuned correctly
-  shell: grep '/var/log/mysql/error.log {' /etc/logrotate.d/mysql

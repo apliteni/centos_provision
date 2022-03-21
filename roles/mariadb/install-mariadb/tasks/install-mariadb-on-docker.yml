@@ -1,0 +1,35 @@
+---
+- name: Set keitaro_uid
+  set_fact:
+    mysql_user_uid: "{{ mysql_user.uid }}"
+
+- name: Ensure that Mariadb is stopped
+  systemd:
+    name: "mariadb.service"
+    state: stopped
+  failed_when: false
+  changed_when: false
+
+- name: Pull mariadb image
+  containers.podman.podman_image:
+    name: "{{ mariadb_docker_image }}"
+
+- name: Generate systemd mariadb config
+  template:
+    src: "systemd/mariadb.service.j2"
+    dest: /etc/systemd/system/mariadb.service
+    mode: '0644'
+  register: mariadb_systemd_configuration_generation_status
+
+- name: Ensure the mariadb directory exists
+  file:
+    path: "{{ item }}"
+    owner: "{{ mariadb_docker_user }}"
+    group: "{{ mariadb_docker_group }}"
+    state: directory
+    recurse: true
+    mode: '0755'
+  with_items:
+    - /var/log/mysql
+    - /etc/my.cnf.d/
+    - /var/lib/mysql/

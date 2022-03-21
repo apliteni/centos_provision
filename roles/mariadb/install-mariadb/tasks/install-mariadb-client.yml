@@ -1,0 +1,32 @@
+---
+- name: Ensure that mariadb  repo is removed
+  file:
+    path: "/etc/yum.repos.d/mariadb.repo"
+    state: absent
+
+- name: Remove host-based MariaDB packages
+  package:
+    name:
+      - MariaDB-server
+      - MariaDB-client
+      - MariaDB-tokudb-engine
+      - MariaDB-shared
+      - MariaDB-common
+    state: absent
+
+- name: Install supporting libraries
+  package:
+    name:
+      - perl-DBI
+      - libaio
+      - boost-program-options
+      - readline-devel
+      - mysql
+    state: installed
+    update_cache: true
+
+- name: Install PyMySQL
+  pip:
+    name: pymysql
+    state: present
+    executable: pip3

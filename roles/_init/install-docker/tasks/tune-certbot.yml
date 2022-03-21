@@ -1,6 +1,6 @@
 - name: Pull certbot image
   containers.podman.podman_image:
-    name: certbot/certbot
+    name: docker.io/certbot/certbot:latest
 
 - name: Create letsencrypt mountable dirs
   file:

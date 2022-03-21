@@ -5,6 +5,7 @@
     owner: root
     group: root
     mode: '0644'
+  when: centos_release_version != "9"
 
 - name: Ensure nginx is installed.
   package:

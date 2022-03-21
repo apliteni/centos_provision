@@ -9,3 +9,10 @@
     name: "{{ clickhouse_package }}"
     state: present
     enablerepo: altinity_clickhouse
+
+- name: Generate systemd clickhouse config
+  template:
+    src: "clickhouse-server.service.j2"
+    dest: /etc/systemd/system/clickhouse-server.service
+    mode: '0644'
+  when: centos_release_version == "9"

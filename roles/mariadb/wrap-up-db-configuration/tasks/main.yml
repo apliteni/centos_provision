@@ -1,3 +1,11 @@
+- name: Wait for MariaDB service to be ready
+  wait_for:
+    port: 3306
+    host: 127.0.0.1
+    connect_timeout: 3
+    delay: 3
+    timeout: 30
+
 - name: Check tracker database exists
   command: mysql --skip-column-names --batch --execute "select 'ok'" {{ db_name }}
   failed_when: false

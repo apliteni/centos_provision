@@ -1,35 +1,5 @@
-- name: Add MariaDB repos
-  template:
-    src: "mariadb.repo.j2"
-    dest: "/etc/yum.repos.d/mariadb.repo"
-    force: true
-    mode: '0644'
-
-- name: Install supporting libraries
-  package:
-    name:
-      - perl-DBI
-      - libaio
-      - boost-program-options
-    state: installed
-
-- name: Install MariaDB packages
-  package:
-    name:
-      - MariaDB-server
-      - MariaDB-client
-      - MariaDB-tokudb-engine
-    state: installed
-    enablerepo: "mariadb"
-
-- name: Install PyMySQL
-  pip:
-    name: pymysql
-    state: present
-    executable: pip3
-
-- name: Ensure mariadb service is started
-  service:
-    name: mariadb
-    state: started
-    enabled: true
+---
+- include_tasks: create-user-and-group.yml
+- include_tasks: install-mariadb-on-docker.yml
+- include_tasks: install-mariadb-client.yml
+- include_tasks: install-logrotate-config.yml

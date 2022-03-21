@@ -1,3 +1,16 @@
 mariadb_enabled_repos:
   centos7: base,mariadb
   centos8: BaseOS,mariadb
+
+mariadb_docker_user: "mysql"
+mariadb_docker_group: "mysql"
+mariadb_docker_user_home: "/var/lib/mysql"
+mariadb_docker_user_shell: "/sbin/nologin"
+mariadb_docker_name: mariadb
+mariadb_docker_run_args: "--rm --net host"
+mariadb_docker_image: "registry.gitlab.com/keitaro-components/keitaro-mariadb:latest"
+mariadb_docker_volumes:
+  - /var/lib/mysql/
+  - /etc/my.cnf
+  - /etc/my.cnf.d/
+  - /var/log/mysql/

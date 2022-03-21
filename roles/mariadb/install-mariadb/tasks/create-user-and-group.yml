@@ -1,0 +1,13 @@
+- name: Ensure group "mysql" exists
+  group:
+    name: "{{ mariadb_docker_group }}"
+    state: present
+
+- name: Add the user 'johnd' with a specific uid and a primary group of 'admin'
+  user:
+    name: "{{ mariadb_docker_user }}"
+    group: "{{ mariadb_docker_group }}"
+    home: "{{ mariadb_docker_user_home }}"
+    shell: "{{ mariadb_docker_user_shell }}"
+    state: present
+  register: mysql_user

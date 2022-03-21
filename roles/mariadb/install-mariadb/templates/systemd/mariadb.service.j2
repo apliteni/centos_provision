@@ -1,0 +1,19 @@
+[Unit]
+Description=Mariadb
+After=network.target
+
+[Service]
+Type=simple
+ExecStartPre=-/usr/bin/docker rm {{ mariadb_docker_name }}
+ExecStartPre=-/usr/bin/docker stop {{ mariadb_docker_name }}
+ExecStart=/usr/bin/docker run --user {{ mysql_user_uid }}  --name {{ mariadb_docker_name }} {{ mariadb_docker_run_args  }} \
+          {% for mount_point in mariadb_docker_volumes %}
+          -v {{ mount_point }}:{{ mount_point }} \
+          {% endfor %}
+          {{ mariadb_docker_image }}
+ExecStop=/usr/bin/docker stop %p
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

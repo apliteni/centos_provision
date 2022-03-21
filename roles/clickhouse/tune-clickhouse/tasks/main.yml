@@ -6,7 +6,8 @@
   notify: restart clickhouse
 
 - name: Start service clickhouse-server if not started
-  service:
+  systemd:
     name: clickhouse-server
     state: started
     enabled: true
+    daemon_reload: true

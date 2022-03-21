@@ -5,6 +5,11 @@
   changed_when: false
   register: x3_x509_format
 
+- name: Change blocklist if running on Centos 9
+  set_fact:
+    blacklisted_ca_x3: "/etc/pki/ca-trust/source/blocklist/DST-Root-CA-X3.pem"
+  when: centos_release_version == "9"
+
 - name: Add certificate to blacklist directory
   copy:
     content: "{{ x3_x509_format.stdout }}"
