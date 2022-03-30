@@ -1,2 +1,0 @@
-- name: Stub kctl-fail2ban
-  shell: cp /bin/true /usr/local/bin/kctl-fail2ban

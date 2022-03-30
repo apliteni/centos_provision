@@ -1,8 +1,8 @@
 - include_role:
-    name: _init/create-tracker-user-and-dirs
+    name: _init/_init-tracker-user-and-dirs
 
 - include_role:
     name: _init/install-kctl-tools
 
-- include_role:
-    name: nginx/install-nginx
+- name: Stub kctl-fail2ban
+  shell: cp /bin/true /usr/local/bin/kctl-fail2ban

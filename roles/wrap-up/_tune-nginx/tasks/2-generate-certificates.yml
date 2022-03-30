@@ -1,0 +1,59 @@
+- name: Ensure ssl directory exists
+  file:
+    path: "{{ ssl_root }}"
+    state: directory
+
+- name: Check that dhparms exists and is valid
+  command: "openssl dhparam -check -in {{ ssl_dhparam_path }}  -noout"
+  changed_when: false
+  failed_when: false
+  register: get_ssl_dhparam_validation_command_result
+
+- name: Remove invalid dhparam
+  file:
+    path: "{{ ssl_dhparam_path }}"
+    state: absent
+  when:
+    get_ssl_dhparam_validation_command_result.rc != 0
+
+- name: Generate strong Diffie-Hellman group
+  command: "openssl dhparam  -out {{ ssl_dhparam_path }} 2048"
+  args:
+    creates: "{{ ssl_dhparam_path }}"
+- name: Get pubkey from private/public keys bundle
+  command: "openssl rsa -in {{ ssl_privkey_path }} -pubout"
+  changed_when: false
+  failed_when: false
+  register: get_ssl_pubkey_from_keys_bundle_command_result
+
+- name: Get pubkey from certificate
+  command: "openssl x509 -in {{ ssl_cert_path }} -pubkey -noout"
+  changed_when: false
+  failed_when: false
+  register: get_ssl_pubkey_from_certificate_command_result
+
+- name: Remove invalid certs
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - "{{ ssl_cert_path }}"
+    - "{{ ssl_privkey_path }}"
+  when:
+    get_ssl_pubkey_from_keys_bundle_command_result.rc != 0 or
+    get_ssl_pubkey_from_certificate_command_result.rc != 0 or
+    get_ssl_pubkey_from_keys_bundle_command_result.stdout != get_ssl_pubkey_from_certificate_command_result.stdout
+
+- name: Generate self-signed SSL certificate
+  command: |
+    openssl req \
+      -x509 \
+      -sha256 \
+      -nodes \
+      -newkey rsa:4096 \
+      -days 3650 \
+      -keyout {{ ssl_privkey_path }} \
+      -out {{ ssl_cert_path }} \
+      -subj "/CN={{ server_ip }}"
+  args:
+    creates: "{{ ssl_cert_path }}"

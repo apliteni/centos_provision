@@ -1,6 +1,0 @@
-- stat:
-    path: "{{ nginx_ip_list_cf_v4_path }}"
-  register: cf_ip_list_info
-
-- assert:
-    that: cf_ip_list_info.stat.size > 0

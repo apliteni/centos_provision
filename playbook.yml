@@ -6,21 +6,20 @@
 
   roles:
     - {role: '_init/_init',                                 tags: 'init,                        always'}    # noqa yaml
-    - {role: '_init/_install-packages',                     tags: 'install-packages'}                       # noqa yaml
+    - {role: '_init/_init-tracker-user-and-dirs',           tags: 'init-tracker-user-and-dirs'}             # noqa yaml
     - {role: '_init/_prepare-upgrade',                      tags: 'prepare-upgrade,             upgrade'}   # noqa yaml
     - {role: '_init/_remove-x3-ca',                         tags: 'remove-x3-ca'}                           # noqa yaml
-    - {role: '_init/create-tracker-user-and-dirs',          tags: 'create-tracker-user-and-dirs'}           # noqa yaml
-    - {role: '_init/disable-selinux',                       tags: 'disable-selinux'}                        # noqa yaml
-    - {role: '_init/disable-thp',                           tags: 'disable-thp'}                            # noqa yaml
-    - {role: '_init/install-certs',                         tags: 'install-certs'}                          # noqa yaml
     - {role: '_init/install-chrony',                        tags: 'install-chrony'}                         # noqa yaml
     - {role: '_init/install-docker',                        tags: 'install-docker'}                         # noqa yaml
     - {role: '_init/install-fail2ban',                      tags: 'install-fail2ban'}                       # noqa yaml
     - {role: '_init/install-firewalld',                     tags: 'install-firewalld'}                      # noqa yaml
-    - {role: '_init/install-kctl-tools',                    tags: 'install-kctl-tools'}                     # noqa yaml
     - {role: '_init/install-htop-config',                   tags: 'install-htop-config'}                    # noqa yaml
+    - {role: '_init/install-kctl-tools',                    tags: 'install-kctl-tools'}                     # noqa yaml
+    - {role: '_init/install-packages',                      tags: 'install-packages'}                       # noqa yaml
     - {role: '_init/install-postfix',                       tags: 'install-postfix'}                        # noqa yaml
     - {role: '_init/setup-journald',                        tags: 'setup-journald'}                         # noqa yaml
+    - {role: '_init/setup-selinux',                         tags: 'setup-selinux'}                          # noqa yaml
+    - {role: '_init/setup-thp',                             tags: 'setup-thp'}                              # noqa yaml
     - {role: '_init/setup-timezone',                        tags: 'setup-timezone'}                         # noqa yaml
     - {role: '_init/tune-swap',                             tags: 'tune-swap,                    tune'}     # noqa yaml
     - {role: '_init/tune-sysctl',                           tags: 'tune-sysctl,                  tune'}     # noqa yaml
@@ -29,19 +28,17 @@
     - {role: 'mariadb/install-mariadb',                     tags: 'install-mariadb'}                        # noqa yaml
     - {role: 'mariadb/tune-mariadb',                        tags: 'tune-mariadb,                 tune'}     # noqa yaml
     - {role: 'mariadb/wrap-up-db-configuration',            tags: 'wrap-up-db-configuration'}               # noqa yaml
-    - {role: 'nginx/install-nginx',                         tags: 'install-nginx'}                          # noqa yaml
-    - {role: 'nginx/tune-nginx',                            tags: 'tune-nginx,                   tune'}     # noqa yaml
     - {role: 'php/install-php',                             tags: 'install-php'}                            # noqa yaml
     - {role: 'php/install-roadrunner',                      tags: 'install-roadrunner'}                     # noqa yaml
     - {role: 'php/tune-php',                                tags: 'tune-php,                     tune'}     # noqa yaml
     - {role: 'php/tune-roadrunner',                         tags: 'tune-roadrunner,              tune'}     # noqa yaml
     - {role: 'redis/install-redis',                         tags: 'install-redis'}                          # noqa yaml
     - {role: 'redis/tune-redis',                            tags: 'tune-redis,                   tune'}     # noqa yaml
+    - {role: 'tracker/fix-permissions',                     tags: 'fix-permissions,              always'}   # noqa yaml
     - {role: 'tracker/install-tracker',                     tags: 'install-tracker'}                        # noqa yaml
     - {role: 'tracker/upgrade-tracker',                     tags: 'upgrade-tracker,              never'}    # noqa yaml
     - {role: 'tracker/tune-tracker',                        tags: 'tune-tracker'}                           # noqa yaml
-    - {role: 'tracker/set-permissions',                     tags: 'set-permissions,              always'}   # noqa yaml
     - {role: 'tracker/wrap-up-tracker-configuration',       tags: 'wrap-up-tracker-configuration'}          # noqa yaml
-    - {role: 'wrap-up/finish-installation',                 tags: 'finish-installation'}                    # noqa yaml
+    - {role: 'wrap-up/_tune-nginx',                         tags: 'tune-nginx,                   tune'}     # noqa yaml
     - {role: 'wrap-up/finish-upgrade',                      tags: 'finish-upgrade,               upgrade'}  # noqa yaml
     - {role: 'wrap-up/run-final-steps',                     tags: 'run-final-steps,              always'}   # noqa yaml

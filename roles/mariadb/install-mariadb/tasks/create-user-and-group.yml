@@ -3,7 +3,7 @@
     name: "{{ mariadb_docker_group }}"
     state: present
 
-- name: Add the user 'johnd' with a specific uid and a primary group of 'admin'
+- name: Add the user 'mysql' with a specific uid and a primary group of 'mysql'
   user:
     name: "{{ mariadb_docker_user }}"
     group: "{{ mariadb_docker_group }}"

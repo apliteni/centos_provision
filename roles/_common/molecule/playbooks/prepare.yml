@@ -17,6 +17,12 @@
       become: no
       register: molecule_prepare_yml_info
 
+    - name: Replace podman filestoragetype
+      lineinfile:
+        dest: "/etc/containers/storage.conf"
+        regexp: '^driver = "overlay"$'
+        line: 'driver = "vfs"'
+
     - name: Include init role
       include_role:
         name: _init/_init

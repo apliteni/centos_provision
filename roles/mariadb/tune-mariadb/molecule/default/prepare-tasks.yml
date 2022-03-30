@@ -1,0 +1,2 @@
+- include_role:
+    name: mariadb/install-mariadb

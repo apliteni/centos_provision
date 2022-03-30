@@ -1,0 +1,7 @@
+- include_role:
+    name: _init/_init-tracker-user-and-dirs
+
+- file:
+    path: "{{ nginx_log_dir }}"
+    state: directory
+    owner: root

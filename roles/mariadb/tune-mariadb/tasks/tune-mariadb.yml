@@ -20,11 +20,7 @@
     - keitaro-mysqld-set_default_storage_engine.cnf
     - keitaro-mysqld-configure_error_log.cnf
     - keitaro-mysqld-configure_network.cnf
-  register: mariadb_configuration_generation_status
+  notify: restart mariadb
 
 - name: Restart MariaDB
-  systemd:
-    name: mariadb
-    state: restarted
-    daemon_reload: true
-  when: mariadb_configuration_generation_status.changed
+  meta: flush_handlers

@@ -1,0 +1,6 @@
+- stat:
+    path: "{{ nginx_log_dir }}"
+  register: nginx_log_dir_info
+
+- assert:
+    that: nginx_log_dir_info.stat.pw_name == "nginx"

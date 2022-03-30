@@ -1,2 +1,0 @@
-nginx_error_log: "{{ nginx_log_dir }}/error.log"
-nginx_error_log_format: warn

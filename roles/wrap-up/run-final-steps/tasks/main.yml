@@ -14,3 +14,7 @@
     - reload nginx
     - restart kctl-monitor
   changed_when: "'molecule-notest' not in ansible_skip_tags"
+
+- name: Enable Fail2ban Jail
+  command: "/usr/local/bin/kctl-fail2ban enable"
+  changed_when: false

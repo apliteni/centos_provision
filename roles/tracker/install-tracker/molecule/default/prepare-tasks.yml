@@ -1,5 +1,5 @@
 - include_role:
-    name: _init/create-tracker-user-and-dirs
+    name: _init/_init-tracker-user-and-dirs
 - include_role:
     name: mariadb/install-mariadb
 - include_role:
@@ -9,4 +9,12 @@
 - include_role:
     name: php/install-php
 - include_role:
-      name: clickhouse/install-clickhouse
+    name: clickhouse/install-clickhouse
+- file:
+    path: /var/www/keitaro/admin
+    state: directory
+    owner: keitaro
+- file:
+    path: /var/www/keitaro/admin/index.html
+    state: touch
+    owner: keitaro

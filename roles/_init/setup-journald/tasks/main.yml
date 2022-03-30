@@ -11,16 +11,13 @@
     regexp: '^#?{{ item.name }}=.*'
     state: present
   with_items: "{{ journald_parameters }}"
-  register: systemd_configuration_status
+  notify: restart journald
 
 - name: Create journal service
   command: "systemd-tmpfiles --create --prefix {{ journald_log_path }}"
   args:
     creates: "{{ journald_log_path }}"
-  register: systemd_journald_status
+  notify: restart journald
 
-- name: Ensure systemd-journald is started
-  service:
-    name: systemd-journald
-    state: restarted
-  when: systemd_journald_status.changed or systemd_configuration_status.changed
+- name: Apply systemd changes
+  meta: flush_handlers

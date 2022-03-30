@@ -4,9 +4,9 @@
     dest: "/etc/systemd/system/{{ item }}"
     mode: '0644'
   with_items: "{{ roadrunner_services }}"
-  register: roadrunner_systemd_units
+  notify:
+    - reconfigure systemd
+    - restart roadrunner
 
 - name: Do daemon-reload to update SystemD services
-  systemd:
-    daemon-reload: true
-  when: roadrunner_systemd_units.changed
+  meta: flush_handlers

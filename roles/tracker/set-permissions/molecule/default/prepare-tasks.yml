@@ -1,7 +1,0 @@
-- include_role:
-    name: _init/create-tracker-user-and-dirs
-
-- name: Create keitaro app directory
-  file:
-    path: "{{ keitaro_app_dir }}"
-    state: directory

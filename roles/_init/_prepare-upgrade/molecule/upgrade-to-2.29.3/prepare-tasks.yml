@@ -1,5 +1,5 @@
 - include_role:
-    name: _init/create-tracker-user-and-dirs
+    name: _init/_init-tracker-user-and-dirs
 
 - copy:
    dest: "{{ keitaro_app_dir }}/version.php"

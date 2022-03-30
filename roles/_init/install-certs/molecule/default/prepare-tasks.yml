@@ -1,4 +1,0 @@
-- name: Make /etc/keitaro/ssl directory
-  file:
-    path: /etc/keitaro/ssl
-    state: directory

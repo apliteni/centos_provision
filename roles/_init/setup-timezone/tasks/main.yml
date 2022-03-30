@@ -1,11 +1,7 @@
 - name: Set UTC timezone
   timezone:
     name: "{{ timezone }}"
-  register: set_timezone
+  notify: restart crond
 
-- name: Restart service cron on centos also issue daemon-reload to pick up config changes
-  systemd:
-    state: restarted
-    daemon_reload: true
-    name: crond
-  when: set_timezone.changed
+- name: Restart crond
+  meta: flush_handlers
