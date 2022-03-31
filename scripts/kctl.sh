@@ -55,7 +55,7 @@ TOOL_NAME='kctl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.33.1'
+RELEASE_VERSION='2.33.2'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -1013,8 +1013,8 @@ kctl_install(){
 }
 
 kctl_features() {
-  local action="${2}"
-  local feature="${3}"
+  local action="${1}"
+  local feature="${2}"
   case "${action}" in
     enable)
       kctl_features_enable "${feature}"
