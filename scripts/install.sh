@@ -57,7 +57,7 @@ TOOL_NAME='install'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.33.2'
+RELEASE_VERSION='2.33.3'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -1311,6 +1311,10 @@ get_ansible_package_name() {
   fi
 }
 
+get_free_disk_space_mb() {
+  (df -m --output=avail / | tail -n1) 2>/dev/null
+}
+
 get_config_value(){
   local var="${1}"
   local file="${2}"
@@ -1322,17 +1326,6 @@ get_config_value(){
       awk -F"${separator}" '{print $2}' | \
       awk '{$1=$1; print}' | \
       unquote
-  fi
-}
-
-get_ram_size_mb() {
-  (free -m | grep Mem: | awk '{print $2}') 2>/dev/null
-}
-
-clean_up(){
-  if [ -d "$PROVISION_DIRECTORY" ]; then
-    debug "Remove ${PROVISION_DIRECTORY}"
-    rm -rf "$PROVISION_DIRECTORY"
   fi
 }
 
@@ -1441,6 +1434,13 @@ is_upgrading_mode_full() {
   [[ "${UPGRADING_MODE}" == "${UPGRADING_MODE_FULL}" ]]
 }
 
+clean_up(){
+  if [ -d "$PROVISION_DIRECTORY" ]; then
+    debug "Remove ${PROVISION_DIRECTORY}"
+    rm -rf "$PROVISION_DIRECTORY"
+  fi
+}
+
 is_running_in_interactive_restoring_mode() {
   [[ "${RUNNING_MODE}" == "${RUNNING_MODE_RESTORE}" ]] && \
     [[ "${RESTORING_MODE}" == "${RESTORING_MODE_INTERACTIVE}" ]]
@@ -1454,8 +1454,8 @@ is_running_in_install_mode() {
   [[ "${RUNNING_MODE}" == "${RUNNING_MODE_INSTALL}" ]]
 }
 
-get_free_disk_space_mb() {
-  (df -m --output=avail / | tail -n1) 2>/dev/null
+get_ram_size_mb() {
+  (free -m | grep Mem: | awk '{print $2}') 2>/dev/null
 }
 
 
@@ -1613,15 +1613,62 @@ stage1() {
   debug "Running in mode '${RUNNING_MODE}'"
 }
 
-
-assert_not_running_under_openvz() {
-  debug "Assert we are not running under OpenVZ"
-
-  virtualization_type="$(hostnamectl status | grep Virtualization | awk '{print $2}')"
-  debug "Detected virtualization type: '${virtualization_type}'"
-  if isset "${virtualization_type}" && [[ "${virtualization_type}" == "openvz" ]]; then
-    fail "Servers with OpenVZ virtualization are not supported"
+assert_pannels_not_installed(){
+  if is_installed mysql; then
+    assert_isp_manager_not_installed
+    assert_vesta_cp_not_installed
   fi
+}
+
+
+assert_isp_manager_not_installed(){
+  if database_exists roundcube; then
+    debug "ISP Manager database detected"
+    fail "$(translate errors.isp_manager_installed)"
+  fi
+}
+
+
+assert_vesta_cp_not_installed(){
+  if database_exists admin_default; then
+    debug "Vesta CP database detected"
+    fail "$(translate errors.vesta_cp_installed)"
+  fi
+}
+
+
+database_exists(){
+  local database="${1}"
+  debug "Check if database ${database} exists"
+  mysql -Nse 'show databases' 2>/dev/null | tr '\n' ' ' | grep -Pq "${database}"
+}
+
+assert_server_ip_is_valid() {
+  if ! valid_ip "${SERVER_IP}"; then
+    fail "$(translate 'errors.cant_detect_server_ip')"
+  fi
+}
+
+valid_ip(){
+  local value="${1}"
+  [[ "$value" =~  ^[[:digit:]]+(\.[[:digit:]]+){3}$ ]] && valid_ip_segments "$value"
+}
+
+
+valid_ip_segments(){
+  local ip="${1}"
+  local segments
+  IFS='.' read -r -a segments <<< "${ip}"
+  for segment in "${segments[@]}"; do
+    if ! valid_ip_segment "${segment}"; then
+      return "${FAILURE_RESULT}"
+    fi
+  done
+}
+
+valid_ip_segment(){
+  local ip_segment="${1}"
+  [ "$ip_segment" -ge 0 ] && [ "$ip_segment" -le 255 ]
 }
 
 assert_systemctl_works_properly () {
@@ -1641,6 +1688,12 @@ assert_has_enough_ram(){
     fail "$(translate errors.not_enough_ram)"
   else
     debug "RAM size ${current_ram_size_mb}mb is greater than ${MIN_RAM_SIZE_MB}mb, continuing"
+  fi
+}
+
+assert_apache_not_installed(){
+  if is_installed httpd; then
+    fail "$(translate errors.apache_installed)"
   fi
 }
 MIN_FREE_DISK_SPACE_MB=2048
@@ -1684,34 +1737,15 @@ are_thp_sys_files_existing() {
   file_exists "/sys/kernel/mm/transparent_hugepage/enabled" && file_exists "/sys/kernel/mm/transparent_hugepage/defrag"
 }
 
-assert_pannels_not_installed(){
-  if is_installed mysql; then
-    assert_isp_manager_not_installed
-    assert_vesta_cp_not_installed
+
+assert_not_running_under_openvz() {
+  debug "Assert we are not running under OpenVZ"
+
+  virtualization_type="$(hostnamectl status | grep Virtualization | awk '{print $2}')"
+  debug "Detected virtualization type: '${virtualization_type}'"
+  if isset "${virtualization_type}" && [[ "${virtualization_type}" == "openvz" ]]; then
+    fail "Servers with OpenVZ virtualization are not supported"
   fi
-}
-
-
-assert_isp_manager_not_installed(){
-  if database_exists roundcube; then
-    debug "ISP Manager database detected"
-    fail "$(translate errors.isp_manager_installed)"
-  fi
-}
-
-
-assert_vesta_cp_not_installed(){
-  if database_exists admin_default; then
-    debug "Vesta CP database detected"
-    fail "$(translate errors.vesta_cp_installed)"
-  fi
-}
-
-
-database_exists(){
-  local database="${1}"
-  debug "Check if database ${database} exists"
-  mysql -Nse 'show databases' 2>/dev/null | tr '\n' ' ' | grep -Pq "${database}"
 }
 
 assert_running_on_supported_centos(){
@@ -1730,40 +1764,6 @@ assert_centos_release_is_supportded(){
   fi
 }
 
-assert_apache_not_installed(){
-  if is_installed httpd; then
-    fail "$(translate errors.apache_installed)"
-  fi
-}
-
-assert_server_ip_is_valid() {
-  if ! valid_ip "${SERVER_IP}"; then
-    fail "$(translate 'errors.cant_detect_server_ip')"
-  fi
-}
-
-valid_ip(){
-  local value="${1}"
-  [[ "$value" =~  ^[[:digit:]]+(\.[[:digit:]]+){3}$ ]] && valid_ip_segments "$value"
-}
-
-
-valid_ip_segments(){
-  local ip="${1}"
-  local segments
-  IFS='.' read -r -a segments <<< "${ip}"
-  for segment in "${segments[@]}"; do
-    if ! valid_ip_segment "${segment}"; then
-      return "${FAILURE_RESULT}"
-    fi
-  done
-}
-
-valid_ip_segment(){
-  local ip_segment="${1}"
-  [ "$ip_segment" -ge 0 ] && [ "$ip_segment" -le 255 ]
-}
-
 stage2(){
   debug "Starting stage 2: make some asserts"
   assert_no_another_process_running
@@ -1777,6 +1777,44 @@ stage2(){
   assert_thp_deactivatable
   assert_systemctl_works_properly
   assert_server_ip_is_valid
+}
+
+read_inventory(){
+  detect_inventory_path
+  if isset "${DETECTED_INVENTORY_PATH}"; then
+    parse_inventory "${DETECTED_INVENTORY_PATH}"
+  fi
+}
+
+parse_inventory() {
+  local file="${1}"
+  debug "Found inventory file ${file}, reading defaults from it"
+  while IFS="" read -r line; do
+    if [[ "$line" =~ = ]]; then
+      parse_line_from_inventory_file "$line"
+    fi
+  done < "${file}"
+}
+
+parse_line_from_inventory_file(){
+  local line="${1}"
+  local quoted_string_regex="^'.*'\$"
+  IFS="=" read -r var_name value <<< "$line"
+  if [[ "$var_name" != "db_restore_path" ]] && [[ "$var_name" != "without_key" ]]; then
+    if [[ "${value}" =~ ${quoted_string_regex} ]]; then
+      debug "# ${value} is quoted, removing quotes"
+      value_without_quotes="${value:1:-1}"
+      debug "# $var_name: quotes removed - ${value} -> ${value_without_quotes}"
+      value="${value_without_quotes}"
+    fi
+    if empty "${VARS[$var_name]}"; then
+      VARS[$var_name]=$value
+      debug "# read '$var_name' from inventory"
+    else
+      debug "# $var_name is set from options, skip inventory value"
+    fi
+    debug "  $var_name=${VARS[$var_name]}"
+  fi
 }
 
 setup_vars() {
@@ -1820,44 +1858,6 @@ generate_salt() {
   fi
 }
 
-read_inventory(){
-  detect_inventory_path
-  if isset "${DETECTED_INVENTORY_PATH}"; then
-    parse_inventory "${DETECTED_INVENTORY_PATH}"
-  fi
-}
-
-parse_inventory() {
-  local file="${1}"
-  debug "Found inventory file ${file}, reading defaults from it"
-  while IFS="" read -r line; do
-    if [[ "$line" =~ = ]]; then
-      parse_line_from_inventory_file "$line"
-    fi
-  done < "${file}"
-}
-
-parse_line_from_inventory_file(){
-  local line="${1}"
-  local quoted_string_regex="^'.*'\$"
-  IFS="=" read -r var_name value <<< "$line"
-  if [[ "$var_name" != "db_restore_path" ]] && [[ "$var_name" != "without_key" ]]; then
-    if [[ "${value}" =~ ${quoted_string_regex} ]]; then
-      debug "# ${value} is quoted, removing quotes"
-      value_without_quotes="${value:1:-1}"
-      debug "# $var_name: quotes removed - ${value} -> ${value_without_quotes}"
-      value="${value_without_quotes}"
-    fi
-    if empty "${VARS[$var_name]}"; then
-      VARS[$var_name]=$value
-      debug "# read '$var_name' from inventory"
-    else
-      debug "# $var_name is set from options, skip inventory value"
-    fi
-    debug "  $var_name=${VARS[$var_name]}"
-  fi
-}
-
 stage3(){
   debug "Starting stage 3: read values from inventory file"
   read_inventory
@@ -1867,6 +1867,16 @@ stage3(){
   else
     assert_keitaro_not_installed
   fi
+}
+
+get_ssh_port(){
+  local ssh_port
+  ssh_port=$(echo "${SSH_CLIENT}" | cut -d' ' -f 3)
+  if empty "${ssh_port}"; then
+    ssh_port="22"
+  fi
+  debug "Detected ssh port: ${ssh_port}"
+  echo "${ssh_port}"
 }
 
 fix_db_engine() {
@@ -1891,44 +1901,6 @@ decteted_db_engine_doesnt_match_inventory() {
     ("${detected_db_engine}" == "${DB_ENGINE_INNODB}" || "${detected_db_engine}" == "${DB_ENGINE_INNODB}") &&
       "${detected_db_engine}" != "${VARS['db_engine']}"
   ]]
-}
-
-get_user_vars_to_restore_from_dump(){
-  debug 'Read vars from user input'
-  hack_stdin_if_pipe_mode
-  print_translated "welcome"
-  get_user_var 'db_restore_path' 'validate_presence validate_file_existence validate_enough_space_for_dump'
-  get_user_var 'salt' 'validate_presence validate_alnumdashdot'
-  tables_prefix=$(detect_table_prefix "${VARS['db_restore_path']}")
-  if empty "${tables_prefix}"; then
-    fail "$(translate 'errors.cant_detect_table_prefix')"
-  fi
-}
-
-get_ssh_port(){
-  local ssh_port
-  ssh_port=$(echo "${SSH_CLIENT}" | cut -d' ' -f 3)
-  if empty "${ssh_port}"; then
-    ssh_port="22"
-  fi
-  debug "Detected ssh port: ${ssh_port}"
-  echo "${ssh_port}"
-}
-
-DEFAULT_SSH_PORT="22"
-
-detect_sshd_port() {
-  local port
-  if ! is_ci_mode && is_installed ss; then
-    debug "Detecting sshd port"
-    port=$(ss -l -4 -p -n | grep -w tcp | grep -w sshd | awk '{ print $5 }' | awk -F: '{ print $2 }' | head -n1)
-    debug "Detected sshd port: ${port}"
-  fi
-  if empty "${port}"; then
-    debug "Reset detected sshd port to 22"
-    port="${DEFAULT_SSH_PORT}"
-  fi
-  echo "${port}"
 }
 
 write_inventory_file(){
@@ -2029,6 +2001,34 @@ installed_version_has_db_engine_bug() {
     )
 }
 
+DEFAULT_SSH_PORT="22"
+
+detect_sshd_port() {
+  local port
+  if ! is_ci_mode && is_installed ss; then
+    debug "Detecting sshd port"
+    port=$(ss -l -4 -p -n | grep -w tcp | grep -w sshd | awk '{ print $5 }' | awk -F: '{ print $2 }' | head -n1)
+    debug "Detected sshd port: ${port}"
+  fi
+  if empty "${port}"; then
+    debug "Reset detected sshd port to 22"
+    port="${DEFAULT_SSH_PORT}"
+  fi
+  echo "${port}"
+}
+
+get_user_vars_to_restore_from_dump(){
+  debug 'Read vars from user input'
+  hack_stdin_if_pipe_mode
+  print_translated "welcome"
+  get_user_var 'db_restore_path' 'validate_presence validate_file_existence validate_enough_space_for_dump'
+  get_user_var 'salt' 'validate_presence validate_alnumdashdot'
+  tables_prefix=$(detect_table_prefix "${VARS['db_restore_path']}")
+  if empty "${tables_prefix}"; then
+    fail "$(translate 'errors.cant_detect_table_prefix')"
+  fi
+}
+
 stage4() {
   debug "Starting stage 4: generate inventory file (running mode is ${RUNNING_MODE})."
   if is_running_in_interactive_restoring_mode; then
@@ -2044,47 +2044,6 @@ stage4() {
   fi
   debug "Starting stage 4: write inventory file"
   write_inventory_file
-}
-
-disable_fastestmirror(){
-  local disabling_message="Disabling mirrors in repo files"
-  local disabling_command="sed -i -e 's/^#baseurl/baseurl/g; s/^mirrorlist/#mirrorlist/g;'  /etc/yum.repos.d/*"
-  run_command "${disabling_command}" "${disabling_message}" "hide_output"
-
-  if [[ "$(get_centos_major_release)" == "7" ]] && is_fastestmirror_enabled; then
-    disabling_message="Disabling fastestmirror plugin on Centos7"
-    disabling_command="sed -i -e 's/^enabled=1/enabled=0/g' /etc/yum/pluginconf.d/fastestmirror.conf"
-    run_command "${disabling_command}" "${disabling_message}" "hide_output"
-  fi
-}
-
-FASTESTMIROR_CONF_PATH="/etc/yum/pluginconf.d/fastestmirror.conf"
-
-is_fastestmirror_enabled() {
-  file_exists "${FASTESTMIROR_CONF_PATH}" && \
-      grep -q '^enabled=1' "${FASTESTMIROR_CONF_PATH}"
-}
-
-switch_to_centos8_stream() {
-  debug "Switching CentOS 8 -> CentOS Stream 8"
-  disable_centos_repo CentOS-Linux-AppStream
-  disable_centos_repo CentOS-Linux-BaseOS
-
-  run_command "dnf install centos-release-stream -y"
-  run_command "dnf swap centos-{linux,stream}-repos -y"
-  run_command "dnf distro-sync -y"
-}
-
-disable_centos_repo() {
-  local repo_name="${1}"
-  local repo_file="/etc/yum.repos.d/${repo_name}.repo"
-  debug "Disabling repo ${repo_name}"
-  if file_exists "${repo_file}"; then
-    run_command "sed -i 's/enabled=1/enabled=0/g' ${repo_file}"
-  fi
-}
-is_centos8_distro(){
-  file_content_matches /etc/centos-release '-P' '^CentOS Linux.* 8\b'
 }
 TRACKER_ADMIN_ROOT=""
 
@@ -2167,6 +2126,25 @@ start_and_enable_nginx() {
   run_command 'systemctl enable nginx'
 }
 
+switch_to_centos8_stream() {
+  debug "Switching CentOS 8 -> CentOS Stream 8"
+  disable_centos_repo CentOS-Linux-AppStream
+  disable_centos_repo CentOS-Linux-BaseOS
+
+  run_command "dnf install centos-release-stream -y"
+  run_command "dnf swap centos-{linux,stream}-repos -y"
+  run_command "dnf distro-sync -y"
+}
+
+disable_centos_repo() {
+  local repo_name="${1}"
+  local repo_file="/etc/yum.repos.d/${repo_name}.repo"
+  debug "Disabling repo ${repo_name}"
+  if file_exists "${repo_file}"; then
+    run_command "sed -i 's/enabled=1/enabled=0/g' ${repo_file}"
+  fi
+}
+
 install_packages(){
   install_nginx
   install_package file
@@ -2177,6 +2155,28 @@ install_packages(){
   install_ansible_collection "containers.podman"
   install_ansible_collection "community.general"
   install_ansible_collection "ansible.posix"
+}
+
+disable_fastestmirror(){
+  local disabling_message="Disabling mirrors in repo files"
+  local disabling_command="sed -i -e 's/^#baseurl/baseurl/g; s/^mirrorlist/#mirrorlist/g;'  /etc/yum.repos.d/*"
+  run_command "${disabling_command}" "${disabling_message}" "hide_output"
+
+  if [[ "$(get_centos_major_release)" == "7" ]] && is_fastestmirror_enabled; then
+    disabling_message="Disabling fastestmirror plugin on Centos7"
+    disabling_command="sed -i -e 's/^enabled=1/enabled=0/g' /etc/yum/pluginconf.d/fastestmirror.conf"
+    run_command "${disabling_command}" "${disabling_message}" "hide_output"
+  fi
+}
+
+FASTESTMIROR_CONF_PATH="/etc/yum/pluginconf.d/fastestmirror.conf"
+
+is_fastestmirror_enabled() {
+  file_exists "${FASTESTMIROR_CONF_PATH}" && \
+      grep -q '^enabled=1' "${FASTESTMIROR_CONF_PATH}"
+}
+is_centos8_distro(){
+  file_content_matches /etc/centos-release '-P' '^CentOS Linux.* 8\b'
 }
 clean_packages_metadata() {
   if empty "$WITHOUTH_YUM_UPDATE"; then

@@ -3,4 +3,10 @@
     name: podman-docker
     state: installed
 
+- name: Install libseccomp-devel
+  package:
+    name: libseccomp-devel
+    state: installed
+  when: centos_release_version == "8"
+
 - include_tasks: tune-certbot.yml
