@@ -50,7 +50,7 @@ TOOL_NAME='kctl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.34.0'
+RELEASE_VERSION='2.34.1'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -892,6 +892,28 @@ DICT['en.validation_errors.validate_presence']='Please enter value'
 DICT['en.validation_errors.validate_absence']='Should not be specified'
 DICT['en.validation_errors.validate_yes_no']='Please answer "yes" or "no"'
 
+kctl_features_usage() {
+  echo "Usage:"
+  echo "  kctl features enable <feature>                  enable feature"
+  echo "  kctl features disable <feature>                 disable feature"
+  echo "  kctl features list                              list supported features"
+}
+
+kctl_features_disable() {
+  local feature="${1}"
+  if empty "${feature}"; then
+    kctl_features_usage
+  else
+    case "${feature}" in
+      rbooster)
+        kctl_features_disable_rbooster
+      ;;
+      *)
+        kctl_features_usage
+    esac
+  fi
+}
+
 kctl_features_enable() {
   local feature="${1}"
   if empty "${feature}"; then
@@ -905,22 +927,6 @@ kctl_features_enable() {
         kctl_features_usage
     esac
   fi
-}
-
-kctl_features_usage() {
-  echo "Usage:"
-  echo "  kctl features enable <feature>                  enable feature"
-  echo "  kctl features disable <feature>                 disable feature"
-  echo "  kctl features list                              list supported features"
-}
-
-kctl_features_enable_rbooster() {
-  set_olap_db "${OLAP_DB_CLICKHOUSE}"
-  run_ch_migrator
-}
-
-kctl_features_disable_rbooster() {
-  set_olap_db "${OLAP_DB_MARIADB}"
 }
 
 set_olap_db() {
@@ -943,19 +949,13 @@ assert_tracker_supports_rbooster() {
   fi
 }
 
-kctl_features_disable() {
-  local feature="${1}"
-  if empty "${feature}"; then
-    kctl_features_usage
-  else
-    case "${feature}" in
-      rbooster)
-        kctl_features_disable_rbooster
-      ;;
-      *)
-        kctl_features_usage
-    esac
-  fi
+kctl_features_enable_rbooster() {
+  set_olap_db "${OLAP_DB_CLICKHOUSE}"
+  run_ch_migrator
+}
+
+kctl_features_disable_rbooster() {
+  set_olap_db "${OLAP_DB_MARIADB}"
 }
 
 kctl_features_list(){
@@ -1215,6 +1215,13 @@ run_ch_migrator(){
   run_command "${command}"
 }
 
+kctl_resolving_usage() {
+  echo "Usage:"
+  echo "  kctl resolving set_google                        sets google dns"
+  echo "  kctl resolving reset                             resets settings"
+  echo "  kctl resolving usage                             prints this page"
+}
+
 kctl_resolving_reset() {
   local resolving_entry="nameserver ${DNS_GOOGLE}"
   if file_content_matches "${RESOLV_CONF}" '-F' "${resolving_entry}"; then
@@ -1231,13 +1238,6 @@ kctl_resolving_reset() {
   fi
 }
 
-kctl_resolving_usage() {
-  echo "Usage:"
-  echo "  kctl resolving set_google                        sets google dns"
-  echo "  kctl resolving reset                             resets settings"
-  echo "  kctl resolving usage                             prints this page"
-}
-
 kctl_resolving_set_google() {
   if file_content_matches ${RESOLV_CONF} '-F' "nameserver ${DNS_GOOGLE}"; then
     debug "${RESOLV_CONF} already contains 'nameserver ${DNS_GOOGLE}', skipping"
@@ -1246,14 +1246,14 @@ kctl_resolving_set_google() {
     run_command "sed -i '1inameserver ${DNS_GOOGLE}' ${RESOLV_CONF}"
   fi
 }
+kctl_run_usage(){
+  echo "Usage:"
+  echo "  kctl run clickhouse-client                  start clickhouse shell"
+}
 # shellcheck source=/dev/null
 kctl_run_clickhouse_client(){
   source /etc/keitaro/config/tracker.env
   docker exec -e HOME=/tmp -it clickhouse  clickhouse-client --user "${CH_USER}" --password "${CH_PASSWORD}"
-}
-kctl_run_usage(){
-  echo "Usage:"
-  echo "  kctl run clickhouse-client                  start clickhouse shell"
 }
 CURRENT_DATETIME="$(date +%Y%m%d%H%M)"
 MIN_TRACKER_VERSION_TO_INSTALL='9.13.0'

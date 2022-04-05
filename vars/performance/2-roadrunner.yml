@@ -1,3 +1,3 @@
 roadrunner_worker_size_mb: 50
-roadrunner_worker_max_requests: 2000
+roadrunner_worker_max_requests: 512
 roadrunner_workers_count: "{{ ((roadrunner_memory_mb|int) / roadrunner_worker_size_mb) | int_between(5, 100) }}"

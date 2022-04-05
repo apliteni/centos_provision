@@ -1,5 +1,5 @@
 php_fpm_worker_size_mb: 50
-php_fpm_worker_max_requests: 3000
+php_fpm_worker_max_requests: 512
 php_fpm_workers_start_factor: 0.4
 php_fpm_workers_min_spare_factor: 0.2
 php_fpm_workers_max_spare_factor: 0.6
