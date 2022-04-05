@@ -1,0 +1,13 @@
+- name: Set clickhouse_uid
+  set_fact:
+    clickhouse_user_uid: "{{ clickhouse_user.uid }}"
+
+- name: Pull clickhouse image
+  containers.podman.podman_image:
+    name: "{{ clickhouse_docker_image }}"
+
+- name: Generate systemd clickhouse config
+  template:
+    src: "clickhouse-server.service.j2"
+    dest: /etc/systemd/system/clickhouse.service
+    mode: '0644'

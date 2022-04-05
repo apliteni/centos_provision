@@ -38,11 +38,6 @@ values() {
   echo "$2"
 }
 
-last () {
-  [[ -z $1 ]] && return 1;
-  eval "${$1[@]:(-1)}"
-}
-
 is_ci_mode() {
   [[ "$EUID" != "$ROOT_UID" || "${CI}" != "" ]]
 }
@@ -55,7 +50,7 @@ TOOL_NAME='kctl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.33.3'
+RELEASE_VERSION='2.34.0'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -1074,7 +1069,7 @@ is_last_certificate_issued_by_x3() {
   local certificate_path="${1}"
   local chain_content
   chain_content="$(< "${certificate_path}")"
-  local last_certificate_content="${PEM_SPLITTER}${chain_content##*${PEM_SPLITTER}}"
+  local last_certificate_content="${PEM_SPLITTER}${chain_content##*"${PEM_SPLITTER}"}"
   echo "$last_certificate_content" | openssl x509 -text | grep 'Issuer' | grep 'DST Root CA X3' -q
 }
 
@@ -1083,7 +1078,7 @@ remove_last_certificate_from_chain() {
   local certificate_path="${1}"
   local certificate_chain_content
   certificate_chain_content="$(< "${certificate_path}")"
-  local certificate_chain_wo_x3_content="${certificate_chain_content%${PEM_SPLITTER}*}"
+  local certificate_chain_wo_x3_content="${certificate_chain_content%"${PEM_SPLITTER}"*}"
   echo "${certificate_chain_wo_x3_content}" > "${certificate_path}"
 }
 
@@ -1160,6 +1155,16 @@ kctl_resolving() {
       ;;
     *)
       kctl_resolving_usage
+  esac
+}
+kctl_run() {
+  local action="${1}"
+  case "${action}" in
+    clickhouse-client)
+      kctl_run_clickhouse_client
+      ;;
+    *)
+      kctl_run_usage
   esac
 }
 
@@ -1240,6 +1245,15 @@ kctl_resolving_set_google() {
     debug "${RESOLV_CONF} doesn't contain 'nameserver ${DNS_GOOGLE}', adding"
     run_command "sed -i '1inameserver ${DNS_GOOGLE}' ${RESOLV_CONF}"
   fi
+}
+# shellcheck source=/dev/null
+kctl_run_clickhouse_client(){
+  source /etc/keitaro/config/tracker.env
+  docker exec -e HOME=/tmp -it clickhouse  clickhouse-client --user "${CH_USER}" --password "${CH_PASSWORD}"
+}
+kctl_run_usage(){
+  echo "Usage:"
+  echo "  kctl run clickhouse-client                  start clickhouse shell"
 }
 CURRENT_DATETIME="$(date +%Y%m%d%H%M)"
 MIN_TRACKER_VERSION_TO_INSTALL='9.13.0'
@@ -1434,6 +1448,9 @@ case "${action}" in
     ;;
   "resolving")
     kctl_resolving "${@}"
+    ;;
+  "run")
+    kctl_run "${@}"
     ;;
   help)
     kctl_show_help

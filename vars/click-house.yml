@@ -1,3 +1,4 @@
+clickhouse_config_path: /etc/clickhouse-server
 ch_host: 127.0.0.1
 ch_port: 8123
 ch_db: keitaro

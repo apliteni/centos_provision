@@ -1,18 +1,4 @@
-- name: add Clickhouse repository
-  template:
-    src: Altinity-ClickHouse.repo
-    dest: /etc/yum.repos.d
-    mode: '0644'
-
-- name: Install by YUM | Install Clickhouse
-  yum:
-    name: "{{ clickhouse_package }}"
-    state: present
-    enablerepo: altinity_clickhouse
-
-- name: Generate systemd clickhouse config
-  template:
-    src: "clickhouse-server.service.j2"
-    dest: /etc/systemd/system/clickhouse-server.service
-    mode: '0644'
-  when: centos_release_version == "9"
+---
+- include_tasks: prepare_install.yml
+- include_tasks: create-user-and-group.yml
+- include_tasks: install-clickhouse-on-docker.yml

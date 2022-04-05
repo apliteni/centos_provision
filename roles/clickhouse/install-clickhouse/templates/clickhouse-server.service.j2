@@ -1,15 +1,18 @@
 [Unit]
-Description=LSB: Yandex clickhouse-server daemon
+Description=Keitaro Clickhouse server
 After=network.target
 
 [Service]
-Type=forking
-Restart=no
-TimeoutSec=5min
-IgnoreSIGPIPE=no
-KillMode=process
-GuessMainPID=no
-RemainAfterExit=yes
-SuccessExitStatus=5 6
-ExecStart=/etc/init.d/clickhouse-server start
-ExecStop=/etc/init.d/clickhouse-server stop
+Type=simple
+ExecStartPre=-/usr/bin/docker stop {{ clickhouse_docker_name }}
+ExecStart=/usr/bin/docker run --user {{ clickhouse_user_uid }}  --name {{ clickhouse_docker_name }} {{ clickhouse_docker_run_args  }} \
+          {% for mount_point in clickhouse_docker_volumes %}
+          -v {{ mount_point }}:{{ mount_point }} \
+          {% endfor %}
+          {{ clickhouse_docker_image }}
+ExecStop=/usr/bin/docker stop %p
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

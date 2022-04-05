@@ -5,9 +5,10 @@
     mode: '0644'
   notify: restart clickhouse
 
-- name: Start service clickhouse-server if not started
+- name: Restart clickhouse service
   systemd:
-    name: clickhouse-server
-    state: started
+    name: clickhouse
+    state: restarted
     enabled: true
     daemon_reload: true
+  changed_when: false

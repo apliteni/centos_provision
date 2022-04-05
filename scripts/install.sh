@@ -38,11 +38,6 @@ values() {
   echo "$2"
 }
 
-last () {
-  [[ -z $1 ]] && return 1;
-  eval "${$1[@]:(-1)}"
-}
-
 is_ci_mode() {
   [[ "$EUID" != "$ROOT_UID" || "${CI}" != "" ]]
 }
@@ -57,7 +52,7 @@ TOOL_NAME='install'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.33.3'
+RELEASE_VERSION='2.34.0'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -1353,11 +1348,11 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['tune-swap']='2.27.7'
   ['tune-sysctl']='2.27.7'
 
-  ['install-clickhouse']='2.30.10'
-  ['tune-clickhouse']='2.30.10'
+  ['install-clickhouse']='2.33.3'
+  ['tune-clickhouse']='2.33.3'
 
   ['install-mariadb']='2.32.3'
-  ['tune-mariadb']='2.32.3'
+  ['tune-mariadb']='2.33.3'
 
   ['tune-nginx']='2.32.2'
 

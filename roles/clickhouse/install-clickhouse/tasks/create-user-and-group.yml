@@ -1,0 +1,19 @@
+- name: Ensure group "clickhouse" exists
+  group:
+    name: "{{ clickhouse_docker_group }}"
+    state: present
+
+- name: Add the user 'clickhouse' with a specific uid and a primary group of 'clickhouse'
+  user:
+    name: "{{ clickhouse_docker_user }}"
+    group: "{{ clickhouse_docker_group }}"
+    home: "{{ clickhouse_docker_user_home }}"
+    shell: "{{ clickhouse_docker_user_shell }}"
+    state: present
+  register: clickhouse_user
+
+- name: Create clickhouse configuration dirs
+  file:
+    path: "{{ clickhouse_config_path }}"
+    state: directory
+    mode: '0755'

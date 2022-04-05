@@ -9,6 +9,7 @@
     src: "my.cnf.d/my.cnf.j2"
     dest: "/etc/my.cnf"
     mode: '0644'
+  notify: restart mariadb
 
 - name: Generate config files
   template:
@@ -21,6 +22,15 @@
     - keitaro-mysqld-configure_error_log.cnf
     - keitaro-mysqld-configure_network.cnf
   notify: restart mariadb
+
+- name: Generate config files
+  template:
+    src: "my.cnf.d/{{ item }}.j2"
+    dest: "/etc/my.cnf.d/{{ item }}"
+    mode: '0644'
+  with_items:
+    - keitaro-mysqldump-disable_column_statistics.cnf
+  when: centos_release_version != "7"
 
 - name: Restart MariaDB
   meta: flush_handlers

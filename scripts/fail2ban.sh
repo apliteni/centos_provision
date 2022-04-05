@@ -36,11 +36,6 @@ values() {
   echo "$2"
 }
 
-last () {
-  [[ -z $1 ]] && return 1;
-  eval "${$1[@]:(-1)}"
-}
-
 is_ci_mode() {
   [[ "$EUID" != "$ROOT_UID" || "${CI}" != "" ]]
 }
@@ -54,7 +49,7 @@ TOOL_NAME='kctl-fail2ban'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.33.3'
+RELEASE_VERSION='2.34.0'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
