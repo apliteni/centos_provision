@@ -6,16 +6,16 @@
 
   roles:
     - {role: '_init/_init',                                 tags: 'init,                        always'}    # noqa yaml
-    - {role: '_init/_init-tracker-user-and-dirs',           tags: 'init-tracker-user-and-dirs'}             # noqa yaml
+    - {role: '_init/_install-packages',                     tags: 'install-packages'}                       # noqa yaml
     - {role: '_init/_prepare-upgrade',                      tags: 'prepare-upgrade,             upgrade'}   # noqa yaml
     - {role: '_init/_remove-x3-ca',                         tags: 'remove-x3-ca'}                           # noqa yaml
+    - {role: '_init/create-user-and-dirs',                  tags: 'create-user-and-dirs'}                   # noqa yaml
     - {role: '_init/install-chrony',                        tags: 'install-chrony'}                         # noqa yaml
     - {role: '_init/install-docker',                        tags: 'install-docker'}                         # noqa yaml
     - {role: '_init/install-fail2ban',                      tags: 'install-fail2ban'}                       # noqa yaml
     - {role: '_init/install-firewalld',                     tags: 'install-firewalld'}                      # noqa yaml
     - {role: '_init/install-htop-config',                   tags: 'install-htop-config'}                    # noqa yaml
     - {role: '_init/install-kctl-tools',                    tags: 'install-kctl-tools'}                     # noqa yaml
-    - {role: '_init/install-packages',                      tags: 'install-packages'}                       # noqa yaml
     - {role: '_init/install-postfix',                       tags: 'install-postfix'}                        # noqa yaml
     - {role: '_init/setup-journald',                        tags: 'setup-journald'}                         # noqa yaml
     - {role: '_init/setup-selinux',                         tags: 'setup-selinux'}                          # noqa yaml

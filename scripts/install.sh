@@ -52,7 +52,7 @@ TOOL_NAME='install'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.34.1'
+RELEASE_VERSION='2.34.2'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -2084,12 +2084,8 @@ is_centos8_distro(){
 TRACKER_ADMIN_ROOT=""
 
 install_nginx() {
-  if is_package_installed "nginx"; then
-    debug "Package nginx is already installed, skiping install_nginx steps"
-    return
-  fi
-  if [[ "$(get_centos_major_release)" == "7" ]]; then
-    install_nginx_repo
+  if [[ "$(get_centos_major_release)" == "7" ]] && (! file_exists /etc/yum.repos.d/nginx.repo); then
+    install_nginx_repo /etc/yum.repos.d/nginx.repo
   fi
   install_package 'nginx'
   install_starting_page
@@ -2097,7 +2093,8 @@ install_nginx() {
 
 
 install_nginx_repo() {
-  cat > /etc/yum.repos.d/nginx.repo <<'EOF'
+  local repo_file_path="${1}"
+  cat > "${repo_file_path}" <<'EOF'
 [nginx]
 name=nginx repo
 baseurl=http://nginx.org/packages/centos/$releasever/$basearch/
@@ -2109,6 +2106,7 @@ EOF
 install_starting_page() {
   mkdir -p "${TRACKER_ROOT}/admin"
   render_starting_page "${TRACKER_ROOT}/admin/index.html"
+  chown -R nginx:nginx "${TRACKER_ROOT}"
   render_nginx_config "/etc/nginx/conf.d/default.conf"
   run_command "sed 's/default_server//g' /etc/nginx/nginx.conf -i"
   start_and_enable_nginx
@@ -2163,7 +2161,12 @@ start_and_enable_nginx() {
 }
 
 install_packages(){
-  install_nginx
+  if [[ "${KCTL_RUNNING_MODE}" == "${RUNNING_MODE_UPGRADE}" ]]; then
+    debug "Upgrading mode detected, skip installing nginx"
+  else
+    debug "Running mode is '${KCTL_RUNNING_MODE}', installing nginx"
+    install_nginx
+  fi
   install_package file
   install_package tar
   install_package epel-release
