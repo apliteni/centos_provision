@@ -6,9 +6,9 @@
 
   roles:
     - {role: '_init/_init',                                 tags: 'init,                        always'}    # noqa yaml
+    - {role: '_init/_fix-x3-ca',                            tags: 'fix-x3-ca'}                              # noqa yaml
     - {role: '_init/_install-packages',                     tags: 'install-packages'}                       # noqa yaml
     - {role: '_init/_prepare-upgrade',                      tags: 'prepare-upgrade,             upgrade'}   # noqa yaml
-    - {role: '_init/_remove-x3-ca',                         tags: 'remove-x3-ca'}                           # noqa yaml
     - {role: '_init/create-user-and-dirs',                  tags: 'create-user-and-dirs'}                   # noqa yaml
     - {role: '_init/install-chrony',                        tags: 'install-chrony'}                         # noqa yaml
     - {role: '_init/install-docker',                        tags: 'install-docker'}                         # noqa yaml
