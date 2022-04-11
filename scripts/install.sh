@@ -52,7 +52,7 @@ TOOL_NAME='install'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.34.2'
+RELEASE_VERSION='2.34.3'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -2161,7 +2161,7 @@ start_and_enable_nginx() {
 }
 
 install_packages(){
-  if [[ "${KCTL_RUNNING_MODE}" == "${RUNNING_MODE_UPGRADE}" ]]; then
+  if [[ "${RUNNING_MODE}" == "${RUNNING_MODE_UPGRADE}" ]]; then
     debug "Upgrading mode detected, skip installing nginx"
   else
     debug "Running mode is '${KCTL_RUNNING_MODE}', installing nginx"
