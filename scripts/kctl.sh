@@ -50,7 +50,7 @@ TOOL_NAME='kctl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.34.4'
+RELEASE_VERSION='2.34.5'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -1207,7 +1207,7 @@ kctl_show_version(){
 run_ch_migrator(){
   local command
   command="kctl-ch-migrator --prefix=$(get_tracker_config_value 'db' 'prefix') \
-    --env-file-path=${INVENTORY_DIR}//tracker.env"
+    --env-file-path=${INVENTORY_DIR}/tracker.env"
   run_command "${command}"
 }
 

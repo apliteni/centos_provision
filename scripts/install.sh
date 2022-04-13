@@ -52,7 +52,7 @@ TOOL_NAME='install'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.34.4'
+RELEASE_VERSION='2.34.5'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -1348,7 +1348,8 @@ get_config_value(){
 #     and we are upgrading to 2.14
 #   then ansible tags will be expanded by `enable-swap` tag
 declare -A REPLAY_ROLE_TAGS_SINCE=(
-  ['init-tracker-user-and-dirs']='2.30.10'
+  ['create-user-and-dirs']='2.34.4'
+  ['fix-x3-ca']='2.32.3'
   ['install-chrony']='2.27.7'
   ['install-docker']='2.29.4'
   ['install-fail2ban']='2.32.3'
@@ -1356,7 +1357,6 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['install-htop-config']='2.32.3'
   ['install-packages']='2.27.7'
   ['install-postfix']='2.29.8'
-  ['fix-x3-ca']='2.32.3'
   ['setup-journald']='2.32.0'
   ['setup-selinux']='2.25.0'
   ['setup-thp']='0.9'

@@ -1,6 +1,7 @@
 - name: Ensure ssl directory exists
   file:
     path: "{{ ssl_root }}"
+    mode: "0755"
     state: directory
 
 - name: Check that dhparms exists and is valid
