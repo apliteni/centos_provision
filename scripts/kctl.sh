@@ -50,7 +50,7 @@ TOOL_NAME='kctl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.34.5'
+RELEASE_VERSION='2.34.6'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -892,13 +892,6 @@ DICT['en.validation_errors.validate_presence']='Please enter value'
 DICT['en.validation_errors.validate_absence']='Should not be specified'
 DICT['en.validation_errors.validate_yes_no']='Please answer "yes" or "no"'
 
-kctl_features_usage() {
-  echo "Usage:"
-  echo "  kctl features enable <feature>                  enable feature"
-  echo "  kctl features disable <feature>                 disable feature"
-  echo "  kctl features list                              list supported features"
-}
-
 kctl_features_enable() {
   local feature="${1}"
   if empty "${feature}"; then
@@ -914,9 +907,20 @@ kctl_features_enable() {
   fi
 }
 
+kctl_features_usage() {
+  echo "Usage:"
+  echo "  kctl features enable <feature>                  enable feature"
+  echo "  kctl features disable <feature>                 disable feature"
+  echo "  kctl features list                              list supported features"
+}
+
 kctl_features_enable_rbooster() {
   set_olap_db "${OLAP_DB_CLICKHOUSE}"
   run_ch_migrator
+}
+
+kctl_features_disable_rbooster() {
+  set_olap_db "${OLAP_DB_MARIADB}"
 }
 
 set_olap_db() {
@@ -939,15 +943,6 @@ assert_tracker_supports_rbooster() {
   fi
 }
 
-kctl_features_disable_rbooster() {
-  set_olap_db "${OLAP_DB_MARIADB}"
-}
-
-kctl_features_list(){
-  echo "Feature list:"
-  echo " rbooster               ClickHouse as OLAP DB"
-}
-
 kctl_features_disable() {
   local feature="${1}"
   if empty "${feature}"; then
@@ -961,6 +956,11 @@ kctl_features_disable() {
         kctl_features_usage
     esac
   fi
+}
+
+kctl_features_list(){
+  echo "Feature list:"
+  echo " rbooster               ClickHouse as OLAP DB"
 }
 
 get_kctl_install() {
@@ -1204,22 +1204,15 @@ kctl_show_version(){
   fi
 }
 
+on_exit(){
+  exit 1
+}
+
 run_ch_migrator(){
   local command
   command="kctl-ch-migrator --prefix=$(get_tracker_config_value 'db' 'prefix') \
     --env-file-path=${INVENTORY_DIR}/tracker.env"
   run_command "${command}"
-}
-
-on_exit(){
-  exit 1
-}
-
-kctl_resolving_usage() {
-  echo "Usage:"
-  echo "  kctl resolving set_google                        sets google dns"
-  echo "  kctl resolving reset                             resets settings"
-  echo "  kctl resolving usage                             prints this page"
 }
 
 kctl_resolving_reset() {
@@ -1238,6 +1231,13 @@ kctl_resolving_reset() {
   fi
 }
 
+kctl_resolving_usage() {
+  echo "Usage:"
+  echo "  kctl resolving set_google                        sets google dns"
+  echo "  kctl resolving reset                             resets settings"
+  echo "  kctl resolving usage                             prints this page"
+}
+
 kctl_resolving_set_google() {
   if file_content_matches ${RESOLV_CONF} '-F' "nameserver ${DNS_GOOGLE}"; then
     debug "${RESOLV_CONF} already contains 'nameserver ${DNS_GOOGLE}', skipping"
@@ -1246,15 +1246,18 @@ kctl_resolving_set_google() {
     run_command "sed -i '1inameserver ${DNS_GOOGLE}' ${RESOLV_CONF}"
   fi
 }
-kctl_run_usage(){
-  echo "Usage:"
-  echo "  kctl run clickhouse-client                  start clickhouse shell"
-}
 # shellcheck source=/dev/null
 kctl_run_clickhouse_client(){
   source /etc/keitaro/config/tracker.env
   docker exec -e HOME=/tmp -it clickhouse  clickhouse-client --user "${CH_USER}" --password "${CH_PASSWORD}"
 }
+kctl_run_usage(){
+  echo "Usage:"
+  echo "  kctl run clickhouse-client                  start clickhouse shell"
+}
+CURRENT_DATETIME="$(date +%Y%m%d%H%M)"
+MIN_TRACKER_VERSION_TO_INSTALL='9.13.0'
+declare -a RETRY_INTERVALS=(60 180 300)
 declare -A DICT
 DICT['en.messages.sleeping_before_next_try']="Error while install, sleeping for :retry_interval: seconds before next try"
 DICT['en.messages.kctl_version']="Kctl:    :kctl_version:"
@@ -1264,9 +1267,6 @@ DICT['en.errors.tracker_version_to_install_is_incorrect']="Tracker version can't
 DICT['en.errors.invalid_options']="Invalid option ${1}. Try 'kctl help' for more information."
 DICT['en.errors.tracker_doesnt_support_feature']="Current tracker v:current_tracker_version: doesn't support :feature:. Please upgrade tracker to v:featured_tracker_version:+"
 DICT['en.errors.tracker_is_not_installed']="Keitaro tracker is not installed"
-CURRENT_DATETIME="$(date +%Y%m%d%H%M)"
-MIN_TRACKER_VERSION_TO_INSTALL='9.13.0'
-declare -a RETRY_INTERVALS=(60 180 300)
 
 on_exit(){
   exit 1

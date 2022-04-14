@@ -19,3 +19,7 @@
     {{ list_ipv4_keitaro_generated_configs_command }} | \
       xargs sed -i -r -e '/listen 80/a \  listen [::]:80;' -e '/listen 443/a \  listen [::]:443 ssl;'
   when: list_ipv4_keitaro_generated_configs_command_result.stdout | length > 0
+  register: add_ipv6_support_command
+  failed_when: >-
+    add_ipv6_support_command.rc != 0
+    and add_ipv6_support_command.rc != 1
