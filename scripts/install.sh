@@ -52,7 +52,7 @@ TOOL_NAME='install'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.34.6'
+RELEASE_VERSION='2.34.7'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -1345,7 +1345,7 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['setup-selinux']='2.25.0'
   ['setup-thp']='0.9'
   ['setup-timezone']='0.9'
-  ['tune-swap']='2.27.7'
+  ['tune-swap']='2.34.6'
   ['tune-sysctl']='2.27.7'
 
   ['install-clickhouse']='2.33.3'
@@ -2142,13 +2142,13 @@ install_packages(){
   if [[ "${RUNNING_MODE}" == "${RUNNING_MODE_UPGRADE}" ]]; then
     debug "Upgrading mode detected, skip installing nginx"
   else
-    debug "Running mode is '${KCTL_RUNNING_MODE}', installing nginx"
+    debug "Running mode is '${KCTL_RUNNING_MODE}', installing packages"
     install_nginx
+    install_package file
+    install_package tar
+    install_package epel-release
+    install_package "$(get_ansible_package_name)"
   fi
-  install_package file
-  install_package tar
-  install_package epel-release
-  install_package "$(get_ansible_package_name)"
   install_ansible_collection "community.mysql"
   install_ansible_collection "containers.podman"
   install_ansible_collection "community.general"

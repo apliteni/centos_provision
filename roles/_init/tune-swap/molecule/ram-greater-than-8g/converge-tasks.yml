@@ -1,4 +1,0 @@
-- set_fact:
-    ram_size_mb: 9000
-    kctl_ansible_swaptotal_mb: 0
-    available_space_in_mb: 49510

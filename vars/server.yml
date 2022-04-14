@@ -1,5 +1,5 @@
 max_upload_size: 2048M
 timezone: UTC
 is_ci_mode: "{{ lookup('env', 'CI') != '' }}"
-kctl_ansible_swaptotal_mb: "{{ ansible_swaptotal_mb }}"
+current_swap_size_mb: "{{ ansible_swaptotal_mb }}"
 kctl_ansible_hostname: "{{ ansible_hostname }}"

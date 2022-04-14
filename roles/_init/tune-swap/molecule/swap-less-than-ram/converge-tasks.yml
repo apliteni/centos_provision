@@ -1,3 +1,3 @@
 - set_fact:
     ram_size_mb: 2048
-    kctl_ansible_swaptotal_mb: 1024
+    current_swap_size_mb: 1700

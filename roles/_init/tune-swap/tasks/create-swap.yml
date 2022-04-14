@@ -1,0 +1,48 @@
+- name: Get existing keitaro swap files list
+  find:
+    paths: /
+    file_type: file
+    use_regex: true
+    recurse: false
+    patterns: '^keitaro.[0-9]+.swap$'
+  register: existing_swap_files
+
+- name: Get existing swap files paths
+  set_fact:
+    exising_swap_files_paths: "{{ existing_swap_files.files | map(attribute='path') }}"
+
+- name: Get latest existing swap files numbers
+  set_fact:
+    exising_swap_numbers: "{{ exising_swap_files_paths | map('regex_search', '[0-9]+') | map('int') }}"
+
+- name: Get latest existing swap number
+  set_fact:
+    latest_exising_swap_number: "{{ exising_swap_numbers | max | default(0) }}"
+
+- name: Set new swap file name
+  set_fact:
+    new_swap_filepath: "/keitaro.{{ (latest_exising_swap_number|int) + 1 }}.swap"
+
+- name: Create swap file
+  shell: >
+    umask 077 && \
+    dd if=/dev/zero of={{ new_swap_filepath }} count={{ swap_size_to_add_mb }} bs=1MiB && \
+    mkswap {{ new_swap_filepath }}
+  args:
+    creates: "{{ new_swap_filepath }}"
+  changed_when: false
+
+- name: Mount swap on boot
+  mount:
+    name: none
+    src: "{{ new_swap_filepath }}"
+    fstype: swap
+    opts: sw
+    passno: '0'
+    dump: '0'
+    state: present
+  changed_when: false
+
+- name: Turn newly created swap on
+  command: swapon -a
+  when: not is_ci_mode

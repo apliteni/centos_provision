@@ -1,34 +1,20 @@
-# Based on https://stackoverflow.com/a/64294534/612799
-- name: Print swap_size_minimal_mb
-  debug:
-    msg: "swap_size_minimal_mb: {{ swap_size_minimal_mb }}"
-
-- name: Set kctl_root_mount_point
+- name: Set useful vars
   set_fact:
-    kctl_root_mount_point: "{{ ansible_mounts | first }}"
-  when: is_ci_mode
+    space_for_packages_mb: 2048
+    total_needed_swap_size_mb: "{{ [ram_size_mb, 16384] | min }}"
+    max_memory_deficit_mb: 256
 
-- name: Set kctl_root_mount_point
+- name: Calculate swap space to add
   set_fact:
-    kctl_root_mount_point: "{{ ansible_mounts | selectattr('mount','equalto','/') | list | first }}"
-  when: not is_ci_mode
+    raw_swap_size_to_add_mb: "{{ (total_needed_swap_size_mb | int) - (current_swap_size_mb | int) }}"
 
-- name: Set available_space
-  set_fact:
-    available_space: "{{ kctl_root_mount_point.size_available }}"
+- name: Add swap
+  when: (raw_swap_size_to_add_mb | int) > max_memory_deficit_mb
+  block:
+    - name: Set swap_size_to_add_mb
+      set_fact:
+        swap_size_to_add_mb: "{{ ((raw_swap_size_to_add_mb | int) | round(-3, 'ceil')) | int }}"
 
-- name: Set available_space_in_mb
-  set_fact:
-    available_space_in_mb: "{{ ( (available_space|float) / 1000000) | round | int }}"
+    - include: check-server-has-space.yml
 
-- name: Print available_space_in_mb
-  debug:
-    msg: "Current available space {{ available_space_in_mb }}mb"
-
-# 1 gb need to another packages
-- name: "[Re]create swap if its size is too small"
-  include: recreate_swap.yml
-  when:
-    (kctl_ansible_swaptotal_mb | int) < (swap_size_minimal_mb | int) * 0.9 and
-    (available_space_in_mb | int) > (swap_size_to_add_mb | int) + space_for_packages | int
-  failed_when: available_space_in_mb < swap_size_to_add_mb + space_for_packages
+    - include: create-swap.yml

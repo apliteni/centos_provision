@@ -1,0 +1,17 @@
+- name: Set kctl_root_mount_point
+  set_fact:
+    kctl_root_mount_point: "{{ ansible_mounts | first }}"
+  when: is_ci_mode
+
+- name: Set kctl_root_mount_point
+  set_fact:
+    kctl_root_mount_point: "{{ ansible_mounts | selectattr('mount','equalto','/') | list | first }}"
+  when: not is_ci_mode
+
+- name: Set available_space
+  set_fact:
+    available_space_mb: "{{ (kctl_root_mount_point.size_available / 1024 / 1024) | round | int }}"
+
+- name: Ensure server has enough disk space
+  assert:
+    that: (available_space_mb | int) > (swap_size_to_add_mb | int) + (space_for_packages_mb | int)
