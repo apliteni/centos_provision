@@ -52,7 +52,7 @@ TOOL_NAME='install'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.34.7'
+RELEASE_VERSION='2.34.8'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -1075,13 +1075,14 @@ build_check_table_exists_expression() {
 
 
 build_get_chunk_command() {
+  local gzip_mime_regex='\<gzip$'
   local mime_type="${1}"
   local file="${2}"
   local filter="${3}"
   if [[ "$mime_type" == 'text/plain' ]]; then
     echo "${filter} '${file}'"
   fi
-  if [[ "$mime_type" == 'application/x-gzip' ]]; then
+  if [[ "$mime_type" =~ ${gzip_mime_regex} ]]; then
     echo "zcat '${file}' | ${filter}"
   fi
 }
@@ -1667,7 +1668,13 @@ valid_ip_segment(){
 }
 
 assert_systemctl_works_properly () {
-  if ! run_command "systemctl > /dev/null" "Checking systemd" 'hide_output' 'allow_errors'; then
+  local message
+  message=$(print_with_color 'Checking if systemd works' 'blue')
+  echo -en "${message} . "
+  if systemctl &> /dev/null; then
+    print_with_color 'OK' 'green'
+  else
+    print_with_color 'NOK' 'red'
     fail "$(translate errors.systemctl_doesnt_work_properly)"
   fi
 }
@@ -1765,12 +1772,12 @@ stage2(){
   assert_caller_root
   assert_apache_not_installed
   assert_running_on_supported_centos
+  assert_systemctl_works_properly
   assert_has_enough_ram
   assert_has_enough_free_disk_space
   assert_not_running_under_openvz
   assert_pannels_not_installed
   assert_thp_deactivatable
-  assert_systemctl_works_properly
   assert_server_ip_is_valid
 }
 
@@ -2120,13 +2127,14 @@ start_and_enable_nginx() {
 }
 
 switch_to_centos8_stream() {
-  debug "Switching CentOS 8 -> CentOS Stream 8"
+  debug 'Switching CentOS 8 -> CentOS Stream 8'
+  print_with_color 'Switching CentOS 8 -> CentOS Stream 8:' 'blue'
   disable_centos_repo CentOS-Linux-AppStream
   disable_centos_repo CentOS-Linux-BaseOS
-
-  run_command "dnf install centos-release-stream -y"
-  run_command "dnf swap centos-{linux,stream}-repos -y"
-  run_command "dnf distro-sync -y"
+  run_command "sed -i 's/mirror.centos.org/vault.centos.org/g' /etc/yum.repos.d/CentOS-Linux-*.repo" "  Fixing baseurl"
+  run_command "dnf install centos-release-stream -y" "  Installing CentOS Stream packages"
+  run_command "dnf swap centos-{linux,stream}-repos -y" "  Switching to CentOS Stream"
+  run_command "dnf distro-sync -y" "  Syncing distro"
 }
 
 disable_centos_repo() {
@@ -2134,21 +2142,24 @@ disable_centos_repo() {
   local repo_file="/etc/yum.repos.d/${repo_name}.repo"
   debug "Disabling repo ${repo_name}"
   if file_exists "${repo_file}"; then
-    run_command "sed -i 's/enabled=1/enabled=0/g' ${repo_file}"
+    run_command "sed -i 's/enabled=1/enabled=0/g' ${repo_file}" "  Disabling repo ${repo_name}"
   fi
 }
 
 install_packages(){
   if [[ "${RUNNING_MODE}" == "${RUNNING_MODE_UPGRADE}" ]]; then
-    debug "Upgrading mode detected, skip installing nginx"
+    debug "Upgrading mode detected, skip installing packages"
   else
     debug "Running mode is '${KCTL_RUNNING_MODE}', installing packages"
     install_nginx
     install_package file
     install_package tar
     install_package epel-release
-    install_package "$(get_ansible_package_name)"
   fi
+  if [[ "$(get_centos_major_release)" == "7" ]] && [[ -f /usr/bin/ansible-2 ]]; then
+    run_command 'yum erase -y ansible' 'Removing old ansible' 'hide_output'
+  fi
+  install_package "$(get_ansible_package_name)"
   install_ansible_collection "community.mysql"
   install_ansible_collection "containers.podman"
   install_ansible_collection "community.general"
