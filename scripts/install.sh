@@ -52,7 +52,7 @@ TOOL_NAME='install'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.34.10'
+RELEASE_VERSION='2.34.11'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -1307,26 +1307,6 @@ get_ansible_package_name() {
   fi
 }
 
-clean_up(){
-  if [ -d "$PROVISION_DIRECTORY" ]; then
-    debug "Remove ${PROVISION_DIRECTORY}"
-    rm -rf "$PROVISION_DIRECTORY"
-  fi
-}
-
-is_running_in_interactive_restoring_mode() {
-  [[ "${RUNNING_MODE}" == "${RUNNING_MODE_RESTORE}" ]] && \
-    [[ "${RESTORING_MODE}" == "${RESTORING_MODE_INTERACTIVE}" ]]
-}
-
-is_running_in_upgrade_mode() {
-  [[ "${RUNNING_MODE}" == "${RUNNING_MODE_UPGRADE}" ]]
-}
-
-is_running_in_install_mode() {
-  [[ "${RUNNING_MODE}" == "${RUNNING_MODE_INSTALL}" ]]
-}
-
 get_config_value(){
   local var="${1}"
   local file="${2}"
@@ -1338,6 +1318,17 @@ get_config_value(){
       awk -F"${separator}" '{print $2}' | \
       awk '{$1=$1; print}' | \
       unquote
+  fi
+}
+
+get_ram_size_mb() {
+  (free -m | grep Mem: | awk '{print $2}') 2>/dev/null
+}
+
+clean_up(){
+  if [ -d "$PROVISION_DIRECTORY" ]; then
+    debug "Remove ${PROVISION_DIRECTORY}"
+    rm -rf "$PROVISION_DIRECTORY"
   fi
 }
 
@@ -1359,7 +1350,7 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['install-packages']='2.27.7'
   ['install-postfix']='2.29.8'
   ['setup-journald']='2.32.0'
-  ['setup-selinux']='2.25.0'
+  ['disable-selinux']='2.25.0'
   ['setup-thp']='0.9'
   ['setup-timezone']='0.9'
   ['tune-swap']='2.34.6'
@@ -1446,21 +1437,21 @@ is_upgrading_mode_full() {
   [[ "${UPGRADING_MODE}" == "${UPGRADING_MODE_FULL}" ]]
 }
 
+is_running_in_interactive_restoring_mode() {
+  [[ "${RUNNING_MODE}" == "${RUNNING_MODE_RESTORE}" ]] && \
+    [[ "${RESTORING_MODE}" == "${RESTORING_MODE_INTERACTIVE}" ]]
+}
+
+is_running_in_upgrade_mode() {
+  [[ "${RUNNING_MODE}" == "${RUNNING_MODE_UPGRADE}" ]]
+}
+
+is_running_in_install_mode() {
+  [[ "${RUNNING_MODE}" == "${RUNNING_MODE_INSTALL}" ]]
+}
+
 get_free_disk_space_mb() {
   (df -m --output=avail / | tail -n1) 2>/dev/null
-}
-
-get_ram_size_mb() {
-  (free -m | grep Mem: | awk '{print $2}') 2>/dev/null
-}
-
-MYIP_KEITARO_IO="https://myip.keitaro.io"
-
-detect_server_ip() {
-  debug "Detecting server IP address"
-  debug "Getting url '${MYIP_KEITARO_IO}'"
-  SERVER_IP="$(curl -fsSL4 ${MYIP_KEITARO_IO} 2>&1)"
-  debug "Done, result is '${SERVER_IP}'"
 }
 
 
@@ -1601,6 +1592,15 @@ help_en(){
   print_err "  -w                       do not run 'yum upgrade'"
   print_err
 }
+MYIP_KEITARO_IO="https://myip.keitaro.io"
+
+detect_server_ip() {
+  debug "Detecting server IP address"
+  debug "Getting url '${MYIP_KEITARO_IO}'"
+  SERVER_IP="$(curl -fsSL4 ${MYIP_KEITARO_IO} 2>&1)"
+  debug "Done, result is '${SERVER_IP}'"
+}
+
 
 stage1() {
   debug "Starting stage 1: initial script setup"
@@ -1609,53 +1609,14 @@ stage1() {
   debug "Running in mode '${RUNNING_MODE}'"
 }
 
-assert_server_ip_is_valid() {
-  if ! valid_ip "${SERVER_IP}"; then
-    fail "$(translate 'errors.cant_detect_server_ip')"
-  fi
-}
 
-valid_ip(){
-  local value="${1}"
-  [[ "$value" =~  ^[[:digit:]]+(\.[[:digit:]]+){3}$ ]] && valid_ip_segments "$value"
-}
+assert_not_running_under_openvz() {
+  debug "Assert we are not running under OpenVZ"
 
-
-valid_ip_segments(){
-  local ip="${1}"
-  local segments
-  IFS='.' read -r -a segments <<< "${ip}"
-  for segment in "${segments[@]}"; do
-    if ! valid_ip_segment "${segment}"; then
-      return "${FAILURE_RESULT}"
-    fi
-  done
-}
-
-valid_ip_segment(){
-  local ip_segment="${1}"
-  [ "$ip_segment" -ge 0 ] && [ "$ip_segment" -le 255 ]
-}
-
-assert_apache_not_installed(){
-  if is_installed httpd; then
-    fail "$(translate errors.apache_installed)"
-  fi
-}
-
-assert_running_on_supported_centos(){
-  assert_installed 'yum' 'errors.wrong_distro'
-  if ! file_exists /etc/centos-release; then
-    fail "$(translate errors.wrong_distro)"
-  fi
-  if empty "${SKIP_CENTOS_RELEASE_CHECK}"; then
-    assert_centos_release_is_supportded
-  fi
-}
-
-assert_centos_release_is_supportded(){
-  if ! file_content_matches /etc/centos-release '-P' '^CentOS .* (7|8|9)\b'; then
-    fail "$(translate errors.wrong_distro)"
+  virtualization_type="$(hostnamectl status | grep Virtualization | awk '{print $2}')"
+  debug "Detected virtualization type: '${virtualization_type}'"
+  if isset "${virtualization_type}" && [[ "${virtualization_type}" == "openvz" ]]; then
+    fail "Servers with OpenVZ virtualization are not supported"
   fi
 }
 
@@ -1668,6 +1629,34 @@ assert_systemctl_works_properly () {
   else
     print_with_color 'NOK' 'red'
     fail "$(translate errors.systemctl_doesnt_work_properly)"
+  fi
+}
+MIN_RAM_SIZE_MB=1500
+
+assert_has_enough_ram(){
+  debug "Checking RAM size"
+
+  local current_ram_size_mb
+  current_ram_size_mb=$(get_ram_size_mb)
+  if [[ "$current_ram_size_mb" -lt "$MIN_RAM_SIZE_MB" ]]; then
+    debug "RAM size ${current_ram_size_mb}mb is less than ${MIN_RAM_SIZE_MB}mb, raising error"
+    fail "$(translate errors.not_enough_ram)"
+  else
+    debug "RAM size ${current_ram_size_mb}mb is greater than ${MIN_RAM_SIZE_MB}mb, continuing"
+  fi
+}
+MIN_FREE_DISK_SPACE_MB=2048
+
+assert_has_enough_free_disk_space(){
+  debug "Checking free disk spice"
+
+  local current_free_disk_space_mb
+  current_free_disk_space_mb=$(get_free_disk_space_mb)
+  if [[ "${current_free_disk_space_mb}" -lt "${MIN_FREE_DISK_SPACE_MB}" ]]; then
+    debug "Free disk space ${current_free_disk_space_mb}mb is less than ${MIN_FREE_DISK_SPACE_MB}mb, raising error"
+    fail "$(translate errors.not_enough_free_disk_space)"
+  else
+    debug "Free disk space ${current_free_disk_space_mb}mb is greater than ${MIN_FREE_DISK_SPACE_MB}mb, continuing"
   fi
 }
 
@@ -1695,20 +1684,6 @@ assert_thp_deactivatable() {
 
 are_thp_sys_files_existing() {
   file_exists "/sys/kernel/mm/transparent_hugepage/enabled" && file_exists "/sys/kernel/mm/transparent_hugepage/defrag"
-}
-MIN_FREE_DISK_SPACE_MB=2048
-
-assert_has_enough_free_disk_space(){
-  debug "Checking free disk spice"
-
-  local current_free_disk_space_mb
-  current_free_disk_space_mb=$(get_free_disk_space_mb)
-  if [[ "${current_free_disk_space_mb}" -lt "${MIN_FREE_DISK_SPACE_MB}" ]]; then
-    debug "Free disk space ${current_free_disk_space_mb}mb is less than ${MIN_FREE_DISK_SPACE_MB}mb, raising error"
-    fail "$(translate errors.not_enough_free_disk_space)"
-  else
-    debug "Free disk space ${current_free_disk_space_mb}mb is greater than ${MIN_FREE_DISK_SPACE_MB}mb, continuing"
-  fi
 }
 
 assert_pannels_not_installed(){
@@ -1740,30 +1715,55 @@ database_exists(){
   debug "Check if database ${database} exists"
   mysql -Nse 'show databases' 2>/dev/null | tr '\n' ' ' | grep -Pq "${database}"
 }
-MIN_RAM_SIZE_MB=1500
 
-assert_has_enough_ram(){
-  debug "Checking RAM size"
-
-  local current_ram_size_mb
-  current_ram_size_mb=$(get_ram_size_mb)
-  if [[ "$current_ram_size_mb" -lt "$MIN_RAM_SIZE_MB" ]]; then
-    debug "RAM size ${current_ram_size_mb}mb is less than ${MIN_RAM_SIZE_MB}mb, raising error"
-    fail "$(translate errors.not_enough_ram)"
-  else
-    debug "RAM size ${current_ram_size_mb}mb is greater than ${MIN_RAM_SIZE_MB}mb, continuing"
+assert_running_on_supported_centos(){
+  assert_installed 'yum' 'errors.wrong_distro'
+  if ! file_exists /etc/centos-release; then
+    fail "$(translate errors.wrong_distro)"
+  fi
+  if empty "${SKIP_CENTOS_RELEASE_CHECK}"; then
+    assert_centos_release_is_supportded
   fi
 }
 
-
-assert_not_running_under_openvz() {
-  debug "Assert we are not running under OpenVZ"
-
-  virtualization_type="$(hostnamectl status | grep Virtualization | awk '{print $2}')"
-  debug "Detected virtualization type: '${virtualization_type}'"
-  if isset "${virtualization_type}" && [[ "${virtualization_type}" == "openvz" ]]; then
-    fail "Servers with OpenVZ virtualization are not supported"
+assert_centos_release_is_supportded(){
+  if ! file_content_matches /etc/centos-release '-P' '^CentOS .* (7|8|9)\b'; then
+    fail "$(translate errors.wrong_distro)"
   fi
+}
+
+assert_apache_not_installed(){
+  if is_installed httpd; then
+    fail "$(translate errors.apache_installed)"
+  fi
+}
+
+assert_server_ip_is_valid() {
+  if ! valid_ip "${SERVER_IP}"; then
+    fail "$(translate 'errors.cant_detect_server_ip')"
+  fi
+}
+
+valid_ip(){
+  local value="${1}"
+  [[ "$value" =~  ^[[:digit:]]+(\.[[:digit:]]+){3}$ ]] && valid_ip_segments "$value"
+}
+
+
+valid_ip_segments(){
+  local ip="${1}"
+  local segments
+  IFS='.' read -r -a segments <<< "${ip}"
+  for segment in "${segments[@]}"; do
+    if ! valid_ip_segment "${segment}"; then
+      return "${FAILURE_RESULT}"
+    fi
+  done
+}
+
+valid_ip_segment(){
+  local ip_segment="${1}"
+  [ "$ip_segment" -ge 0 ] && [ "$ip_segment" -le 255 ]
 }
 
 stage2(){
@@ -1871,14 +1871,6 @@ stage3(){
   fi
 }
 
-installed_version_has_db_engine_bug() {
-  (( $(as_version "${INSTALLED_VERSION}") <= $(as_version "1.5.0") )) || \
-    (
-      (( $(as_version "${INSTALLED_VERSION}") >= $(as_version "2.23.0") )) && \
-      (( $(as_version "${INSTALLED_VERSION}") < $(as_version "2.29.0") ))
-    )
-}
-
 fix_db_engine() {
   local detected_db_engine
   debug "Detected installer with version ${INSTALLED_VERSION} which possibly sets wrong db_engine"
@@ -1923,6 +1915,22 @@ get_ssh_port(){
   fi
   debug "Detected ssh port: ${ssh_port}"
   echo "${ssh_port}"
+}
+
+DEFAULT_SSH_PORT="22"
+
+detect_sshd_port() {
+  local port
+  if ! is_ci_mode && is_installed ss; then
+    debug "Detecting sshd port"
+    port=$(ss -l -4 -p -n | grep -w tcp | grep -w sshd | awk '{ print $5 }' | awk -F: '{ print $2 }' | head -n1)
+    debug "Detected sshd port: ${port}"
+  fi
+  if empty "${port}"; then
+    debug "Reset detected sshd port to 22"
+    port="${DEFAULT_SSH_PORT}"
+  fi
+  echo "${port}"
 }
 
 write_inventory_file(){
@@ -2015,20 +2023,12 @@ print_line_to_inventory_file() {
   echo "$line" >> "$INVENTORY_PATH"
 }
 
-DEFAULT_SSH_PORT="22"
-
-detect_sshd_port() {
-  local port
-  if ! is_ci_mode && is_installed ss; then
-    debug "Detecting sshd port"
-    port=$(ss -l -4 -p -n | grep -w tcp | grep -w sshd | awk '{ print $5 }' | awk -F: '{ print $2 }' | head -n1)
-    debug "Detected sshd port: ${port}"
-  fi
-  if empty "${port}"; then
-    debug "Reset detected sshd port to 22"
-    port="${DEFAULT_SSH_PORT}"
-  fi
-  echo "${port}"
+installed_version_has_db_engine_bug() {
+  (( $(as_version "${INSTALLED_VERSION}") <= $(as_version "1.5.0") )) || \
+    (
+      (( $(as_version "${INSTALLED_VERSION}") >= $(as_version "2.23.0") )) && \
+      (( $(as_version "${INSTALLED_VERSION}") < $(as_version "2.29.0") ))
+    )
 }
 
 stage4() {
@@ -2046,6 +2046,45 @@ stage4() {
   fi
   debug "Starting stage 4: write inventory file"
   write_inventory_file
+}
+
+disable_fastestmirror(){
+  local disabling_message="Disabling mirrors in repo files"
+  local disabling_command="sed -i -e 's/^#baseurl/baseurl/g; s/^mirrorlist/#mirrorlist/g;'  /etc/yum.repos.d/*"
+  run_command "${disabling_command}" "${disabling_message}" "hide_output"
+
+  if [[ "$(get_centos_major_release)" == "7" ]] && is_fastestmirror_enabled; then
+    disabling_message="Disabling fastestmirror plugin on Centos7"
+    disabling_command="sed -i -e 's/^enabled=1/enabled=0/g' /etc/yum/pluginconf.d/fastestmirror.conf"
+    run_command "${disabling_command}" "${disabling_message}" "hide_output"
+  fi
+}
+
+FASTESTMIROR_CONF_PATH="/etc/yum/pluginconf.d/fastestmirror.conf"
+
+is_fastestmirror_enabled() {
+  file_exists "${FASTESTMIROR_CONF_PATH}" && \
+      grep -q '^enabled=1' "${FASTESTMIROR_CONF_PATH}"
+}
+
+switch_to_centos8_stream() {
+  debug 'Switching CentOS 8 -> CentOS Stream 8'
+  print_with_color 'Switching CentOS 8 -> CentOS Stream 8:' 'blue'
+  disable_centos_repo CentOS-Linux-AppStream
+  disable_centos_repo CentOS-Linux-BaseOS
+  run_command "sed -i 's/mirror.centos.org/vault.centos.org/g' /etc/yum.repos.d/CentOS-*.repo" "  Fixing baseurl"
+  run_command "dnf install centos-release-stream -y" "  Installing CentOS Stream packages"
+  run_command "dnf swap centos-{linux,stream}-repos -y" "  Switching to CentOS Stream"
+  run_command "dnf distro-sync -y" "  Syncing distro"
+}
+
+disable_centos_repo() {
+  local repo_name="${1}"
+  local repo_file="/etc/yum.repos.d/${repo_name}.repo"
+  debug "Disabling repo ${repo_name}"
+  if file_exists "${repo_file}"; then
+    run_command "sed -i 's/enabled=1/enabled=0/g' ${repo_file}" "  Disabling repo ${repo_name}"
+  fi
 }
 is_centos8_distro(){
   file_content_matches /etc/centos-release '-P' '^CentOS Linux.* 8\b'
@@ -2148,45 +2187,6 @@ install_packages(){
   install_ansible_collection "community.general"
   install_ansible_collection "ansible.posix"
 }
-
-switch_to_centos8_stream() {
-  debug 'Switching CentOS 8 -> CentOS Stream 8'
-  print_with_color 'Switching CentOS 8 -> CentOS Stream 8:' 'blue'
-  disable_centos_repo CentOS-Linux-AppStream
-  disable_centos_repo CentOS-Linux-BaseOS
-  run_command "sed -i 's/mirror.centos.org/vault.centos.org/g' /etc/yum.repos.d/CentOS-*.repo" "  Fixing baseurl"
-  run_command "dnf install centos-release-stream -y" "  Installing CentOS Stream packages"
-  run_command "dnf swap centos-{linux,stream}-repos -y" "  Switching to CentOS Stream"
-  run_command "dnf distro-sync -y" "  Syncing distro"
-}
-
-disable_centos_repo() {
-  local repo_name="${1}"
-  local repo_file="/etc/yum.repos.d/${repo_name}.repo"
-  debug "Disabling repo ${repo_name}"
-  if file_exists "${repo_file}"; then
-    run_command "sed -i 's/enabled=1/enabled=0/g' ${repo_file}" "  Disabling repo ${repo_name}"
-  fi
-}
-
-disable_fastestmirror(){
-  local disabling_message="Disabling mirrors in repo files"
-  local disabling_command="sed -i -e 's/^#baseurl/baseurl/g; s/^mirrorlist/#mirrorlist/g;'  /etc/yum.repos.d/*"
-  run_command "${disabling_command}" "${disabling_message}" "hide_output"
-
-  if [[ "$(get_centos_major_release)" == "7" ]] && is_fastestmirror_enabled; then
-    disabling_message="Disabling fastestmirror plugin on Centos7"
-    disabling_command="sed -i -e 's/^enabled=1/enabled=0/g' /etc/yum/pluginconf.d/fastestmirror.conf"
-    run_command "${disabling_command}" "${disabling_message}" "hide_output"
-  fi
-}
-
-FASTESTMIROR_CONF_PATH="/etc/yum/pluginconf.d/fastestmirror.conf"
-
-is_fastestmirror_enabled() {
-  file_exists "${FASTESTMIROR_CONF_PATH}" && \
-      grep -q '^enabled=1' "${FASTESTMIROR_CONF_PATH}"
-}
 clean_packages_metadata() {
   if empty "$WITHOUTH_YUM_UPDATE"; then
     run_command "yum clean all" "Cleaninig yum meta" "hide_output"
@@ -2201,6 +2201,13 @@ stage5(){
     switch_to_centos8_stream
   fi
   install_packages
+}
+
+download_provision(){
+  debug "Download provision"
+  release_url="https://files.keitaro.io/scripts/${BRANCH}/kctl.tar.gz"
+  mkdir -p "${PROVISION_DIRECTORY}"
+  run_command "curl -fsSL ${release_url} | tar -xzC ${PROVISION_DIRECTORY}"
 }
 json2dict() {
 
@@ -2368,13 +2375,6 @@ json2dict() {
   }
 
   echo "("; (tokenize | json_parse); echo ")"
-}
-
-download_provision(){
-  debug "Download provision"
-  release_url="https://files.keitaro.io/scripts/${BRANCH}/kctl.tar.gz"
-  mkdir -p "${PROVISION_DIRECTORY}"
-  run_command "curl -fsSL ${release_url} | tar -xzC ${PROVISION_DIRECTORY}"
 }
 
 write_inventory_on_finish() {
