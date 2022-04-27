@@ -10,7 +10,7 @@
 	if test -x /usr/bin/mysqladmin && \
 	   /usr/bin/mysqladmin ping &>/dev/null
 	then
-	   /usr/bin/mysqladmin --local flush-error-log \
+	   /usr/bin/mysqladmin flush-error-log \
               flush-engine-log flush-general-log flush-slow-log
 	fi
     endscript
