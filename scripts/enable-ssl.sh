@@ -51,7 +51,7 @@ TOOL_NAME='enable-ssl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.34.12'
+RELEASE_VERSION='2.34.13'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -1126,6 +1126,17 @@ start_or_reload_nginx(){
     debug "Nginx is not running, starting"
     print_with_color "$(translate 'messages.nginx_is_not_running')" "yellow"
     run_command "systemctl start nginx" "$(translate 'messages.starting_nginx')" 'hide_output'
+  fi
+}
+
+generate_password(){
+  local PASSWORD_LENGTH=16
+  LC_ALL=C tr -cd '[:alnum:]' < /dev/urandom | head -c${PASSWORD_LENGTH}
+}
+
+generate_salt() {
+  if ! is_running_in_interactive_restoring_mode; then
+    uuidgen | tr -d '-'
   fi
 }
 

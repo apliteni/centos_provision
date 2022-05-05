@@ -52,7 +52,7 @@ TOOL_NAME='install'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.34.12'
+RELEASE_VERSION='2.34.13'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -1019,6 +1019,17 @@ tracker_supports_rbooster() {
   (( $(as_version "$(get_tracker_version)") >= $(as_version "${TRACKER_SUPPORTS_RBOOSTER_SINCE}") ))
 }
 
+generate_password(){
+  local PASSWORD_LENGTH=16
+  LC_ALL=C tr -cd '[:alnum:]' < /dev/urandom | head -c${PASSWORD_LENGTH}
+}
+
+generate_salt() {
+  if ! is_running_in_interactive_restoring_mode; then
+    uuidgen | tr -d '-'
+  fi
+}
+
 join_by(){
   local delimiter=$1
   shift
@@ -1805,17 +1816,6 @@ setup_default_value() {
     VARS["${var_name}"]="${default_value}"
   else
     debug "VARS['${var_name}'] is set to '${VARS[$var_name]}'"
-  fi
-}
-
-generate_password(){
-  local PASSWORD_LENGTH=16
-  LC_ALL=C tr -cd '[:alnum:]' < /dev/urandom | head -c${PASSWORD_LENGTH}
-}
-
-generate_salt() {
-  if ! is_running_in_interactive_restoring_mode; then
-    uuidgen | tr -d '-'
   fi
 }
 

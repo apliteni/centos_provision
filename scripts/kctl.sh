@@ -50,7 +50,7 @@ TOOL_NAME='kctl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.34.12'
+RELEASE_VERSION='2.34.13'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -972,9 +972,10 @@ kctl_auto_install(){
   local sleeping_message
   local install_args="${1}"
   local log_file="${2}"
+  local tags="${3}"
 
   for (( count=0; count<=${#RETRY_INTERVALS[@]}; count++ ));  do
-    if kctl_install "${install_args}" "${log_file}"; then
+    if kctl_install "${install_args}" "${log_file}" "${tags}"; then
       installator_exit_code="${?}"
     else
       installator_exit_code="${?}"
@@ -1003,8 +1004,15 @@ kctl_auto_install(){
 kctl_install(){
   local install_args="${1}"
   local log_file="${2}"
-  debug "Running \`curl -fsSL4 '${FILES_KEITARO_URL}/install.sh' | bash -s -- ${install_args} -o '${KCTL_LOG_DIR}/${log_file}' \`"
-  get_kctl_install | bash -s -- "${install_args}" -o "${KCTL_LOG_DIR}/${log_file}"
+  local tags="${3}"
+
+  if  empty "$tags"; then
+    debug "Running \`curl -fsSL4 '${FILES_KEITARO_URL}/install.sh' | bash -s -- ${install_args} -o '${KCTL_LOG_DIR}/${log_file}' \`"
+    get_kctl_install | bash -s -- "${install_args}" -o "${KCTL_LOG_DIR}/${log_file}"
+  else
+    debug "Running \`curl -fsSL4 '${FILES_KEITARO_URL}/install.sh' | bash -s -- ${install_args} -t ${tags} -o '${KCTL_LOG_DIR}/${log_file}' \`"
+    get_kctl_install | bash -s -- "${install_args}" -t "${tags}" -o "${KCTL_LOG_DIR}/${log_file}"
+  fi
 }
 
 kctl_features() {
@@ -1110,6 +1118,13 @@ is_tracker_version_to_install_valid() {
     [[ "${tracker_version_to_install}" == "latest-unstable" ]] || \
     (( $(as_version "${tracker_version_to_install}") >=  $(as_version "${MIN_TRACKER_VERSION_TO_INSTALL}") ))
 }
+kctl_password_change(){
+  change_mysql_password "keitaro"
+  change_mysql_password "root"
+  change_ch_password
+  change_tracker_salt
+  clean_tracker_cache
+}
 
 kctl_renew_certificates() {
   local successfully_renewed_flag_filepath="/var/lib/letsencrypt/.renewed"
@@ -1202,6 +1217,49 @@ kctl_show_version(){
   else
     fail "$(translate 'errors.tracker_is_not_installed')"
   fi
+}
+
+change_mysql_password(){
+  local user="${1}"
+  local root_mysql_password
+  local new_password="${2}"
+  local new_password
+  new_password=$(generate_password)
+  root_mysql_password=$(get_mysql_password)
+
+  mysql -p"${root_mysql_password}" -u root -Nse "UPDATE mysql.user SET Password=PASSWORD('${new_password}') WHERE USER='${user}'; flush privileges;"
+
+  if [ "${user}" == "root" ]; then
+    sed -i -e "s/^password=.*/password=${new_password}/g" /root/.my.cnf
+  elif [ "${user}" == "keitaro" ]; then
+    sed -i -e "s/^MARIADB_PASSWORD=.*/MARIADB_PASSWORD=${new_password}/g" /etc/keitaro/config/tracker.env
+  fi
+}
+
+get_mysql_password(){
+  grep password  /root/.my.cnf | cut -d '=' -f 2
+}
+change_ch_password(){
+  local new_password
+  local new_hashed_password
+  local old_hashed_password
+
+  old_hashed_password="$(grep  -oP '(?<=<password_sha256_hex>).*?(?=</password_sha256_hex>)' /etc/clickhouse-server/users.xml)"
+  new_password="$(generate_password)"
+  new_hashed_password=$(echo -n "${new_password}" | sha256sum -b | awk '{print$1}')
+
+  sed -i "s/${old_hashed_password}/${new_hashed_password}/g" /etc/clickhouse-server/users.xml
+  sed -i -e "s/^CH_PASSWORD=.*/CH_PASSWORD=${new_password}/g" /etc/keitaro/config/tracker.env
+  sed -i -e "s/^ch_password=.*/ch_password=${new_password}/g" /etc/keitaro/config/inventory
+  systemctl restart clickhouse
+}
+clean_tracker_cache(){
+  sudo -u "${KEITARO_USER}" php "${TRACKER_ROOT}"/bin/cli.php system:reload_cache
+}
+change_tracker_salt(){
+  local new_salt
+  new_salt="$(generate_salt)"
+  sed -i -e "s/^SALT=.*/SALT=${new_salt}/g" /etc/keitaro/config/tracker.env
 }
 
 run_ch_migrator(){
@@ -1410,6 +1468,49 @@ print_credentials_notice() {
   print_with_color "${notice}" 'yellow'
 }
 
+get_config_value(){
+  local var="${1}"
+  local file="${2}"
+  local separator="${3}"
+  if file_exists "${file}"; then
+    grep "^${var}\\b" "${file}" | \
+      grep "${separator}" | \
+      head -n1 | \
+      awk -F"${separator}" '{print $2}' | \
+      awk '{$1=$1; print}' | \
+      unquote
+  fi
+}
+
+unquote() {
+  sed -r -e "s/^'(.*)'\$/\\1/g" -e 's/^"(.*)"$/\1/g'
+}
+
+
+generate_password(){
+  local PASSWORD_LENGTH=16
+  LC_ALL=C tr -cd '[:alnum:]' < /dev/urandom | head -c${PASSWORD_LENGTH}
+}
+
+generate_salt() {
+  if ! is_running_in_interactive_restoring_mode; then
+    uuidgen | tr -d '-'
+  fi
+}
+
+is_running_in_interactive_restoring_mode() {
+  [[ "${RUNNING_MODE}" == "${RUNNING_MODE_RESTORE}" ]] && \
+    [[ "${RESTORING_MODE}" == "${RESTORING_MODE_INTERACTIVE}" ]]
+}
+
+is_running_in_upgrade_mode() {
+  [[ "${RUNNING_MODE}" == "${RUNNING_MODE_UPGRADE}" ]]
+}
+
+is_running_in_install_mode() {
+  [[ "${RUNNING_MODE}" == "${RUNNING_MODE_INSTALL}" ]]
+}
+
 init "${@}"
 
 action="${1}"
@@ -1423,6 +1524,9 @@ case "${action}" in
     ;;
   "upgrade")
     kctl_auto_install -U "kctl-upgrade.log"
+    ;;
+  "tune")
+    kctl_auto_install -U "kctl-tune.log" tune
     ;;
   "rescue")
     kctl_auto_install -C "kctl-rescue.log"
@@ -1452,6 +1556,10 @@ case "${action}" in
   "run")
     kctl_run "${@}"
     ;;
+  "password-change")
+    kctl_password_change
+    ;;
+
   help)
     kctl_show_help
     ;;

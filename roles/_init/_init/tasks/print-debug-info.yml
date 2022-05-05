@@ -35,6 +35,7 @@
       - roadrunner_worker_max_requests
       - roadrunner_worker_size_mb
       - roadrunner_workers_count
+      - kctl_force_regenerate_ssl
 
 - name: Debug vars
   set_fact:
