@@ -37,7 +37,7 @@
     - {role: 'tracker/fix-permissions',                     tags: 'fix-permissions,              always'}   # noqa yaml
     - {role: 'tracker/install-tracker',                     tags: 'install-tracker'}                        # noqa yaml
     - {role: 'tracker/upgrade-tracker',                     tags: 'upgrade-tracker,              never'}    # noqa yaml
-    - {role: 'tracker/tune-tracker',                        tags: 'tune-tracker'}                           # noqa yaml
+    - {role: 'tracker/tune-tracker',                        tags: 'tune-tracker',                tune'}     # noqa yaml
     - {role: 'tracker/wrap-up-tracker-configuration',       tags: 'wrap-up-tracker-configuration'}          # noqa yaml
     - {role: 'wrap-up/_tune-nginx',                         tags: 'tune-nginx,                   tune'}     # noqa yaml
     - {role: 'wrap-up/finish-upgrade',                      tags: 'finish-upgrade,               upgrade'}  # noqa yaml
