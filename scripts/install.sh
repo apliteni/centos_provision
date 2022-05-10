@@ -52,7 +52,7 @@ TOOL_NAME='install'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.34.17'
+RELEASE_VERSION='2.35.0'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -1561,7 +1561,10 @@ parse_options(){
     expand_ansible_tags_with_tag "upgrade-tracker"
     expand_ansible_tags_with_tag "tune-tracker"
   fi
+  if [[ "${RUNNING_MODE}" == "${RUNNING_MODE_INSTALL}" ]] && empty "${KCTL_TRACKER_VERSION_TO_INSTALL}"; then
 
+    KCTL_TRACKER_VERSION_TO_INSTALL="latest-unstable"
+  fi
   ensure_options_correct
 }
 
