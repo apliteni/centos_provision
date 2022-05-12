@@ -1,12 +1,12 @@
 ---
 - name: Create the htop config directory if it does not exist
   file:
-    path: "{{ ansible_env.HOME }}/.config/htop/"
+    path: "{{ ansible_env.HOME | default('/root') }}/.config/htop/"
     state: directory
     mode: '0755'
 
 - name: Install htop config
   copy:
     src: files/htoprc
-    dest: "{{ ansible_env.HOME }}/.config/htop/htoprc"
+    dest: "{{ ansible_env.HOME | default('/root') }}/.config/htop/htoprc"
     mode: '0644'
