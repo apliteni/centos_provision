@@ -3,12 +3,8 @@
     src: users.xml.j2
     dest: "{{ clickhouse_config_path }}/users.xml"
     mode: '0644'
-  notify: restart clickhouse
+  notify:
+    - restart clickhouse
 
-- name: Restart clickhouse service
-  systemd:
-    name: clickhouse
-    state: restarted
-    enabled: true
-    daemon_reload: true
-  changed_when: false
+- name: Update SystemD service if need
+  meta: flush_handlers

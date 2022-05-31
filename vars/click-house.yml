@@ -1,5 +1,7 @@
 clickhouse_config_path: /etc/clickhouse-server
+clickhouse_version: 22.1
 ch_host: 127.0.0.1
-ch_port: 8123
+ch_port_http: 8123
+ch_port: 9000
 ch_db: keitaro
 ch_user: keitaro

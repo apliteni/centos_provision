@@ -3,7 +3,7 @@ clickhouse_docker_group: "clickhouse"
 clickhouse_docker_user_home: "/var/lib/clickhouse"
 clickhouse_docker_user_shell: "/sbin/nologin"
 clickhouse_docker_name: "clickhouse"
-clickhouse_docker_image: "registry.hub.docker.com/yandex/clickhouse-server:21.3"
+clickhouse_docker_image: "registry.hub.docker.com/yandex/clickhouse-server:{{ clickhouse_version }}"
 clickhouse_docker_run_args: "--rm --net host"
 clickhouse_docker_volumes:
   - "{{ clickhouse_config_path }}/users.xml"

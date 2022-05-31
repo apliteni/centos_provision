@@ -1,0 +1,5 @@
+- name: Make sssd-kcm log dir
+  file:
+    path: /var/log/sssd/
+    state: directory
+    mode: 0755

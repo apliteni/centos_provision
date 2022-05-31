@@ -1,4 +1,3 @@
----
 - name: Check if X3 already is blacklisted
   stat:
     path: "{{ blacklisted_ca_x3 }}"

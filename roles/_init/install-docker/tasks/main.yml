@@ -9,4 +9,12 @@
     state: installed
   when: centos_release_version == "8"
 
+- name: Supress podman warns
+  file:
+    path: /etc/containers/nodocker
+    state: touch
+    access_time: preserve
+    modification_time: preserve
+    mode: '0644'
+
 - include_tasks: tune-certbot.yml

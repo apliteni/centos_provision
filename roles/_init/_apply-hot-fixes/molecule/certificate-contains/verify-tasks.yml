@@ -1,4 +1,3 @@
----
 - name: Check that X3 certificate contains in blacklist folder
   stat:
     path: "{{ blacklisted_ca_x3 }}"

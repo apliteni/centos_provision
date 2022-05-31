@@ -1,0 +1,15 @@
+- name: Get tracker.env info
+  stat:
+    path: /etc/keitaro/config/tracker.env
+  register: tracker_env_info
+
+- name: Add variadbles to tracker.rnv
+  lineinfile:
+    path: /etc/keitaro/config/tracker.env
+    regexp: '^{{ item.key }}='
+    line: '{{ item.key }}={{ item.value }}'
+  with_dict:
+    MARIADB_HOST: '{{ db_host }}'
+    MARIADB_PORT: '{{ db_port }}'
+    CH_PORT: '{{ ch_port }}'
+  when: tracker_env_info.stat.exists
