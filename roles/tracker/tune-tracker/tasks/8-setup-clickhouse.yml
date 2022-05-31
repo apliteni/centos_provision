@@ -1,0 +1,20 @@
+- name: Get CH keitaro database status
+  command: /opt/keitaro/bin/kctl run clickhouse-query "SHOW DATABASES LIKE 'keitaro'"
+  changed_when: false
+  register: list_keitaro_database_command
+
+- name: Setup CH
+  when: list_keitaro_database_command.stdout == ''
+  block:
+
+    - name: Use CH for keitaro tracker
+      command: "kctl run cli-php ch_db:setup --config {{ keitaro_config_ini_php_path }}"
+      args:
+        chdir: "{{ keitaro_app_dir }}"
+      changed_when: true
+
+    - name: Turn up Rbooster
+      lineinfile:
+        path: "{{ keitaro_config_ini_php_path }}"
+        regexp: ^rbooster =
+        line: "rbooster = true"

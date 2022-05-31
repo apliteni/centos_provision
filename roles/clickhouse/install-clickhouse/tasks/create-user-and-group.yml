@@ -17,3 +17,11 @@
     path: "{{ clickhouse_config_path }}"
     state: directory
     mode: '0755'
+
+- name: Create clickhouse logs dirs
+  file:
+    path: "{{ clickhouse_logs_path }}"
+    state: directory
+    mode: '0755'
+    owner: "{{ clickhouse_docker_user }}"
+    group: "{{ clickhouse_docker_group }}"

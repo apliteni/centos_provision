@@ -8,3 +8,4 @@ clickhouse_docker_run_args: "--rm --net host"
 clickhouse_docker_volumes:
   - "{{ clickhouse_config_path }}/users.xml"
   - "/var/lib/clickhouse"
+  - "{{ clickhouse_logs_path }}"
