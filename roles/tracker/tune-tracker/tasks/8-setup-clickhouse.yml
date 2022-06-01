@@ -1,10 +1,11 @@
 - name: Get CH keitaro database status
-  command: /opt/keitaro/bin/kctl run clickhouse-query "SHOW DATABASES LIKE 'keitaro'"
+  command: /opt/keitaro/bin/kctl run clickhouse-query "SELECT 1"
   changed_when: false
+  failed_when: false
   register: list_keitaro_database_command
 
 - name: Setup CH
-  when: list_keitaro_database_command.stdout == ''
+  when: list_keitaro_database_command.rc != 0
   block:
 
     - name: Use CH for keitaro tracker
