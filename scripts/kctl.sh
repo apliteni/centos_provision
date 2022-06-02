@@ -50,7 +50,7 @@ TOOL_NAME='kctl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.36.3'
+RELEASE_VERSION='2.36.4'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -892,28 +892,6 @@ DICT['en.validation_errors.validate_presence']='Please enter value'
 DICT['en.validation_errors.validate_absence']='Should not be specified'
 DICT['en.validation_errors.validate_yes_no']='Please answer "yes" or "no"'
 
-kctl_features_usage() {
-  echo "Usage:"
-  echo "  kctl features enable <feature>                  enable feature"
-  echo "  kctl features disable <feature>                 disable feature"
-  echo "  kctl features list                              list supported features"
-}
-
-kctl_features_disable() {
-  local feature="${1}"
-  if empty "${feature}"; then
-    kctl_features_usage
-  else
-    case "${feature}" in
-      rbooster)
-        kctl_features_disable_rbooster
-      ;;
-      *)
-        kctl_features_usage
-    esac
-  fi
-}
-
 kctl_features_enable() {
   local feature="${1}"
   if empty "${feature}"; then
@@ -927,6 +905,22 @@ kctl_features_enable() {
         kctl_features_usage
     esac
   fi
+}
+
+kctl_features_usage() {
+  echo "Usage:"
+  echo "  kctl features enable <feature>                  enable feature"
+  echo "  kctl features disable <feature>                 disable feature"
+  echo "  kctl features list                              list supported features"
+}
+
+kctl_features_enable_rbooster() {
+  set_olap_db "${OLAP_DB_CLICKHOUSE}"
+  run_ch_migrator
+}
+
+kctl_features_disable_rbooster() {
+  set_olap_db "${OLAP_DB_MARIADB}"
 }
 
 set_olap_db() {
@@ -949,13 +943,19 @@ assert_tracker_supports_rbooster() {
   fi
 }
 
-kctl_features_enable_rbooster() {
-  set_olap_db "${OLAP_DB_CLICKHOUSE}"
-  run_ch_migrator
-}
-
-kctl_features_disable_rbooster() {
-  set_olap_db "${OLAP_DB_MARIADB}"
+kctl_features_disable() {
+  local feature="${1}"
+  if empty "${feature}"; then
+    kctl_features_usage
+  else
+    case "${feature}" in
+      rbooster)
+        kctl_features_disable_rbooster
+      ;;
+      *)
+        kctl_features_usage
+    esac
+  fi
 }
 
 kctl_features_list(){
@@ -1231,25 +1231,6 @@ kctl_show_version(){
     fail "$(translate 'errors.tracker_is_not_installed')"
   fi
 }
-change_tracker_salt(){
-  local new_salt
-  new_salt="$(generate_salt)"
-  sed -i -e "s/^SALT=.*/SALT=${new_salt}/g" /etc/keitaro/config/tracker.env
-}
-change_ch_password(){
-  local new_password
-  local new_hashed_password
-  local old_hashed_password
-
-  old_hashed_password="$(grep  -oP '(?<=<password_sha256_hex>).*?(?=</password_sha256_hex>)' /etc/clickhouse-server/users.xml)"
-  new_password="$(generate_password)"
-  new_hashed_password=$(echo -n "${new_password}" | sha256sum -b | awk '{print$1}')
-
-  sed -i "s/${old_hashed_password}/${new_hashed_password}/g" /etc/clickhouse-server/users.xml
-  sed -i -e "s/^CH_PASSWORD=.*/CH_PASSWORD=${new_password}/g" /etc/keitaro/config/tracker.env
-  sed -i -e "s/^ch_password=.*/ch_password=${new_password}/g" /etc/keitaro/config/inventory
-  systemctl restart clickhouse
-}
 
 change_mysql_password(){
   local user="${1}"
@@ -1271,8 +1252,24 @@ change_mysql_password(){
 get_mysql_password(){
   grep password  /root/.my.cnf | cut -d '=' -f 2
 }
-clean_tracker_cache(){
-  sudo -u "${KEITARO_USER}" php "${TRACKER_ROOT}"/bin/cli.php system:reload_cache
+change_ch_password(){
+  local new_password
+  local new_hashed_password
+  local old_hashed_password
+
+  old_hashed_password="$(grep  -oP '(?<=<password_sha256_hex>).*?(?=</password_sha256_hex>)' /etc/clickhouse-server/users.xml)"
+  new_password="$(generate_password)"
+  new_hashed_password=$(echo -n "${new_password}" | sha256sum -b | awk '{print$1}')
+
+  sed -i "s/${old_hashed_password}/${new_hashed_password}/g" /etc/clickhouse-server/users.xml
+  sed -i -e "s/^CH_PASSWORD=.*/CH_PASSWORD=${new_password}/g" /etc/keitaro/config/tracker.env
+  sed -i -e "s/^ch_password=.*/ch_password=${new_password}/g" /etc/keitaro/config/inventory
+  systemctl restart clickhouse
+}
+change_tracker_salt(){
+  local new_salt
+  new_salt="$(generate_salt)"
+  sed -i -e "s/^SALT=.*/SALT=${new_salt}/g" /etc/keitaro/config/tracker.env
 }
 
 on_exit(){
@@ -1285,12 +1282,8 @@ run_ch_migrator(){
     --env-file-path=${INVENTORY_DIR}/tracker.env"
   run_command "${command}"
 }
-
-kctl_resolving_usage() {
-  echo "Usage:"
-  echo "  kctl resolving set_google                        sets google dns"
-  echo "  kctl resolving reset                             resets settings"
-  echo "  kctl resolving usage                             prints this page"
+clean_tracker_cache(){
+  sudo -u "${KEITARO_USER}" php "${TRACKER_ROOT}"/bin/cli.php system:reload_cache
 }
 
 kctl_resolving_reset() {
@@ -1309,6 +1302,13 @@ kctl_resolving_reset() {
   fi
 }
 
+kctl_resolving_usage() {
+  echo "Usage:"
+  echo "  kctl resolving set_google                        sets google dns"
+  echo "  kctl resolving reset                             resets settings"
+  echo "  kctl resolving usage                             prints this page"
+}
+
 kctl_resolving_set_google() {
   if file_content_matches ${RESOLV_CONF} '-F' "nameserver ${DNS_GOOGLE}"; then
     debug "${RESOLV_CONF} already contains 'nameserver ${DNS_GOOGLE}', skipping"
@@ -1316,6 +1316,36 @@ kctl_resolving_set_google() {
     debug "${RESOLV_CONF} doesn't contain 'nameserver ${DNS_GOOGLE}', adding"
     run_command "sed -i '1inameserver ${DNS_GOOGLE}' ${RESOLV_CONF}"
   fi
+}
+# shellcheck source=/dev/null
+
+kctl_run_clickhouse_in_docker() {
+  local docker_exec_args="${1}"; shift
+  source /etc/keitaro/config/tracker.env
+
+  docker exec --env HOME=/tmp "${docker_exec_args}" clickhouse \
+         clickhouse-client --host "${CH_HOST}" --port="${CH_PORT}" \
+                           --user="${CH_USER}" --password="${CH_PASSWORD}"  \
+                           --database="${CH_DB}" \
+                           "${@}"
+}
+
+kctl_run_clickhouse_client() {
+  kctl_run_clickhouse_in_docker "-it"
+}
+
+kctl_run_clickhouse_query() {
+  local sql="${1}"
+  if [[ "${sql}" == "" ]]; then
+    kctl_run_clickhouse_in_docker "-i" --format=TabSeparated
+  else
+    kctl_run_clickhouse_in_docker "-i" --format=TabSeparated --query="${sql}"
+  fi
+}
+# shellcheck source=/dev/null
+
+kctl_run_cli_php() {
+  sudo -u keitaro /usr/bin/kctl-php /var/www/keitaro/bin/cli.php "${@}"
 }
 # shellcheck source=/dev/null
 
@@ -1348,36 +1378,6 @@ kctl_run_usage(){
   echo "  kctl run mysql-client                       start mysql shell"
   echo "  kctl run mysql-query                        execute mysql query"
   echo "  kctl run cli-php                            execute cli.php command"
-}
-# shellcheck source=/dev/null
-
-kctl_run_clickhouse_in_docker() {
-  local docker_exec_args="${1}"; shift
-  source /etc/keitaro/config/tracker.env
-
-  docker exec --env HOME=/tmp "${docker_exec_args}" clickhouse \
-         clickhouse-client --host "${CH_HOST}" --port="${CH_PORT}" \
-                           --user="${CH_USER}" --password="${CH_PASSWORD}"  \
-                           --database="${CH_DB}" \
-                           "${@}"
-}
-
-kctl_run_clickhouse_client() {
-  kctl_run_clickhouse_in_docker "-it"
-}
-
-kctl_run_clickhouse_query() {
-  local sql="${1}"
-  if [[ "${sql}" == "" ]]; then
-    kctl_run_clickhouse_in_docker "-i" --format=TabSeparated
-  else
-    kctl_run_clickhouse_in_docker "-i" --format=TabSeparated --query="${sql}"
-  fi
-}
-# shellcheck source=/dev/null
-
-kctl_run_cli_php() {
-  sudo -u keitaro /usr/bin/kctl-php /var/www/keitaro/bin/cli.php "${@}"
 }
 CURRENT_DATETIME="$(date +%Y%m%d%H%M)"
 MIN_TRACKER_VERSION_TO_INSTALL='9.13.0'

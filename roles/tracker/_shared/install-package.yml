@@ -1,7 +1,17 @@
+- name: Set tracker_package_url if url is passed in tracker_version_to_install
+  set_fact:
+    tracker_package_url: "{{ tracker_version_to_install }}"
+  when: keitaro_files in tracker_version_to_install
+
+- name: Set tracker_package_url using tracker_version_to_install
+  set_fact:
+    tracker_package_url: "{{ keitaro_files }}/keitaro/releases/{{ tracker_version_to_install }}/package8.zip"
+  when: tracker_package_url is undefined
+
 - name: Set default tracker_package_url from tracker_version_to_install was set
   set_fact:
     tracker_package_url: "{{ keitaro_files }}/keitaro/releases/{{ tracker_version_to_install }}/package8.zip"
-  when: (tracker_package_url is undefined) and (tracker_version_to_install is defined)
+  when: keitaro_files not in tracker_version_to_install
 
 - name: Download and unarchive tracker package
   unarchive:
