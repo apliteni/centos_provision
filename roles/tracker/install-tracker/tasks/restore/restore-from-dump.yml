@@ -1,6 +1,6 @@
 - name: Set table_prefix_from var
   set_fact:
-    table_prefix_from: '{{ ansible_env.TABLES_PREFIX | default("keitaro") }}'
+    table_prefix_from: '{{ ansible_env.TABLES_PREFIX | default("keitaro_") }}'
 
 - name: Restore DB from SQL dump
   shell: >

@@ -51,7 +51,7 @@ TOOL_NAME='enable-ssl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.36.4'
+RELEASE_VERSION='2.36.5'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -1196,15 +1196,13 @@ build_check_table_exists_expression() {
 
 
 build_get_chunk_command() {
-  local gzip_mime_regex='\<gzip$'
   local mime_type="${1}"
   local file="${2}"
   local filter="${3}"
-  if [[ "$mime_type" == 'text/plain' ]]; then
-    echo "${filter} '${file}'"
-  fi
-  if [[ "$mime_type" =~ ${gzip_mime_regex} ]]; then
+  if [[ "$mime_type" =~ gzip ]]; then
     echo "zcat '${file}' | ${filter}"
+  else
+    echo "${filter} '${file}'"
   fi
 }
 

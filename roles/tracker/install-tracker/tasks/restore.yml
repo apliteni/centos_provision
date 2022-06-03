@@ -7,8 +7,8 @@
 
 - name: Restore DB from gzipped SQL dump
   include: restore/restore-from-dump.yml cat=zcat
-  when: "db_restore_dump_file_mime.stdout == 'application/x-gzip'"
+  when: "'gzip' in db_restore_dump_file_mime.stdout"
 
 - name: Restore DB from unpacked SQL dump
   include: restore/restore-from-dump.yml cat=cat
-  when: "db_restore_dump_file_mime.stdout != 'application/x-gzip'"
+  when: "not 'gzip' in db_restore_dump_file_mime.stdout"
