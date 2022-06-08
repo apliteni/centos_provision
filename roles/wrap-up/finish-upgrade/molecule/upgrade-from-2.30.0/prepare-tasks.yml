@@ -1,0 +1,23 @@
+- include_role:
+    name: _init/create-user-and-dirs
+
+- include_role:
+    name: wrap-up/_tune-nginx
+
+- set_fact:
+    files_to_be_deleted:
+      - /etc/php/roadrunner.yml
+      - /etc/firewall.bash
+      - /etc/nginx/conf.d/keitaro/tracker.roadrunner.inc
+
+- name: Create necessary directories
+  file:
+    path: "{{ item | dirname }}"
+    state: directory
+  with_items: "{{ files_to_be_deleted }}"
+
+- name: Create old files
+  file:
+    path: "{{ item }}"
+    state: touch
+  with_items: "{{ files_to_be_deleted }}"

@@ -1,9 +1,0 @@
-- name: Remove old cron task
-  cron:
-    name: "Generate CloudFlare IP list"
-    state: absent
-
-- name: Remove old script
-  file:
-    path: /usr/local/bin/keitaro-generate_cf_ip_lists
-    state: absent

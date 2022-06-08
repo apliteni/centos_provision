@@ -4,7 +4,7 @@ __metaclass__ = type
 
 DOCUMENTATION = """
   lookup: upgrade_chekpoints
-  short_description: build list of chekpoints be played on upgrade
+  short_description: build a list of chekpoints to be played on upgrade
   description:
       - This lookup returns the list of upgrade checkpoint names to be played on upgrade.
   options:
@@ -16,7 +16,7 @@ DOCUMENTATION = """
       required: True
   notes:
     Example
-      Version 2.27.0 is installed on the target box. Current kctl version is 2.29.0 and we have tasks
+      Version 2.27.1 is installed on the target box.
 
       tasks/
       |
@@ -53,19 +53,18 @@ class LookupModule(LookupBase):
         kctl_tags = variables['kctl_tags']
 
         if ('upgrade' in kctl_tags) or ('full-upgrade' in kctl_tags):
-            to = variables['kctl_version']
             since = '0.9' if ('full-upgrade' in kctl_tags) else variables['kctl_installed_version']
-            upgrade_checkpoint_to_path_map = self.__upgrade_checkpoint_to_path_map(terms[0], variables, since, to)
-            return self.__upgrade_checkpoint_paths(upgrade_checkpoint_to_path_map, since, to)
+            upgrade_checkpoint_to_path_map = self.__upgrade_checkpoint_to_path_map(terms[0], variables, since)
+            return self.__upgrade_checkpoint_paths(upgrade_checkpoint_to_path_map, since)
         else:
             return []
 
 
-    def __upgrade_checkpoint_to_path_map(self, term, variables, since, to):
+    def __upgrade_checkpoint_to_path_map(self, term, variables, since):
         result = {}
         basedir = self.get_basedir(variables)
-        display.display("Lookup upgrade checkpoints to be played on upgrade %s -> %s in the %s directory" % \
-                        (since, to, term))
+        display.display("Lookup upgrade checkpoints to be played on upgrade from %s in the %s directory" % \
+                        (since, term))
         term_file = os.path.basename(term)
         dwimmed_path = self._loader.path_dwim_relative(basedir, 'files', os.path.dirname(term))
         path = os.path.join(dwimmed_path, term_file)
@@ -80,21 +79,21 @@ class LookupModule(LookupBase):
         return result
 
 
-    def __upgrade_checkpoint_paths(self, upgrade_checkpoint_to_path_map, since, to):
+    def __upgrade_checkpoint_paths(self, upgrade_checkpoint_to_path_map, since):
         result = []
         upgrade_checkpoint_versions = list(upgrade_checkpoint_to_path_map.keys())
         upgrade_checkpoint_versions.sort(key=StrictVersion)
         display.vvv("Found upgrdade checkpoints: %s" % upgrade_checkpoint_versions)
 
         for upgrade_checkpoint in upgrade_checkpoint_versions:
-            if self.__playable_on_upgrade(upgrade_checkpoint, since, to):
+            if self.__playable_on_upgrade(upgrade_checkpoint, since):
                 result.append(upgrade_checkpoint_to_path_map[upgrade_checkpoint])
 
         display.display("Following upgrdade checkpoint will be played: %s" % result)
 
         return result
 
-    def __playable_on_upgrade(self, upgrade_checkpoint, since, to):
-        return (StrictVersion(to_text(upgrade_checkpoint)) > StrictVersion(to_text(since))) and \
-               (StrictVersion(to_text(upgrade_checkpoint)) <= StrictVersion(to_text(to)))
 
+    def __playable_on_upgrade(self, upgrade_checkpoint, since):
+
+        return (StrictVersion(to_text(upgrade_checkpoint)) >= StrictVersion(to_text(since)))

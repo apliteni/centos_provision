@@ -1,0 +1,12 @@
+- name: Remove old files
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - /etc/php/roadrunner.yml
+    - /etc/firewall.bash
+    - /etc/nginx/conf.d/keitaro/tracker.roadrunner.inc
+
+- name: Remove X3 from exsiting certs
+  command: "{{ kctl_bin_dir }}/kctl fix-le-certs-2021-09-30-issues"
+  changed_when: false

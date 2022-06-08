@@ -1,0 +1,11 @@
+- name: Check that the /swap exists
+  stat:
+    path: /swap
+  register: stat_swap_file_result
+
+- name: Remove old swap record from fstab
+  lineinfile:
+    dest: "/etc/fstab"
+    regexp: '^/swap\s'
+    state: absent
+  when: not stat_swap_file_result.stat.exists

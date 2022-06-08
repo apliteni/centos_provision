@@ -6,6 +6,13 @@
     and (kctl_tracker_version_to_install != 'latest-stable')
     and (kctl_tracker_version_to_install != 'latest-unstable')
 
+- name: Set tracker_verison_to_install to current version if we run full upgrade
+  set_fact:
+    tracker_version_to_install: "{{ installed_tracker_version }}"
+  when: >
+    ('full-upgrade' in kctl_tags)
+    and (installed_tracker_version != '')
+
 - name: Set tracker_version_to_install to latest version
   when: tracker_version_to_install is not defined
   block:
@@ -25,7 +32,7 @@
         - name: Get tracker stability
           community.mysql.mysql_query:
             login_db: "{{ db_name }}"
-            query: "SELECT `value` FROM keitaro_settings WHERE `key` = 'is_beta_channel'"
+            query: "(SELECT `value` FROM keitaro_settings WHERE `key` = 'is_beta_channel') UNION (SELECT 0) LIMIT 1"
           register: get_tracker_stability
 
         - set_fact:

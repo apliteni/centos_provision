@@ -1,0 +1,32 @@
+- name: Install PyMySQL
+  pip:
+    name: pymysql
+    state: present
+    executable: pip3
+
+- name: Remove old cron tasks
+  cron:
+    name: "{{ item }}"
+    state: absent
+  with_items:
+    - "Generate {{ keitaro_stats_json_path }}"
+    - "Generate CloudFlare IP list"
+
+- name: Remove old script
+  file:
+    path: /usr/local/bin/keitaro-generate_cf_ip_lists
+    state: absent
+
+- name: Get tracker.env info
+  stat:
+    path: /etc/keitaro/config/tracker.env
+  register: tracker_env_info
+
+- name: Add variadbles to tracker.env
+  include: add-var-to-tracker-env.yml
+  with_dict:
+    CH_PORT: '{{ ch_port }}'
+    MARIADB_HOST: '{{ db_host }}'
+    MARIADB_PORT: '{{ db_port }}'
+    PREFIX: '{{ table_prefix | default("keitaro_") }}'
+  when: tracker_env_info.stat.exists

@@ -1,0 +1,42 @@
+- include_role:
+    name: _init/create-user-and-dirs
+
+- copy:
+   dest: "{{ keitaro_app_dir }}/version.php"
+   content: "<?php return '9.12.12';"
+
+- name: Create necessary directories
+  file:
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - /etc/letsencrypt/renewal
+    - "{{ keitaro_app_dir }}"
+
+- name: Create necessary directories
+  file:
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - /var/log/mysql
+    - /var/www/keitaro/var
+
+- name: Create old files
+  file:
+    path: "{{ item }}"
+    state: touch
+  with_items:
+    - /var/log/mysql/slow_queries.log
+    - /var/www/keitaro/var/stats.json-202101010000.tmp
+
+- name: Create abandoned /swap entry in /etc/fstab
+  shell: echo "/swap none swap sw 0 0" >> /etc/fstab
+
+- name: Create renewal configs
+  copy:
+    src: "{{ item }}"
+    dest: "/etc/letsencrypt/renewal/{{ item }}"
+  with_items:
+    - with_correct_preferred_chain.conf
+    - with_incorrect_preferred_chain.conf
+    - without_preferred_chain.conf

@@ -1,0 +1,28 @@
+- name: Get old files stats
+  stat:
+    path: "{{ item }}"
+  with_items:
+    - /var/log/mysql/slow_queries.log
+    - /var/www/keitaro/var/stats.json-202101010000.tmp
+  register: old_files_stats
+
+- name: Test old files does not exist
+  assert:
+    that: not item.stat.exists
+  with_items: "{{ old_files_stats.results }}"
+
+- name: Test /etc/fstab doesn't contain /swap entry
+  shell: '[[ "$(grep ^/swap /etc/fstab)" == "" ]]'
+
+- name: Ensure correct renewal files contains preferred_chain option
+  lineinfile:
+    path: "/etc/letsencrypt/renewal/{{ item }}"
+    regexp: '^preferred_chain = ISRG Root X1'
+    state: absent
+  check_mode: yes
+  register: result
+  failed_when: not result.found
+  with_items:
+    - with_correct_preferred_chain.conf
+    - with_incorrect_preferred_chain.conf
+    - without_preferred_chain.conf

@@ -1,0 +1,14 @@
+- name: Remove unneeded files
+  file:
+    dest: "{{ item }}"
+    state: absent
+  with_items:
+    - /usr/local/bin/keitaro-generate_stats_json
+    - /usr/local/bin/keitaro-print_stats_json
+    - /usr/local/bin/keitaro-rotate_nginx_status_logs
+    - /var/log/mysql/slow_queries.log
+
+- name: Find and delete temporary stats.json
+  command: "find {{ keitaro_stats_json_dir }} -maxdepth 1 -type f -name '*.tmp' -print -delete"
+  register: temporary_stats_json
+  changed_when: "temporary_stats_json.stdout_lines != []"
