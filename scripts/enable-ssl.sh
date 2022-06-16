@@ -51,7 +51,7 @@ TOOL_NAME='enable-ssl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.36.6'
+RELEASE_VERSION='2.36.7'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -210,7 +210,7 @@ assert_installed(){
 USE_NEW_ALGORITHM_FOR_INSTALLATION_CHECK_SINCE="2.12"
 KEITARO_LOCK_FILEPATH="${TRACKER_ROOT}/var/install.lock"
 
-assert_keitaro_not_installed(){
+assert_keitaro_not_installed() {
   debug 'Ensure keitaro is not installed yet'
   if is_keitaro_installed; then
     debug 'NOK: keitaro is already installed'
@@ -230,7 +230,9 @@ is_keitaro_installed() {
    fi
    if use_old_algorithm_for_installation_check; then
      debug "Current version is ${INSTALLED_VERSION} - using old algorithm (check '${KEITARO_LOCK_FILEPATH}' file)"
-     file_exists "${KEITARO_LOCK_FILEPATH}"
+     if file_exists "${KEITARO_LOCK_FILEPATH}"; then
+       return ${SUCCESS_RESULT}
+     fi
    fi
    return ${FAILURE_RESULT}
 }
