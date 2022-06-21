@@ -50,7 +50,7 @@ TOOL_NAME='kctl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.36.7'
+RELEASE_VERSION='2.37.0'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -894,6 +894,28 @@ DICT['en.validation_errors.validate_presence']='Please enter value'
 DICT['en.validation_errors.validate_absence']='Should not be specified'
 DICT['en.validation_errors.validate_yes_no']='Please answer "yes" or "no"'
 
+kctl_features_usage() {
+  echo "Usage:"
+  echo "  kctl features enable <feature>                  enable feature"
+  echo "  kctl features disable <feature>                 disable feature"
+  echo "  kctl features list                              list supported features"
+}
+
+kctl_features_disable() {
+  local feature="${1}"
+  if empty "${feature}"; then
+    kctl_features_usage
+  else
+    case "${feature}" in
+      rbooster)
+        kctl_features_disable_rbooster
+      ;;
+      *)
+        kctl_features_usage
+    esac
+  fi
+}
+
 kctl_features_enable() {
   local feature="${1}"
   if empty "${feature}"; then
@@ -907,22 +929,6 @@ kctl_features_enable() {
         kctl_features_usage
     esac
   fi
-}
-
-kctl_features_usage() {
-  echo "Usage:"
-  echo "  kctl features enable <feature>                  enable feature"
-  echo "  kctl features disable <feature>                 disable feature"
-  echo "  kctl features list                              list supported features"
-}
-
-kctl_features_enable_rbooster() {
-  set_olap_db "${OLAP_DB_CLICKHOUSE}"
-  run_ch_migrator
-}
-
-kctl_features_disable_rbooster() {
-  set_olap_db "${OLAP_DB_MARIADB}"
 }
 
 set_olap_db() {
@@ -945,19 +951,13 @@ assert_tracker_supports_rbooster() {
   fi
 }
 
-kctl_features_disable() {
-  local feature="${1}"
-  if empty "${feature}"; then
-    kctl_features_usage
-  else
-    case "${feature}" in
-      rbooster)
-        kctl_features_disable_rbooster
-      ;;
-      *)
-        kctl_features_usage
-    esac
-  fi
+kctl_features_enable_rbooster() {
+  set_olap_db "${OLAP_DB_CLICKHOUSE}"
+  run_ch_migrator
+}
+
+kctl_features_disable_rbooster() {
+  set_olap_db "${OLAP_DB_MARIADB}"
 }
 
 kctl_features_list(){
@@ -1120,12 +1120,6 @@ is_tracker_version_to_install_valid() {
     [[ "${tracker_version_to_install}" == "latest-unstable" ]] || \
     (( $(as_version "${tracker_version_to_install}") >=  $(as_version "${MIN_TRACKER_VERSION_TO_INSTALL}") ))
 }
-kctl_password_change(){
-  change_mysql_password "keitaro"
-  change_mysql_password "root"
-  change_ch_password
-  change_tracker_salt
-}
 
 kctl_renew_certificates() {
   local successfully_renewed_flag_filepath="/var/lib/letsencrypt/.renewed"
@@ -1155,6 +1149,13 @@ kctl_renew_certificates() {
 kctl_rescue() {
   debug "curl -fsSL4 '${FILES_KEITARO_URL}/install.sh' | | bash -s -- -C -o ${KCTL_LOG_DIR}/kctl-rescue.log"
   get_kctl_install | bash -s -- -C -o "${KCTL_LOG_DIR}/kctl-rescue.log"
+}
+kctl_reset() {
+  reset_mysql_password "keitaro"
+  reset_mysql_password "root"
+  reset_ch_password
+  reset_tracker_salt
+  reset_machine_id
 }
 
 DNS_GOOGLE="8.8.8.8"
@@ -1234,27 +1235,25 @@ kctl_show_version(){
   fi
 }
 
-change_mysql_password(){
-  local user="${1}"
-  local root_mysql_password
-  local new_password="${2}"
-  local new_password
-  new_password=$(generate_password)
-  root_mysql_password=$(get_mysql_password)
-
-  mysql -p"${root_mysql_password}" -u root -Nse "UPDATE mysql.user SET Password=PASSWORD('${new_password}') WHERE USER='${user}'; flush privileges;"
-
-  if [ "${user}" == "root" ]; then
-    sed -i -e "s/^password=.*/password=${new_password}/g" /root/.my.cnf
-  elif [ "${user}" == "keitaro" ]; then
-    sed -i -e "s/^MARIADB_PASSWORD=.*/MARIADB_PASSWORD=${new_password}/g" /etc/keitaro/config/tracker.env
-  fi
+on_exit(){
+  exit 1
 }
 
-get_mysql_password(){
-  grep password  /root/.my.cnf | cut -d '=' -f 2
+run_ch_migrator(){
+  local command
+  command="kctl-ch-migrator --prefix=$(get_tracker_config_value 'db' 'prefix') \
+    --env-file-path=${INVENTORY_DIR}/tracker.env"
+  run_command "${command}"
 }
-change_ch_password(){
+# shellcheck source=/dev/null
+
+reset_machine_id() {
+  generate_uuid > /etc/machine-id
+  source /etc/keitaro/config/kctl-monitor.env
+  PHP_BIN="${PHP_BIN}" kctl-monitor -r > /dev/null
+}
+
+reset_ch_password(){
   local new_password
   local new_hashed_password
   local old_hashed_password
@@ -1268,29 +1267,34 @@ change_ch_password(){
   sed -i -e "s/^ch_password=.*/ch_password=${new_password}/g" /etc/keitaro/config/inventory
   systemctl restart clickhouse
 }
-change_tracker_salt(){
+
+reset_mysql_password(){
+  local user="${1}"
+  local root_mysql_password
+  local new_password
+
+  new_password=$(generate_password)
+
+  mysql -Nse "UPDATE mysql.user SET password=PASSWORD('${new_password}') WHERE user='${user}'; FLUSH PRIVILEGES;"
+
+  if [ "${user}" == "root" ]; then
+    sed -i -e "s/^password=.*/password=${new_password}/g" /root/.my.cnf
+  elif [ "${user}" == "keitaro" ]; then
+    sed -i -e "s/^MARIADB_PASSWORD=.*/MARIADB_PASSWORD=${new_password}/g" /etc/keitaro/config/tracker.env
+  fi
+}
+
+reset_tracker_salt() {
   local new_salt
-  new_salt="$(generate_new_salt)"
+  new_salt="$(generate_uuid)"
   sed -i -e "s/^SALT=.*/SALT=${new_salt}/g" /etc/keitaro/config/tracker.env
 }
 
-
-generate_new_salt(){
-  uuidgen | tr -d '-'
-}
-
-on_exit(){
-  exit 1
-}
-
-run_ch_migrator(){
-  local command
-  command="kctl-ch-migrator --prefix=$(get_tracker_config_value 'db' 'prefix') \
-    --env-file-path=${INVENTORY_DIR}/tracker.env"
-  run_command "${command}"
-}
-clean_tracker_cache(){
-  sudo -u "${KEITARO_USER}" php "${TRACKER_ROOT}"/bin/cli.php system:reload_cache
+kctl_resolving_usage() {
+  echo "Usage:"
+  echo "  kctl resolving set_google                        sets google dns"
+  echo "  kctl resolving reset                             resets settings"
+  echo "  kctl resolving usage                             prints this page"
 }
 
 kctl_resolving_reset() {
@@ -1309,13 +1313,6 @@ kctl_resolving_reset() {
   fi
 }
 
-kctl_resolving_usage() {
-  echo "Usage:"
-  echo "  kctl resolving set_google                        sets google dns"
-  echo "  kctl resolving reset                             resets settings"
-  echo "  kctl resolving usage                             prints this page"
-}
-
 kctl_resolving_set_google() {
   if file_content_matches ${RESOLV_CONF} '-F' "nameserver ${DNS_GOOGLE}"; then
     debug "${RESOLV_CONF} already contains 'nameserver ${DNS_GOOGLE}', skipping"
@@ -1323,36 +1320,6 @@ kctl_resolving_set_google() {
     debug "${RESOLV_CONF} doesn't contain 'nameserver ${DNS_GOOGLE}', adding"
     run_command "sed -i '1inameserver ${DNS_GOOGLE}' ${RESOLV_CONF}"
   fi
-}
-# shellcheck source=/dev/null
-
-kctl_run_clickhouse_in_docker() {
-  local docker_exec_args="${1}"; shift
-  source /etc/keitaro/config/tracker.env
-
-  docker exec --env HOME=/tmp "${docker_exec_args}" clickhouse \
-         clickhouse-client --host "${CH_HOST}" --port="${CH_PORT}" \
-                           --user="${CH_USER}" --password="${CH_PASSWORD}"  \
-                           --database="${CH_DB}" \
-                           "${@}"
-}
-
-kctl_run_clickhouse_client() {
-  kctl_run_clickhouse_in_docker "-it"
-}
-
-kctl_run_clickhouse_query() {
-  local sql="${1}"
-  if [[ "${sql}" == "" ]]; then
-    kctl_run_clickhouse_in_docker "-i" --format=TabSeparated
-  else
-    kctl_run_clickhouse_in_docker "-i" --format=TabSeparated --query="${sql}"
-  fi
-}
-# shellcheck source=/dev/null
-
-kctl_run_cli_php() {
-  sudo -u keitaro /usr/bin/kctl-php /var/www/keitaro/bin/cli.php "${@}"
 }
 # shellcheck source=/dev/null
 
@@ -1385,6 +1352,35 @@ kctl_run_usage(){
   echo "  kctl run mysql-client                       start mysql shell"
   echo "  kctl run mysql-query                        execute mysql query"
   echo "  kctl run cli-php                            execute cli.php command"
+}
+# shellcheck source=/dev/null
+
+kctl_run_clickhouse_in_docker() {
+  local docker_exec_args="${1}"; shift
+  source /etc/keitaro/config/tracker.env
+
+  docker exec --env HOME=/tmp "${docker_exec_args}" clickhouse \
+         clickhouse-client --host "${CH_HOST}" --port="${CH_PORT}" \
+                           --user="${CH_USER}" --password="${CH_PASSWORD}"  \
+                           --database="${CH_DB}" \
+                           "${@}"
+}
+
+kctl_run_clickhouse_client() {
+  kctl_run_clickhouse_in_docker "-it"
+}
+
+kctl_run_clickhouse_query() {
+  local sql="${1}"
+  if [[ "${sql}" == "" ]]; then
+    kctl_run_clickhouse_in_docker "-i" --format=TabSeparated
+  else
+    kctl_run_clickhouse_in_docker "-i" --format=TabSeparated --query="${sql}"
+  fi
+}
+
+kctl_run_cli_php() {
+  sudo -u keitaro /usr/bin/kctl-php /var/www/keitaro/bin/cli.php "${@}"
 }
 CURRENT_DATETIME="$(date +%Y%m%d%H%M)"
 MIN_TRACKER_VERSION_TO_INSTALL='9.13.0'
@@ -1564,11 +1560,8 @@ generate_password(){
   local PASSWORD_LENGTH=16
   LC_ALL=C tr -cd '[:alnum:]' < /dev/urandom | head -c${PASSWORD_LENGTH}
 }
-
-generate_salt() {
-  if ! is_running_in_interactive_restoring_mode; then
-    uuidgen | tr -d '-'
-  fi
+generate_uuid() {
+  uuidgen | tr -d '-'
 }
 
 is_running_in_interactive_restoring_mode() {
@@ -1592,47 +1585,44 @@ shift || true
 assert_caller_root
 
 case "${action}" in
-  "install")
+  install)
     kctl_auto_install "" "kctl-install.log"
     ;;
-  "upgrade")
+  upgrade)
     kctl_auto_install -U "kctl-upgrade.log"
     ;;
-  "tune")
+  tune)
     kctl_auto_install -U "kctl-tune.log" tune
     ;;
-  "rescue")
+  rescue|doctor)
     kctl_auto_install -C "kctl-rescue.log"
     ;;
-  "doctor")
-    kctl_auto_install -C "kctl-rescue.log"
-    ;;
-  "downgrade")
+  downgrade)
     rollback_version="${1:-latest-stable}"
     kctl_install_tracker "${rollback_version}"
     ;;
-  "install-tracker")
+  install-tracker)
     kctl_install_tracker "${@}"
     ;;
-  "renew-certificates")
+  renew-certificates)
     kctl_renew_certificates
     ;;
-  "fix-le-certs-2021-09-30-issues")
+  fix-le-certs-2021-09-30-issues)
     kctl_fix_le_certs_2021_09_30_issues
     ;;
-  "features")
+  features)
     kctl_features "${@}"
     ;;
-  "resolving")
+  resolving)
     kctl_resolving "${@}"
     ;;
-  "run")
+  run)
     kctl_run "${@}"
     ;;
-  "password-change")
-    kctl_password_change
+  reset|password-change)
+    kctl_reset
     ;;
-  "transfer")
+  transfer)
     kctl-transfer "${@}"
     ;;
   help)

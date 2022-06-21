@@ -51,7 +51,7 @@ TOOL_NAME='enable-ssl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.36.7'
+RELEASE_VERSION='2.37.0'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -1138,8 +1138,11 @@ generate_password(){
 
 generate_salt() {
   if ! is_running_in_interactive_restoring_mode; then
-    uuidgen | tr -d '-'
+    generate_uuid
   fi
+}
+generate_uuid() {
+  uuidgen | tr -d '-'
 }
 
 join_by(){
