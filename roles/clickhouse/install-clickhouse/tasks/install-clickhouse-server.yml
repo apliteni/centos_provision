@@ -15,5 +15,5 @@
     - reconfigure systemd
     - restart clickhouse
 
-- name: Update SystemD service if need
+- name: Do daemon-reload to update SystemD services & restart mariadb if need
   meta: flush_handlers

@@ -14,13 +14,6 @@
   containers.podman.podman_image:
     name: "{{ mariadb_docker_image }}"
 
-- name: Generate systemd mariadb config
-  template:
-    src: "systemd/mariadb.service.j2"
-    dest: /etc/systemd/system/mariadb.service
-    mode: '0644'
-  register: mariadb_systemd_configuration_generation_status
-
 - name: Ensure the mariadb directory exists
   file:
     path: "{{ item }}"
@@ -34,3 +27,15 @@
     - /var/log/mysql
     - /etc/my.cnf.d/
     - /var/lib/mysql/
+
+- name: Generate systemd mariadb config
+  template:
+    src: "systemd/mariadb.service.j2"
+    dest: /etc/systemd/system/mariadb.service
+    mode: '0644'
+  notify:
+    - reconfigure systemd
+    - restart mariadb
+
+- name: Do daemon-reload to update SystemD services & restart mariadb if need
+  meta: flush_handlers
