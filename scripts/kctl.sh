@@ -50,7 +50,7 @@ TOOL_NAME='kctl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.37.3'
+RELEASE_VERSION='2.37.4'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -894,6 +894,13 @@ DICT['en.validation_errors.validate_presence']='Please enter value'
 DICT['en.validation_errors.validate_absence']='Should not be specified'
 DICT['en.validation_errors.validate_yes_no']='Please answer "yes" or "no"'
 
+kctl_features_usage() {
+  echo "Usage:"
+  echo "  kctl features enable <feature>                  enable feature"
+  echo "  kctl features disable <feature>                 disable feature"
+  echo "  kctl features list                              list supported features"
+}
+
 kctl_features_enable() {
   local feature="${1}"
   if empty "${feature}"; then
@@ -909,20 +916,9 @@ kctl_features_enable() {
   fi
 }
 
-kctl_features_usage() {
-  echo "Usage:"
-  echo "  kctl features enable <feature>                  enable feature"
-  echo "  kctl features disable <feature>                 disable feature"
-  echo "  kctl features list                              list supported features"
-}
-
 kctl_features_enable_rbooster() {
   set_olap_db "${OLAP_DB_CLICKHOUSE}"
   run_ch_migrator
-}
-
-kctl_features_disable_rbooster() {
-  set_olap_db "${OLAP_DB_MARIADB}"
 }
 
 set_olap_db() {
@@ -945,6 +941,15 @@ assert_tracker_supports_rbooster() {
   fi
 }
 
+kctl_features_disable_rbooster() {
+  set_olap_db "${OLAP_DB_MARIADB}"
+}
+
+kctl_features_list(){
+  echo "Feature list:"
+  echo " rbooster               ClickHouse as OLAP DB"
+}
+
 kctl_features_disable() {
   local feature="${1}"
   if empty "${feature}"; then
@@ -958,11 +963,6 @@ kctl_features_disable() {
         kctl_features_usage
     esac
   fi
-}
-
-kctl_features_list(){
-  echo "Feature list:"
-  echo " rbooster               ClickHouse as OLAP DB"
 }
 
 get_kctl_install() {
@@ -1235,22 +1235,15 @@ kctl_show_version(){
   fi
 }
 
-on_exit(){
-  exit 1
-}
-
 run_ch_migrator(){
   local command
   command="kctl-ch-migrator --prefix=$(get_tracker_config_value 'db' 'prefix') \
     --env-file-path=${INVENTORY_DIR}/tracker.env"
   run_command "${command}"
 }
-# shellcheck source=/dev/null
 
-reset_machine_id() {
-  generate_uuid > /etc/machine-id
-  source /etc/keitaro/config/kctl-monitor.env
-  PHP_BIN="${PHP_BIN}" kctl-monitor -r > /dev/null
+on_exit(){
+  exit 1
 }
 
 reset_mysql_password(){
@@ -1274,6 +1267,13 @@ reset_tracker_salt() {
   new_salt="$(generate_uuid)"
   sed -i -e "s/^SALT=.*/SALT=${new_salt}/g" /etc/keitaro/config/tracker.env
 }
+# shellcheck source=/dev/null
+
+reset_machine_id() {
+  generate_uuid > /etc/machine-id
+  source /etc/keitaro/config/kctl-monitor.env
+  PHP_BIN="${PHP_BIN}" kctl-monitor -r > /dev/null
+}
 
 reset_ch_password(){
   local new_password
@@ -1288,6 +1288,13 @@ reset_ch_password(){
   sed -i -e "s/^CH_PASSWORD=.*/CH_PASSWORD=${new_password}/g" /etc/keitaro/config/tracker.env
   sed -i -e "s/^ch_password=.*/ch_password=${new_password}/g" /etc/keitaro/config/inventory
   systemctl restart clickhouse
+}
+
+kctl_resolving_usage() {
+  echo "Usage:"
+  echo "  kctl resolving set_google                        sets google dns"
+  echo "  kctl resolving reset                             resets settings"
+  echo "  kctl resolving usage                             prints this page"
 }
 
 kctl_resolving_reset() {
@@ -1306,13 +1313,6 @@ kctl_resolving_reset() {
   fi
 }
 
-kctl_resolving_usage() {
-  echo "Usage:"
-  echo "  kctl resolving set_google                        sets google dns"
-  echo "  kctl resolving reset                             resets settings"
-  echo "  kctl resolving usage                             prints this page"
-}
-
 kctl_resolving_set_google() {
   if file_content_matches ${RESOLV_CONF} '-F' "nameserver ${DNS_GOOGLE}"; then
     debug "${RESOLV_CONF} already contains 'nameserver ${DNS_GOOGLE}', skipping"
@@ -1320,6 +1320,14 @@ kctl_resolving_set_google() {
     debug "${RESOLV_CONF} doesn't contain 'nameserver ${DNS_GOOGLE}', adding"
     run_command "sed -i '1inameserver ${DNS_GOOGLE}' ${RESOLV_CONF}"
   fi
+}
+kctl_run_usage(){
+  echo "Usage:"
+  echo "  kctl run clickhouse-client                  start clickhouse shell"
+  echo "  kctl run clickhouse-query                   execute clickhouse query"
+  echo "  kctl run mysql-client                       start mysql shell"
+  echo "  kctl run mysql-query                        execute mysql query"
+  echo "  kctl run cli-php                            execute cli.php command"
 }
 # shellcheck source=/dev/null
 
@@ -1346,10 +1354,6 @@ kctl_run_clickhouse_query() {
     kctl_run_clickhouse_in_docker "-i" --format=TabSeparated --query="${sql}"
   fi
 }
-
-kctl_run_cli_php() {
-  sudo -u keitaro /usr/bin/kctl-php /var/www/keitaro/bin/cli.php "${@}"
-}
 # shellcheck source=/dev/null
 
 kctl_run_mysql_in_docker() {
@@ -1369,22 +1373,15 @@ kctl_run_mysql_client() {
 kctl_run_mysql_query() {
   local sql="${1}"
   if [[ "${sql}" == "" ]]; then
-    kctl_run_mysql_in_docker "-t" --raw --batch --skip-column-names --default-character-set=utf8
+    kctl_run_mysql_in_docker "-i" --raw --batch --skip-column-names --default-character-set=utf8
   else
-    kctl_run_mysql_in_docker "-t" --raw --batch --skip-column-names --default-character-set=utf8 --execute="${sql}"
+    kctl_run_mysql_in_docker "-i" --raw --batch --skip-column-names --default-character-set=utf8 --execute="${sql}"
   fi
 }
-kctl_run_usage(){
-  echo "Usage:"
-  echo "  kctl run clickhouse-client                  start clickhouse shell"
-  echo "  kctl run clickhouse-query                   execute clickhouse query"
-  echo "  kctl run mysql-client                       start mysql shell"
-  echo "  kctl run mysql-query                        execute mysql query"
-  echo "  kctl run cli-php                            execute cli.php command"
+
+kctl_run_cli_php() {
+  sudo -u keitaro /usr/bin/kctl-php /var/www/keitaro/bin/cli.php "${@}"
 }
-CURRENT_DATETIME="$(date +%Y%m%d%H%M)"
-MIN_TRACKER_VERSION_TO_INSTALL='9.13.0'
-declare -a RETRY_INTERVALS=(60 180 300)
 declare -A DICT
 DICT['en.messages.sleeping_before_next_try']="Error while install, sleeping for :retry_interval: seconds before next try"
 DICT['en.messages.kctl_version']="Kctl:    :kctl_version:"
@@ -1394,6 +1391,9 @@ DICT['en.errors.tracker_version_to_install_is_incorrect']="Tracker version can't
 DICT['en.errors.invalid_options']="Invalid option ${1}. Try 'kctl help' for more information."
 DICT['en.errors.tracker_doesnt_support_feature']="Current tracker v:current_tracker_version: doesn't support :feature:. Please upgrade tracker to v:featured_tracker_version:+"
 DICT['en.errors.tracker_is_not_installed']="Keitaro tracker is not installed"
+CURRENT_DATETIME="$(date +%Y%m%d%H%M)"
+MIN_TRACKER_VERSION_TO_INSTALL='9.13.0'
+declare -a RETRY_INTERVALS=(60 180 300)
 
 on_exit(){
   exit 1
