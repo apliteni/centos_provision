@@ -24,20 +24,6 @@
     dest: "/usr/local/bin/{{ item.path | basename }}"
   with_items: "{{ kctl_tools_list.files }}"
 
-- name: Make backward compatiblity symlinks in /opt
-  file:
-    state: link
-    src: "{{ kctl_bin_dir }}/{{ item.new_name  }}"
-    dest: "{{ kctl_bin_dir }}/{{ item.old_name  }}"
-  with_items: "{{ kctl_tools_backward_compatiblity_names }}"
-
-- name: Make backward compatiblity symlinks in /usr/local
-  file:
-    state: link
-    src: "/usr/local/bin/{{ item.new_name  }}"
-    dest: "/usr/local/bin/{{ item.old_name  }}"
-  with_items: "{{ kctl_tools_backward_compatiblity_names }}"
-
 - name: Allow keitaro user to run kctl tools
   copy:
     content: |

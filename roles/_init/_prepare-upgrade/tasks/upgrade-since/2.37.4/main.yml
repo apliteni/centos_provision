@@ -18,8 +18,8 @@
     state: absent
   with_items:
     - /usr/local/bin/keitaro-generate_cf_ip_lists
-    - /opt/keitaro/bin/kctl-prune-ssl
     - /usr/local/bin/kctl-prune-ssl
+    - /opt/keitaro/bin/kctl-prune-ssl
 
 - name: Get tracker.env info
   stat:
