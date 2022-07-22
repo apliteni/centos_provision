@@ -1,0 +1,6 @@
+- name: Show time on the history command
+  lineinfile:
+    dest: "/root/.bashrc"
+    line: HISTTIMEFORMAT="%F %T "
+    create: true
+    mode: 0644

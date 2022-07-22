@@ -51,7 +51,7 @@ TOOL_NAME='enable-ssl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.37.4'
+RELEASE_VERSION='2.38.0'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -90,11 +90,14 @@ LOG_PATH="${LOG_DIR}/${LOG_FILENAME}"
 
 INVENTORY_DIR="${ETC_DIR}/config"
 INVENTORY_PATH="${INVENTORY_DIR}/inventory"
+PATH_TO_TRACKER_ENV="${INVENTORY_DIR}/tracker.env"
 DETECTED_INVENTORY_PATH=""
 
 NGINX_CONFIG_ROOT="/etc/nginx"
 NGINX_VHOSTS_DIR="${NGINX_CONFIG_ROOT}/conf.d"
 NGINX_KEITARO_CONF="${NGINX_VHOSTS_DIR}/keitaro.conf"
+
+LETSENCRYPT_DIR="/etc/letsencrypt"
 
 SCRIPT_NAME="kctl-${TOOL_NAME}"
 
@@ -110,9 +113,6 @@ TOOL_ARGS="${*}"
 DB_ENGINE_INNODB="innodb"
 DB_ENGINE_TOKUDB="tokudb"
 DB_ENGINE_DEFAULT="${DB_ENGINE_TOKUDB}"
-
-PHP_ENGINE_ROADRUNNER="roadrunner"
-PHP_ENGINE_DEFAULT="${PHP_ENGINE_ROADRUNNER}"
 
 OLAP_DB_MARIADB="mariadb"
 OLAP_DB_CLICKHOUSE="clickhouse"
@@ -177,10 +177,8 @@ DICT['en.certbot_errors.fetching']="There was connection error while issuing cer
 DICT['en.certbot_errors.unknown_error']="There was unknown error while issuing certificate, please contact support team"
 DICT['en.errors.already_running']="Another certificate issue process is running."
 
-DICT['en.messages.check_renewal_job_scheduled']="Check that the renewal job is scheduled"
 DICT['en.messages.make_ssl_cert_links']="Make SSL certificate links"
 DICT['en.messages.requesting_certificate_for']="Requesting certificate for"
-DICT['en.messages.schedule_renewal_job']="Schedule renewal SSL certificate cron job"
 DICT['en.messages.ssl_enabled_for_domains']="SSL certificates are issued for domains:"
 DICT['en.messages.ssl_not_enabled_for_domains']="There were errors while issuing certificates for domains:"
 DICT['en.warnings.nginx_config_exists_for_domain']="nginx config already exists"
@@ -361,12 +359,17 @@ as_minor_version() {
 }
 
 assert_upgrade_allowed() {
-  if is_keitaro_installed; then
-    ensure_nginx_config_correct
-    debug 'Everything looks good, running upgrade'
-  else
+  if ! is_keitaro_installed; then
+    echo 'Running in upgrade mode - skip checking nginx configs'
     debug "Can't upgrade because installation process is not finished yet"
     fail "$(translate errors.cant_upgrade)"
+  fi
+  if is_running_in_rescue_mode; then
+    debug 'Running in rescue mode - skip checking nginx configs'
+  elif is_running_in_upgrade_mode; then
+    debug 'Running in fast upgrade mode - checking nginx configs'
+    ensure_nginx_config_correct
+    debug 'Everything looks good, running upgrade'
   fi
 }
 

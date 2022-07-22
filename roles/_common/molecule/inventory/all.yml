@@ -1,4 +1,3 @@
-php_engine: roadrunner
 cpu_cores: 2
 ram_size_mb: 1938
 ssh_port: 22

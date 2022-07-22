@@ -1,1 +1,0 @@
-clickhouse_db_memory_kb: "{{  olap_db_mb | int * 1000000 }}"

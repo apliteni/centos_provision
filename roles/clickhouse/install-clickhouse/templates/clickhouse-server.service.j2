@@ -5,7 +5,7 @@ After=network.target
 [Service]
 Type=simple
 ExecStartPre=-/usr/bin/docker stop {{ clickhouse_docker_name }}
-ExecStartPre=-/usr/bin/docker rm --force {{ clickhouse_docker_name }}
+ExecStartPre=-/usr/bin/docker rm --force --volumes --storage {{ clickhouse_docker_name }}
 ExecStart=/usr/bin/docker run --user {{ clickhouse_user_uid }}  --name {{ clickhouse_docker_name }} {{ clickhouse_docker_run_args  }} \
           {% for mount_point in clickhouse_docker_volumes %}
           -v {{ mount_point }}:{{ mount_point }} \

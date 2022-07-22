@@ -11,11 +11,11 @@
       - keitaro_user
       - mariadb_join_buffer_size_kb
       - mariadb_key_buffer_size_kb
-      - mariadb_main_size_kb
       - mariadb_max_connections
       - mariadb_max_heap_table_size_kb
       - mariadb_memory_1pct
       - mariadb_memory_mb
+      - mariadb_olap_memory_mb
       - mariadb_query_cache_size_kb
       - mariadb_table_open_cache
       - mariadb_tmp_table_size_kb

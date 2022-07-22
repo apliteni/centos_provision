@@ -6,6 +6,6 @@ clickhouse_docker_name: "clickhouse"
 clickhouse_docker_image: "registry.hub.docker.com/yandex/clickhouse-server:{{ clickhouse_version }}"
 clickhouse_docker_run_args: "--rm --net host"
 clickhouse_docker_volumes:
-  - "{{ clickhouse_config_path }}/users.xml"
+  - "{{ clickhouse_config_path }}"
   - "/var/lib/clickhouse"
   - "{{ clickhouse_logs_path }}"

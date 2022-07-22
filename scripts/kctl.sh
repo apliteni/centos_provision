@@ -50,7 +50,7 @@ TOOL_NAME='kctl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.37.4'
+RELEASE_VERSION='2.38.0'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -89,11 +89,14 @@ LOG_PATH="${LOG_DIR}/${LOG_FILENAME}"
 
 INVENTORY_DIR="${ETC_DIR}/config"
 INVENTORY_PATH="${INVENTORY_DIR}/inventory"
+PATH_TO_TRACKER_ENV="${INVENTORY_DIR}/tracker.env"
 DETECTED_INVENTORY_PATH=""
 
 NGINX_CONFIG_ROOT="/etc/nginx"
 NGINX_VHOSTS_DIR="${NGINX_CONFIG_ROOT}/conf.d"
 NGINX_KEITARO_CONF="${NGINX_VHOSTS_DIR}/keitaro.conf"
+
+LETSENCRYPT_DIR="/etc/letsencrypt"
 
 SCRIPT_NAME="kctl-${TOOL_NAME}"
 
@@ -109,9 +112,6 @@ TOOL_ARGS="${*}"
 DB_ENGINE_INNODB="innodb"
 DB_ENGINE_TOKUDB="tokudb"
 DB_ENGINE_DEFAULT="${DB_ENGINE_TOKUDB}"
-
-PHP_ENGINE_ROADRUNNER="roadrunner"
-PHP_ENGINE_DEFAULT="${PHP_ENGINE_ROADRUNNER}"
 
 OLAP_DB_MARIADB="mariadb"
 OLAP_DB_CLICKHOUSE="clickhouse"
@@ -894,81 +894,6 @@ DICT['en.validation_errors.validate_presence']='Please enter value'
 DICT['en.validation_errors.validate_absence']='Should not be specified'
 DICT['en.validation_errors.validate_yes_no']='Please answer "yes" or "no"'
 
-kctl_features_usage() {
-  echo "Usage:"
-  echo "  kctl features enable <feature>                  enable feature"
-  echo "  kctl features disable <feature>                 disable feature"
-  echo "  kctl features list                              list supported features"
-}
-
-kctl_features_enable() {
-  local feature="${1}"
-  if empty "${feature}"; then
-    kctl_features_usage
-  else
-    case "${feature}" in
-      rbooster)
-        kctl_features_enable_rbooster
-      ;;
-      *)
-        kctl_features_usage
-    esac
-  fi
-}
-
-kctl_features_enable_rbooster() {
-  set_olap_db "${OLAP_DB_CLICKHOUSE}"
-  run_ch_migrator
-}
-
-set_olap_db() {
-  local olap_db="${1}"
-  local log_path="${KCTL_LOG_DIR}/kctl-set-olap-db-to-${olap_db}.log"
-  local roles_to_replay="tune-clickhouse,tune-mariadb,tune-tracker"
-
-  assert_tracker_supports_rbooster
- 
-  debug "Running command \`KCTL_OLAP_DB='${olap_db}' kctl-install -U -o '${log_path}' -t '${roles_to_replay}'\`"
-  KCTL_OLAP_DB="${olap_db}" kctl-install -U -o "${log_path}" -t "${roles_to_replay}"
-}
-
-assert_tracker_supports_rbooster() {
-  if ! tracker_supports_rbooster; then
-    fail "$(translate "errors.tracker_doesnt_support_feature" \
-                      'feature=rbooster' \
-                      "current_tracker_version=$(get_tracker_version)" \
-                      "featured_tracker_version=${TRACKER_SUPPORTS_RBOOSTER_SINCE}")"
-  fi
-}
-
-kctl_features_disable_rbooster() {
-  set_olap_db "${OLAP_DB_MARIADB}"
-}
-
-kctl_features_list(){
-  echo "Feature list:"
-  echo " rbooster               ClickHouse as OLAP DB"
-}
-
-kctl_features_disable() {
-  local feature="${1}"
-  if empty "${feature}"; then
-    kctl_features_usage
-  else
-    case "${feature}" in
-      rbooster)
-        kctl_features_disable_rbooster
-      ;;
-      *)
-        kctl_features_usage
-    esac
-  fi
-}
-
-get_kctl_install() {
-  curl -fsSL4 "${FILES_KEITARO_URL}/install.sh"
-}
-
 kctl_auto_install(){
   local install_exit_code
   local sleeping_message
@@ -1017,27 +942,177 @@ kctl_install(){
   fi
 }
 
-kctl_features() {
+kctl_install_tracker() {
+  local tracker_version_to_install="${1}"
+  local log_path="${KCTL_LOG_DIR}/kctl-install-tracker.log"
+
+  assert_tracker_version_to_install_valid "${tracker_version_to_install}"
+
+  debug "curl -fsSL4 '${FILES_KEITARO_URL}/install.sh' | bash -s -- -U -a ${tracker_version_to_install} -o ${log_path}"
+  get_kctl_install | bash -s -- -U -a "${tracker_version_to_install}" -o "${log_path}"
+}
+
+assert_tracker_version_to_install_valid() {
+  local tracker_version_to_install="${1}"
+
+  if empty "${tracker_version_to_install}"; then
+    fail "$(translate 'errors.tracker_version_to_install_is_empty')"
+  fi
+  if ! is_tracker_version_to_install_valid "${tracker_version_to_install}"; then
+    fail "$(translate errors.tracker_version_to_install_is_incorrect)"
+  fi
+}
+
+is_tracker_version_to_install_valid() {
+  local tracker_version_to_install="${1}"
+  [[ "${tracker_version_to_install}" == "latest" ]] || \
+    [[ "${tracker_version_to_install}" == "latest-stable" ]] || \
+    [[ "${tracker_version_to_install}" == "latest-unstable" ]] || \
+    (( $(as_version "${tracker_version_to_install}") >=  $(as_version "${MIN_TRACKER_VERSION_TO_INSTALL}") ))
+}
+
+kctl_rescue() {
+  debug "curl -fsSL4 '${FILES_KEITARO_URL}/install.sh' | | bash -s -- -C -o ${KCTL_LOG_DIR}/kctl-rescue.log"
+  get_kctl_install | bash -s -- -C -o "${KCTL_LOG_DIR}/kctl-rescue.log"
+}
+kctl_reset() {
+  reset_mysql_password "keitaro"
+  reset_mysql_password "root"
+  reset_ch_password
+  reset_tracker_salt
+  reset_license_ip
+  reset_machine_id
+}
+
+kctl_show_help(){
+  echo "kctl - Keitaro management tool"
+  echo ""
+  cat <<-END
+Usage:
+
+  kctl [module] [action] [options]
+
+Example:
+
+  kctl install
+
+Actions:
+   kctl install                           - install and tune tracker and system components
+   kctl upgrade                           - upgrades system & tracker
+   kctl rescue                            - fixes common problems
+   kctl downgrade [version]               - downgrades tracker to version (by default downgrades to latest stable version)
+   kctl install-tracker <version>         - installs tracker with specified version
+
+Modules:
+   kctl certificates                      - manage LE certificates
+   kctl features                          - manage features (run "kctl features help" to see more details)
+   kctl transfers                         - manage tracker data transfers
+END
+}
+
+kctl_show_version(){
+  read_inventory
+  detect_installed_version
+  if is_keitaro_installed; then
+    translate 'messages.kctl_version' "kctl_version=${RELEASE_VERSION}"
+    translate 'messages.kctl_tracker' "tracker_version=$(get_tracker_version)"
+  else
+    fail "$(translate 'errors.tracker_is_not_installed')"
+  fi
+}
+
+get_kctl_install() {
+  curl -fsSL4 "${FILES_KEITARO_URL}/install.sh"
+}
+
+on_exit(){
+  exit 1
+}
+kctl_run() {
   local action="${1}"
-  local feature="${2}"
+  shift
+
   case "${action}" in
-    enable)
-      kctl_features_enable "${feature}"
+    clickhouse-client)
+      kctl_run_clickhouse_client
       ;;
-    disable)
-      kctl_features_disable "${feature}"
+    clickhouse-query)
+      kctl_run_clickhouse_query  "${@}"
       ;;
-    list)
-      kctl_features_list
+    mariadb-client | mysql-client)
+      kctl_run_mysql_client
+      ;;
+    mariadb-query | mysql-query)
+      kctl_run_mysql_query "${@}"
+      ;;
+    cli-php)
+      kctl_run_cli_php "${@}"
+      ;;
+    help)
+      kctl_run_usage
       ;;
     *)
-      kctl_features_usage
+      kctl_run_usage
+      exit 1
+      ;;
   esac
+}
+
+kctl_certificates.revoke() {
+  local domains="${*}"
+  /opt/keitaro/bin/kctl-disable-ssl -D "${domains// /,}"
+}
+
+kctl_certificates.prune() {
+  /opt/keitaro/bin/kctl-certificates-prune "${@}"
+}
+
+kctl_certificates.remove_old_logs() {
+  /usr/bin/find /var/log/keitaro/ssl -mtime +30 -type f -delete
+}
+
+kctl_certificates.renew() {
+  local successfully_renewed_flag_filepath="/var/lib/letsencrypt/.renewed"
+  local renew_args="--allow-subset-of-names --renew-hook 'touch ${successfully_renewed_flag_filepath}'"
+  local message="Renewing LE certificates"
+  local log_path="${LOG_DIR}/${TOOL_NAME}-renew-certificates.log"
+  local command
+
+  command="$(build_certbot_command) renew ${renew_args}"
+  LOG_PATH="${log_path}"
+  init_log "${log_path}"
+
+  debug "Renewing certificates"
+
+  run_command "${command}" "${message}" 'hide_output' 'allow_errors' || \
+    debug "Errors occurred while renewing some certificates. certbot exit code: ${?}"
+
+  if file_exists "${successfully_renewed_flag_filepath}"; then
+    debug "Some certificates have been renewed. Removing flag file ${successfully_renewed_flag_filepath} and reloading nginx"
+    command="rm -f '${successfully_renewed_flag_filepath}' && systemctl reload nginx"
+    run_command "${command}" "" 'hide_output'
+  else
+    debug "Certificates have not been updated."
+  fi
+}
+
+kctl_certificates_usage() {
+  echo "Usage:"
+  echo "  kctl certificates issue domain1.tld domain2.tld ...     issue LE certificates for specified domains"
+  echo "  kctl certificates revoke domain1.tld domain2.tld ...    revoke LE certificates for specified domains"
+  echo "  kctl certificates prune abandoned                       removes LE certificates without appropriate nginx configs"
+  echo "  kctl certificates prune broken                          removes nginx domains with inconsistent LE certificates"
+  echo "  kctl certificates prune detached                        removes nginx domains are not presented in the Keitaro DB"
+  echo "  kctl certificates renew                                 renew LE certificates"
+  echo "  kctl certificates remove-old-logs                       remove old issuing logs"
+  echo
+  echo "Supported features: ${SUPPORTED_FEATURES[*]}"
+  echo
 }
 
 PEM_SPLITTER="-----BEGIN CERTIFICATE-----"
 
-kctl_fix_le_certs_2021_09_30_issues() {
+kctl_certificates.fix_x3_expiration() {
   local live_certificate_filepaths
   local temporary_dir
   local certificate_chain_without_x3
@@ -1092,70 +1167,9 @@ remove_last_certificate_from_chain() {
   echo "${certificate_chain_wo_x3_content}" > "${certificate_path}"
 }
 
-kctl_install_tracker() {
-  local tracker_version_to_install="${1}"
-  local log_path="${KCTL_LOG_DIR}/kctl-install-tracker.log"
-
-  assert_tracker_version_to_install_valid "${tracker_version_to_install}"
-
-  debug "curl -fsSL4 '${FILES_KEITARO_URL}/install.sh' | bash -s -- -U -a ${tracker_version_to_install} -o ${log_path}"
-  get_kctl_install | bash -s -- -U -a "${tracker_version_to_install}" -o "${log_path}"
-}
-
-assert_tracker_version_to_install_valid() {
-  local tracker_version_to_install="${1}"
-
-  if empty "${tracker_version_to_install}"; then
-    fail "$(translate 'errors.tracker_version_to_install_is_empty')"
-  fi
-  if ! is_tracker_version_to_install_valid "${tracker_version_to_install}"; then
-    fail "$(translate errors.tracker_version_to_install_is_incorrect)"
-  fi
-}
-
-is_tracker_version_to_install_valid() {
-  local tracker_version_to_install="${1}"
-  [[ "${tracker_version_to_install}" == "latest" ]] || \
-    [[ "${tracker_version_to_install}" == "latest-stable" ]] || \
-    [[ "${tracker_version_to_install}" == "latest-unstable" ]] || \
-    (( $(as_version "${tracker_version_to_install}") >=  $(as_version "${MIN_TRACKER_VERSION_TO_INSTALL}") ))
-}
-
-kctl_renew_certificates() {
-  local successfully_renewed_flag_filepath="/var/lib/letsencrypt/.renewed"
-  local renew_args="--allow-subset-of-names --renew-hook 'touch ${successfully_renewed_flag_filepath}'"
-  local message="Renewing LE certificates"
-  local log_path="${LOG_DIR}/${TOOL_NAME}-renew-certificates.log"
-  local command
-
-  command="$(build_certbot_command) renew ${renew_args}"
-  LOG_PATH="${log_path}"
-  init_log "${log_path}"
-
-  debug "Renewing certificates"
-
-  run_command "${command}" "${message}" 'hide_output' 'allow_errors' || \
-    debug "Errors occurred while renewing some certificates. certbot exit code: ${?}"
-
-  if file_exists "${successfully_renewed_flag_filepath}"; then
-    debug "Some certificates have been renewed. Removing flag file ${successfully_renewed_flag_filepath} and reloading nginx"
-    command="rm -f '${successfully_renewed_flag_filepath}' && systemctl reload nginx"
-    run_command "${command}" "" 'hide_output'
-  else
-    debug "Certificates have not been updated."
-  fi
-}
-
-kctl_rescue() {
-  debug "curl -fsSL4 '${FILES_KEITARO_URL}/install.sh' | | bash -s -- -C -o ${KCTL_LOG_DIR}/kctl-rescue.log"
-  get_kctl_install | bash -s -- -C -o "${KCTL_LOG_DIR}/kctl-rescue.log"
-}
-kctl_reset() {
-  reset_mysql_password "keitaro"
-  reset_mysql_password "root"
-  reset_ch_password
-  reset_tracker_salt
-  reset_machine_id
+kctl_certificates.issue() {
+  local domains="${*}"
+  /opt/keitaro/bin/kctl-enable-ssl -D "${domains// /,}"
 }
 
 DNS_GOOGLE="8.8.8.8"
@@ -1174,65 +1188,102 @@ kctl_resolving() {
       kctl_resolving_usage
   esac
 }
-kctl_run() {
-  local action="${1}"
-  shift
 
-  case "${action}" in
-    clickhouse-client)
-      kctl_run_clickhouse_client
-      ;;
-    clickhouse-query)
-      kctl_run_clickhouse_query  "${@}"
-      ;;
-    mariadb-client | mysql-client)
-      kctl_run_mysql_client
-      ;;
-    mariadb-query | mysql-query)
-      kctl_run_mysql_query "${@}"
-      ;;
-    cli-php)
-      kctl_run_cli_php "${@}"
-      ;;
-    *)
-      kctl_run_usage
-  esac
+kctl_features_usage() {
+  echo "Usage:"
+  echo "  kctl features enable <feature>                  enable feature"
+  echo "  kctl features disable <feature>                 disable feature"
+  echo "  kctl features list                              list supported features"
+  echo
+  echo "Supported features: ${SUPPORTED_FEATURES[*]}"
+  echo
 }
 
-kctl_show_help(){
-  echo "kctl - Keitaro management tool"
-  echo ""
-  cat <<-END
-Usage:
-
-  kctl [module] [action] [options]
-
-Example:
-
-  kctl install
-
-Actions:
-   kctl install                           - install and tune tracker and system components
-   kctl upgrade                           - upgrades system & tracker
-   kctl rescue                            - fixes common problems
-   kctl downgrade [version]               - downgrades tracker to version (by default downgrades to latest stable version)
-   kctl install-tracker <version>         - installs tracker with specified version
-   kctl renew-certificates                - renews LE certificates
-
-Modules:
-   kctl features                          - manage features (run "kctl features help" to see more details)
-END
-}
-
-kctl_show_version(){
-  read_inventory
-  detect_installed_version
-  if is_keitaro_installed; then
-    translate 'messages.kctl_version' "kctl_version=${RELEASE_VERSION}"
-    translate 'messages.kctl_tracker' "tracker_version=$(get_tracker_version)"
+kctl_features_disable() {
+  local feature="${1}"
+  if empty "${feature}"; then
+    kctl_features_usage
   else
-    fail "$(translate 'errors.tracker_is_not_installed')"
+    if arrays.in "${feature}" "${SUPPORTED_FEATURES[@]}"; then
+      kctl_features_disable_feature "${feature}"
+
+      if [[ "${feature}" == "${FEATURE_RBOOSTER}" ]]; then
+        kctl_features_disable_rbooster
+      else
+        kctl_features_tune_tracker
+      fi
+    else
+      kctl_features_usage
+    fi
   fi
+}
+
+kctl_features_disable_feature() {
+  local feature="${1}"
+  load_features
+  if arrays.in "${feature}" "${ENABLED_FEATURES[@]}"; then
+    # shellcheck disable=SC2207
+    ENABLED_FEATURES=($(arrays.remove "${feature}" "${ENABLED_FEATURES[@]}"))
+    save_features
+  fi
+}
+
+kctl_features_enable() {
+  local feature="${1}"
+  if empty "${feature}"; then
+    kctl_features_usage
+  else
+    if arrays.in "${feature}" "${SUPPORTED_FEATURES[@]}"; then
+      kctl_features_enable_feature "${feature}"
+
+      if [[ "${feature}" == "${FEATURE_RBOOSTER}" ]]; then
+        kctl_features_enable_rbooster
+      else
+        kctl_features_tune_tracker
+      fi
+    else
+      kctl_features_usage
+    fi
+  fi
+}
+
+kctl_features_enable_feature() {
+  local feature="${1}"
+  load_features
+  if ! arrays.in "${feature}" "${ENABLED_FEATURES[@]}"; then
+    # shellcheck disable=SC2207
+    ENABLED_FEATURES=($(arrays.add "${feature}" "${ENABLED_FEATURES[@]}"))
+    save_features
+  fi
+}
+
+set_olap_db() {
+  local olap_db="${1}"
+  local log_path="${KCTL_LOG_DIR}/kctl-set-olap-db-to-${olap_db}.log"
+  local roles_to_replay="install-clickhouse,tune-mariadb,tune-tracker"
+
+  assert_tracker_supports_rbooster
+
+  debug "Running command \`KCTL_OLAP_DB='${olap_db}' kctl-install -U -o '${log_path}' -t '${roles_to_replay}'\`"
+  KCTL_OLAP_DB="${olap_db}" kctl-install -U -o "${log_path}" -t "${roles_to_replay}"
+}
+
+assert_tracker_supports_rbooster() {
+  if ! tracker_supports_rbooster; then
+    fail "$(translate "errors.tracker_doesnt_support_feature" \
+                      'feature=rbooster' \
+                      "current_tracker_version=$(get_tracker_version)" \
+                      "featured_tracker_version=${TRACKER_SUPPORTS_RBOOSTER_SINCE}")"
+  fi
+}
+
+kctl_features_enable_rbooster() {
+  set_olap_db "${OLAP_DB_CLICKHOUSE}"
+  run_ch_migrator
+}
+
+kctl_features_disable_rbooster() {
+  set_olap_db "${OLAP_DB_MARIADB}"
 }
 
 run_ch_migrator(){
@@ -1242,52 +1293,126 @@ run_ch_migrator(){
   run_command "${command}"
 }
 
-on_exit(){
-  exit 1
+kctl_features_list(){
+  echo "Feature list:"
+  echo " rbooster               Use ClickHouse as OLAP DB"
 }
 
-reset_mysql_password(){
-  local user="${1}"
-  local root_mysql_password
-  local new_password
+ENABLED_FEATURES=()
+FEATURES_DELIMITER=','
+FEATURE_RBOOSTER='rbooster'
+SUPPORTED_FEATURES=(
+  "${FEATURE_RBOOSTER}"
+)
 
-  new_password=$(generate_password)
+kctl_features() {
+  local action="${1}"
+  local feature="${2}"
+  case "${action}" in
+    enable)
+      kctl_features_enable "${feature}"
+      ;;
+    disable)
+      kctl_features_disable "${feature}"
+      ;;
+    list)
+      kctl_features_list
+      ;;
+    *)
+      kctl_features_usage
+  esac
+}
 
-  mysql -Nse "UPDATE mysql.user SET password=PASSWORD('${new_password}') WHERE user='${user}'; FLUSH PRIVILEGES;"
 
-  if [ "${user}" == "root" ]; then
-    sed -i -e "s/^password=.*/password=${new_password}/g" /root/.my.cnf
-  elif [ "${user}" == "keitaro" ]; then
-    sed -i -e "s/^MARIADB_PASSWORD=.*/MARIADB_PASSWORD=${new_password}/g" /etc/keitaro/config/tracker.env
+arrays.in() {
+  local value="${1}"; shift
+  local array=("${@}")
+
+  [[ "$(arrays.index_of "${value}" "${array[@]}")" != "" ]]
+}
+
+arrays.index_of() {
+  local value="${1}"; shift
+  local array=("${@}")
+
+  for ((index=0; index<${#array[@]}; index++)); do
+    if [[ "${array[$index]}" == "${value}" ]]; then
+      echo "${index}"
+      break
+    fi
+  done
+}
+
+arrays.add() {
+  local value="${1}"; shift
+  local array=("${@}")
+
+  array+=("${value}")
+
+  echo "${array[@]}"
+}
+
+arrays.remove() {
+  local value="${1}"; shift
+  local array=("${@}")
+
+  value_index="$(arrays.index_of "${value}" "${array[@]}")"
+
+  if [[ "${value_index}" != "" ]]; then
+    unset 'array[value_index]'
   fi
+
+  echo "${array[@]}"
 }
 
-reset_tracker_salt() {
-  local new_salt
-  new_salt="$(generate_uuid)"
-  sed -i -e "s/^SALT=.*/SALT=${new_salt}/g" /etc/keitaro/config/tracker.env
-}
-# shellcheck source=/dev/null
-
-reset_machine_id() {
-  generate_uuid > /etc/machine-id
-  source /etc/keitaro/config/kctl-monitor.env
-  PHP_BIN="${PHP_BIN}" kctl-monitor -r > /dev/null
+load_features() {
+  # shellcheck source=/dev/null
+  source "${PATH_TO_TRACKER_ENV}"
+  IFS="${FEATURES_DELIMITER}" read -r -a ENABLED_FEATURES <<< "${FEATURES:-}"
 }
 
-reset_ch_password(){
-  local new_password
-  local new_hashed_password
-  local old_hashed_password
+save_features() {
+  local enabled_features_str="${ENABLED_FEATURES[*]}"
+  debug "enabled_features_str: ${enabled_features_str}"
+  local line_to_save="FEATURES=${enabled_features_str// /${FEATURES_DELIMITER}}"
+  debug "line_to_save: ${line_to_save}"
+  if file_content_matches "${PATH_TO_TRACKER_ENV}" '-P' "^FEATURES="; then
+    sed -i "s/^FEATURES=.*/${line_to_save}/g" "${PATH_TO_TRACKER_ENV}"
+  else
+    echo "${line_to_save}" >> "${PATH_TO_TRACKER_ENV}"
+  fi
+  debug "FEATURES env is set to '${line_to_save}' in ${PATH_TO_TRACKER_ENV}"
+}
 
-  old_hashed_password="$(grep  -oP '(?<=<password_sha256_hex>).*?(?=</password_sha256_hex>)' /etc/clickhouse-server/users.xml)"
-  new_password="$(generate_password)"
-  new_hashed_password=$(echo -n "${new_password}" | sha256sum -b | awk '{print$1}')
+kctl_features_tune_tracker() {
+  debug "Running command \`KCTL_OLAP_DB='${olap_db}' kctl-install -U -t 'tune-tracker'\`"
+  kctl-install -U -t 'tune-tracker'
+}
 
-  sed -i "s/${old_hashed_password}/${new_hashed_password}/g" /etc/clickhouse-server/users.xml
-  sed -i -e "s/^CH_PASSWORD=.*/CH_PASSWORD=${new_password}/g" /etc/keitaro/config/tracker.env
-  sed -i -e "s/^ch_password=.*/ch_password=${new_password}/g" /etc/keitaro/config/inventory
-  systemctl restart clickhouse
+kctl_certificates() {
+  local action="${1}"; shift
+  case "${action}" in
+    issue)
+      kctl_certificates.issue "${@}"
+      ;;
+    revoke)
+      kctl_certificates.revoke "${@}"
+      ;;
+    prune)
+      kctl_certificates.prune "${@}"
+      ;;
+    renew)
+      kctl_certificates.renew
+      ;;
+    remove-old-logs)
+      kctl_certificates.remove_old_logs
+      ;;
+    fix-x3-expiration)
+      kctl_certificates.fix_x3_expiration
+      ;;
+    *)
+      kctl_certificates_usage
+  esac
 }
 
 kctl_resolving_usage() {
@@ -1300,7 +1425,7 @@ kctl_resolving_usage() {
 kctl_resolving_reset() {
   local resolving_entry="nameserver ${DNS_GOOGLE}"
   if file_content_matches "${RESOLV_CONF}" '-F' "${resolving_entry}"; then
-    other_ipv4_entries=$(grep "^nameserver" ${RESOLV_CONF} | grep -vF "${resolving_entry}" | grep '\.')
+    other_ipv4_entries=$(grep "^nameserver" "${RESOLV_CONF}" | grep -vF "${resolving_entry}" | grep '\.')
     debug "Other ipv4 entries: ${other_ipv4_entries}"
     if isset "${other_ipv4_entries}"; then
       debug "${RESOLV_CONF} contains 'nameserver ${DNS_GOOGLE}', deleting"
@@ -1314,11 +1439,35 @@ kctl_resolving_reset() {
 }
 
 kctl_resolving_set_google() {
-  if file_content_matches ${RESOLV_CONF} '-F' "nameserver ${DNS_GOOGLE}"; then
+  if file_content_matches "${RESOLV_CONF}" '-F' "nameserver ${DNS_GOOGLE}"; then
     debug "${RESOLV_CONF} already contains 'nameserver ${DNS_GOOGLE}', skipping"
   else
     debug "${RESOLV_CONF} doesn't contain 'nameserver ${DNS_GOOGLE}', adding"
     run_command "sed -i '1inameserver ${DNS_GOOGLE}' ${RESOLV_CONF}"
+  fi
+}
+# shellcheck source=/dev/null
+
+kctl_run_mysql_in_docker() {
+  local docker_exec_args="${1}"; shift
+  source /etc/keitaro/config/tracker.env
+  docker exec --env HOME=/tmp "${docker_exec_args}" mariadb \
+         mysql --host "${MARIADB_HOST}" --port="${MARIADB_PORT}" \
+               --user="${MARIADB_USERNAME}" --password="${MARIADB_PASSWORD}"  \
+               --database="${MARIADB_DB}" \
+               "${@}"
+}
+
+kctl_run_mysql_client() {
+  kctl_run_mysql_in_docker "-it"
+}
+
+kctl_run_mysql_query() {
+  local sql="${1}"
+  if [[ "${sql}" == "" ]]; then
+    kctl_run_mysql_in_docker "-i" --raw --batch --skip-column-names --default-character-set=utf8
+  else
+    kctl_run_mysql_in_docker "-i" --raw --batch --skip-column-names --default-character-set=utf8 --execute="${sql}"
   fi
 }
 kctl_run_usage(){
@@ -1354,34 +1503,60 @@ kctl_run_clickhouse_query() {
     kctl_run_clickhouse_in_docker "-i" --format=TabSeparated --query="${sql}"
   fi
 }
-# shellcheck source=/dev/null
-
-kctl_run_mysql_in_docker() {
-  local docker_exec_args="${1}"; shift
-  source /etc/keitaro/config/tracker.env
-  docker exec --env HOME=/tmp "${docker_exec_args}" mariadb \
-         mysql --host "${MARIADB_HOST}" --port="${MARIADB_PORT}" \
-               --user="${MARIADB_USERNAME}" --password="${MARIADB_PASSWORD}"  \
-               --database="${MARIADB_DB}" \
-               "${@}"
-}
-
-kctl_run_mysql_client() {
-  kctl_run_mysql_in_docker "-it"
-}
-
-kctl_run_mysql_query() {
-  local sql="${1}"
-  if [[ "${sql}" == "" ]]; then
-    kctl_run_mysql_in_docker "-i" --raw --batch --skip-column-names --default-character-set=utf8
-  else
-    kctl_run_mysql_in_docker "-i" --raw --batch --skip-column-names --default-character-set=utf8 --execute="${sql}"
-  fi
-}
 
 kctl_run_cli_php() {
   sudo -u keitaro /usr/bin/kctl-php /var/www/keitaro/bin/cli.php "${@}"
 }
+# shellcheck source=/dev/null
+
+reset_machine_id() {
+  generate_uuid > /etc/machine-id
+  source /etc/keitaro/config/kctl-monitor.env
+  PHP_BIN="${PHP_BIN}" kctl-monitor -r > /dev/null
+}
+
+reset_ch_password(){
+  local new_password
+  local new_hashed_password
+  local old_hashed_password
+
+  old_hashed_password="$(grep  -oP '(?<=<password_sha256_hex>).*?(?=</password_sha256_hex>)' /etc/clickhouse-server/users.xml)"
+  new_password="$(generate_password)"
+  new_hashed_password=$(echo -n "${new_password}" | sha256sum -b | awk '{print$1}')
+
+  sed -i "s/${old_hashed_password}/${new_hashed_password}/g" /etc/clickhouse-server/users.xml
+  sed -i -e "s/^CH_PASSWORD=.*/CH_PASSWORD=${new_password}/g" /etc/keitaro/config/tracker.env
+  sed -i -e "s/^ch_password=.*/ch_password=${new_password}/g" /etc/keitaro/config/inventory
+  systemctl restart clickhouse
+}
+
+reset_license_ip() {
+  sed -i -e "s/^LICENSE_IP=.*/LICENSE_IP=${SERVER_IP}/g" /etc/keitaro/config/tracker.env
+}
+
+reset_mysql_password(){
+  local user="${1}" new_password sql
+
+  new_password=$(generate_password)
+  sql="UPDATE mysql.user SET password=PASSWORD('${new_password}') WHERE user='${user}'; FLUSH PRIVILEGES;"
+
+  mysql  --defaults-file=/root/.my.cnf -Nse "${sql}"
+
+  if [ "${user}" == "root" ]; then
+    sed -i -e "s/^password=.*/password=${new_password}/g" /root/.my.cnf
+  elif [ "${user}" == "keitaro" ]; then
+    sed -i -e "s/^MARIADB_PASSWORD=.*/MARIADB_PASSWORD=${new_password}/g" /etc/keitaro/config/tracker.env
+  fi
+}
+
+reset_tracker_salt() {
+  local new_salt
+  new_salt="$(generate_uuid)"
+  sed -i -e "s/^SALT=.*/SALT=${new_salt}/g" /etc/keitaro/config/tracker.env
+}
+CURRENT_DATETIME="$(date +%Y%m%d%H%M)"
+MIN_TRACKER_VERSION_TO_INSTALL='9.13.0'
+declare -a RETRY_INTERVALS=(60 180 300)
 declare -A DICT
 DICT['en.messages.sleeping_before_next_try']="Error while install, sleeping for :retry_interval: seconds before next try"
 DICT['en.messages.kctl_version']="Kctl:    :kctl_version:"
@@ -1391,13 +1566,6 @@ DICT['en.errors.tracker_version_to_install_is_incorrect']="Tracker version can't
 DICT['en.errors.invalid_options']="Invalid option ${1}. Try 'kctl help' for more information."
 DICT['en.errors.tracker_doesnt_support_feature']="Current tracker v:current_tracker_version: doesn't support :feature:. Please upgrade tracker to v:featured_tracker_version:+"
 DICT['en.errors.tracker_is_not_installed']="Keitaro tracker is not installed"
-CURRENT_DATETIME="$(date +%Y%m%d%H%M)"
-MIN_TRACKER_VERSION_TO_INSTALL='9.13.0'
-declare -a RETRY_INTERVALS=(60 180 300)
-
-on_exit(){
-  exit 1
-}
 
 # Based on https://stackoverflow.com/a/53400482/612799
 #
@@ -1473,15 +1641,6 @@ detect_inventory_path(){
   done
   debug "Inventory file not found"
 }
-MYIP_KEITARO_IO="https://myip.keitaro.io"
-
-detect_server_ip() {
-  debug "Detecting server IP address"
-  debug "Getting url '${MYIP_KEITARO_IO}'"
-  SERVER_IP="$(curl -fsSL4 ${MYIP_KEITARO_IO} 2>&1)"
-  debug "Done, result is '${SERVER_IP}'"
-}
-
 
 read_inventory(){
   detect_inventory_path
@@ -1504,7 +1663,7 @@ parse_line_from_inventory_file(){
   local line="${1}"
   local quoted_string_regex="^'.*'\$"
   IFS="=" read -r var_name value <<< "$line"
-  if [[ "$var_name" != "db_restore_path" ]] && [[ "$var_name" != "without_key" ]]; then
+  if [[ "$var_name" != "db_restore_path" ]]; then
     if [[ "${value}" =~ ${quoted_string_regex} ]]; then
       debug "# ${value} is quoted, removing quotes"
       value_without_quotes="${value:1:-1}"
@@ -1521,36 +1680,6 @@ parse_line_from_inventory_file(){
   fi
 }
 
-print_successful_message(){
-  print_with_color "$(translate "messages.successful_${RUNNING_MODE}")" 'green'
-  print_with_color "$(translate 'messages.visit_url')" 'green'
-  print_url
-}
-
-print_url() {
-  print_with_color "http://${SERVER_IP}/admin" 'light.green'
-}
-
-print_credentials_notice() {
-  local notice=""
-  notice=$(translate 'messages.successful.use_old_credentials')
-  print_with_color "${notice}" 'yellow'
-}
-
-get_config_value(){
-  local var="${1}"
-  local file="${2}"
-  local separator="${3}"
-  if file_exists "${file}"; then
-    grep "^${var}\\b" "${file}" | \
-      grep "${separator}" | \
-      head -n1 | \
-      awk -F"${separator}" '{print $2}' | \
-      awk '{$1=$1; print}' | \
-      unquote
-  fi
-}
-
 unquote() {
   sed -r -e "s/^'(.*)'\$/\\1/g" -e 's/^"(.*)"$/\1/g'
 }
@@ -1562,19 +1691,6 @@ generate_password(){
 }
 generate_uuid() {
   uuidgen | tr -d '-'
-}
-
-is_running_in_interactive_restoring_mode() {
-  [[ "${RUNNING_MODE}" == "${RUNNING_MODE_RESTORE}" ]] && \
-    [[ "${RESTORING_MODE}" == "${RESTORING_MODE_INTERACTIVE}" ]]
-}
-
-is_running_in_upgrade_mode() {
-  [[ "${RUNNING_MODE}" == "${RUNNING_MODE_UPGRADE}" ]]
-}
-
-is_running_in_install_mode() {
-  [[ "${RUNNING_MODE}" == "${RUNNING_MODE_INSTALL}" ]]
 }
 
 init "${@}"
@@ -1604,11 +1720,8 @@ case "${action}" in
   install-tracker)
     kctl_install_tracker "${@}"
     ;;
-  renew-certificates)
-    kctl_renew_certificates
-    ;;
-  fix-le-certs-2021-09-30-issues)
-    kctl_fix_le_certs_2021_09_30_issues
+  certificates)
+    kctl_certificates "${@}"
     ;;
   features)
     kctl_features "${@}"
@@ -1622,8 +1735,8 @@ case "${action}" in
   reset|password-change)
     kctl_reset
     ;;
-  transfer)
-    kctl-transfer "${@}"
+  transfers|transfer)
+    kctl-transfers "${@}"
     ;;
   help)
     kctl_show_help

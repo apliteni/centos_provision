@@ -15,16 +15,15 @@
     - {role: '_init/install-docker',                        tags: 'install-docker'}                         # noqa yaml
     - {role: '_init/install-fail2ban',                      tags: 'install-fail2ban'}                       # noqa yaml
     - {role: '_init/install-firewalld',                     tags: 'install-firewalld'}                      # noqa yaml
-    - {role: '_init/install-htop-config',                   tags: 'install-htop-config'}                    # noqa yaml
     - {role: '_init/install-kctl-tools',                    tags: 'install-kctl-tools'}                     # noqa yaml
     - {role: '_init/install-postfix',                       tags: 'install-postfix'}                        # noqa yaml
     - {role: '_init/setup-journald',                        tags: 'setup-journald'}                         # noqa yaml
+    - {role: '_init/setup-root-home',                       tags: 'setup-root-home'}                        # noqa yaml
     - {role: '_init/setup-thp',                             tags: 'setup-thp'}                              # noqa yaml
     - {role: '_init/setup-timezone',                        tags: 'setup-timezone'}                         # noqa yaml
     - {role: '_init/tune-swap',                             tags: 'tune-swap,                    tune'}     # noqa yaml
     - {role: '_init/tune-sysctl',                           tags: 'tune-sysctl,                  tune'}     # noqa yaml
-    - {role: 'clickhouse/install-clickhouse',               tags: 'install-clickhouse'}                     # noqa yaml
-    - {role: 'clickhouse/tune-clickhouse',                  tags: 'tune-clickhouse,              tune'}     # noqa yaml
+    - {role: 'clickhouse/install-clickhouse',               tags: 'install-clickhouse,           tune'}     # noqa yaml
     - {role: 'mariadb/install-mariadb',                     tags: 'install-mariadb'}                        # noqa yaml
     - {role: 'mariadb/tune-mariadb',                        tags: 'tune-mariadb,                 tune'}     # noqa yaml
     - {role: 'mariadb/wrap-up-db-configuration',            tags: 'wrap-up-db-configuration'}               # noqa yaml

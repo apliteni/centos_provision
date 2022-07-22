@@ -1,0 +1,80 @@
+<?xml version="1.0"?>
+<clickhouse>
+    <listen_host>::</listen_host>
+    <listen_host>0.0.0.0</listen_host>
+    <listen_try>1</listen_try>
+    <http_port>8123</http_port>
+    <tcp_port>9000</tcp_port>
+    <keep_alive_timeout>3</keep_alive_timeout>
+
+    <max_connections>128</max_connections>
+    <max_concurrent_queries>20</max_concurrent_queries>
+    <max_thread_pool_size>500</max_thread_pool_size>
+    <max_server_memory_usage>{{ clickhouse_memory }}</max_server_memory_usage>
+    <!-- <max_open_files>262144</max_open_files> -->
+
+    <!-- Approximate size of mark cache, used in tables of MergeTree family.
+         In bytes. Cache is single for server. Memory is allocated only on demand.
+         You should not lower this value.
+      -->
+    <mark_cache_size>5368709120</mark_cache_size>
+
+    <!-- Path to data directory, with trailing slash. -->
+    <path>/var/lib/clickhouse/</path>
+
+    <!-- Path to temporary data for processing hard queries. -->
+    <tmp_path>/var/lib/clickhouse/tmp/</tmp_path>
+
+    <!-- Directory with user provided files that are accessible by 'file' table function. -->
+    <user_files_path>/var/lib/clickhouse/user_files/</user_files_path>
+
+    <!-- Sources to read users, roles, access rights, profiles of settings, quotas. -->
+    <user_directories>
+        <users_xml>
+            <path>users.xml</path>
+        </users_xml>
+        <local_directory>
+            <path>/var/lib/clickhouse/access/</path>
+        </local_directory>
+    </user_directories>
+
+    <!-- Default profile of settings. -->
+    <default_profile>default</default_profile>
+
+    <!-- Default database. -->
+    <default_database>default</default_database>
+
+    <!-- Perform mlockall after startup to lower first queries latency
+          and to prevent clickhouse executable from being paged out under high IO load.
+         Enabling this option is recommended but will lead to increased startup time for up to a few seconds.
+    -->
+    <mlock_executable>true</mlock_executable>
+
+    <!-- Directory in <clickhouse-path> containing schema files for various input formats.
+         The directory will be created if it doesn't exist.
+      -->
+    <format_schema_path>/var/lib/clickhouse/format_schemas/</format_schema_path>
+
+    <logger>
+        <level>information</level>
+        <log>/var/log/clickhouse-server/clickhouse-server.log</log>
+        <errorlog>/var/log/clickhouse-server/clickhouse-server.err.log</errorlog>
+        <size>1000M</size>
+        <count>10</count>
+    </logger>
+
+    <!-- Running in low memory configuration
+         See https://clickhouse.uptrace.dev/clickhouse/low-memory.html
+    -->
+    <merge_tree>
+      <merge_max_block_size>1024</merge_max_block_size>
+      <max_bytes_to_merge_at_max_space_in_pool>1073741824</max_bytes_to_merge_at_max_space_in_pool>
+      <number_of_free_entries_in_pool_to_lower_max_size_of_merge>0</number_of_free_entries_in_pool_to_lower_max_size_of_merge>
+    </merge_tree>
+
+    <!-- Cache size in bytes for compiled expressions.-->
+    <compiled_expression_cache_size>10485760</compiled_expression_cache_size>
+
+    <!-- Cache size in elements for compiled expressions.-->
+    <compiled_expression_cache_elements_size>1000</compiled_expression_cache_elements_size>
+</clickhouse>

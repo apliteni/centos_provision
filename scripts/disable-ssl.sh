@@ -51,7 +51,7 @@ TOOL_NAME='disable-ssl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.37.4'
+RELEASE_VERSION='2.38.0'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -90,11 +90,14 @@ LOG_PATH="${LOG_DIR}/${LOG_FILENAME}"
 
 INVENTORY_DIR="${ETC_DIR}/config"
 INVENTORY_PATH="${INVENTORY_DIR}/inventory"
+PATH_TO_TRACKER_ENV="${INVENTORY_DIR}/tracker.env"
 DETECTED_INVENTORY_PATH=""
 
 NGINX_CONFIG_ROOT="/etc/nginx"
 NGINX_VHOSTS_DIR="${NGINX_CONFIG_ROOT}/conf.d"
 NGINX_KEITARO_CONF="${NGINX_VHOSTS_DIR}/keitaro.conf"
+
+LETSENCRYPT_DIR="/etc/letsencrypt"
 
 SCRIPT_NAME="kctl-${TOOL_NAME}"
 
@@ -110,9 +113,6 @@ TOOL_ARGS="${*}"
 DB_ENGINE_INNODB="innodb"
 DB_ENGINE_TOKUDB="tokudb"
 DB_ENGINE_DEFAULT="${DB_ENGINE_TOKUDB}"
-
-PHP_ENGINE_ROADRUNNER="roadrunner"
-PHP_ENGINE_DEFAULT="${PHP_ENGINE_ROADRUNNER}"
 
 OLAP_DB_MARIADB="mariadb"
 OLAP_DB_CLICKHOUSE="clickhouse"
@@ -1142,11 +1142,18 @@ disable_domain(){
   local domain="${1}"
   local args="${2}"
   local certbot_command=""
-  rm -rf "/etc/nginx/conf.d/${domain}.conf"
-  certbot_command="$(build_certbot_command) delete -n --cert-name $domain"
-  run_command "${certbot_command}" "" "hide_output" "allow_errors" "" "" "$DISABLE_SSL_LOG"
 
-  file_exists "/etc/nginx/conf.d/${domain}.conf" && file_exists "/etc/letsencrypt/live/$domain"
+  rm -rf "${NGINX_VHOSTS_DIR}/${domain}.conf" \
+         "${NGINX_VHOSTS_DIR}/local/${domain}.inc"
+
+  certbot_command="$(build_certbot_command) delete -n --cert-name $domain"
+  if ! run_command "${certbot_command}" "" "hide_output" "allow_errors" "" "" "$DISABLE_SSL_LOG"; then
+    rm -rf "${LETSENCRYPT_DIR}/live/${domain}" \
+           "${LETSENCRYPT_DIR}/archive/${domain}" \
+           "${LETSENCRYPT_DIR}/renewal/${domain}.conf"
+  fi
+
+  file_exists "${NGINX_VHOSTS_DIR}/${domain}.conf" && file_exists "${LETSENCRYPT_DIR}/live/$domain"
 }
 
 show_finishing_message(){

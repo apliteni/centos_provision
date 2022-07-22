@@ -8,5 +8,5 @@
     - /etc/nginx/conf.d/keitaro/tracker.roadrunner.inc
 
 - name: Remove X3 from exsiting certs
-  command: "{{ kctl_bin_dir }}/kctl fix-le-certs-2021-09-30-issues"
+  command: "{{ kctl_bin_dir }}/kctl certificates fix-x3-expiration"
   changed_when: false

@@ -1,3 +1,4 @@
+php_fpm_memory_mb: "{{ (php_fpm_memory_usage_to_ram_ratio * ansible_memtotal_mb) | int }}"
 php_fpm_worker_size_mb: 50
 php_fpm_worker_max_requests: 512
 php_fpm_workers_start_factor: 0.4
@@ -7,8 +8,8 @@ php_fpm_workers_max_spare_factor: 0.6
 php_fpm_workers_count: "{{ ((php_fpm_memory_mb|int) / php_fpm_worker_size_mb) | int_between(10, 300) }}"
 php_fpm_pools:
   - name: tracker
-    workers_count: "{{ ((php_fpm_workers_count|int) * 0.5) }}"
+    workers_count: "{{ ((php_fpm_workers_count|int) * 0.5) | int }}"
   - name: admin
-    workers_count: "{{ ((php_fpm_workers_count|int) * 0.3) }}"
+    workers_count: "{{ ((php_fpm_workers_count|int) * 0.3) | int }}"
   - name: www
-    workers_count: "{{ ((php_fpm_workers_count|int) * 0.2) }}"
+    workers_count: "{{ ((php_fpm_workers_count|int) * 0.2) | int }}"

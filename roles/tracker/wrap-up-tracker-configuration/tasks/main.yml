@@ -29,14 +29,6 @@
     minute: "{{ box_creation_time | extract_minute | next_minute }}"
     job: "{{ php_path }} {{ keitaro_app_dir }}/bin/cli.php geodbs:update_all > /dev/null"
 
-# daily task
-- name: Configure cron to remove old enable-ssl logs
-  cron:
-    name: Remove old enable-ssl logs
-    hour: "{{ box_creation_time | extract_hour }}"
-    minute: "{{ box_creation_time | extract_minute }}"
-    job: /usr/bin/find {{ kctl_enable_ssl_logs_dir }} -mtime +{{ kctl_enable_ssl_logs_keep_for_n_days }} -type f -delete
-
 - name: Generate watch list if it doesn't exist.
   copy:
     dest: "{{ keitaro_watch_list }}"

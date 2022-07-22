@@ -23,7 +23,7 @@ table_open_cache = {{ mariadb_table_open_cache }}
 open_files_limit = {{ opened_files_mariadb }}
 
 {% if db_engine == 'tokudb' %}
-tokudb_cache_size = {{ [(mariadb_main_size_kb|int),262144] | max }}K
+tokudb_cache_size = {{ mariadb_olap_memory_mb }}M
 {% else %}
-innodb_buffer_pool_size = {{ mariadb_main_size_kb }}K
+innodb_buffer_pool_size = {{ mariadb_olap_memory_mb }}M
 {% endif %}

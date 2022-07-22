@@ -28,6 +28,7 @@ provisioner:
     ANSIBLE_FILTER_PLUGINS:  ../../../../../plugins/filter # path relative to molecule scenario directory
     CI:                      true
     MOLECULE_NO_LOG:         false
+    PROVISION_BIN_DIRECTORY: /provision
   inventory:
     links:
       group_vars: ../../../../../roles/_common/molecule/inventory

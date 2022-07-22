@@ -26,7 +26,19 @@
     - name: Include init role
       include_role:
         name: _init/_init
-      when: molecule_prepare_yml_info.stat.exists | default(false)
+
+    - name: Create provisioning dir
+      file:
+        path: "{{ provision_bin_directory }}"
+        state: directory
+
+    - name: Prepare kctl tools stubs
+      copy:
+        src: /bin/true
+        dest: "{{ provision_bin_directory }}/{{ item }}"
+        mode: 0755
+        remote_src: true
+      with_items: [kctl, kctl-install, kctl-enable-ssl, kctl-disable-ssl, kctl-fail2ban, kctl-certificates-prune]
 
     - name: Redefine handlers
       include_role:

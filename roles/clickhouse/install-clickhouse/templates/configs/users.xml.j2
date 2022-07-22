@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<yandex>
+
+  <profiles>
+    <default></default>
+  </profiles>
+
+  <quotas>
+    <default>
+      <interval>
+        <duration>3600</duration>
+        <queries>0</queries>
+        <errors>0</errors>
+        <result_rows>0</result_rows>
+        <read_rows>0</read_rows>
+        <execution_time>0</execution_time>
+      </interval>
+    </default>
+  </quotas>
+
+  <users>
+    <{{ ch_user }}>
+      <password_sha256_hex>{{ ch_password | hash('sha256') }}</password_sha256_hex>
+      <profile>default</profile>
+      <quota>default</quota>
+    </{{ ch_user }}>
+  </users>
+
+</yandex>

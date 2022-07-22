@@ -1,11 +1,12 @@
 # Database settings (see DEVOPS-147)
+mariadb_memory_mb: "{{ (mariadb_memory_usage_to_ram_ratio * ansible_memtotal_mb) | int }}"
 mariadb_memory_1pct: "{{ ((mariadb_memory_mb|int) * 1024 / 100) | int }}"
 mariadb_key_buffer_size_kb: "{{ 7 * (mariadb_memory_1pct|int) }}"
 mariadb_query_cache_size_kb: "{{ 7 * (mariadb_memory_1pct|int) }}"
 mariadb_tmp_table_size_kb: "{{ 3 * (mariadb_memory_1pct|int) }}"
 mariadb_max_heap_table_size_kb: "{{ 3 * (mariadb_memory_1pct|int) }}"
-mariadb_main_size_factor: "{{ 40 if olap_db == 'clickhouse' else 100 * (olap_db_mb|int) / (mariadb_memory_mb|int) }}"
-mariadb_main_size_kb: "{{ (mariadb_main_size_factor | int) * (mariadb_memory_1pct|int) }}"
+mariadb_olap_memory_usage_ratio: "{{ olap_db_memory_usage_to_ram_ratio if olap_db == 'mariadb' else alternative_olap_db_memory_usage_to_ram_ratio }}"
+mariadb_olap_memory_mb: "{{ ((mariadb_olap_memory_usage_ratio|float) * ansible_memtotal_mb) | int }}"
 # per connection settings
 mariadb_max_connections: "{{ ((php_fpm_workers_count | int) * 1.5) | int_between(30, 4096) }}"
 # join_buffer_size * connections: 30% available db memory

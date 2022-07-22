@@ -69,4 +69,10 @@
   file:
     path: "/usr/bin/kctl-{{ item }}"
     state: absent
-  with_items: "{{ kctl_tool_names }}"
+  with_items:
+    - install
+    - enable-ssl
+    - disable-ssl
+    - add-site
+    - fail2ban
+    - prune-ssl
