@@ -51,7 +51,7 @@ TOOL_NAME='disable-ssl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.39.0'
+RELEASE_VERSION='2.39.1'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -704,7 +704,7 @@ print_with_color(){
 PATH_TO_NGINX_PIDFILE="/var/run/nginx.pid"
 
 start_or_reload_nginx(){
-  if podman exec nginx "test -f ${PATH_TO_NGINX_PIDFILE}" || is_ci_mode; then
+  if podman exec nginx test -f "${PATH_TO_NGINX_PIDFILE}" || is_ci_mode; then
     debug "Nginx is started, reloading"
     run_command "systemctl reload nginx" "$(translate 'messages.reloading_nginx')" 'hide_output'
   else
