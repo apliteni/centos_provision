@@ -3,8 +3,6 @@
 - include_role:
     name: mariadb/install-mariadb
 - include_role:
-    name: mariadb/tune-mariadb
-- include_role:
     name: mariadb/wrap-up-db-configuration
 - include_role:
     name: php/install-php

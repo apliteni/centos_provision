@@ -1,0 +1,4 @@
+certbot_path_to_configs: /etc/letsencrypt
+certbot_path_to_libs: /var/lib/letsencrypt
+certbot_path_to_logs: /var/log/letsencrypt
+

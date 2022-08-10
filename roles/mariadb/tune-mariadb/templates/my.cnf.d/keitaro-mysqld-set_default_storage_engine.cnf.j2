@@ -1,8 +1,0 @@
-# Default storage engine
-#
-# {{ ansible_managed }}
-
-[mysqld]
-plugin-load=ha_tokudb
-default_storage_engine = {{ db_engine }}
-default_tmp_storage_engine = {{ db_engine }}

@@ -27,5 +27,4 @@
   with_items:
     - { from: "/etc/opt/remi/{{ php_version }}",                 to: '/etc/php' }           # noqa yaml
     - { from: "/var/opt/remi/{{ php_version }}/log/php-fpm",     to: '/var/log/php-fpm' }   # noqa yaml
-    - { from: "/usr/bin/{{ php_version }}",                      to: '/usr/bin/php' }       # noqa yaml
     - { from: "/usr/bin/{{ php_version }}",                      to: '/usr/bin/kctl-php' }  # noqa yaml

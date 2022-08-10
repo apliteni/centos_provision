@@ -1,0 +1,24 @@
+- name: Ensure group "redis" exists
+  group:
+    name: "{{ redis_group }}"
+    state: present
+
+- name: Add the user 'redis' with a specific uid and a primary group of 'redis'
+  user:
+    name: "{{ redis_user }}"
+    group: "{{ redis_group }}"
+    home: "{{ redis_path_to_libs }}"
+    shell: /sbin/nologin
+    state: present
+  register: redis_user_info
+
+- name: Create redis dirs
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0750'
+    owner: "{{ redis_user }}"
+    group: "{{ redis_group }}"
+  with_items:
+    - "{{ redis_path_to_logs }}"
+    - "{{ redis_path_to_libs }}"

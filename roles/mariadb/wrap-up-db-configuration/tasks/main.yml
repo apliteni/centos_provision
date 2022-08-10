@@ -1,13 +1,13 @@
 - name: Wait for MariaDB service to be ready
   wait_for:
-    port: 3306
-    host: 127.0.0.1
+    port: "{{ db_port }}"
+    host: "{{ db_host }}"
     connect_timeout: 3
     delay: 3
     timeout: 30
 
 - name: Check tracker database exists
-  command: mysql --skip-column-names --batch --execute "select 'ok'" {{ db_name }}
+  command: "{{ kctl_path }} run mysql-query 'select 1'"
   failed_when: false
   changed_when: false
   register: check_if_tracker_database_exists_command

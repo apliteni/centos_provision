@@ -1,18 +1,24 @@
 [Unit]
-Description=Mariadb
+Description=MariaDB server
 After=network.target
 
 [Service]
 Type=simple
-ExecStartPre=-/usr/bin/docker stop {{ mariadb_docker_name }}
-ExecStartPre=-/usr/bin/docker rm --force --volumes --storage  {{ mariadb_docker_name }}
-ExecStart=/usr/bin/docker run --user {{ mysql_user_uid }}  --name {{ mariadb_docker_name }} {{ mariadb_docker_run_args  }} \
-          {% for mount_point in mariadb_docker_volumes %}
-          -v {{ mount_point }}:{{ mount_point }} \
-          {% endfor %}
-          {{ mariadb_docker_image }}
-ExecStop=/usr/bin/docker stop %p
-Restart=on-failure
+EnvironmentFile=/etc/keitaro/config/components.env
+ExecStartPre=-/usr/bin/bash -c \
+              "(/usr/bin/podman ps | /usr/bin/grep -qw {{ mariadb_docker_name }}) \
+                  && /usr/bin/podman rm --force --volumes {{ mariadb_docker_name }}"
+ExecStart=/usr/bin/podman \
+                      run \
+                      --rm \
+                      --net host \
+                      --user {{ mariadb_user_id }}:{{ mariadb_group_id }} \
+                      --name {{ mariadb_docker_name }} \
+                      {% for mount_point in mariadb_docker_volumes %} -v {{ mount_point }}:{{ mount_point }} {% endfor %} \
+                      ${MARIADB_IMAGE}
+ExecStop=/usr/bin/podman stop {{ mariadb_docker_name }}
+
+Restart=always
 RestartSec=20
 KillMode=none
 

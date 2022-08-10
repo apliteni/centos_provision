@@ -1,13 +1,31 @@
 - name: Ensure group "mysql" exists
   group:
-    name: "{{ mariadb_docker_group }}"
+    name: "{{ mariadb_group }}"
     state: present
 
-- name: Add the user 'mysql' with a specific uid and a primary group of 'mysql'
+- name: Add the user 'mysql' with primary group 'mysql'
   user:
-    name: "{{ mariadb_docker_user }}"
-    group: "{{ mariadb_docker_group }}"
-    home: "{{ mariadb_docker_user_home }}"
-    shell: "{{ mariadb_docker_user_shell }}"
+    name: "{{ mariadb_user }}"
+    group: "{{ mariadb_group }}"
+    home: "{{ mariadb_path_to_libs }}"
+    shell: /sbin/nologin
     state: present
-  register: mysql_user
+  register: mariadb_user_info
+
+- name: Ensure the mariadb directory exists
+  file:
+    path: "{{ item.path }}"
+    state: directory
+    mode: '0750'
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+  with_items:
+    - path: "{{ mariadb_path_to_user_configs }}"
+      owner: root
+      group: "{{ mariadb_group }}"
+    - path: "{{ mariadb_path_to_libs }}"
+      owner: "{{ mariadb_user }}"
+      group: "{{ mariadb_group }}"
+    - path: "{{ mariadb_path_to_logs }}"
+      owner: "{{ mariadb_user }}"
+      group: "{{ mariadb_group }}"

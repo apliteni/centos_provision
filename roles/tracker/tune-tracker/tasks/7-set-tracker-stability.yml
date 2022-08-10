@@ -19,10 +19,10 @@
       set_fact:
         tracker_stability: "{{ get_installed_tracker_stability_result.content }}"
 
+- name: Set is_beta_channel variable
+  set_fact:
+    is_beta_channel: "{{ '1' if tracker_stability == 'unstable' else '0' }}"
+
 - name: Set tracker stability
-  command: >
-    kctl-php bin/cli.php system:set_setting is_beta_channel '{{ "1" if tracker_stability == "unstable" else "" }}'
-  args:
-    chdir: "{{ keitaro_app_dir }}"
-  become_user: "{{ keitaro_user }}"
+  command: '{{ kctl_path }} run cli-php system:set_setting is_beta_channel {{ is_beta_channel }}'
   changed_when: false

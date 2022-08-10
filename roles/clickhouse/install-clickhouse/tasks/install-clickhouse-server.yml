@@ -1,44 +1,37 @@
 - name: Set clickhouse_uid
   set_fact:
-    clickhouse_user_uid: "{{ clickhouse_user.uid }}"
+    clickhouse_user_id: "{{ clickhouse_user_info.uid }}"
+    clickhouse_group_id: "{{ clickhouse_user_info.group }}"
 
-- name: Pull clickhouse image
-  containers.podman.podman_image:
-    name: "{{ clickhouse_docker_image }}"
+- name: Pull image
+  shell: source /etc/keitaro/config/components.env && podman pull ${CLICKHOUSE_IMAGE}
+  changed_when: false
 
-- name: Make additional config dirs
-  file:
-    dest: "{{ clickhouse_config_path }}/{{ item }}"
-    mode: '0755'
-    state: directory
-  with_items:
-    - "config.d"
-    - "users.d"
+- name: Generate SystemD unit
+  template:
+    src: clickhouse.service.j2
+    dest: /etc/systemd/system/clickhouse.service
+    mode: '0640'
+  notify:
+    - reconfigure systemd
+    - restart clickhouse
 
-- name: Render clickhouse configs
+- name: Render configs
   template:
     src: "configs/{{ item }}.j2"
-    dest: "{{ clickhouse_config_path }}/{{ item }}"
-    mode: '0644'
+    dest: "{{ clickhouse_path_to_configs }}/{{ item }}"
+    mode: '0640'
   with_items:
     - "users.xml"
     - "config.xml"
   notify:
     - restart clickhouse
 
-- name: Generate systemd clickhouse config
-  template:
-    src: "clickhouse-server.service.j2"
-    dest: /etc/systemd/system/clickhouse.service
-    mode: '0644'
-  notify:
-    - reconfigure systemd
-    - restart clickhouse
-
-- name: Do daemon-reload to update SystemD services & restart clickhouse if need
+- name: Do daemon-reload & restart service if need
   meta: flush_handlers
 
-- name: Enable CH
+- name: Start and enable service
   service:
     name: clickhouse
+    state: started
     enabled: true

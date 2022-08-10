@@ -1,4 +1,2 @@
----
-- include_tasks: prepare_install.yml
 - include_tasks: create-user-and-group.yml
 - include_tasks: install-clickhouse-server.yml

@@ -1,0 +1,9 @@
+- name: Remove clickhouse package | Install Clickhouse
+  yum:
+    name: "clickhouse-server"
+    state: absent
+
+- name: Remove Clickhouse repo | Install Clickhouse
+  file:
+    path: /etc/yum.repos.d/Altinity-ClickHouse.repo
+    state: absent

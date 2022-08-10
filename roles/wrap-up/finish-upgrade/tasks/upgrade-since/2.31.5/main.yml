@@ -9,7 +9,6 @@
     - /etc/nginx/conf.d/keitaro/nontracker.inc
     - /etc/nginx/conf.d/keitaro/nontracker.php-fpm.inc
     - /etc/opt/remi/php74/php-fpm.d/keitaro-nontracker.conf
-  notify: restart nginx
 
 - name: Change configs genereated by enable-ssl
   shell: >-

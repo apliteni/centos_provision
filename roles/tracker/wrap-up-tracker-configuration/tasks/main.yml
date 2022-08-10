@@ -1,22 +1,16 @@
 - name: Update geo databases
-  command: "{{ php_path }}  bin/cli.php geodbs:update_all"
-  args:
-    chdir: "{{ keitaro_app_dir }}"
-  become_user: "{{ keitaro_user }}"
+  command: "{{ kctl_path }} run cli-php geodbs:update_all"
   changed_when: false
 
 - name: Run cron.php to supress warnings in admin panel
-  command: "{{ php_path }} cron.php"
-  args:
-    chdir: "{{ keitaro_app_dir }}"
-  become_user: "{{ keitaro_user }}"
+  command: "{{ kctl_path }} run cli-php cron:run"
   changed_when: false
 
 - name: Configure cron to run keitaro task every minute (4 channels)
   cron:
     user: "{{ keitaro_user }}"
     name: "keitaro cron (channel {{ item }})"
-    job: "CHANNEL={{ item }} {{ php_path }} {{ keitaro_app_dir }}/cron.php > /dev/null"
+    job: "CHANNEL={{ item }} {{ kctl_php_path }} {{ keitaro_app_dir }}/cron.php > /dev/null"
   loop: [1, 2, 3, 4]
 
 # weekly task
@@ -27,7 +21,7 @@
     weekday: "{{ box_creation_time | extract_weekday }}"
     hour: "{{ box_creation_time | extract_hour | next_hour }}"
     minute: "{{ box_creation_time | extract_minute | next_minute }}"
-    job: "{{ php_path }} {{ keitaro_app_dir }}/bin/cli.php geodbs:update_all > /dev/null"
+    job: "{{ kctl_php_path }} {{ keitaro_app_dir }}/bin/cli.php geodbs:update_all > /dev/null"
 
 - name: Generate watch list if it doesn't exist.
   copy:

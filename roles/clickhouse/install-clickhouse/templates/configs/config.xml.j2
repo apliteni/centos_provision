@@ -20,13 +20,13 @@
     <mark_cache_size>5368709120</mark_cache_size>
 
     <!-- Path to data directory, with trailing slash. -->
-    <path>/var/lib/clickhouse/</path>
+    <path>{{ clickhouse_path_to_libs }}/</path>
 
     <!-- Path to temporary data for processing hard queries. -->
-    <tmp_path>/var/lib/clickhouse/tmp/</tmp_path>
+    <tmp_path>{{ clickhouse_path_to_libs }}/tmp/</tmp_path>
 
     <!-- Directory with user provided files that are accessible by 'file' table function. -->
-    <user_files_path>/var/lib/clickhouse/user_files/</user_files_path>
+    <user_files_path>{{ clickhouse_path_to_libs }}/user_files/</user_files_path>
 
     <!-- Sources to read users, roles, access rights, profiles of settings, quotas. -->
     <user_directories>
@@ -34,7 +34,7 @@
             <path>users.xml</path>
         </users_xml>
         <local_directory>
-            <path>/var/lib/clickhouse/access/</path>
+            <path>{{ clickhouse_path_to_libs }}/access/</path>
         </local_directory>
     </user_directories>
 
@@ -53,12 +53,12 @@
     <!-- Directory in <clickhouse-path> containing schema files for various input formats.
          The directory will be created if it doesn't exist.
       -->
-    <format_schema_path>/var/lib/clickhouse/format_schemas/</format_schema_path>
+    <format_schema_path>{{ clickhouse_path_to_libs }}/format_schemas/</format_schema_path>
 
     <logger>
         <level>information</level>
-        <log>/var/log/clickhouse-server/clickhouse-server.log</log>
-        <errorlog>/var/log/clickhouse-server/clickhouse-server.err.log</errorlog>
+        <log>{{ clickhouse_path_to_logs }}/server.log</log>
+        <errorlog>{{ clickhouse_path_to_logs }}/err.log</errorlog>
         <size>1000M</size>
         <count>10</count>
     </logger>

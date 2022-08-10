@@ -1,12 +1,3 @@
-# Allow access to the status page of the www pool only from localhost
-location = /status-www {
-  allow 127.0.0.1;
-  deny all;
-  access_log off;
-
-  include {{ nginx_conf_path }}/keitaro/locations/php-fpm/www.inc;
-}
-
 # Serve PHP pages via php-files-pool engine
 location ~ \.php$ {
   add_header Access-Control-Allow-Origin *;

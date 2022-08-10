@@ -1,14 +1,14 @@
 - name: Configure systemd
-  include: 1-configure-systemd.yml
+  include: 1-configure-nginx-core.yml
 
 - name: Generate certificates
   include: 2-generate-certificates.yml
 
 - name: Configure nginx
-  include: 3-configure-nginx.yml
+  include: 3-configure-nginx-keitaro.yml
 
-- name: Configure logroatate
-  include: 4-configure-logrotate.yml
-
-- name: Reload needed services
-  meta: flush_handlers
+- name: Enable and start nginx
+  service:
+    name: nginx
+    state: started
+    enabled: true

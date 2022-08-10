@@ -1,7 +1,5 @@
 - name: Register license
-  command: "{{ php_path }} bin/cli.php system:set_license_key {{ license_key }}"
+  command: "{{ kctl_path }} run cli-php system:set_license_key {{ license_key }}"
   args:
-    chdir: "{{ keitaro_app_dir }}"
     creates: "{{ keitaro_app_dir }}/var/license/key.lic"
-  become_user: "{{ keitaro_user }}"
   when: license_key is defined

@@ -1,5 +1,0 @@
-- name: Generate logrotate config
-  template:
-    src: "mariadb-logrotate.j2"
-    dest: "/etc/logrotate.d/mysql"
-    mode: '0644'

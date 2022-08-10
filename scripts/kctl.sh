@@ -50,7 +50,7 @@ TOOL_NAME='kctl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.38.2'
+RELEASE_VERSION='2.39.0'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -90,6 +90,7 @@ LOG_PATH="${LOG_DIR}/${LOG_FILENAME}"
 INVENTORY_DIR="${ETC_DIR}/config"
 INVENTORY_PATH="${INVENTORY_DIR}/inventory"
 PATH_TO_TRACKER_ENV="${INVENTORY_DIR}/tracker.env"
+PATH_TO_KCTLD_ENV="${INVENTORY_DIR}/kctld.env"
 DETECTED_INVENTORY_PATH=""
 
 NGINX_CONFIG_ROOT="/etc/nginx"
@@ -244,23 +245,10 @@ file_exists(){
     return ${FAILURE_RESULT}
   fi
 }
+
 build_certbot_command() {
-  if is_ci_mode; then
-    echo "/usr/bin/certbot"
-  else
-    echo "/usr/bin/docker run --network host --rm $(dockerized_certbot_volumes) certbot/certbot"
-  fi
+  echo "/opt/keitaro/bin/kctl run certbot"
 }
-DOCKERIZED_CERTBOT_VOLUME_PATHS="/etc/letsencrypt /var/lib/letsencrypt /var/log/letsencrypt /var/www/keitaro"
-
-dockerized_certbot_volumes() {
-  local dockerized_certbot_volumes=""
-  for volume_path in ${DOCKERIZED_CERTBOT_VOLUME_PATHS}; do
-    dockerized_certbot_volumes="${dockerized_certbot_volumes} -v ${volume_path}:${volume_path}"
-  done
-  echo "${dockerized_certbot_volumes}"
-}
-
 
 
 translate(){
@@ -426,6 +414,7 @@ help(){
   usage_en_header
   help_en
   help_en_common
+  help_en_variables
   exit ${SUCCESS_RESULT}
 }
 
@@ -456,20 +445,28 @@ ensure_options_correct(){
 
 usage_en(){
   usage_en_header
-  print_err "Try '${SCRIPT_NAME} -h' for more information."
-  print_err
+  echo "Try '${SCRIPT_NAME} -h' for more information."
+  echo
 }
 
 usage_en_header(){
-  print_err "Usage: ${SCRIPT_NAME} [OPTION]..."
+  echo "Usage: ${SCRIPT_NAME} [OPTION]..."
+  echo
 }
 
 help_en_common(){
-  print_err "Miscellaneous:"
-  print_err "  -h                       display this help text and exit"
-  print_err
-  print_err "  -v                       display version information and exit"
-  print_err
+  echo "Miscellaneous:"
+  echo "  -h                       display this help text and exit"
+  echo
+  echo "  -v                       display version information and exit"
+  echo
+}
+
+help_en_variables(){
+  echo  "Environment variables:"
+  echo 
+  echo  "  TRACKER_STABILITY       Set up stability channel stable|unstsable. Default: stable"
+  echo
 }
 
 init() {
@@ -825,8 +822,10 @@ remove_current_command(){
   rmdir "$(dirname "$current_command_script")"
 }
 
+PATH_TO_NGINX_PIDFILE="/var/run/nginx.pid"
+
 start_or_reload_nginx(){
-  if (file_exists "/run/nginx.pid" && [[ -s "/run/nginx.pid" ]]) || is_ci_mode; then
+  if podman exec nginx "test -f ${PATH_TO_NGINX_PIDFILE}" || is_ci_mode; then
     debug "Nginx is started, reloading"
     run_command "systemctl reload nginx" "$(translate 'messages.reloading_nginx')" 'hide_output'
   else
@@ -868,7 +867,7 @@ get_error(){
 declare -A DICT
 
 DICT['en.errors.program_failed']='PROGRAM FAILED'
-DICT['en.errors.must_be_root']='You runs this program as root.'
+DICT['en.errors.must_be_root']='Please run this program as root.'
 DICT['en.errors.upgrade_server']='You should upgrade the server configuration. Please contact Keitaro support team.'
 DICT['en.errors.run_command.fail']='There was an error evaluating current command'
 DICT['en.errors.run_command.fail_extra']=''
@@ -1007,6 +1006,12 @@ Modules:
    kctl certificates                      - manage LE certificates
    kctl features                          - manage features (run "kctl features help" to see more details)
    kctl transfers                         - manage tracker data transfers
+   kctl run                               - simplifies running dockerized commands
+
+Environment variables:
+
+  TRACKER_STABILITY                       - Set up stability channel stable|unstsable. Default: stable
+
 END
 }
 
@@ -1087,7 +1092,7 @@ kctl_features_disable_rbooster() {
 set_olap_db() {
   local olap_db="${1}"
   local log_path="${KCTL_LOG_DIR}/kctl-set-olap-db-to-${olap_db}.log"
-  local roles_to_replay="install-clickhouse,tune-mariadb,tune-tracker"
+  local roles_to_replay="install-clickhouse,install-mariadb,tune-tracker"
 
   assert_tracker_supports_rbooster
 
@@ -1216,6 +1221,36 @@ kctl_run_mysql_query() {
     kctl_run_mysql_in_docker "-i" --raw --batch --skip-column-names --default-character-set=utf8 --execute="${sql}"
   fi
 }
+
+kctl_run_nginx() {
+  if empty "${@}"; then
+    echo "Thats wrong to run nginx commang without argumets"
+  else
+    kctl_run_nginx_in_docker "${@}"
+  fi
+}
+
+
+kctl_run_nginx_in_docker() {
+  docker exec -it --env HOME=/tmp nginx \
+  nginx "${@}"
+}
+
+kctl_run_certbot() {
+  # shellcheck source=/dev/null
+  source /etc/keitaro/config/components.env
+
+  /usr/bin/podman run \
+                  --network host \
+                  --rm \
+                  --volume /etc/letsencrypt:/etc/letsencrypt \
+                  --volume /var/lib/letsencrypt:/var/lib/letsencrypt \
+                  --volume /var/log/letsencrypt:/var/log/letsencrypt \
+                  --volume /var/www/keitaro:/var/www/keitaro \
+                  "${CERTBOT_IMAGE}" \
+                  "${@}"
+  
+}
 kctl_run_usage(){
   echo "Usage:"
   echo "  kctl run clickhouse-client                  start clickhouse shell"
@@ -1223,6 +1258,9 @@ kctl_run_usage(){
   echo "  kctl run mysql-client                       start mysql shell"
   echo "  kctl run mysql-query                        execute mysql query"
   echo "  kctl run cli-php                            execute cli.php command"
+  echo "  kctl run redis-client                       execute redis shell"
+  echo "  kctl run nginx                              perform nginx command"
+  echo "  kctl run certbot                            perform certbot command"
 }
 kctl_run() {
   local action="${1}"
@@ -1244,6 +1282,15 @@ kctl_run() {
     cli-php)
       kctl_run_cli_php "${@}"
       ;;
+    redis-client)
+      kctl_run_redis_client "${@}"
+      ;;
+    nginx)
+      kctl_run_nginx "${@}"
+      ;;
+    certbot)
+      kctl_run_certbot "${@}"
+      ;;
     help)
       kctl_run_usage
       ;;
@@ -1254,27 +1301,26 @@ kctl_run() {
   esac
 }
 
-DNS_GOOGLE="8.8.8.8"
-RESOLV_CONF=/etc/resolv.conf
-
-kctl_resolving() {
-  local action="${1}"
-  case "${action}" in
-    set_google)
-      kctl_resolving_set_google
-      ;;
-    reset)
-      kctl_resolving_reset
-      ;;
-    *)
-      kctl_resolving_usage
-  esac
+kctl_resolvers_usage() {
+  echo "Usage:"
+  echo "  kctl resolvers set-google                        sets google dns"
+  echo "  kctl resolvers reset                             resets settings"
+  echo "  kctl resolvers usage                             prints this page"
 }
 
-kctl_resolving_reset() {
-  local resolving_entry="nameserver ${DNS_GOOGLE}"
-  if file_content_matches "${RESOLV_CONF}" '-F' "${resolving_entry}"; then
-    other_ipv4_entries=$(grep "^nameserver" "${RESOLV_CONF}" | grep -vF "${resolving_entry}" | grep '\.')
+kctl_resolvers_set_google() {
+  if file_content_matches "${RESOLV_CONF}" '-F' "nameserver ${DNS_GOOGLE}"; then
+    debug "${RESOLV_CONF} already contains 'nameserver ${DNS_GOOGLE}', skipping"
+  else
+    debug "${RESOLV_CONF} doesn't contain 'nameserver ${DNS_GOOGLE}', adding"
+    run_command "sed -i '1inameserver ${DNS_GOOGLE}' ${RESOLV_CONF}"
+  fi
+}
+
+kctl_resolvers_reset() {
+  local resolvers_entry="nameserver ${DNS_GOOGLE}"
+  if file_content_matches "${RESOLV_CONF}" '-F' "${resolvers_entry}"; then
+    other_ipv4_entries=$(grep "^nameserver" "${RESOLV_CONF}" | grep -vF "${resolvers_entry}" | grep '\.')
     debug "Other ipv4 entries: ${other_ipv4_entries}"
     if isset "${other_ipv4_entries}"; then
       debug "${RESOLV_CONF} contains 'nameserver ${DNS_GOOGLE}', deleting"
@@ -1287,20 +1333,21 @@ kctl_resolving_reset() {
   fi
 }
 
-kctl_resolving_usage() {
-  echo "Usage:"
-  echo "  kctl resolving set_google                        sets google dns"
-  echo "  kctl resolving reset                             resets settings"
-  echo "  kctl resolving usage                             prints this page"
-}
+DNS_GOOGLE="8.8.8.8"
+RESOLV_CONF=/etc/resolv.conf
 
-kctl_resolving_set_google() {
-  if file_content_matches "${RESOLV_CONF}" '-F' "nameserver ${DNS_GOOGLE}"; then
-    debug "${RESOLV_CONF} already contains 'nameserver ${DNS_GOOGLE}', skipping"
-  else
-    debug "${RESOLV_CONF} doesn't contain 'nameserver ${DNS_GOOGLE}', adding"
-    run_command "sed -i '1inameserver ${DNS_GOOGLE}' ${RESOLV_CONF}"
-  fi
+kctl_resolvers() {
+  local action="${1}"
+  case "${action}" in
+    set-google)
+      kctl_resolvers_set_google
+      ;;
+    reset)
+      kctl_resolvers_reset
+      ;;
+    *)
+      kctl_resolvers_usage
+  esac
 }
 
 kctl_certificates.issue() {
@@ -1349,6 +1396,8 @@ kctl_certificates_usage() {
   echo "  kctl certificates prune abandoned                       removes LE certificates without appropriate nginx configs"
   echo "  kctl certificates prune broken                          removes nginx domains with inconsistent LE certificates"
   echo "  kctl certificates prune detached                        removes nginx domains are not presented in the Keitaro DB"
+  echo "  kctl certificates prune safe                            removes abandoned & broken certificates"
+  echo "  kctl certificates prune all                             removes abandoned, broken & detached certificates"
   echo "  kctl certificates renew                                 renew LE certificates"
   echo "  kctl certificates remove-old-logs                       remove old issuing logs"
   echo
@@ -1511,7 +1560,7 @@ kctl_features_tune_tracker() {
 reset_machine_id() {
   generate_uuid > /etc/machine-id
   source /etc/keitaro/config/kctl-monitor.env
-  PHP_BIN="${PHP_BIN}" kctl-monitor -r > /dev/null
+  kctl-monitor -r > /dev/null
 }
 
 reset_mysql_password(){
@@ -1552,6 +1601,18 @@ reset_ch_password(){
 
 reset_license_ip() {
   sed -i -e "s/^LICENSE_IP=.*/LICENSE_IP=${SERVER_IP}/g" /etc/keitaro/config/tracker.env
+}
+# shellcheck source=/dev/null
+
+kctl_run_redis_in_docker() {
+  local docker_exec_args="${1}"; shift
+  source /etc/keitaro/config/tracker.env
+  docker exec --env HOME=/tmp "${docker_exec_args}" redis \
+         redis-cli  "${@}"
+}
+
+kctl_run_redis_client() {
+  kctl_run_redis_in_docker "-it" "${@}"
 }
 CURRENT_DATETIME="$(date +%Y%m%d%H%M)"
 MIN_TRACKER_VERSION_TO_INSTALL='9.13.0'
@@ -1725,8 +1786,8 @@ case "${action}" in
   features)
     kctl_features "${@}"
     ;;
-  resolving)
-    kctl_resolving "${@}"
+  resolvers)
+    kctl_resolvers "${@}"
     ;;
   run)
     kctl_run "${@}"

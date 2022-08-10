@@ -1,0 +1,39 @@
+- name: Remove old cron tasks
+  cron:
+    name: "{{ item }}"
+    state: absent
+  with_items:
+    - "Generate {{ keitaro_stats_json_path }}"
+    - "Generate CloudFlare IP list"
+
+- name: Remove old scripts
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - /usr/local/bin/keitaro-generate_cf_ip_lists
+    - /usr/local/bin/kctl-prune-ssl
+    - /opt/keitaro/bin/kctl-prune-ssl
+
+- name: Get tracker.env info
+  stat:
+    path: /etc/keitaro/config/tracker.env
+  register: tracker_env_info
+
+- name: Add variadbles to tracker.env
+  include: add-var-to-tracker-env.yml
+  with_dict:
+    CH_PORT: '{{ ch_port }}'
+    FEATURES: '{{ "rbooster" if olap_db == "clickhouse" else "" }}'
+    MARIADB_HOST: '{{ db_host }}'
+    MARIADB_PORT: '{{ db_port }}'
+    PREFIX: '{{ table_prefix | default("keitaro_") }}'
+    REDIS_URI: '{{ redis_uri }}'
+    KCTLD_URI: '{{ kctld_uri }}'
+  when: tracker_env_info.stat.exists
+
+- name: Prepare mariadb upgrade
+  include: prepare-mariadb-upgrade.yml
+
+- name: Prepare clickhouse upgrade
+  include: prepare-clickhouse-upgrade.yml

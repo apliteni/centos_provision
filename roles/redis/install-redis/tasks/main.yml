@@ -1,12 +1,8 @@
-- name: Install redis
+- include_tasks: create-user-and-group.yml
+
+- name: Ensure that redis not installed
   yum:
     name: redis
-    state: installed
-  notify:
-    - restart redis
+    state: removed
 
-- name: Start and enable redis
-  service:
-    name: redis
-    state: started
-    enabled: true
+- include_tasks: install-redis-server.yml

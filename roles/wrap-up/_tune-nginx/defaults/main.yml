@@ -1,5 +1,4 @@
 nginx_access_log_keitaro_admin: "{{ nginx_log_dir }}/keitaro-admin.access.log"
-nginx_access_log_keitaro_tracker_status: "{{ nginx_log_dir }}/tracker.status"
 nginx_error_log: "{{ nginx_log_dir }}/error.log"
 nginx_error_log_format: warn
 nginx_ip_list_cf_v4_path: "{{ nginx_conf_path }}/keitaro/realip.cloudflare-ipv4.inc"

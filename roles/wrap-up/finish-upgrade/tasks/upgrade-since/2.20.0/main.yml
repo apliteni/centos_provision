@@ -10,9 +10,8 @@
   failed_when: get_unneeded_php_fpm_services.rc != 0 and get_unneeded_php_fpm_services.rc != 1
   changed_when: false
 
-- name: Stop and disable old php-fpm
-  service:
+- name: Remove old php-fpm
+  package:
     name: "{{ item }}"
-    state: stopped
-    enabled: false
+    state: absent
   with_items: "{{ get_unneeded_php_fpm_services.stdout_lines }}"

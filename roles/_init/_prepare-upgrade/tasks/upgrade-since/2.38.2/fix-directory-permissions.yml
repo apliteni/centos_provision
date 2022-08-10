@@ -1,0 +1,23 @@
+- name: Get directory status
+  stat:
+    path: "{{ item.path }}"
+  register: directory_status
+
+- name: Change directory permissions
+  when: directory_status.stat is defined and directory_status.stat.exists
+  block:
+
+    - name: Reset executable flag
+      file:
+        mode: a-x
+        path: "{{ item.path }}"
+        recurse: true
+      changed_when: false
+
+    - name: Change mysql directories & files permissions
+      file:
+        mode: u=rwX,g=rX,o=
+        path: "{{ item.path }}"
+        owner: "{{ item.owner }}"
+        group: "{{ item.group }}"
+        recurse: true

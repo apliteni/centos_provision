@@ -1,7 +1,6 @@
 include {{ nginx_conf_path }}/local/keitaro/tracker.inc;
 
 access_log {{ nginx_access_log }} main {{ nginx_access_log_options }};
-access_log {{ nginx_access_log_keitaro_tracker_status }} status {{ nginx_access_log_options }};
 
 proxy_ignore_client_abort on;
 proxy_ssl_session_reuse off;

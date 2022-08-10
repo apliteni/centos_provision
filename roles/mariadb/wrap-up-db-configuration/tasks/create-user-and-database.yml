@@ -1,26 +1,20 @@
-- name: Set MariaDB root password for the first time (root@localhost)
+- name: Set MariaDB root password
   mysql_user:
     name: root
     password: "{{ db_root_password }}"
-    host: localhost
-    login_unix_socket: "{{ mariadb_socket }}"
+    host: "{{ item }}"
+    login_unix_socket: "{{ mariadb_path_to_socket }}"
     state: present
+  with_items:
+    - ::1
+    - "{{ db_host }}"
+    - localhost
 
 - name: Install ~/.my.cnf
   template:
     src: home_my.cnf.j2
     dest: ~/.my.cnf
     mode: '0600'
-
-- name: Set MariaDB root password for 127.0.0.1, ::1
-  mysql_user:
-    name: root
-    password: "{{ db_root_password }}"
-    host: "{{ item }}"
-    state: present
-  with_items:
-    - ::1
-    - 127.0.0.1
 
 - name: Remove the test database
   mysql_db:
@@ -46,5 +40,5 @@
     name: "{{ db_user }}"
     password: "{{ db_password }}"
     priv: "{{ db_name }}.*:ALL,GRANT"
-    host: localhost
+    host: "{{ db_host }}"
     state: present

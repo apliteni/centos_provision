@@ -1,4 +1,3 @@
----
 - include_tasks: create-user-and-group.yml
 - include_tasks: install-mariadb-server.yml
 - include_tasks: install-mariadb-client.yml

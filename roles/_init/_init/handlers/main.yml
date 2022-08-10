@@ -1,32 +1,33 @@
+# We need to reload systemd first if need, so define it first
+# See https://stackoverflow.com/a/35130254/612799
+- name: reconfigure systemd
+  systemd:
+    daemon-reload: true
+
 - name: restart mariadb
   service:
     name: mariadb
     state: restarted
-    daemon-reload: true
 
 - name: restart redis
   service:
     name: redis
     state: restarted
-    daemon-reload: true
 
 - name: restart php-fpm
   service:
     name: "{{ php_version }}-php-fpm"
     state: restarted
-    daemon-reload: true
 
 - name: restart roadrunner
   service:
     name: roadrunner
     state: restarted
-    daemon-reload: true
 
 - name: restart nginx
   service:
     name: nginx
     state: restarted
-    daemon-reload: true
 
 - name: reload nginx
   service:
@@ -42,7 +43,3 @@
   service:
     name: kctl-monitor
     state: restarted
-
-- name: reconfigure systemd
-  systemd:
-    daemon-reload: true

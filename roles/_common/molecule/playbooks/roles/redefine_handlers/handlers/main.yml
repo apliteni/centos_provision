@@ -1,3 +1,11 @@
+- name: reconfigure systemd
+  debug:
+    msg: handle 'reconfigure systemd' event
+
+- name: reload nginx
+  debug:
+    msg: handle 'reload nginx' event
+
 - name: restart roadrunner
   debug:
     msg: handle 'restart roadrunner' event

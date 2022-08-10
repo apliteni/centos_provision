@@ -1,14 +1,12 @@
 - name: Get CH keitaro database status
-  command: /opt/keitaro/bin/kctl run clickhouse-query "SELECT 1"
+  command: "{{ kctl_path }} run clickhouse-query 'SELECT 1'"
   changed_when: false
   failed_when: false
   register: list_keitaro_database_command
 
 - name: Use CH for keitaro tracker
-  command: "kctl run cli-php ch_db:setup --config {{ keitaro_config_ini_php_path }}"
+  command: "{{ kctl_path }} run cli-php ch_db:setup --config {{ keitaro_config_ini_php_path }}"
   when: list_keitaro_database_command.rc != 0
-  args:
-    chdir: "{{ keitaro_app_dir }}"
   changed_when: true
 
 - name: Turn up Rbooster

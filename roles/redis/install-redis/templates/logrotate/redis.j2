@@ -1,0 +1,9 @@
+{{ redis_path_to_logs }}/*.log {
+    weekly
+    rotate 10
+    copytruncate
+    delaycompress
+    compress
+    notifempty
+    missingok
+}

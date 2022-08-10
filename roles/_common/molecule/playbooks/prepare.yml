@@ -39,7 +39,14 @@
         mode: 0755
         remote_src: true
       with_items: [kctl, kctl-install, kctl-enable-ssl, kctl-disable-ssl, kctl-fail2ban, kctl-certificates-prune]
-
+   
+    - name: Create image configuration
+      file:
+        path: "/etc/keitaro/config"
+        state: directory
+        recurse: true
+        mode: '0755'
+  
     - name: Redefine handlers
       include_role:
         name: redefine_handlers

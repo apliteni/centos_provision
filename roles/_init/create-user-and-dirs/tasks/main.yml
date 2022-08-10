@@ -35,8 +35,9 @@
 - name: Ensure ssl logs dir exists
   file:
     path: "{{ kctl_enable_ssl_logs_dir }}"
+    group: "{{ keitaro_group }}"
     state: directory
-    mode: '0644'
+    mode: '0750'
 
 - name: Create symlink for SSL logs
   file:
@@ -66,7 +67,6 @@
     - /etc/nginx/conf.d/keitaro
     - /etc/nginx/conf.d/local/keitaro
 
-
 - name: Ensure /etc/keitaro dir exists with proper permissions
   file:
     path: "/etc/keitaro"
@@ -82,3 +82,13 @@
     owner: root
     group: "{{ keitaro_group }}"
     mode: "0750"
+
+- name: Create letsencrypt mountable dirs
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  with_items:
+    - "{{ certbot_path_to_configs }}"
+    - "{{ certbot_path_to_libs }}"
+    - "{{ certbot_path_to_logs }}"

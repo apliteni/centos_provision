@@ -1,0 +1,36 @@
+- name: Remove host-based MariaDB packages
+  package:
+    name: [MariaDB-server, MariaDB-client, MariaDB-tokudb-engine, MariaDB-shared, MariaDB-common]
+    state: absent
+
+- name: Ensure that mariadb  repo is removed
+  file:
+    path: "/etc/yum.repos.d/mariadb.repo"
+    state: absent
+
+- name: Get mariadb user info
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ mariadb_user }}"
+    fail_key: false
+
+- name: Fix mysql directories & files permissions
+  include: fix-directory-permissions.yml
+  when: getent_passwd[mariadb_user]
+  with_items:
+    - path: "{{ mariadb_path_to_user_configs }}"
+      owner: root
+      group: "{{ mariadb_group }}"
+    - path: "{{ mariadb_path_to_libs }}"
+      owner: "{{ mariadb_user }}"
+      group: "{{ mariadb_group }}"
+    - path: "{{ mariadb_path_to_logs }}"
+      owner: "{{ mariadb_user }}"
+      group: "{{ mariadb_group }}"
+  changed_when: false
+
+- name: Install PyMySQL
+  pip:
+    name: pymysql
+    state: present
+    executable: pip3
