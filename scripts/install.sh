@@ -52,7 +52,7 @@ TOOL_NAME='install'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.39.4'
+RELEASE_VERSION='2.39.5'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -2243,6 +2243,8 @@ install_extra_packages() {
       install_nginx_on_docker
     else
       render_nginx_systemd_config
+      systemd.update_units
+      systemd.restart_service "nginx"
     fi
   else
     debug "Running mode is '${KCTL_RUNNING_MODE}', installing packages"
@@ -2526,6 +2528,12 @@ systemd.start_and_enable_service() {
   local name="${1}"
   local command="systemctl start ${name} && systemctl enable ${name}"
   run_command "${command}" "Starting & enabbling SystemD service ${name}" "hide_output"
+}
+
+systemd.restart_service() {
+  local name="${1}"
+  local command="systemctl restart ${name}"
+  run_command "${command}" "Restarting SystemD service ${name}" "hide_output"
 }
 
 

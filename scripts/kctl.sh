@@ -50,7 +50,7 @@ TOOL_NAME='kctl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.39.4'
+RELEASE_VERSION='2.39.5'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -975,12 +975,12 @@ kctl_rescue() {
   get_kctl_install | bash -s -- -C -o "${KCTL_LOG_DIR}/kctl-rescue.log"
 }
 kctl_reset() {
-  reset_mysql_password "keitaro"
-  reset_mysql_password "root"
-  reset_ch_password
   reset_tracker_salt
   reset_license_ip
   reset_machine_id
+  reset_mysql_password "keitaro"
+  reset_mysql_password "root"
+  reset_ch_password
 }
 
 kctl_show_help(){
@@ -1568,17 +1568,18 @@ reset_ch_password(){
   local new_hashed_password
   local old_hashed_password
 
-  old_hashed_password="$(grep  -oP '(?<=<password_sha256_hex>).*?(?=</password_sha256_hex>)' /etc/clickhouse-server/users.xml)"
+  old_hashed_password="$(grep  -oP '(?<=<password_sha256_hex>).*?(?=</password_sha256_hex>)' /etc/clickhouse/users.xml)"
   new_password="$(generate_password)"
   new_hashed_password=$(echo -n "${new_password}" | sha256sum -b | awk '{print$1}')
 
-  sed -i "s/${old_hashed_password}/${new_hashed_password}/g" /etc/clickhouse-server/users.xml
+  sed -i "s/${old_hashed_password}/${new_hashed_password}/g" /etc/clickhouse/users.xml
   sed -i -e "s/^CH_PASSWORD=.*/CH_PASSWORD=${new_password}/g" /etc/keitaro/config/tracker.env
   sed -i -e "s/^ch_password=.*/ch_password=${new_password}/g" /etc/keitaro/config/inventory
   systemctl restart clickhouse
 }
 
 reset_license_ip() {
+  detect_server_ip
   sed -i -e "s/^LICENSE_IP=.*/LICENSE_IP=${SERVER_IP}/g" /etc/keitaro/config/tracker.env
 }
 
@@ -1739,6 +1740,15 @@ parse_line_from_inventory_file(){
     debug "  $var_name=${VARS[$var_name]}"
   fi
 }
+MYIP_KEITARO_IO="https://myip.keitaro.io"
+
+detect_server_ip() {
+  debug "Detecting server IP address"
+  debug "Getting url '${MYIP_KEITARO_IO}'"
+  SERVER_IP="$(curl -fsSL4 ${MYIP_KEITARO_IO} 2>&1)"
+  debug "Done, result is '${SERVER_IP}'"
+}
+
 
 unquote() {
   sed -r -e "s/^'(.*)'\$/\\1/g" -e 's/^"(.*)"$/\1/g'
