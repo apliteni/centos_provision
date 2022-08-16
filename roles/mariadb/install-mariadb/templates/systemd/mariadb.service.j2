@@ -6,7 +6,7 @@ After=network.target
 Type=simple
 EnvironmentFile=/etc/keitaro/config/components.env
 ExecStartPre=-/usr/bin/bash -c \
-              "(/usr/bin/podman ps | /usr/bin/grep -qw {{ mariadb_docker_name }}) \
+              "(/usr/bin/podman ps -a | /usr/bin/grep -qw {{ mariadb_docker_name }}) \
                   && /usr/bin/podman rm --force --storage {{ mariadb_docker_name }}"
 ExecStart=/usr/bin/podman \
                       run \
