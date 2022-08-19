@@ -52,7 +52,7 @@ TOOL_NAME='install'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.39.6'
+RELEASE_VERSION='2.39.7'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -2439,7 +2439,7 @@ install_extra_packages() {
   install_ansible
 }
 
-render_nginx_systemd_config(){
+render_nginx_systemd_config() {
   cat > /etc/systemd/system/nginx.service <<EOF
 [Unit]
 Description=Nginx server
@@ -2451,7 +2451,7 @@ EnvironmentFile=/etc/keitaro/config/components.env
 
 ExecStartPre=-/usr/bin/bash -c \\
               "(/usr/bin/podman ps -a | /usr/bin/grep -qw nginx) \\
-                && /usr/bin/podman rm --force --storage nginx"
+                && $(run_podman_rm_command_based_on_centos_version 'nginx')"
 ExecStart=/usr/bin/podman \\
                       run \\
                       --net host \\
@@ -2552,6 +2552,18 @@ clean_packages_metadata() {
   if empty "$WITHOUTH_YUM_UPDATE"; then
     run_command "yum clean all" "Cleaninig yum meta" "hide_output"
   fi
+}
+
+run_podman_rm_command_based_on_centos_version() {
+  local container_name="${1}" rm_command
+
+  if [[ "$(get_centos_major_release)" == "7" ]]; then
+    rm_command="/usr/bin/podman rm --force ${container_name} && /usr/bin/podman rm --force --storage ${container_name}"
+  else
+    rm_command="/usr/bin/podman rm --force --storage ${container_name}"
+  fi
+
+  echo "$rm_command"
 }
 
 stage5() {
