@@ -1,0 +1,4 @@
+- name: Cleanup mariadb netwok settings
+  file:
+    path: "/etc/my.cnf.d/keitaro-mysqld-configure_network.cnf"
+    state: absent
