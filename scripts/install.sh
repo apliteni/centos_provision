@@ -52,7 +52,7 @@ TOOL_NAME='install'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.39.11'
+RELEASE_VERSION='2.39.12'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -1516,7 +1516,7 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['tune-swap']='2.34.6'
   ['tune-sysctl']='2.27.7'
 
-  ['install-clickhouse']='2.38.3'
+  ['install-clickhouse']='2.39.11'
   ['install-mariadb']='2.39.7'
   ['install-redis']='2.39.7'
 
@@ -2473,7 +2473,6 @@ ExecStart=/usr/bin/podman \\
                       -v /etc/letsencrypt:/etc/letsencrypt \\
                       -v /var/lib/nginx:/var/lib/nginx \\
                       -v /var/cache/nginx:/var/cache/nginx \\
-                      -v /var/run/php74-php-fpm-tracker.sock:/var/run/php74-php-fpm-tracker.sock \\
                       \${NGINX_IMAGE}
 ExecStop=/usr/bin/podman stop nginx
 ExecReload=/usr/bin/podman exec -it nginx nginx -s reload

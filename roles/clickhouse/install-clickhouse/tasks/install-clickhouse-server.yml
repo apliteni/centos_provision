@@ -30,6 +30,8 @@
   template:
     src: "configs/{{ item }}.j2"
     dest: "{{ clickhouse_path_to_configs }}/{{ item }}"
+    owner: "{{ clickhouse_user }}"
+    group: "{{ clickhouse_group }}"
     mode: '0640'
   with_items:
     - "users.xml"

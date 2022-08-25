@@ -1,3 +1,4 @@
+clickhouse_config: /etc/clickhouse/config.xml
 clickhouse_path_to_configs: /etc/clickhouse
 clickhouse_path_to_logs: /var/log/clickhouse
 clickhouse_path_to_libs: /var/lib/clickhouse

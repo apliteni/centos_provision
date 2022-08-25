@@ -51,7 +51,7 @@ TOOL_NAME='enable-ssl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.39.11'
+RELEASE_VERSION='2.39.12'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -169,6 +169,8 @@ CERTBOT_LOG="${WORKING_DIR}/ssl_enabler_cerbot.log"
 CERTBOT_LOCK_FILE="/var/lib/letsencrypt/.certbot.lock"
 SSL_ENABLER_ERRORS_LOG="${WORKING_DIR}/ssl_enabler_errors.log"
 FORCE_ISSUING_CERTS=''
+RELOAD_NGINX=true
+DISPLAY_LOG=false
 DICT['en.prompts.ssl_domains']='Please enter domains separated by comma without spaces'
 DICT['en.prompts.ssl_domains.help']='Make sure all the domains are already linked to this server in the DNS'
 DICT['en.errors.domain_invalid']=":domain: doesn't look as valid domain"
@@ -1410,7 +1412,7 @@ stage1(){
 
 
 parse_options(){
-  while getopts ":D:fhvL:l:" option; do
+  while getopts ":D:fhvL:l:wr" option; do
     argument=$OPTARG
     case $option in
       D)
@@ -1419,6 +1421,12 @@ parse_options(){
         ;;
       f)
         FORCE_ISSUING_CERTS=true
+        ;;
+      w)
+        RELOAD_NGINX=false
+        ;;
+      r)
+        DISPLAY_LOG=true
         ;;
       *)
         common_parse_options "$option" "$argument"
@@ -1461,6 +1469,8 @@ help_en(){
   print_err "  -D DOMAINS               issue certs for domains, DOMAINS=domain1.tld[,domain2.tld...]."
   print_err
   print_err "  -f                       force issuing certs (disable compatility check)."
+  print_err "  -w                       without reload nginx."
+  print_err "  -r                       display certbot result."
   print_err
 }
 
@@ -1490,7 +1500,7 @@ get_user_vars() {
 stage4(){
   debug "Starting stage 4: install LE certificates"
   generate_certificates
-  if isset "${SUCCESSFUL_DOMAINS[@]}"; then
+  if isset "${SUCCESSFUL_DOMAINS[@]}" && ${RELOAD_NGINX}; then
     start_or_reload_nginx
   fi
   show_finishing_message
@@ -1526,6 +1536,9 @@ generate_certificate_for_domain() {
     else
       FAILED_DOMAINS+=("${domain}")
       debug "There was an error while issuing certificate for domain ${domain}"
+      if ${DISPLAY_LOG}; then
+        cat ${CERTBOT_LOG}
+      fi
       certificate_error="$(recognize_error "$CERTBOT_LOG")"
       echo "${domain}: ${certificate_error}" >> "$SSL_ENABLER_ERRORS_LOG"
     fi
