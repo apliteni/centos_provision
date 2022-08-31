@@ -3,16 +3,6 @@
     mariadb_user_id: "{{ mariadb_user_info.uid }}"
     mariadb_group_id: "{{ mariadb_user_info.group }}"
 
-- name: Set podman command for Centos 7
-  set_fact:
-    podman_command: "/usr/bin/podman rm --force {{ mariadb_docker_name }} && /usr/bin/podman rm --force --storage {{ mariadb_docker_name }}"
-  when: ansible_distribution_major_version | int == 7
-
-- name: Set podman command for Centos above 7
-  set_fact:
-    podman_command: "/usr/bin/podman rm --force --storage {{ mariadb_docker_name }}"
-  when: ansible_distribution_major_version | int > 7
-
 - name: Pull image
   shell: source /etc/keitaro/config/components.env && podman pull ${MARIADB_IMAGE}
   changed_when: false

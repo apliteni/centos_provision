@@ -38,7 +38,9 @@ Actions:
 
 Modules:
    kctl certificates                      - manage LE certificates
-   kctl features                          - manage features (run "kctl features help" to see more details)
+   kctl features                          - manage features
+   kctl podman                            - manage podman containers
+   kctl resolvers                         - manage DNS resolvers
    kctl transfers                         - manage tracker data transfers
    kctl run                               - simplifies running dockerized commands
 
@@ -85,6 +87,18 @@ Supported features: rbooster
 ```
 
 <!-- end of 'kctl features help' output -->
+
+### kctl podman
+<!-- start of 'kctl podman help' output -->
+
+```
+Usage:
+  kctl podman prune CONTAINTER_NAME              removes container and storage assotiated with it
+  kctl podman statistics [--format json]         prints statistics
+  kctl podman usage                              prints this info
+```
+
+<!-- end of 'kctl podman help' output -->
 
 ### kctl resolvers
 <!-- start of 'kctl resolvers help' output -->

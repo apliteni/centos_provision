@@ -5,9 +5,7 @@ After=network.target
 [Service]
 Type=simple
 EnvironmentFile=/etc/keitaro/config/components.env
-ExecStartPre=-/usr/bin/bash -c \
-              "(/usr/bin/podman ps -a | /usr/bin/grep -qw {{ redis_docker_name }}) \
-                  && {{ podman_command }}"
+ExecStartPre=-/opt/keitaro/bin/kctl podman prune {{ redis_docker_name }}
 ExecStart=/usr/bin/podman \
                       run \
                       --rm \

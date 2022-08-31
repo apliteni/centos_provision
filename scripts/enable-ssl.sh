@@ -51,7 +51,7 @@ TOOL_NAME='enable-ssl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.39.12'
+RELEASE_VERSION='2.39.13'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -1631,7 +1631,7 @@ recognize_error() {
     key="too_many_requests"
   else
     local error_detail
-    error_detail=$(grep '^   Detail:' "${certbot_log}" 2>/dev/null)
+    error_detail=$(grep '^    Detail:' "${certbot_log}" 2>/dev/null)
     debug "certbot error detail from ${certbot_log}: ${error_detail}"
     if [[ $error_detail =~ "NXDOMAIN looking up A" ]]; then
       key="wrong_a_entry"
