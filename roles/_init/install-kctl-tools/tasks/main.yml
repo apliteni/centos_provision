@@ -1,29 +1,3 @@
-- name: Make bin dir
-  file:
-    state: directory
-    path: "{{ kctl_bin_dir }}"
-    mode: '0755'
-
-- name: Find kctl tools
-  find:
-    paths: "{{ provision_bin_directory }}"
-  register: kctl_tools_list
-
-- name: Install tools
-  copy:
-    src: "{{ item.path }}"
-    dest: "{{ kctl_bin_dir }}"
-    remote_src: true
-    mode: '0755'
-  with_items: "{{ kctl_tools_list.files }}"
-
-- name: Make symlinks
-  file:
-    state: link
-    src: "{{ kctl_bin_dir }}/{{ item.path | basename  }}"
-    dest: "/usr/local/bin/{{ item.path | basename }}"
-  with_items: "{{ kctl_tools_list.files }}"
-
 - name: Allow keitaro user to run kctl tools
   copy:
     content: |
@@ -32,13 +6,12 @@
     dest: /etc/sudoers.d/99-allow-keitaro-user-to-run-kctl-tools
     mode: '0440'
 
-# Run renew certificates task weekly
+# Run renew certificates task daily
 - name: Install renew certs job
   cron:
     name: Renew LE certificates
     job: "{{ kctl_bin_dir }}/kctl certificates renew > /dev/null"
-    # will run on next minute of next hour of next weekday of box creation time
-    weekday: "{{ box_creation_time | extract_weekday | next_weekday(6) }}"
+    # will run everyday at the next minute of the next hour of the box creation time
     hour: "{{ box_creation_time | extract_hour | next_hour(12) }}"
     minute: "{{ box_creation_time | extract_minute | next_minute(30) }}"
 

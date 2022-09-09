@@ -28,7 +28,6 @@ kctl_enable_ssl_logs_max_removable_batch_size: 10000
 kctl_tools_branch: "{{ lookup('env', 'KCTL_BRANCH') | default('releases/stable', true) }}"
 kctl_running_mode: "{{ lookup('env', 'KCTL_RUNNING_MODE') }}"
 kctl_tracker_version_to_install: "{{ lookup('env', 'KCTL_TRACKER_VERSION_TO_INSTALL') }}"
-provision_bin_directory: "{{ lookup('env', 'PROVISION_BIN_DIRECTORY') }}"
 kctl_user_agent: "Keitaro Installer v{{ kctl_version }} PHP/{{ php_release }}"
 __kctl_version: "{{ lookup('file', lookup('env', 'PLAYBOOK_ROOT') + 'RELEASE_VERSION') }}"
 kctl_force_regenerate_ssl: "{{ lookup('env', 'FORCE_REGENERATE_SSL') | default ('false', true) | bool }}"

@@ -1,0 +1,5 @@
+- name: Enable ssl on ipv6 for all nginx configs
+  shell: |
+    set -o pipefail;
+    find "{{ nginx_conf_path }}" -mindepth 1 -maxdepth 1 -type f -name *.conf | xargs --max-args=1000 -r sed -i 's/listen \\[::]:443;/listen [::]:443 ssl;/g'
+  changed_when: false

@@ -13,10 +13,13 @@ php_rr_bind_port: 8080
 php_rr_bind_address: "{{ php_rr_bind_host }}:{{ php_rr_bind_port }}"
 
 rr_version: 1.8.1
+rr_release_name: "roadrunner-{{ rr_version }}-linux-amd64"
 rr_bin: /usr/local/bin/roadrunner
 rr_config_dir: /etc/roadrunner
 rr_config_path: "{{ rr_config_dir }}/config.yml"
 rr_wrapper: /usr/local/bin/keitaro-roadrunner
+rr_github_download_url: "https://github.com/spiral/roadrunner/releases/download/v{{ rr_version }}/{{ rr_release_name }}.tar.gz"
+rr_download_url: "{{ lookup('env', 'ROADRUNNER_URL') }}"
 
 php_fpm_user: phpfpm
 php_fpm_group: phpfpm

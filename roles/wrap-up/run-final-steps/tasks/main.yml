@@ -17,5 +17,5 @@
   changed_when: "'molecule-notest' not in ansible_skip_tags"
 
 - name: Enable Fail2ban Jail
-  command: "/usr/local/bin/kctl-fail2ban enable"
+  command: "{{ kctl_bin_dir }}/kctl-fail2ban enable"
   changed_when: false

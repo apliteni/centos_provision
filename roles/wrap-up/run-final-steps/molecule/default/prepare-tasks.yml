@@ -3,3 +3,6 @@
 
 - include_role:
     name: _init/install-kctl-tools
+
+- name: Stub kctl-fail2ban
+  command: "cp /usr/bin/true {{ kctl_bin_dir }}/kctl-fail2ban"

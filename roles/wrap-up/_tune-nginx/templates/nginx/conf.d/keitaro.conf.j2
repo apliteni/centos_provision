@@ -7,7 +7,7 @@ server {
   listen [::]:80;
 
   listen 443 ssl;
-  listen [::]:443;
+  listen [::]:443 ssl;
   ssl_certificate {{ ssl_cert_path }};
   ssl_certificate_key {{ ssl_privkey_path }};
   ssl_session_cache   shared:SSL:10m;
