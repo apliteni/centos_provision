@@ -51,7 +51,7 @@ TOOL_NAME='disable-ssl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.39.15'
+RELEASE_VERSION='2.39.16'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -86,7 +86,12 @@ LOG_DIR="${ROOT_PREFIX}/var/log/keitaro"
 SSL_LOG_DIR="${LOG_DIR}/ssl"
 
 LOG_FILENAME="${TOOL_NAME}.log"
-LOG_PATH="${LOG_DIR}/${LOG_FILENAME}"
+DEFAULT_LOG_PATH="${LOG_DIR}/${LOG_FILENAME}"
+if [[ "${KCTLD_MODE}" == "" ]]; then
+  LOG_PATH="${LOG_PATH:-${DEFAULT_LOG_PATH}}"
+else
+  LOG_PATH=/dev/stderr
+fi
 
 INVENTORY_DIR="${ETC_DIR}/config"
 INVENTORY_PATH="${INVENTORY_DIR}/inventory"
@@ -562,9 +567,15 @@ init() {
 
 LOGS_TO_KEEP=5
 
+is_logging_to_file() {
+  [[ ! "${LOG_PATH}" =~ ^/dev/ ]]
+}
+
 init_kctl() {
   init_kctl_dirs_and_links
-  init_log "${LOG_PATH}"
+  if is_logging_to_file; then
+    init_log "${LOG_PATH}"
+  fi
 }
 
 init_kctl_dirs_and_links() {

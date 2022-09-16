@@ -51,7 +51,7 @@ TOOL_NAME='enable-ssl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.39.15'
+RELEASE_VERSION='2.39.16'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -86,7 +86,12 @@ LOG_DIR="${ROOT_PREFIX}/var/log/keitaro"
 SSL_LOG_DIR="${LOG_DIR}/ssl"
 
 LOG_FILENAME="${TOOL_NAME}.log"
-LOG_PATH="${LOG_DIR}/${LOG_FILENAME}"
+DEFAULT_LOG_PATH="${LOG_DIR}/${LOG_FILENAME}"
+if [[ "${KCTLD_MODE}" == "" ]]; then
+  LOG_PATH="${LOG_PATH:-${DEFAULT_LOG_PATH}}"
+else
+  LOG_PATH=/dev/stderr
+fi
 
 INVENTORY_DIR="${ETC_DIR}/config"
 INVENTORY_PATH="${INVENTORY_DIR}/inventory"
@@ -169,8 +174,6 @@ CERTBOT_LOG="${WORKING_DIR}/ssl_enabler_cerbot.log"
 CERTBOT_LOCK_FILE="/var/lib/letsencrypt/.certbot.lock"
 SSL_ENABLER_ERRORS_LOG="${WORKING_DIR}/ssl_enabler_errors.log"
 FORCE_ISSUING_CERTS=''
-RELOAD_NGINX=true
-DISPLAY_LOG=false
 DICT['en.prompts.ssl_domains']='Please enter domains separated by comma without spaces'
 DICT['en.prompts.ssl_domains.help']='Make sure all the domains are already linked to this server in the DNS'
 DICT['en.errors.domain_invalid']=":domain: doesn't look as valid domain"
@@ -354,13 +357,17 @@ assert_upgrade_allowed() {
     debug "Can't upgrade because installation process is not finished yet"
     fail "$(translate errors.cant_upgrade)"
   fi
-  if is_running_in_rescue_mode; then
-    debug 'Running in rescue mode - skip checking nginx configs'
-  elif is_running_in_upgrade_mode; then
+  if need_to_check_nginx_configs; then
     debug 'Running in fast upgrade mode - checking nginx configs'
     ensure_nginx_config_correct
     debug 'Everything looks good, running upgrade'
+  else
+    debug 'Skip checking nginx configs'
   fi
+}
+
+need_to_check_nginx_configs() {
+  is_running_in_fast_upgrade_mode && [[ "${SKIP_NGINX_CHECK:-}" == "" ]]
 }
 
 ensure_nginx_config_correct() {
@@ -819,9 +826,15 @@ init() {
 
 LOGS_TO_KEEP=5
 
+is_logging_to_file() {
+  [[ ! "${LOG_PATH}" =~ ^/dev/ ]]
+}
+
 init_kctl() {
   init_kctl_dirs_and_links
-  init_log "${LOG_PATH}"
+  if is_logging_to_file; then
+    init_log "${LOG_PATH}"
+  fi
 }
 
 init_kctl_dirs_and_links() {
@@ -1423,10 +1436,10 @@ parse_options(){
         FORCE_ISSUING_CERTS=true
         ;;
       w)
-        RELOAD_NGINX=false
+        KCTLD_MODE=true
         ;;
       r)
-        DISPLAY_LOG=true
+        LOG_PATH=/dev/stderr
         ;;
       *)
         common_parse_options "$option" "$argument"
@@ -1484,23 +1497,9 @@ stage2(){
 }
 
 stage3(){
-  debug "Starting stage 3: get user vars"
-  get_user_vars
-}
-
-get_user_vars() {
-  debug 'Read vars from user input'
-  hack_stdin_if_pipe_mode
-  if empty "${VARS['ssl_domains']}"; then
-    get_user_var 'ssl_domains' 'validate_presence validate_domains_list'
-  fi
-  VARS['ssl_domains']="$(to_lower "${VARS['ssl_domains']}")"
-}
-
-stage4(){
-  debug "Starting stage 4: install LE certificates"
+  debug "Starting stage 3: install LE certificates"
   generate_certificates
-  if isset "${SUCCESSFUL_DOMAINS[@]}" && ${RELOAD_NGINX}; then
+  if isset "${SUCCESSFUL_DOMAINS[@]}" && empty ${KCTLD_MODE}; then
     start_or_reload_nginx
   fi
   show_finishing_message
@@ -1519,7 +1518,6 @@ generate_certificates() {
 generate_certificate_for_domain() {
   certificate_generated=${FALSE}
   certificate_error=""
-  #Clean log before start
   clear_log_before_certificate_request "${CERTBOT_LOG}"
   initialize_additional_ssl_logging_for_domain "${domain}"
   if certificate_exists_for_domain "$domain"; then
@@ -1536,8 +1534,8 @@ generate_certificate_for_domain() {
     else
       FAILED_DOMAINS+=("${domain}")
       debug "There was an error while issuing certificate for domain ${domain}"
-      if ${DISPLAY_LOG}; then
-        cat ${CERTBOT_LOG}
+      if ! is_logging_to_file; then
+        cat "${CERTBOT_LOG}"
       fi
       certificate_error="$(recognize_error "$CERTBOT_LOG")"
       echo "${domain}: ${certificate_error}" >> "$SSL_ENABLER_ERRORS_LOG"
@@ -1555,6 +1553,9 @@ generate_certificate_for_domain() {
 }
 
 initialize_additional_ssl_logging_for_domain() {
+  if ! is_logging_to_file; then
+     return
+  fi
   local domain="${1}"
   local additional_log_path
   additional_log_path="$(tmp_ssl_log_path_for_domain "${domain}")"
@@ -1564,6 +1565,9 @@ initialize_additional_ssl_logging_for_domain() {
 }
 
 finalize_additional_ssl_logging_for_domain() {
+  if ! is_logging_to_file; then
+     return
+  fi
   local domain="${1}"
   local additional_log_path="${ADDITIONAL_LOG_PATH}"
   local domain_ssl_log_path
@@ -1696,7 +1700,6 @@ enable_ssl(){
   stage1 "$@"
   stage2
   stage3
-  stage4
 }
 
 enable_ssl "$@"

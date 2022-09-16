@@ -3,6 +3,7 @@
     tracker_version_to_install: "{{ kctl_tracker_version_to_install }}"
   when: >
     (kctl_tracker_version_to_install != '')
+    and (kctl_tracker_version_to_install != 'latest')
     and (kctl_tracker_version_to_install != 'latest-stable')
     and (kctl_tracker_version_to_install != 'latest-unstable')
 
