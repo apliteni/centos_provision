@@ -14,7 +14,6 @@
     - {role: '_init/install-chrony',                        tags: 'install-chrony'}                         # noqa yaml
     - {role: '_init/install-fail2ban',                      tags: 'install-fail2ban'}                       # noqa yaml
     - {role: '_init/install-firewalld',                     tags: 'install-firewalld'}                      # noqa yaml
-    - {role: '_init/install-kctl-tools',                    tags: 'install-kctl-tools'}                     # noqa yaml
     - {role: '_init/install-postfix',                       tags: 'install-postfix'}                        # noqa yaml
     - {role: '_init/setup-journald',                        tags: 'setup-journald'}                         # noqa yaml
     - {role: '_init/setup-root-home',                       tags: 'setup-root-home'}                        # noqa yaml

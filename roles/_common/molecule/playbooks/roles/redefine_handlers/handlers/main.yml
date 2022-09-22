@@ -33,3 +33,7 @@
 - name: restart clickhouse
   debug:
     msg: handle 'restart clickhouse' event
+
+- name: restart kctl-monitor
+  debug:
+    msg: handle 'restart kctl-monitor' event

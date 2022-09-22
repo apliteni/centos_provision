@@ -1,0 +1,9 @@
+- name: Remove renew certs job
+  cron:
+    name: Renew LE certificates
+    state: absent
+
+- name: Remove cleaning enable-ssl logs job
+  cron:
+    name: Remove old enable-ssl logs
+    state: absent
