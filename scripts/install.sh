@@ -52,7 +52,7 @@ TOOL_NAME='install'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.39.18'
+RELEASE_VERSION='2.39.19'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -2261,7 +2261,6 @@ disable_selinux() {
   fi
 }
 
-
 get_selinux_status(){
   getenforce
 }
@@ -2544,12 +2543,12 @@ clean_packages_metadata() {
 stage5() {
   debug "Starting stage 5: upgrade current and install necessary packages"
   disable_fastestmirror
+  disable_selinux
   clean_packages_metadata
   install_core_packages
   if is_centos8_distro; then
     switch_to_centos8_stream
   fi
-  disable_selinux
   install_extra_packages
 }
 
