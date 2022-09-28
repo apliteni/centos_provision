@@ -51,7 +51,7 @@ TOOL_NAME='enable-ssl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.39.20'
+RELEASE_VERSION='2.39.21'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -173,7 +173,11 @@ CERT_DOMAINS_PATH="${WORKING_DIR}/ssl_enabler_cert_domains"
 CERTBOT_LOG="${WORKING_DIR}/ssl_enabler_cerbot.log"
 CERTBOT_LOCK_FILE="/var/lib/letsencrypt/.certbot.lock"
 SSL_ENABLER_ERRORS_LOG="${WORKING_DIR}/ssl_enabler_errors.log"
-FORCE_ISSUING_CERTS=''
+FORCE_ISSUING_CERTS="${FORCE_ISSUING_CERTS:-}"
+
+if isset "${KCTLD_MODE}"; then
+  FORCE_ISSUING_CERTS='true'
+fi
 DICT['en.prompts.ssl_domains']='Please enter domains separated by comma without spaces'
 DICT['en.prompts.ssl_domains.help']='Make sure all the domains are already linked to this server in the DNS'
 DICT['en.errors.domain_invalid']=":domain: doesn't look as valid domain"
@@ -1426,23 +1430,23 @@ stage1(){
 
 parse_options(){
   while getopts ":D:fhvL:l:wr" option; do
-    argument=$OPTARG
-    case $option in
+    argument="${OPTARG}"
+    case "${option}" in
       D)
-        VARS['ssl_domains']=$argument
+        VARS['ssl_domains']="${argument}"
         ensure_valid D ssl_domains validate_domains_list
         ;;
       f)
-        FORCE_ISSUING_CERTS=true
+        FORCE_ISSUING_CERTS="true"
         ;;
       w)
-        KCTLD_MODE=true
+        KCTLD_MODE="true"
         ;;
       r)
-        LOG_PATH=/dev/stderr
+        LOG_PATH="/dev/stderr"
         ;;
       *)
-        common_parse_options "$option" "$argument"
+        common_parse_options "${option}" "${argument}"
         ;;
     esac
   done
@@ -1456,10 +1460,6 @@ get_domains_from_arguments(){
   if [[ ${#} == 0 ]]; then
     return
   fi
-  if isset "${VARS['ssl_domains']}"; then
-    fail "You should set domains with -d option only"
-  fi
-  print_deprecation_warning 'Please set domains with -D option'
   while [[ ${#} -gt 0 ]]; do
     if validate_domain "$1"; then
       DOMAINS+=("$(to_lower "${1}")")
@@ -1479,8 +1479,6 @@ help_en(){
   print_err "Example: $SCRIPT_NAME -D domain1.tld,domain2.tld"
   print_err
   print_err "Script automation:"
-  print_err "  -D DOMAINS               issue certs for domains, DOMAINS=domain1.tld[,domain2.tld...]."
-  print_err
   print_err "  -f                       force issuing certs (disable compatility check)."
   print_err "  -w                       without reload nginx."
   print_err "  -r                       display certbot result."
@@ -1520,13 +1518,13 @@ generate_certificate_for_domain() {
   certificate_error=""
   clear_log_before_certificate_request "${CERTBOT_LOG}"
   initialize_additional_ssl_logging_for_domain "${domain}"
-  if certificate_exists_for_domain "$domain"; then
+  if actual_certificate_exists_for_domain "$domain"; then
+    debug "Actual certificate already exists for domain ${domain}"
     SUCCESSFUL_DOMAINS+=("${domain}")
-    debug "Certificate already exists for domain ${domain}"
     print_with_color "${domain}: $(translate 'warnings.certificate_exists_for_domain')" "yellow"
     certificate_generated=${TRUE}
   else
-    debug "Certificate for domain ${domain} does not exist"
+    debug "Actual certificate for domain ${domain} does not exist"
     if request_certificate_for "${domain}"; then
       SUCCESSFUL_DOMAINS+=("${domain}")
       debug "Certificate for domain ${domain} successfully issued"
@@ -1582,9 +1580,13 @@ finalize_additional_ssl_logging_for_domain() {
   fi
 }
 
-certificate_exists_for_domain(){
+actual_certificate_exists_for_domain(){
   local domain="${1}"
-  directory_exists "/etc/letsencrypt/live/${domain}"
+  local path_to_certs_dir="/etc/letsencrypt/live/${domain}"
+  local path_to_cert="${path_to_certs_dir}/fullchain.pem"""
+  directory_exists "/etc/letsencrypt/live/${domain}" && \
+    file_exists "${path_to_cert}" && \
+    [[ $(date -r "${path_to_cert}" +%s) -gt $(date +%s --date '80 days ago') ]]
 }
 
 CERTBOT_PREFERRED_CHAIN="ISRG Root X1"
