@@ -51,7 +51,7 @@ TOOL_NAME='enable-ssl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.39.21'
+RELEASE_VERSION='2.39.22'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -1633,7 +1633,7 @@ recognize_error() {
   local certbot_log="${1}"
   local key="unknown_error"
   debug "$(print_content_of "${certbot_log}")"
-  if grep -q '^There were too many requests' "${certbot_log}"; then
+  if is_lets_encrypt_rate_limit_exceeded "${certbot_log}"; then
     key="too_many_requests"
   else
     local error_detail
@@ -1652,12 +1652,13 @@ recognize_error() {
   debug "The error key is ${key}"
   print_translated "certbot_errors.${key}"
 }
-#
 
 
-
-
-
+is_lets_encrypt_rate_limit_exceeded() {
+  local certbot_log="${1}"
+  grep -q '^There were too many requests' "${certbot_log}" ||
+    grep -q ':: too many new orders recently:' "${certbot_log}"
+}
 
 show_finishing_message(){
   local color=""

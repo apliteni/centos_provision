@@ -50,7 +50,7 @@ TOOL_NAME='kctl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.39.21'
+RELEASE_VERSION='2.39.22'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -1205,8 +1205,7 @@ remove_last_certificate_from_chain() {
 }
 
 kctl_certificates.issue() {
-  local domains="${*}"
-  FORCE_ISSUING_CERTS=true /opt/keitaro/bin/kctl-enable-ssl -D "${domains// /,}"
+  FORCE_ISSUING_CERTS=true /opt/keitaro/bin/kctl-enable-ssl "${@}"
 }
 
 DNS_GOOGLE="8.8.8.8"

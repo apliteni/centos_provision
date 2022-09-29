@@ -52,7 +52,7 @@ TOOL_NAME='install'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.39.21'
+RELEASE_VERSION='2.39.22'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -2465,7 +2465,11 @@ install_core_packages() {
 
 disable_selinux() {
   if [[ "$(get_selinux_status)" == "Enforcing" ]]; then
-    run_command 'setenforce 0' 'Disable Selinux' 'hide_output'
+    run_command 'setenforce 0' 'Disabling Selinux' 'hide_output'
+  fi
+
+  if file_exists /usr/sbin/setroubleshootd; then
+    run_command 'yum erase setroubleshoot-server -y && systemctl daemon-reload' 'Removing setroubleshootd' 'hide_output'
   fi
 }
 
@@ -2953,8 +2957,9 @@ upgrade_packages() {
 }
 
 start_renewing_certificates() {
-  run_command "/opt/keitaro/bin/kctl certificates renew &> /dev/null & disown" "Start updating LE certificates in background"
-  sleep 10
+  local command="/opt/keitaro/bin/kctl certificates renew &> /dev/null & disown; sleep 3"
+  local message="Start updating LE certificates in background"
+  run_command "${command}" "${message}" 'hide_output'
 }
 
 stage8() {
