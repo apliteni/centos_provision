@@ -51,7 +51,7 @@ TOOL_NAME='disable-ssl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.39.24'
+RELEASE_VERSION='2.39.25'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -144,6 +144,7 @@ DICT['en.errors.run_command.fail_extra']=''
 DICT['en.errors.terminated']='Terminated by user'
 DICT['en.errors.unexpected']='Unexpected error'
 DICT['en.errors.cant_upgrade']='Cannot upgrade because installation process is not finished yet'
+DICT['en.errors.wrong_architecture']='Sorry, this script supports only x64 architecture.'
 DICT['en.certbot_errors.another_proccess']="Another certbot process is already running"
 DICT['en.messages.generating_nginx_vhost']="Generating nginx config for domain :domain:"
 DICT['en.messages.reloading_nginx']="Reloading nginx"

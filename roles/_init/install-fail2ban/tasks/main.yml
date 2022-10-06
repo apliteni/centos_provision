@@ -7,6 +7,7 @@
   systemd:
     name: "fail2ban.service"
     state: "started"
+    enabled: true
     daemon_reload: true
 
 - name: Create fail2ban config directory
