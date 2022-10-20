@@ -1,3 +1,8 @@
+- name: Create kctl log dir
+  file:
+    path: /var/log/keitaro
+    state: directory
+
 - set_fact:
     files_to_be_deleted:
       - /etc/nginx/conf.d/keitaro/locations-common.inc

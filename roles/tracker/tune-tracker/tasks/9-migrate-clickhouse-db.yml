@@ -1,0 +1,6 @@
+- name: Migrate CH database
+  command: "{{ kctl_path }} run cli-php ch_db:migrate"
+  changed_when: false
+  notify:
+    - restart php-fpm
+    - restart roadrunner

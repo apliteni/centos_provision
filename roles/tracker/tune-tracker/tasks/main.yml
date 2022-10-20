@@ -11,14 +11,14 @@
 
 - include_tasks: 4-register-license.yml
 
-- name: Keitaro 9.14 tasks
-  when: installed_tracker_version is version('9.14', '>=')
-  block:
-    - include_tasks: 5-set-default-language.yml
+- include_tasks: 5-set-default-language.yml
 
-    - include_tasks: 6-set-olap-db.yml
+- include_tasks: 6-set-olap-db.yml
 
-    - include_tasks: 7-set-tracker-stability.yml
+- include_tasks: 7-set-tracker-stability.yml
 
-    - include_tasks: 8-setup-clickhouse.yml
-      when: olap_db == 'clickhouse'
+- include_tasks: 8-setup-clickhouse.yml
+  when: olap_db == 'clickhouse'
+
+- include_tasks: 9-migrate-clickhouse-db.yml
+  when: olap_db == 'clickhouse'

@@ -116,12 +116,13 @@ Usage:
 <!-- start of 'kctl-transfers help' output -->
 
 ```
-Usage: kctl-transfers ACTION [HOST] [BACKUP_DIR]
+Usage: kctl-transfers ACTION [HOST] [BACKUP_PATH]
 
 ACTION
-  dump                  - dump Keitaro data from HOST to BACKUP_DIR
-  restore               - restore Keitaro data from BACKUP_DIR on the current host
-  copy-from             - dump Keitaro data from HOST to BACKUP_DIR and restore it on the current host
+  dump                  - dump Keitaro data from HOST to BACKUP_PATH directory
+  restore               - restore Keitaro data from BACKUP_PATH directory on the current host
+  copy-from             - dump Keitaro data from HOST to BACKUP_PATH directory and restore it on the current host
+  restore-from-sql       - restore Keitaro database from mysql dump file placed by BACKUP_PATH on the specified host
 
 HOST
   local                 - specify local host
@@ -134,9 +135,13 @@ Environment variables:
   SSH_PASSWORD          - specify ssh password
   SSH_PORT              - specify ssh port
   SSH_PATH_TO_KEY       - specify path to ssh key
+Environment variables for restore-from-sql action:
+  SALT                  - specify old tracker salt key, mandatory
+  POSTBACK_KEY          - specify old tracker postback key
 
 Examples:
   SSH_PASSWORD=mypassword kctl-transfer copy-from 1.2.3.4
+  SALT=3a4e4a2c749c421cb8a75ba9f8fbbf2b kctl-transfer restore-from-sql local ./keitaro.sql.gz
 
 ```
 
@@ -230,3 +235,8 @@ or ignore
 ### How to repair tracker
 
     kctl rescue
+
+
+## Update README
+
+This README is assembled from README.tpl by calling appropriate `kctl ... help` commands. If you need to update static part, update README.tpl. If you need to update Usage run `make readme` and commit changes.
