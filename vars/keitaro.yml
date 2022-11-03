@@ -16,8 +16,6 @@ keitaro_release: 9
 keitaro_url: "https://keitaro.io"
 keitaro_database_schema: "{{ keitaro_app_dir }}/application/data/schema.sql"
 keitaro_database_data: "{{ keitaro_app_dir }}/application/data/data.sql"
-keitaro_mysql_fast_import: "{{ keitaro_files }}/scripts/mysql/fast-import"
-keitaro_ch_migrator: "{{ keitaro_files }}/migrators/bin/ch-migrator"
 
 kctl_root: /opt/keitaro
 kctl_bin_dir: "{{ kctl_root }}/bin"

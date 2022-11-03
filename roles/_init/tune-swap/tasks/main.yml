@@ -1,8 +1,8 @@
 - name: Set useful vars
   set_fact:
-    space_for_packages_mb: 2048
-    total_needed_swap_size_mb: "{{ [ram_size_mb, 16384] | min }}"
-    max_memory_deficit_mb: 256
+    space_for_packages_mb: 2000
+    total_needed_swap_size_mb: "{{ [ (ram_size_mb | int) + 2000, 30000] | min }}"
+    max_memory_deficit_mb: 200
 
 - name: Calculate swap space to add
   set_fact:

@@ -3,6 +3,9 @@
     path: /var/log/keitaro
     state: directory
 
+- include_role:
+    name: _init/create-user-and-dirs
+
 - set_fact:
     files_to_be_deleted:
       - /etc/nginx/conf.d/keitaro/locations-common.inc

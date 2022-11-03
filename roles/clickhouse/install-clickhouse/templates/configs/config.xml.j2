@@ -7,17 +7,17 @@
     <tcp_port>9000</tcp_port>
     <keep_alive_timeout>3</keep_alive_timeout>
 
+    <max_server_memory_usage>{{ clickhouse_max_server_memory_usage }}</max_server_memory_usage>
     <max_connections>{{ clickhouse_max_connections }}</max_connections>
-    <max_concurrent_queries>{{ clickhouse_max_concurrent_queries }}</max_concurrent_queries>
-    <max_thread_pool_size>500</max_thread_pool_size>
-    <max_server_memory_usage>{{ clickhouse_memory }}</max_server_memory_usage>
+    <!-- <max_concurrent_queries>100</max_concurrent_queries> -->
+    <max_thread_pool_size>{{ clickhouse_max_thread_pool_size }}</max_thread_pool_size>
     <!-- <max_open_files>262144</max_open_files> -->
 
     <!-- Approximate size of mark cache, used in tables of MergeTree family.
          In bytes. Cache is single for server. Memory is allocated only on demand.
          You should not lower this value.
       -->
-    <mark_cache_size>5368709120</mark_cache_size>
+    <mark_cache_size>{{ clickhouse_mark_cache_size }}</mark_cache_size>
 
     <!-- Path to data directory, with trailing slash. -->
     <path>{{ clickhouse_path_to_libs }}/</path>
@@ -55,6 +55,20 @@
       -->
     <format_schema_path>{{ clickhouse_path_to_libs }}/format_schemas/</format_schema_path>
 
+    <merge_tree>
+      <merge_max_block_size>{{ clickhouse_merge_max_block_size}}</merge_max_block_size>
+      <max_bytes_to_merge_at_max_space_in_pool>{{ clickhouse_max_bytes_to_merge_at_max_space_in_pool}}</max_bytes_to_merge_at_max_space_in_pool>
+      <number_of_free_entries_in_pool_to_lower_max_size_of_merge>0</number_of_free_entries_in_pool_to_lower_max_size_of_merge>
+    </merge_tree>
+
+    <!-- Cache size in bytes for compiled expressions.-->
+    <compiled_expression_cache_size>{{ clickhouse_compiled_expression_cache_size}}</compiled_expression_cache_size>
+
+    <!-- Cache size in elements for compiled expressions.-->
+    <compiled_expression_cache_elements_size>{{ clickhouse_compiled_expression_cache_elements_size}}</compiled_expression_cache_elements_size>
+
+    <timezone>UTC</timezone>
+
     <logger>
         <level>warning</level>
         <console>true</console>
@@ -63,29 +77,21 @@
         <size>1000M</size>
         <count>10</count>
     </logger>
-    <query_thread_log remove="remove"/>
-    <query_log remove="remove"/>
-    <text_log remove="remove"/>
-    <trace_log remove="remove"/>
-    <metric_log remove="remove"/>
-    <asynchronous_metric_log remove="remove"/>
-    <session_log remove="remove"/>
-    <part_log remove="remove"/>
 
-    <!-- Running in low memory configuration
-         See https://clickhouse.uptrace.dev/clickhouse/low-memory.html
-    -->
-    <merge_tree>
-      <merge_max_block_size>1024</merge_max_block_size>
-      <max_bytes_to_merge_at_max_space_in_pool>1073741824</max_bytes_to_merge_at_max_space_in_pool>
-      <number_of_free_entries_in_pool_to_lower_max_size_of_merge>0</number_of_free_entries_in_pool_to_lower_max_size_of_merge>
-    </merge_tree>
-
-    <!-- Cache size in bytes for compiled expressions.-->
-    <compiled_expression_cache_size>10485760</compiled_expression_cache_size>
-
-    <!-- Cache size in elements for compiled expressions.-->
-    <compiled_expression_cache_elements_size>1000</compiled_expression_cache_elements_size>
-
-    <timezone>UTC</timezone>
+    <asynchronous_metric_log remove="1"/>
+    <metric_log remove="1"/>
+    <query_thread_log remove="1" />
+    <query_log>
+        <database>system</database>
+        <table>query_log</table>
+        <ttl>event_date + INTERVAL 3 DAY DELETE</ttl>
+    </query_log>
+    <query_views_log remove="1" />
+    <part_log remove="1"/>
+    <session_log remove="1"/>
+    <text_log remove="1" />
+    <trace_log remove="1"/>
+    <crash_log remove="1"/>
+    <opentelemetry_span_log remove="1"/>
+    <zookeeper_log remove="1"/>
 </clickhouse>

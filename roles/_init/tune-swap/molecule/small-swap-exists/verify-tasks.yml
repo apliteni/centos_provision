@@ -6,6 +6,6 @@
 - debug:
     msg: "size: {{ swap_path_info.stat.size }}, size_mb: {{ swap_path_info.stat.size / 1024 / 1024 }}"
 
-- name: Test swap file size is 4g
+- name: Test swap file size is 6g
   assert:
-    that: (swap_path_info.stat.size / 1024 / 1024) | int == 4000
+    that: (swap_path_info.stat.size / 1024 / 1024) | int == 6000

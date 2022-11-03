@@ -1,5 +1,5 @@
 - name: Prune abandoned, broken & irrelevant certificates
-  command: "{{ kctl_bin_dir }}/kctl certificates prune safe"
+  shell: "pkill certbot; {{ kctl_bin_dir }}/kctl certificates prune safe"
   changed_when: false
 
 - name: Start renewing certificates job in background

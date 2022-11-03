@@ -15,7 +15,6 @@
     that: not item.stat.exists
   with_items: "{{ old_files_stats.results }}"
 
-
 - name: Test site config contains correct `include` entries
   lineinfile:
     path: '/etc/nginx/conf.d/some.site.conf'

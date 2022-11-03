@@ -1,9 +1,19 @@
 clickhouse_memory_usage_ratio: "{{ olap_db_memory_usage_to_ram_ratio if olap_db == 'clickhouse' else alternative_olap_db_memory_usage_to_ram_ratio }}"
-clickhouse_min_memory_mb: 1500 # It does't work if have less RAM
-clickhouse_memory_mb: "{{ [(((clickhouse_memory_usage_ratio|float) * ansible_memtotal_mb) | int), clickhouse_min_memory_mb] | max }}"
-clickhouse_memory: "{{ (clickhouse_memory_mb | int)  * 1024 * 1024 }}"
-clickhouse_memory_mb_per_query: 20
-clickhouse_max_concurrent_queries: "{{ ((clickhouse_memory_mb|int) / clickhouse_memory_mb_per_query) | int_between(50, 8192) }}"
-clickhouse_memory_mb_per_connection: 20
-clickhouse_max_connections:  "{{ ((clickhouse_memory_mb|int) / clickhouse_memory_mb_per_connection) | int_between(50, 8192) }}"
-
+clickhouse_memory_gb_min: "{{ 3 if olap_db == 'clickhouse' else 2 }}" # It works poor if have less RAM
+clickhouse_memory_gb_calculated: "{{ ((clickhouse_memory_usage_ratio|float) * ansible_memtotal_mb) / 1024 }}"
+clickhouse_memory_gb: "{{ [(clickhouse_memory_gb_calculated|int), (clickhouse_memory_gb_min|int)] | max }}"
+clickhouse_max_server_memory_usage: "{{ (clickhouse_memory_gb|int)  * 1024 * 1024 * 1024 }}"
+clickhouse_max_connections_per_gb: 40
+clickhouse_max_connections: "{{ (clickhouse_memory_gb|int) * (clickhouse_max_connections_per_gb|int) }}"
+clickhouse_max_thread_pool_size_per_gb: 100
+clickhouse_max_thread_pool_size: "{{ (clickhouse_memory_gb|int) * (clickhouse_max_thread_pool_size_per_gb|int) }}"
+clickhouse_mark_cache_size_per_gb: 134217728 # 128M
+clickhouse_mark_cache_size: "{{ (clickhouse_memory_gb|int) * (clickhouse_mark_cache_size_per_gb|int) }}"
+clickhouse_merge_max_block_size_per_gb: 128
+clickhouse_merge_max_block_size: "{{ (clickhouse_memory_gb|int) * (clickhouse_merge_max_block_size_per_gb|int) }}"
+clickhouse_max_bytes_to_merge_at_max_space_in_pool_per_gb: 1073741824 # 1G
+clickhouse_max_bytes_to_merge_at_max_space_in_pool: "{{ (clickhouse_memory_gb|int) * (clickhouse_max_bytes_to_merge_at_max_space_in_pool_per_gb|int) }}"
+clickhouse_compiled_expression_cache_elements_size_per_gb: 200
+clickhouse_compiled_expression_cache_elements_size: "{{ (clickhouse_memory_gb|int) * (clickhouse_compiled_expression_cache_elements_size_per_gb|int) }}"
+clickhouse_compiled_expression_cache_size_per_gb: 2097152 # 2M
+clickhouse_compiled_expression_cache_size: "{{ (clickhouse_memory_gb|int) * (clickhouse_compiled_expression_cache_size_per_gb|int) }}"

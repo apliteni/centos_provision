@@ -1,3 +1,3 @@
 - set_fact:
-    ram_size_mb: 2048
-    current_swap_size_mb: 1700
+    ram_size_mb: 2000
+    current_swap_size_mb: 3600
