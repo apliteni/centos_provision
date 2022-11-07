@@ -51,7 +51,7 @@ TOOL_NAME='disable-ssl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.39.30'
+RELEASE_VERSION='2.39.31'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -333,8 +333,8 @@ interpolate(){
 
 is_installed(){
   local command="${1}"
-  debug "Try to find command '$command'"
-  if [[ $(sh -c "command -v '$command' -gt /dev/null") ]]; then
+  debug "Looking for command '$command'"
+  if which "$command" &>/dev/null; then
     debug "FOUND: Command '$command' found"
   else
     debug "NOT FOUND: Command '$command' not found"
@@ -344,7 +344,7 @@ is_installed(){
 
 is_package_installed(){
   local package="${1}"
-  debug "Try to find package '$package'"
+  debug "Looking for package '$package'"
   if rpm -q --quiet "$package"; then
     debug "FOUND: Package '$package' found"
   else
