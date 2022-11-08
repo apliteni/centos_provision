@@ -1,6 +1,5 @@
 clickhouse_config: /etc/clickhouse/config.xml
 clickhouse_path_to_configs: /etc/clickhouse
-clickhouse_path_to_logs: /var/log/clickhouse
 clickhouse_path_to_libs: /var/lib/clickhouse
 clickhouse_user: "clickhouse"
 clickhouse_group: "clickhouse"
@@ -8,7 +7,6 @@ clickhouse_docker_name: "clickhouse"
 clickhouse_docker_volumes:
   - "{{ clickhouse_path_to_configs }}"
   - "{{ clickhouse_path_to_libs }}"
-  - "{{ clickhouse_path_to_logs }}"
 
 ch_host: 127.0.0.1
 ch_port_http: 8123

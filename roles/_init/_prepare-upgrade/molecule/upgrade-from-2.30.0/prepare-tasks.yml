@@ -40,3 +40,6 @@
     - with_correct_preferred_chain.conf
     - with_incorrect_preferred_chain.conf
     - without_preferred_chain.conf
+
+- name: Make podman stub
+  shell: cp /bin/true /usr/bin/podman

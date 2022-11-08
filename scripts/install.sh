@@ -52,7 +52,7 @@ TOOL_NAME='install'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.39.31'
+RELEASE_VERSION='2.39.32'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -1557,9 +1557,9 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['setup-thp']='0.9'
   ['setup-timezone']='0.9'
   ['tune-swap']='2.39.27'
-  ['tune-sysctl']='2.27.7'
+  ['tune-sysctl']='2.39.31'
 
-  ['install-clickhouse']='2.39.27'
+  ['install-clickhouse']='2.39.31'
   ['install-mariadb']='2.39.12'
   ['install-redis']='2.39.12'
 

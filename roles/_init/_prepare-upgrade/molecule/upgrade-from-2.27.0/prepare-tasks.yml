@@ -75,3 +75,6 @@
         listen 443 ssl;
         listen [::]:443 ssl;
       }
+
+- name: Make podman stub
+  shell: cp /bin/true /usr/bin/podman

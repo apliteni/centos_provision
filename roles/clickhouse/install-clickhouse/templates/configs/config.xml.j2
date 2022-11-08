@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <clickhouse>
-    <listen_host>::</listen_host>
-    <listen_host>0.0.0.0</listen_host>
+    <listen_host>::1</listen_host>
+    <listen_host>127.0.0.1</listen_host>
     <listen_try>1</listen_try>
     <http_port>8123</http_port>
     <tcp_port>9000</tcp_port>
@@ -72,26 +72,24 @@
     <logger>
         <level>warning</level>
         <console>true</console>
-        <log>{{ clickhouse_path_to_logs }}/server.log</log>
-        <errorlog>{{ clickhouse_path_to_logs }}/err.log</errorlog>
-        <size>1000M</size>
-        <count>10</count>
     </logger>
 
-    <asynchronous_metric_log remove="1"/>
-    <metric_log remove="1"/>
-    <query_thread_log remove="1" />
-    <query_log>
-        <database>system</database>
-        <table>query_log</table>
-        <ttl>event_date + INTERVAL 3 DAY DELETE</ttl>
-    </query_log>
-    <query_views_log remove="1" />
-    <part_log remove="1"/>
-    <session_log remove="1"/>
-    <text_log remove="1" />
-    <trace_log remove="1"/>
-    <crash_log remove="1"/>
-    <opentelemetry_span_log remove="1"/>
-    <zookeeper_log remove="1"/>
+    <yandex>
+        <asynchronous_metric_log remove="1"/>
+        <metric_log remove="1"/>
+        <query_thread_log remove="1" />
+        <query_log>
+            <database>system</database>
+            <table>query_log</table>
+            <ttl>event_date + INTERVAL 1 DAY DELETE</ttl>
+        </query_log>
+        <query_views_log remove="1" />
+        <part_log remove="1"/>
+        <session_log remove="1"/>
+        <text_log remove="1" />
+        <trace_log remove="1"/>
+        <crash_log remove="1"/>
+        <opentelemetry_span_log remove="1"/>
+        <zookeeper_log remove="1"/>
+    </yandex>
 </clickhouse>

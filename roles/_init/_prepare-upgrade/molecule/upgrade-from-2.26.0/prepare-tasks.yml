@@ -21,3 +21,6 @@
     content: |
       * * * * * php /var/www/keitaro/cron.php
       * * * * * certbot renew
+
+- name: Make podman stub
+  shell: cp /bin/true /usr/bin/podman

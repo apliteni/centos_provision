@@ -29,9 +29,6 @@
     - path: "{{ clickhouse_path_to_configs }}/users.d"
       owner: root
       group: "{{ clickhouse_group }}"
-    - path: "{{ clickhouse_path_to_logs }}"
-      owner: "{{ clickhouse_user }}"
-      group: "{{ clickhouse_group }}"
     - path: "{{ clickhouse_path_to_libs }}"
       owner: "{{ clickhouse_user }}"
       group: "{{ clickhouse_group }}"
