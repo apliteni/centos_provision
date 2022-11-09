@@ -1,10 +1,12 @@
 - name: Clean CH logs
   changed_when: false
   shell: |
-    source /etc/keitaro/config/tracker.env
-    for table in query_log trace_log metric_log asynchronous_metric_log; do
-      podman exec clickhouse clickhouse-client --password "${CH_PASSWORD}" -u keitaro -d system -q "TRUNCATE TABLE $table"
-    done
+    [[ -f /etc/keitaro/config/tracker.env ]] && source /etc/keitaro/config/tracker.env
+    if [[ "${CH_PASSWORD}" != "" ]]; then
+      for table in query_log trace_log metric_log asynchronous_metric_log; do
+        podman exec clickhouse clickhouse-client --password "${CH_PASSWORD}" -u keitaro -d system -q "TRUNCATE TABLE $table"
+      done
+    fi
     if [[ -d /var/log/clickhouse ]]; then
       rm -f /var/log/clickhouse/*.gz
       > /var/log/clickhouse/server.log
