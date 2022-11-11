@@ -67,8 +67,6 @@ Usage:
   kctl certificates renew                                 renew LE certificates
   kctl certificates remove-old-logs                       remove old issuing logs
 
-Supported features: rbooster
-
 ```
 
 <!-- end of 'kctl certificates help' output -->
@@ -80,9 +78,7 @@ Supported features: rbooster
 Usage:
   kctl features enable <feature>                  enable feature
   kctl features disable <feature>                 disable feature
-  kctl features list                              list supported features
-
-Supported features: rbooster
+  kctl features help                              print this help
 
 ```
 
