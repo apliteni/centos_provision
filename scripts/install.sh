@@ -52,7 +52,7 @@ TOOL_NAME='install'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.39.36'
+RELEASE_VERSION='2.39.37'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -2444,7 +2444,7 @@ install_nginx_on_docker() {
     grep -r -l -F tracker.status /etc/nginx/conf.d/keitaro | xargs -r sed -i "/tracker.status/d"
   fi
 
-  if [ -f "/etc/nginx/nginx.conf.rpmsave" ]; then
+  if [[ -f "/etc/nginx/nginx.conf.rpmsave" ]] || [[ ! -d /etc/nginx/conf.d ]]; then
     copy_nignx_configs
   fi
 
