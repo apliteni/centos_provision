@@ -52,7 +52,7 @@ TOOL_NAME='install'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.39.38'
+RELEASE_VERSION='2.40.0'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -119,7 +119,7 @@ TOOL_ARGS="${*}"
 
 DB_ENGINE_INNODB="innodb"
 DB_ENGINE_TOKUDB="tokudb"
-DB_ENGINE_DEFAULT="${DB_ENGINE_TOKUDB}"
+DB_ENGINE_DEFAULT="${DB_ENGINE_INNODB}"
 
 OLAP_DB_MARIADB="mariadb"
 OLAP_DB_CLICKHOUSE="clickhouse"
@@ -410,6 +410,17 @@ get_centos_major_release() {
   grep -oP '(?<=release )\d+' /etc/centos-release
 }
 
+
+get_olap_db(){
+  if empty "${OLAP_DB}"; then
+    detect_inventory_path
+    if isset "${DETECTED_INVENTORY_PATH}"; then
+      OLAP_DB=$(grep "^olap_db=" "${DETECTED_INVENTORY_PATH}" | sed s/^olap_db=//g)
+      debug "Got installer_version='${OLAP_DB}' from ${DETECTED_INVENTORY_PATH}"
+    fi
+  fi
+  echo "${OLAP_DB}"
+}
 
 get_user_gid(){
   local user="${1}"
@@ -1426,10 +1437,9 @@ DICT['en.messages.keitaro_already_installed']='Keitaro is already installed'
 DICT['en.messages.check_keitaro_dump_get_tables_prefix']="Getting tables prefix from dump"
 DICT['en.messages.check_keitaro_dump_validity']="Checking SQL dump"
 DICT['en.messages.validate_nginx_conf']='Checking nginx config'
-DICT['en.messages.successful.use_old_credentials']="The database was successfully restored from the archive. Use old login data"
-DICT['en.messages.successful_install']='Keitaro is installed!'
-DICT['en.messages.successful_upgrade']='Keitaro is upgraded!'
-DICT['en.messages.successful_restore']="Keitaro is restored! Use old login data"
+DICT['en.messages.successful_install']='Keitaro has been installed!'
+DICT['en.messages.successful_upgrade']='Keitaro has been upgraded!'
+DICT['en.messages.successful_restore']="Keitaro has been restored! Use old login data"
 DICT['en.messages.visit_url']="Please open the link in your browser of choice:"
 DICT['en.errors.wrong_distro']='The installer is not compatible with this operational system. Please reinstall this server with "CentOS 8 Stream" or above'
 DICT['en.errors.not_enough_ram']='The size of RAM on your server should be at least 2 GB'
@@ -1528,7 +1538,7 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['tune-swap']='2.39.27'
   ['tune-sysctl']='2.39.31'
 
-  ['install-clickhouse']='2.39.31'
+  ['install-clickhouse']='2.39.38'
   ['install-mariadb']='2.39.12'
   ['install-redis']='2.39.12'
 
@@ -1970,6 +1980,7 @@ setup_vars() {
   setup_default_value installer_version "${INSTALLED_VERSION}" "${RELEASE_VERSION}"
   setup_default_value db_name 'keitaro'
   setup_default_value ch_password "$(generate_password)"
+  setup_default_value db_engine "${DB_ENGINE_DEFAULT}"
   if ! file_exists "${INVENTORY_DIR}/tracker.env"; then
     setup_default_value db_password "$(get_tracker_config_value 'db' 'password')" "$(generate_password)"
     setup_default_value db_root_password "$(get_config_value password "/root/my.cnf" '=')"  "$(generate_password)"
@@ -1978,7 +1989,6 @@ setup_vars() {
     setup_default_value salt "$(get_config_value 'salt' "${TRACKER_CONFIG_FILE}" '=')" "$(generate_salt)"
     setup_default_value table_prefix "$(get_tracker_config_value 'db' 'prefix')" 'keitaro_'
   fi
-  VARS['db_engine']="${DB_ENGINE_DEFAULT}"
 }
 
 setup_default_value() {
@@ -2449,6 +2459,7 @@ install_core_packages() {
     install_package tar
     install_package curl
     install_package crontabs
+    install_package logrotate
     install_kctl_provision
     install_kctl
     # shellcheck source=/dev/null
@@ -2471,8 +2482,13 @@ get_selinux_status(){
 
 install_kctld() {
   run_command "curl -fsSL ${KCTLD_URL} | tar --no-same-owner -xzC ${KCTL_BIN_DIR}" "Installing kctld" "hide_output"
-  systemd.start_service 'kctld-worker'
-  systemd.start_service 'kctld-server'
+  if [[ "${KCTLD_MODE}" == "true" ]]; then
+    systemd.start_service 'kctld-worker'
+    systemd.start_service 'kctld-server'
+  else
+    systemd.restart_service 'kctld-worker'
+    systemd.restart_service 'kctld-server'
+  fi
   systemd.enable_service 'kctld-worker'
   systemd.enable_service 'kctld-server'
 }
@@ -2520,6 +2536,7 @@ install_kctl() {
   install -m 0644 "${PROVISION_DIRECTORY}"/files/etc/systemd/system/* /etc/systemd/system/
   install -m 0644 "${PROVISION_DIRECTORY}"/files/etc/keitaro/config/* /etc/keitaro/config/
   install -m 0444 "${PROVISION_DIRECTORY}"/files/etc/sudoers.d/* /etc/sudoers.d/
+  install -m 0444 "${PROVISION_DIRECTORY}"/files/etc/logrotate.d/* /etc/logrotate.d/
   make_kctl_scripts_symlinks
   systemd.update_units
   systemd.restart_service 'kctl-monitor'
@@ -2992,12 +3009,6 @@ print_successful_message(){
 
 print_url() {
   print_with_color "http://${SERVER_IP}/admin" 'light.green'
-}
-
-print_credentials_notice() {
-  local notice=""
-  notice=$(translate 'messages.successful.use_old_credentials')
-  print_with_color "${notice}" 'yellow'
 }
 
 upgrade_packages() {

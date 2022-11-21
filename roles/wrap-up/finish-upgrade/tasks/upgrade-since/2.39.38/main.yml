@@ -1,0 +1,19 @@
+- name: Remove CH logs dir
+  file:
+    path: /var/log/clickhouse
+    state: absent
+
+- name: Change NginX logs dir permissions
+  file:
+    path: /var/log/nginx
+    mode: 0750
+    state: directory
+
+- name: Restart kctld
+  changed_when: false
+  service:
+    name: "{{ item }}"
+    state: restarted
+  with_items:
+    - kctld-worker
+    - kctld-server

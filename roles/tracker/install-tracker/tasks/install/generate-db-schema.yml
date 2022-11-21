@@ -5,12 +5,6 @@
     remote_src: true
     mode: '0644'
 
-- name: Change schema.sql engine to TokuDB
-  replace:
-    path: "{{ keitaro_database_schema_temp_file }}"
-    regexp: "ENGINE=InnoDB"
-    replace: "ENGINE={{ db_engine }}"
-
 - name: Import database .sql files
   community.mysql.mysql_db:
     state: import

@@ -50,7 +50,7 @@ TOOL_NAME='kctl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.39.38'
+RELEASE_VERSION='2.40.0'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -117,7 +117,7 @@ TOOL_ARGS="${*}"
 
 DB_ENGINE_INNODB="innodb"
 DB_ENGINE_TOKUDB="tokudb"
-DB_ENGINE_DEFAULT="${DB_ENGINE_TOKUDB}"
+DB_ENGINE_DEFAULT="${DB_ENGINE_INNODB}"
 
 OLAP_DB_MARIADB="mariadb"
 OLAP_DB_CLICKHOUSE="clickhouse"
@@ -1040,8 +1040,11 @@ kctl_show_version(){
   read_inventory
   detect_installed_version
   if is_keitaro_installed; then
-    translate 'messages.kctl_version' "kctl_version=${RELEASE_VERSION}"
-    translate 'messages.kctl_tracker' "tracker_version=$(get_tracker_version)"
+    echo "KCTL:       ${RELEASE_VERSION}"
+    echo "Config:     ${INSTALLED_VERSION}"
+    echo "Tracker:    $(get_tracker_version)"
+    echo "DB Engine:  $(detect_db_engine)"
+    echo "OLAP DB:    $(get_olap_db)"
   else
     fail "$(translate 'errors.tracker_is_not_installed')"
   fi
@@ -1136,13 +1139,9 @@ kctl_certificates_usage() {
   echo "Usage:"
   echo "  kctl certificates issue domain1.tld domain2.tld ...     issue LE certificates for specified domains"
   echo "  kctl certificates revoke domain1.tld domain2.tld ...    revoke LE certificates for specified domains"
-  echo "  kctl certificates prune abandoned                       removes LE certificates without appropriate nginx configs"
-  echo "  kctl certificates prune broken                          removes nginx domains with inconsistent LE certificates"
-  echo "  kctl certificates prune detached                        removes nginx domains are not presented in the Keitaro DB"
-  echo "  kctl certificates prune safe                            removes abandoned & broken certificates"
-  echo "  kctl certificates prune all                             removes abandoned, broken & detached certificates"
   echo "  kctl certificates renew                                 renew LE certificates"
   echo "  kctl certificates remove-old-logs                       remove old issuing logs"
+  /opt/keitaro/bin/kctl-certificates-prune help
   echo
 }
 
@@ -1797,6 +1796,17 @@ as_minor_version() {
   printf "%d%0${zeroes_length}d" "${meaningful_version}"
 }
 
+get_olap_db(){
+  if empty "${OLAP_DB}"; then
+    detect_inventory_path
+    if isset "${DETECTED_INVENTORY_PATH}"; then
+      OLAP_DB=$(grep "^olap_db=" "${DETECTED_INVENTORY_PATH}" | sed s/^olap_db=//g)
+      debug "Got installer_version='${OLAP_DB}' from ${DETECTED_INVENTORY_PATH}"
+    fi
+  fi
+  echo "${OLAP_DB}"
+}
+
 detect_installed_version(){
   if empty "${INSTALLED_VERSION}"; then
     detect_inventory_path
@@ -1809,6 +1819,13 @@ detect_installed_version(){
       INSTALLED_VERSION="${VERY_FIRST_VERSION}"
     fi
   fi
+}
+detect_db_engine() {
+  local sql="SELECT lower(engine) FROM information_schema.tables WHERE table_name = 'keitaro_clicks'"
+  local db_engine
+  db_engine="$(mysql "${VARS['db_name']}" -se "${sql}" 2>/dev/null)"
+  debug "Detected engine from keitaro_clicks table - '${db_engine}'"
+  echo "${db_engine}"
 }
 
 get_tracker_config_value() {

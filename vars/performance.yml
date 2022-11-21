@@ -7,6 +7,6 @@ redis_memory_usage_to_ram_ratio: 0.3
 # 10% RAM - MariaDB
 mariadb_memory_usage_to_ram_ratio: 0.1
 # 70% RAM - OLAP CH engine size, 30% - OLAP MariaDB
-olap_db_memory_usage_to_ram_ratio: "{{ 0.7 if olap_db == 'clickhouse' else 0.3 }}"
+olap_db_memory_usage_to_ram_ratio: "{{ 1 if olap_db == 'clickhouse' else 0.3 }}"
 # 10% RAM - size for alternative engine
 alternative_olap_db_memory_usage_to_ram_ratio: 0.1

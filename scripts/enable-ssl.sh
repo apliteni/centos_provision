@@ -51,7 +51,7 @@ TOOL_NAME='enable-ssl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.39.38'
+RELEASE_VERSION='2.40.0'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -118,7 +118,7 @@ TOOL_ARGS="${*}"
 
 DB_ENGINE_INNODB="innodb"
 DB_ENGINE_TOKUDB="tokudb"
-DB_ENGINE_DEFAULT="${DB_ENGINE_TOKUDB}"
+DB_ENGINE_DEFAULT="${DB_ENGINE_INNODB}"
 
 OLAP_DB_MARIADB="mariadb"
 OLAP_DB_CLICKHOUSE="clickhouse"
@@ -444,6 +444,17 @@ get_centos_major_release() {
   grep -oP '(?<=release )\d+' /etc/centos-release
 }
 
+
+get_olap_db(){
+  if empty "${OLAP_DB}"; then
+    detect_inventory_path
+    if isset "${DETECTED_INVENTORY_PATH}"; then
+      OLAP_DB=$(grep "^olap_db=" "${DETECTED_INVENTORY_PATH}" | sed s/^olap_db=//g)
+      debug "Got installer_version='${OLAP_DB}' from ${DETECTED_INVENTORY_PATH}"
+    fi
+  fi
+  echo "${OLAP_DB}"
+}
 
 get_user_gid(){
   local user="${1}"

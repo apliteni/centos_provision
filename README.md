@@ -47,7 +47,6 @@ Modules:
 Environment variables:
 
   TRACKER_STABILITY                       - Set up stability channel stable|unstsable. Default: stable
-
 ```
 
 <!-- end of 'kctl help' output -->
@@ -59,14 +58,17 @@ Environment variables:
 Usage:
   kctl certificates issue domain1.tld domain2.tld ...     issue LE certificates for specified domains
   kctl certificates revoke domain1.tld domain2.tld ...    revoke LE certificates for specified domains
-  kctl certificates prune abandoned                       removes LE certificates without appropriate nginx configs
-  kctl certificates prune broken                          removes nginx domains with inconsistent LE certificates
-  kctl certificates prune detached                        removes nginx domains are not presented in the Keitaro DB
-  kctl certificates prune safe                            removes abandoned & broken certificates
-  kctl certificates prune all                             removes abandoned, broken & detached certificates
   kctl certificates renew                                 renew LE certificates
   kctl certificates remove-old-logs                       remove old issuing logs
+  kctl certificates prune <KIND>                          prunes LE ssl certificates
 
+    KINDs:
+      abandoned                                           removes LE certificates without appropriate nginx configs
+      broken                                              removes nginx domains with inconsistent LE certificates
+      detached                                            removes nginx domains are not presented in the Keitaro DB
+      irrelevant                                          removes nginx domains with expired certificates not presented in the Keitaro DB
+      safe                                                removes abandoned, broken & irrelevant certificates
+      all                                                 removes abandoned, broken, irrelevant & detached certificates
 ```
 
 <!-- end of 'kctl certificates help' output -->
@@ -79,7 +81,6 @@ Usage:
   kctl features enable <feature>                  enable feature
   kctl features disable <feature>                 disable feature
   kctl features help                              print this help
-
 ```
 
 <!-- end of 'kctl features help' output -->
@@ -138,7 +139,6 @@ Environment variables for restore-from-sql action:
 Examples:
   SSH_PASSWORD=mypassword kctl-transfer copy-from 1.2.3.4
   SALT=3a4e4a2c749c421cb8a75ba9f8fbbf2b kctl-transfer restore-from-sql local ./keitaro.sql.gz
-
 ```
 
 <!-- end of 'kctl-transfers help' output -->
@@ -200,7 +200,6 @@ Miscellaneous:
 Environment variables:
 
   TRACKER_STABILITY       Set up stability channel stable|unstsable. Default: stable
-
 ```
 
 <!-- end of 'kctl-install -h' output -->

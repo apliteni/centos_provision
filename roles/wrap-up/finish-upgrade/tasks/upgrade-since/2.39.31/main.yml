@@ -1,4 +1,0 @@
-- name: Remove CH logs dir
-  file:
-    path: /var/log/clickhouse
-    state: absent
