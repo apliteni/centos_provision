@@ -1,0 +1,12 @@
+- set_fact:
+    kctl_running_mode: install
+
+- name: Get tracker's verion.php content
+  slurp:
+    src: "{{ keitaro_app_dir }}/version.php"
+  register: tracker_app_version_php_content_encoded
+
+- name: Set raw_installed_tracker_version variable
+  set_fact:
+    version_php_decoded: "{{ tracker_app_version_php_content_encoded.content | b64decode }}"
+    tracker_version_to_install: "{{ tracker_app_version_php_content_encoded.content | b64decode | regex_search('[0-9]+(.[0-9]+)+') }}"

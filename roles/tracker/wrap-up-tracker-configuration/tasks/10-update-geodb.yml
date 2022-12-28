@@ -1,0 +1,3 @@
+- name: Update geo databases
+  command: "{{ kctl_path }} run cli-php geodbs:update_all"
+  changed_when: false

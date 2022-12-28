@@ -1,0 +1,10 @@
+- name: Generate watch list if it doesn't exist.
+  copy:
+    dest: "{{ keitaro_watch_list }}"
+    content: >
+      application/redirects/
+      application/macros/
+      application/filters/
+      application/config/config.ini.php
+    force: false
+    mode: '0644'

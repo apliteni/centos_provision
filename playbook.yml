@@ -5,35 +5,34 @@
   become_method: sudo
 
   roles:
-    - {role: '_init/_init',                                 tags: 'init,                        always'}    # noqa yaml
-    - {role: '_init/_apply-hot-fixes',                      tags: 'apply-hot-fixes'}                        # noqa yaml
-    - {role: '_init/_install-packages',                     tags: 'install-packages'}                       # noqa yaml
-    - {role: '_init/_prepare-upgrade',                      tags: 'prepare-upgrade,             upgrade'}   # noqa yaml
-    - {role: '_init/create-user-and-dirs',                  tags: 'create-user-and-dirs'}                   # noqa yaml
-    - {role: '_init/disable-selinux',                       tags: 'disable-selinux'}                        # noqa yaml
-    - {role: '_init/install-chrony',                        tags: 'install-chrony'}                         # noqa yaml
-    - {role: '_init/install-fail2ban',                      tags: 'install-fail2ban'}                       # noqa yaml
-    - {role: '_init/install-firewalld',                     tags: 'install-firewalld'}                      # noqa yaml
-    - {role: '_init/install-postfix',                       tags: 'install-postfix'}                        # noqa yaml
-    - {role: '_init/setup-journald',                        tags: 'setup-journald'}                         # noqa yaml
-    - {role: '_init/setup-root-home',                       tags: 'setup-root-home'}                        # noqa yaml
-    - {role: '_init/setup-thp',                             tags: 'setup-thp'}                              # noqa yaml
-    - {role: '_init/setup-timezone',                        tags: 'setup-timezone'}                         # noqa yaml
-    - {role: '_init/tune-swap',                             tags: 'tune-swap,                    tune'}     # noqa yaml
-    - {role: '_init/tune-sysctl',                           tags: 'tune-sysctl,                  tune'}     # noqa yaml
-    - {role: 'clickhouse/install-clickhouse',               tags: 'install-clickhouse,           tune'}     # noqa yaml
-    - {role: 'mariadb/install-mariadb',                     tags: 'install-mariadb,              tune'}     # noqa yaml
-    - {role: 'mariadb/wrap-up-db-configuration',            tags: 'wrap-up-db-configuration'}               # noqa yaml
-    - {role: 'php/install-php',                             tags: 'install-php'}                            # noqa yaml
-    - {role: 'php/install-roadrunner',                      tags: 'install-roadrunner'}                     # noqa yaml
-    - {role: 'php/tune-php',                                tags: 'tune-php,                     tune'}     # noqa yaml
-    - {role: 'php/tune-roadrunner',                         tags: 'tune-roadrunner,              tune'}     # noqa yaml
-    - {role: 'redis/install-redis',                         tags: 'install-redis,                tune'}     # noqa yaml
-    - {role: 'tracker/fix-permissions',                     tags: 'fix-permissions,              always'}   # noqa yaml
-    - {role: 'tracker/install-tracker',                     tags: 'install-tracker'}                        # noqa yaml
-    - {role: 'tracker/upgrade-tracker',                     tags: 'upgrade-tracker,              never'}    # noqa yaml
-    - {role: 'tracker/tune-tracker',                        tags: 'tune-tracker,                 tune'}     # noqa yaml
-    - {role: 'tracker/wrap-up-tracker-configuration',       tags: 'wrap-up-tracker-configuration'}          # noqa yaml
-    - {role: 'wrap-up/_tune-nginx',                         tags: 'tune-nginx,                   tune'}     # noqa yaml
-    - {role: 'wrap-up/finish-upgrade',                      tags: 'finish-upgrade,               upgrade'}  # noqa yaml
-    - {role: 'wrap-up/run-final-steps',                     tags: 'run-final-steps,              always'}   # noqa yaml
+    - {role: '_init/_init',                           tags: 'init,                          always'}  # noqa yaml
+    - {role: '_init/_apply-hot-fixes',                tags: 'apply-hot-fixes'}                        # noqa yaml
+    - {role: '_init/_install-packages',               tags: 'install-packages'}                       # noqa yaml
+    - {role: '_init/_prepare-upgrade',                tags: 'prepare-upgrade,               upgrade'} # noqa yaml
+    - {role: '_init/create-user-and-dirs',            tags: 'create-user-and-dirs'}                   # noqa yaml
+    - {role: '_init/disable-selinux',                 tags: 'disable-selinux'}                        # noqa yaml
+    - {role: '_init/install-chrony',                  tags: 'install-chrony'}                         # noqa yaml
+    - {role: '_init/install-fail2ban',                tags: 'install-fail2ban'}                       # noqa yaml
+    - {role: '_init/install-firewalld',               tags: 'install-firewalld'}                      # noqa yaml
+    - {role: '_init/install-postfix',                 tags: 'install-postfix'}                        # noqa yaml
+    - {role: '_init/setup-journald',                  tags: 'setup-journald'}                         # noqa yaml
+    - {role: '_init/setup-root-home',                 tags: 'setup-root-home'}                        # noqa yaml
+    - {role: '_init/setup-thp',                       tags: 'setup-thp'}                              # noqa yaml
+    - {role: '_init/setup-timezone',                  tags: 'setup-timezone'}                         # noqa yaml
+    - {role: '_init/tune-swap',                       tags: 'tune-swap,                     tune'}    # noqa yaml
+    - {role: '_init/tune-sysctl',                     tags: 'tune-sysctl,                   tune'}    # noqa yaml
+    - {role: 'clickhouse/install-clickhouse',         tags: 'install-clickhouse,            tune'}    # noqa yaml
+    - {role: 'mariadb/install-mariadb',               tags: 'install-mariadb,               tune'}    # noqa yaml
+    - {role: 'mariadb/wrap-up-db-configuration',      tags: 'wrap-up-db-configuration'}               # noqa yaml
+    - {role: 'php/install-php',                       tags: 'install-php'}                            # noqa yaml
+    - {role: 'php/install-roadrunner',                tags: 'install-roadrunner'}                     # noqa yaml
+    - {role: 'php/tune-php',                          tags: 'tune-php,                      tune'}    # noqa yaml
+    - {role: 'php/tune-roadrunner',                   tags: 'tune-roadrunner,               tune'}    # noqa yaml
+    - {role: 'redis/install-redis',                   tags: 'install-redis,                 tune'}    # noqa yaml
+    - {role: 'tracker/fix-permissions',               tags: 'fix-permissions,               always'}  # noqa yaml
+    - {role: 'tracker/install-tracker',               tags: 'install-tracker'}                        # noqa yaml
+    - {role: 'tracker/upgrade-tracker',               tags: 'upgrade-tracker,               upgrade'} # noqa yaml
+    - {role: 'tracker/wrap-up-tracker-configuration', tags: 'wrap-up-tracker-configuration, always'}  # noqa yaml
+    - {role: 'wrap-up/_tune-nginx',                   tags: 'tune-nginx,                    tune'}    # noqa yaml
+    - {role: 'wrap-up/finish-upgrade',                tags: 'finish-upgrade,                upgrade'} # noqa yaml
+    - {role: 'wrap-up/run-final-steps',               tags: 'run-final-steps,               always'}  # noqa yaml

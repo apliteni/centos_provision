@@ -1,3 +1,9 @@
+- name: Update pcre2
+  yum:
+    name: pcre2
+    state: latest
+  when: centos_release_version != "7"
+
 - name: Install php, php-fpm, php extensions and supporting libraries
   yum:
     name:

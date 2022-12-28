@@ -7,7 +7,7 @@
         method: GET
         body_format: json
         body:
-          version: "{{ installed_tracker_version }}"
+          version: "{{ tracker_version_to_install }}"
         return_content: true
       failed_when: >-
          get_installed_tracker_stability_result.content != 'stable'
