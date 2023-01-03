@@ -73,6 +73,7 @@ sysctl_net:
   # Default: 0.
   net.ipv4.tcp_rfc1337: 1
 
+sysctl_net_ipv6:
   # Disable Router Advertisements.
   # Default: 1.
   net.ipv6.conf.all.accept_ra: 0

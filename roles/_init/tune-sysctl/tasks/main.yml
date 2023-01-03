@@ -1,10 +1,19 @@
----
 - name: Update netwok params with sysctl
   sysctl:
     name: "{{ item.key }}"
     value: '{{ item.value }}'
     state: present
   with_dict: "{{ sysctl_net }}"
+  when: not is_ci_mode
+
+- name: Update ipv6 netwok params with sysctl
+  sysctl:
+    name: "{{ item.key }}"
+    value: '{{ item.value }}'
+    ignoreerrors: true
+    state: present
+  with_dict: "{{ sysctl_net_ipv6 }}"
+  failed_when: false
   when: not is_ci_mode
 
 - name: Update system params with sysctl
