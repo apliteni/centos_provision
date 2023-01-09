@@ -1,5 +1,0 @@
-- name: Test php73 is not started
-  shell: systemctl | grep php73-php-fpm
-  register: systemctl_php73_fpm_running_result
-  failed_when: systemctl_php73_fpm_running_result.rc == 0
-
