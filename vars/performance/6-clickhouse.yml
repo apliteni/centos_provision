@@ -7,6 +7,8 @@ clickhouse_max_connections_per_gb: 40
 clickhouse_max_connections: "{{ (clickhouse_memory_gb|int) * (clickhouse_max_connections_per_gb|int) }}"
 clickhouse_max_thread_pool_size_per_gb: 100
 clickhouse_max_thread_pool_size: "{{ (clickhouse_memory_gb|int) * (clickhouse_max_thread_pool_size_per_gb|int) }}"
+clickhouse_max_query_size_per_gb: 32000
+clickhouse_max_query_size: "{{ (clickhouse_memory_gb|int) * (clickhouse_max_query_size_per_gb|int) }}"
 clickhouse_mark_cache_size_per_gb: 134217728 # 128M
 clickhouse_mark_cache_size: "{{ (clickhouse_memory_gb|int) * (clickhouse_mark_cache_size_per_gb|int) }}"
 clickhouse_merge_max_block_size_per_gb: 128
