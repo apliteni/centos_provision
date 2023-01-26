@@ -8,7 +8,6 @@ db_password: keitaro
 db_root_password: keitaro
 db_engine: tokudb
 server_ip: 127.0.0.1
-tracker_language: en
 installer_version: 2.31.0
 ch_password: admin
 olap_db: mariadb

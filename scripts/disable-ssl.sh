@@ -51,7 +51,7 @@ TOOL_NAME='disable-ssl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.40.8'
+RELEASE_VERSION='2.41.0'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -367,45 +367,6 @@ detect_inventory_path(){
 
 add_indentation(){
   sed -r "s/^/$INDENTATION_SPACES/g"
-}
-
-get_user_var(){
-  local var_name="${1}"
-  local validation_methods="${2}"
-  print_prompt_help "$var_name"
-  while true; do
-    print_prompt "$var_name"
-    value="$(read_stdin)"
-    debug "$var_name: got value '${value}'"
-    if ! empty "$value"; then
-      VARS[$var_name]="${value}"
-    fi
-    error=$(get_error "${var_name}" "$validation_methods")
-    if isset "$error"; then
-      debug "$var_name: validation error - '${error}'"
-      print_prompt_error "$error"
-      VARS[$var_name]=''
-    else
-      if [[ "$validation_methods" =~ 'validate_yes_no' ]]; then
-        transform_to_yes_no "$var_name"
-      fi
-      debug "  ${var_name}=${VARS[${var_name}]}"
-      break
-    fi
-  done
-}
-hack_stdin_if_pipe_mode(){
-  if is_pipe_mode; then
-    debug 'Detected pipe bash mode. Stdin hack enabled'
-    hack_stdin
-  else
-    debug "Can't detect pipe bash mode. Stdin hack disabled"
-  fi
-}
-
-
-hack_stdin(){
-  exec 3<&1
 }
 #
 

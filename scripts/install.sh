@@ -52,7 +52,7 @@ TOOL_NAME='install'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.40.8'
+RELEASE_VERSION='2.41.0'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -531,45 +531,6 @@ add_indentation(){
 detect_mime_type(){
   local file="${1}"
   file --brief --mime-type "$file"
-}
-
-get_user_var(){
-  local var_name="${1}"
-  local validation_methods="${2}"
-  print_prompt_help "$var_name"
-  while true; do
-    print_prompt "$var_name"
-    value="$(read_stdin)"
-    debug "$var_name: got value '${value}'"
-    if ! empty "$value"; then
-      VARS[$var_name]="${value}"
-    fi
-    error=$(get_error "${var_name}" "$validation_methods")
-    if isset "$error"; then
-      debug "$var_name: validation error - '${error}'"
-      print_prompt_error "$error"
-      VARS[$var_name]=''
-    else
-      if [[ "$validation_methods" =~ 'validate_yes_no' ]]; then
-        transform_to_yes_no "$var_name"
-      fi
-      debug "  ${var_name}=${VARS[${var_name}]}"
-      break
-    fi
-  done
-}
-hack_stdin_if_pipe_mode(){
-  if is_pipe_mode; then
-    debug 'Detected pipe bash mode. Stdin hack enabled'
-    hack_stdin
-  else
-    debug "Can't detect pipe bash mode. Stdin hack disabled"
-  fi
-}
-
-
-hack_stdin(){
-  exec 3<&1
 }
 #
 
@@ -1195,12 +1156,6 @@ generate_password(){
   local PASSWORD_LENGTH=16
   LC_ALL=C tr -cd '[:alnum:]' < /dev/urandom | head -c${PASSWORD_LENGTH}
 }
-
-generate_salt() {
-  if ! is_running_in_interactive_restoring_mode; then
-    generate_uuid
-  fi
-}
 generate_uuid() {
   uuidgen | tr -d '-'
 }
@@ -1498,21 +1453,12 @@ clean_up(){
   fi
 }
 
-is_running_in_interactive_restoring_mode() {
-  [[ "${RUNNING_MODE}" == "${RUNNING_MODE_RESTORE}" ]] && \
-    [[ "${RESTORING_MODE}" == "${RESTORING_MODE_INTERACTIVE}" ]]
-}
-
 is_running_in_upgrade_mode() {
   [[ "${RUNNING_MODE}" == "${RUNNING_MODE_UPGRADE}" ]]
 }
 
 is_running_in_install_mode() {
   [[ "${RUNNING_MODE}" == "${RUNNING_MODE_INSTALL}" ]]
-}
-
-is_running_in_restore_mode() {
-  [[ "${RUNNING_MODE}" == "${RUNNING_MODE_RESTORE}" ]]
 }
 
 is_running_in_fast_upgrade_mode() {
@@ -1572,9 +1518,9 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['tune-nginx']='2.38.2'
 
   ['install-php']='2.30.10'
-  ['install-roadrunner']='2.20.4'
+  ['install-roadrunner']='2.40.8'
   ['tune-php']='2.38.2'
-  ['tune-roadrunner']='2.34.11'
+  ['tune-roadrunner']='2.40.8'
 
   ['wrap-up-tracker-configuration']='2.40.3'
 )
@@ -1652,12 +1598,7 @@ detect_server_ip() {
 
 RUNNING_MODE_INSTALL="install"
 RUNNING_MODE_UPGRADE="upgrade"
-RUNNING_MODE_RESTORE="restore"
 RUNNING_MODE="${RUNNING_MODE_INSTALL}"
-
-RESTORING_MODE_INTERACTIVE="interactive"
-RESTORING_MODE_NONINTERACTIVE="noninteractive"
-RESTORING_MODE="${RESTORING_MODE_INTERACTIVE}"
 
 UPGRADING_MODE_FAST="fast"
 UPGRADING_MODE_FULL="full"
@@ -1665,12 +1606,9 @@ UPGRADING_MODE="${UPGRADING_MODE_FAST}"
 
 parse_options(){
   while getopts ":RCUF:S:a:t:i:wo:L:WrK:A:k:l:hvs" option; do
-    argument="${OPTARG}"
-    ARGS["${option}"]="${argument}"
-    case $option in
-      R)
-        RUNNING_MODE="${RUNNING_MODE_RESTORE}"
-        ;;
+    local option_value="${OPTARG}"
+    ARGS["${option}"]="${option_value}"
+    case "${option}" in
       C)
         RUNNING_MODE="${RUNNING_MODE_UPGRADE}"
         UPGRADING_MODE="${UPGRADING_MODE_FULL}"
@@ -1678,29 +1616,20 @@ parse_options(){
       U)
         RUNNING_MODE="${RUNNING_MODE_UPGRADE}"
         ;;
-      F)
-        VARS['db_restore_path']="${argument}"
-        ;;
-      S)
-        VARS['salt']="${argument}"
-        ;;
       a)
-        KCTL_TRACKER_VERSION_TO_INSTALL="${argument}"
+        KCTL_TRACKER_VERSION_TO_INSTALL="${option_value}"
         ;;
       t)
-        ANSIBLE_TAGS="${argument}"
+        ANSIBLE_TAGS="${option_value}"
         ;;
       i)
-        ANSIBLE_IGNORE_TAGS="${argument}"
+        ANSIBLE_IGNORE_TAGS="${option_value}"
         ;;
       w)
         WITHOUTH_YUM_UPDATE="true"
         ;;
       o)
-        LOG_PATH="${argument}"
-        ;;
-      L)
-        set_tracker_language "${argument}"
+        LOG_PATH="${option_value}"
         ;;
       W)
         print_deprecation_warning '-W option will be removed soon, you can safely omit it'
@@ -1713,9 +1642,23 @@ parse_options(){
           UPGRADING_MODE="${UPGRADING_MODE_FULL}"
         fi
         ;;
+      R)
+        # shellcheck disable=SC2016
+        fail '-R option is unsupported. Install tracker and use `kctl-transfer restore-from-sql` to restore'
+        ;;
+      F)
+        # shellcheck disable=SC2016
+        fail '-F option is unsupported. Install tracker and use `kctl-transfer restore-from-sql` to restore'
+        ;;
+      S)
+        # shellcheck disable=SC2016
+        fail '-S option is unsupported. Install tracker and use `kctl-transfer restore-from-sql` to restore'
+        ;;
+      L)
+        print_deprecation_warning '-l option is ignored'
+        ;;
       K)
-        print_deprecation_warning '-K option is deprecated'
-        VARS['license_key']="${argument}"
+        print_deprecation_warning '-K option is ignored'
         ;;
       A)
         print_deprecation_warning '-A option is ignored'
@@ -1724,41 +1667,22 @@ parse_options(){
         print_deprecation_warning '-k option is ignored'
         ;;
       l)
-        print_deprecation_warning '-l option is deprecates use -L instead'
-        set_tracker_language "${argument}"
+        print_deprecation_warning '-l option is ignored'
         ;;
       s)
         SKIP_CENTOS_RELEASE_CHECK="true"
         SKIP_FREE_SPACE_CHECK="true"
         ;;
       *)
-        common_parse_options "$option" "${argument}"
+        common_parse_options "${option}" "${option_value}"
         ;;
     esac
   done
-  if isset "${ARGS['F']}" || isset "${ARGS['S']}"; then
-    RUNNING_MODE="${RUNNING_MODE_RESTORE}"
-    RESTORING_MODE="${RESTORING_MODE_NONINTERACTIVE}"
-    ensure_valid F db_restore_path "validate_presence validate_file_existence validate_enough_space_for_dump"
-    ensure_valid S salt "validate_presence validate_alnumdashdot"
-  fi
   if [[ "${RUNNING_MODE}" == "${RUNNING_MODE_INSTALL}" ]] && empty "${KCTL_TRACKER_VERSION_TO_INSTALL}"; then
-
     KCTL_TRACKER_VERSION_TO_INSTALL="latest-unstable"
   fi
   ensure_options_correct
 }
-
-set_tracker_language() {
-  local language="${1}"
-
-  if [[ "${language}" == 'ru' ]]; then
-    VARS['tracker_language']='ru'
-  else
-    VARS['tracker_language']='en'
-  fi
-}
-
 
 help_en(){
   echo "${SCRIPT_NAME} installs and configures Keitaro"
@@ -1769,12 +1693,6 @@ help_en(){
   echo "  -U                       upgrade the system configuration and tracker"
   echo
   echo "  -C                       rescue the system configuration and tracker"
-  echo
-  echo "  -R                       restore tracker using dump"
-  echo
-  echo "  -F DUMP_FILEPATH         set filepath to dump (-S and -R should be specified)"
-  echo
-  echo "  -S SALT                  set salt for dump restoring (-F and -R should be specified)"
   echo
   echo "Customization:"
   echo "  -a PATH_TO_PACKAGE       set path to Keitaro installation package"
@@ -1987,7 +1905,7 @@ setup_vars() {
     setup_default_value db_root_password "$(get_config_value password "/root/my.cnf" '=')"  "$(generate_password)"
     setup_default_value db_user "$(get_tracker_config_value 'db' 'user')" 'keitaro'
     setup_default_value postback_key "$(get_config_value 'postback_key' "${TRACKER_CONFIG_FILE}" '=')"
-    setup_default_value salt "$(get_config_value 'salt' "${TRACKER_CONFIG_FILE}" '=')" "$(generate_salt)"
+    setup_default_value salt "$(get_config_value 'salt' "${TRACKER_CONFIG_FILE}" '=')" "$(generate_uuid)"
     setup_default_value table_prefix "$(get_tracker_config_value 'db' 'prefix')" 'keitaro_'
   fi
 }
@@ -2094,18 +2012,6 @@ decteted_db_engine_doesnt_match_inventory() {
   ]]
 }
 
-get_user_vars_to_restore_from_dump(){
-  debug 'Read vars from user input'
-  hack_stdin_if_pipe_mode
-  print_translated "welcome"
-  get_user_var 'db_restore_path' 'validate_presence validate_file_existence validate_enough_space_for_dump'
-  get_user_var 'salt' 'validate_presence validate_alnumdashdot'
-  tables_prefix=$(detect_table_prefix "${VARS['db_restore_path']}")
-  if empty "${tables_prefix}"; then
-    fail "$(translate 'errors.cant_detect_table_prefix')"
-  fi
-}
-
 get_ssh_port(){
   local ssh_port
   ssh_port=$(echo "${SSH_CLIENT}" | cut -d' ' -f 3)
@@ -2139,12 +2045,15 @@ write_inventory_file(){
   print_nonempty_inventory_item 'db_password'
   print_nonempty_inventory_item 'db_root_password'
   print_nonempty_inventory_item 'db_restore_path'
-  print_nonempty_inventory_item 'tracker_language'
   print_nonempty_inventory_item 'tracker_stability'
   print_nonempty_inventory_item 'installed'
   print_nonempty_inventory_item 'installer_version'
 
-  handle_changeable_inventory_item 'olap_db' "${KCTL_OLAP_DB}" "${OLAP_DB_DEFAULT}"
+  if is_running_in_install_mode; then
+    print_line_to_inventory_file "olap_db=${OLAP_DB_CLICKHOUSE}"
+  else
+    handle_changeable_inventory_item 'olap_db' "${KCTL_OLAP_DB}" "${OLAP_DB_DEFAULT}"
+  fi
   handle_changeable_inventory_item 'ram_size_mb' "$(get_ram_size_mb)" "$(get_ram_size_mb)"
 
 
@@ -2234,12 +2143,6 @@ detect_sshd_port() {
 
 stage4() {
   debug "Starting stage 4: generate inventory file (running mode is ${RUNNING_MODE})."
-  if is_running_in_interactive_restoring_mode; then
-    debug "Starting stage 4: Get user vars to restore from dump"
-    get_user_vars_to_restore_from_dump
-  else
-    debug "Skip reading vars from stdin"
-  fi
   if is_running_in_upgrade_mode && installed_version_has_db_engine_bug; then
     fix_db_engine
   else
@@ -2813,7 +2716,6 @@ write_inventory_on_finish() {
   VARS['salt']=""
   VARS['postback_key']=""
   VARS['table_prefix']=""
-  VARS['tracker_language']=""
   VARS['tracker_stability']=""
   reset_changeable_values
   write_inventory_file

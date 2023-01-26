@@ -12,7 +12,7 @@ php_rr_bind_host: 127.0.0.1
 php_rr_bind_port: 8080
 php_rr_bind_address: "{{ php_rr_bind_host }}:{{ php_rr_bind_port }}"
 
-rr_version: 1.8.1
+rr_version: 1.9.2
 rr_release_name: "roadrunner-{{ rr_version }}-linux-amd64"
 rr_bin: /usr/local/bin/roadrunner
 rr_config_dir: /etc/roadrunner

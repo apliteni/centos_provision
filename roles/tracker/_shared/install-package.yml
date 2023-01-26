@@ -58,6 +58,15 @@
     - restart roadrunner
     - restart kctl-monitor
 
+- name: Delete old license hash
+  file:
+    path: "{{ keitaro_app_dir }}/var/license/hash.lic"
+    state: absent
+  notify:
+    - restart php-fpm
+    - restart roadrunner
+    - restart kctl-monitor
+
 - name: Delete unneded files
   file:
     path: "{{ unpacked_tracker_dir }}"

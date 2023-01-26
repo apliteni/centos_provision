@@ -11,8 +11,6 @@
 
     - include_tasks: 04-register-license.yml
 
-    - include_tasks: 05-set-default-language.yml
-
     - include_tasks: 06-set-olap-db.yml
 
     - include_tasks: 07-set-tracker-stability.yml
