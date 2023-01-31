@@ -41,7 +41,7 @@
 
     - name: Set default tracker stability as 'stable'
       set_fact:
-        tracker_stability: stable
+        tracker_stability: unstable
       when: tracker_stability is undefined
 
     - name: Set disable_delay
