@@ -7,11 +7,16 @@
   include: add-var-to-tracker-env.yml
   with_dict:
     CH_PORT: '{{ ch_port }}'
-    FEATURES: '{{ "rbooster" if olap_db == "clickhouse" else "" }}'
     MARIADB_HOST: '{{ db_host }}'
     MARIADB_PORT: '{{ db_port }}'
     PREFIX: '{{ table_prefix | default("keitaro_") }}'
     REDIS_URI: '{{ redis_uri }}'
     KCTLD_URI: '{{ kctld_uri }}'
+  when: tracker_env_info.stat.exists
+
+- name: Forced set OLAP_DB in tracker.env
+  include: forced-set-var-in-tracker-env.yml
+  with_dict:
+    FEATURES: '{{ "rbooster" if olap_db == "clickhouse" else "" }}'
     OLAP_DB: '{{ olap_db }}'
   when: tracker_env_info.stat.exists

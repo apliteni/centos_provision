@@ -1,0 +1,13 @@
+- name: Remove old item
+  lineinfile:
+    state: absent
+    path: /etc/keitaro/config/tracker.env
+    regexp: '^{{ item.key }}='
+  changed_when: false
+
+- name: Define item
+  lineinfile:
+    state: present
+    path: /etc/keitaro/config/tracker.env
+    line: '{{ item.key }}={{ item.value }}'
+  changed_when: false

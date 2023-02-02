@@ -4,7 +4,7 @@
     path: /etc/keitaro/config/tracker.env
     regexp: '^{{ item.key }}='
   check_mode: true
-  changed_when: false           # This just makes things look prettier in the logs
+  changed_when: false
   register: item_definition
 
 - name: Define item if undefined
@@ -12,4 +12,5 @@
     state: present
     path: /etc/keitaro/config/tracker.env
     line: '{{ item.key }}={{ item.value }}'
+  changed_when: false
   when: item_definition.found == 0
