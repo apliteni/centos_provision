@@ -52,7 +52,7 @@ TOOL_NAME='install'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.41.2'
+RELEASE_VERSION='2.41.3'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -1447,10 +1447,8 @@ install_ansible_collection(){
 get_ansible_package_name() {
   if [[ "$(get_centos_major_release)" == "7" ]]; then
     echo "ansible-python3"
-  elif [[ "$(get_centos_major_release)" == "9" ]]; then
-    echo "ansible-core"
   else
-    echo "ansible"
+    echo "ansible-core"
   fi
 }
 
@@ -2162,8 +2160,11 @@ stage4() {
 }
 
 install_ansible() {
-  if is_running_in_upgrade_mode && need_to_remove_old_ansible; then
+  if need_to_remove_old_ansible_centos7; then
     run_command 'yum erase -y ansible' 'Removing old ansible' 'hide_output'
+  fi
+  if need_to_remove_old_ansible_centos8; then
+    run_command 'yum install -y ansible-core --allowerasing' 'Removing old ansible' 'hide_output'
   fi
   install_package 'epel-release'
   install_package "$(get_ansible_package_name)"
@@ -2173,8 +2174,12 @@ install_ansible() {
   install_ansible_collection "ansible.posix"
 }
 
-need_to_remove_old_ansible() {
-  [[ "$(get_centos_major_release)" == "7" ]] && [[ -f /usr/bin/ansible-2 ]]
+need_to_remove_old_ansible_centos7() {
+  is_running_in_upgrade_mode && [[ "$(get_centos_major_release)" == "7" ]] && [[ -f /usr/bin/ansible-2 ]]
+}
+
+need_to_remove_old_ansible_centos8() {
+  is_running_in_upgrade_mode && [[ "$(get_centos_major_release)" == "8" ]] && yum list -q installed ansible &> /dev/null
 }
 
 install_kctl_components() {
@@ -2259,7 +2264,7 @@ remove_mariadb_repo(){
 }
 
 switch_to_centos8_stream() {
-  local repo_base_url="https://mirror.centos.org/centos/8-stream/BaseOS/x86_64/os/Packages"
+  local repo_base_url="http://mirror.centos.org/centos/8-stream/BaseOS/x86_64/os/Packages"
   local release="8-6"
   local gpg_keys_package_url="${repo_base_url}/centos-gpg-keys-${release}.el8.noarch.rpm"
   local repos_package_url="${repo_base_url}/centos-stream-repos-${release}.el8.noarch.rpm"
