@@ -38,7 +38,7 @@ DOCUMENTATION = """
 from ansible.plugins.lookup import LookupBase
 from ansible.utils.display import Display
 from ansible.module_utils._text import to_text
-from pkg_resources import parse_version
+from distutils.version import StrictVersion
 
 import os
 import re
@@ -82,7 +82,7 @@ class LookupModule(LookupBase):
     def __upgrade_checkpoint_paths(self, upgrade_checkpoint_to_path_map, since):
         result = []
         upgrade_checkpoint_versions = list(upgrade_checkpoint_to_path_map.keys())
-        upgrade_checkpoint_versions.sort(key=parse_version)
+        upgrade_checkpoint_versions.sort(key=StrictVersion)
         display.vvv("Found upgrdade checkpoints: %s" % upgrade_checkpoint_versions)
 
         for upgrade_checkpoint in upgrade_checkpoint_versions:
@@ -95,5 +95,6 @@ class LookupModule(LookupBase):
 
 
     def __playable_on_upgrade(self, upgrade_checkpoint, since):
+        since_patch = re.match(r"^((\d+)(\.\d+){1,2})", since).group(1)
 
-        return (parse_version(to_text(upgrade_checkpoint)) >= parse_version(to_text(since)))
+        return (StrictVersion(to_text(upgrade_checkpoint)) >= StrictVersion(to_text(since_patch)))
