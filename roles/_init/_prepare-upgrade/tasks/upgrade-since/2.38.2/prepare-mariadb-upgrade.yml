@@ -15,7 +15,7 @@
     fail_key: false
 
 - name: Fix mysql directories & files permissions
-  include: fix-directory-permissions.yml
+  include_tasks: fix-directory-permissions.yml
   when: getent_passwd[mariadb_user]
   with_items:
     - path: "{{ mariadb_path_to_user_configs }}"
@@ -27,7 +27,6 @@
     - path: "{{ mariadb_path_to_logs }}"
       owner: "{{ mariadb_user }}"
       group: "{{ mariadb_group }}"
-  changed_when: false
 
 - name: Install PyMySQL
   pip:

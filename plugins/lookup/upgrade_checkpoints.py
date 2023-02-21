@@ -95,6 +95,6 @@ class LookupModule(LookupBase):
 
 
     def __playable_on_upgrade(self, upgrade_checkpoint, since):
-        since_patch = re.match(r"^((\d+)(\.\d+){1,2})", since).group(1)
+        since_patch = re.match(r"^((\d+)(\.\d+){1,2})", str(since)).group(1)
 
         return (StrictVersion(to_text(upgrade_checkpoint)) >= StrictVersion(to_text(since_patch)))

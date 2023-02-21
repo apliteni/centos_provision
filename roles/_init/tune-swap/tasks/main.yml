@@ -15,6 +15,6 @@
       set_fact:
         swap_size_to_add_mb: "{{ ((raw_swap_size_to_add_mb | int) | round(-3, 'ceil')) | int }}"
 
-    - include: check-server-has-space.yml
+    - include_tasks: check-server-has-space.yml
 
-    - include: create-swap.yml
+    - include_tasks: create-swap.yml

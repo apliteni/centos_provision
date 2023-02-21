@@ -25,7 +25,7 @@
         msg: "Including {{ scenario_converge_tasks_path }}"
       when: scenario_converge_tasks_info.stat.exists | default(false)
 
-    - include: "{{ scenario_converge_tasks_path }}"
+    - include_tasks: "{{ scenario_converge_tasks_path }}"
       when: scenario_converge_tasks_info.stat.exists | default(false)
 
     - debug:

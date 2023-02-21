@@ -16,7 +16,7 @@
     - /opt/keitaro/bin/kctl-prune-ssl
 
 - name: Prepare mariadb upgrade
-  include: prepare-mariadb-upgrade.yml
+  include_tasks: prepare-mariadb-upgrade.yml
 
 - name: Prepare clickhouse upgrade
-  include: prepare-clickhouse-upgrade.yml
+  include_tasks: prepare-clickhouse-upgrade.yml

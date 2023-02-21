@@ -16,10 +16,10 @@
     - network.cnf
 
 - name: Enable IPv6 in kernel
-  include: enable-ipv6-in-kernel.yml
+  include_tasks: enable-ipv6-in-kernel.yml
 
 - name: Enable IPv6 in nginx
-  include: enable-ipv6-in-nginx.yml
+  include_tasks: enable-ipv6-in-nginx.yml
 
 - name: Check if firewall service exists.
   stat:
@@ -27,7 +27,7 @@
   register: firewall_service_file_status
 
 - name: Disable and remove the firewall service.
-  include: disable-and-remove-firewall-bash.yml
+  include_tasks: disable-and-remove-firewall-bash.yml
   when: firewall_service_file_status.stat.exists
 
 - name: Check if firewall.bash rules file exists.
@@ -36,5 +36,5 @@
   register: firewall_rules_file_status
 
 - name: Redefine allowed_tcp_ports variable
-  include: redefine-allowed_tcp_ports-variable.yml
+  include_tasks: redefine-allowed_tcp_ports-variable.yml
   when: firewall_rules_file_status.stat.exists

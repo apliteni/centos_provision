@@ -51,7 +51,7 @@ TOOL_NAME='disable-ssl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.41.5.2'
+RELEASE_VERSION='2.41.6'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -366,7 +366,7 @@ detect_inventory_path(){
 }
 
 add_indentation(){
-  sed -r "s/^/$INDENTATION_SPACES/g"
+  sed -r "s/^/${INDENTATION_SPACES}/g"
 }
 #
 
@@ -852,8 +852,7 @@ print_common_fail_message(){
 
 print_tail_content_of(){
   local file="${1}"
-  MAX_LINES_COUNT=20
-  print_content_of "${file}" |  tail -n "$MAX_LINES_COUNT"
+  print_content_of "${file}" |  tail -n 20
 }
 
 

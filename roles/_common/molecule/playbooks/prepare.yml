@@ -43,5 +43,5 @@
         msg: "Including {{ molecule_prepare_tasks_yml_path }}"
       when: molecule_prepare_yml_info.stat.exists | default(false)
 
-    - include: "{{ molecule_prepare_tasks_yml_path }}"
+    - include_tasks: "{{ molecule_prepare_tasks_yml_path }}"
       when: molecule_prepare_yml_info.stat.exists | default(false)

@@ -37,4 +37,4 @@
     - debug:
         msg: "Including {{ scenario_verify_tasks_path }}"
 
-    - include: "{{ scenario_verify_tasks_path }}"
+    - include_tasks: "{{ scenario_verify_tasks_path }}"

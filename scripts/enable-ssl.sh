@@ -51,7 +51,7 @@ TOOL_NAME='enable-ssl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.41.5.2'
+RELEASE_VERSION='2.41.6'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -549,7 +549,7 @@ detect_inventory_path(){
 }
 
 add_indentation(){
-  sed -r "s/^/$INDENTATION_SPACES/g"
+  sed -r "s/^/${INDENTATION_SPACES}/g"
 }
 
 detect_mime_type(){
@@ -1130,8 +1130,7 @@ print_common_fail_message(){
 
 print_tail_content_of(){
   local file="${1}"
-  MAX_LINES_COUNT=20
-  print_content_of "${file}" |  tail -n "$MAX_LINES_COUNT"
+  print_content_of "${file}" |  tail -n 20
 }
 
 
@@ -1189,54 +1188,6 @@ unquote() {
   sed -r -e "s/^'(.*)'\$/\\1/g" -e 's/^"(.*)"$/\1/g'
 }
 
-#
-
-
-FIRST_KEITARO_TABLE_NAME="acl"
-
-detect_table_prefix(){
-  local file="${1}"
-  if empty "$file"; then
-    return ${SUCCESS_RESULT}
-  fi
-  local mime_type
-  mime_type="$(detect_mime_type "${file}")"
-  debug "Detected mime type: ${mime_type}"
-  local get_head_chunk
-  get_head_chunk="$(build_get_chunk_command "${mime_type}" "${file}" "head -n 100")"
-  if empty "${get_head_chunk}"; then
-    return ${FAILURE_RESULT}
-  fi
-  local command="${get_head_chunk}"
-  command="${command} | grep -P $(build_check_table_exists_expression ".*${FIRST_KEITARO_TABLE_NAME}")"
-  command="${command} | head -n 1"
-  command="${command} | grep -oP '\`.*\`'"
-  command="${command} | sed -e 's/\`//g' -e 's/${FIRST_KEITARO_TABLE_NAME}\$//'"
-  command="(set +o pipefail && ${command})"
-  message="$(translate 'messages.check_keitaro_dump_get_tables_prefix')"
-  rm -f "${DETECTED_PREFIX_PATH}"
-  if run_command "$command" "$message" 'hide_output' 'allow_errors' '' '' "$DETECTED_PREFIX_PATH" > /dev/stderr; then
-    cat "$DETECTED_PREFIX_PATH" | head -n1
-  fi
-}
-
-
-build_check_table_exists_expression() {
-  local table="${1}"
-  echo "'^CREATE TABLE( IF NOT EXISTS)? \`${table}\`'"
-}
-
-
-build_get_chunk_command() {
-  local mime_type="${1}"
-  local file="${2}"
-  local filter="${3}"
-  if [[ "$mime_type" =~ gzip ]]; then
-    echo "zcat '${file}' | ${filter}"
-  else
-    echo "${filter} '${file}'"
-  fi
-}
 
 ensure_valid() {
   local option="${1}"

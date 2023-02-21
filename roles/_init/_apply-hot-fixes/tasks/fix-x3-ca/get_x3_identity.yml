@@ -7,5 +7,5 @@
   set_fact:
     x3_identity: "{{ x3_identity_output.stdout }}"
 
-- include: blacklist_ca_x3.yml
+- include_tasks: blacklist_ca_x3.yml
   when: x3_identity != ""

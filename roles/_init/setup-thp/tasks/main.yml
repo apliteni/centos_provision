@@ -4,5 +4,5 @@
   register: thp_config_dir
 
 - name: Install THP disabling tool and service
-  include: install.yml
+  include_tasks: install.yml
   when: thp_config_dir.stat.exists

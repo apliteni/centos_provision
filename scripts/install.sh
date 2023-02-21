@@ -52,7 +52,7 @@ TOOL_NAME='install'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.41.5.2'
+RELEASE_VERSION='2.41.6'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -525,7 +525,7 @@ detect_inventory_path(){
 }
 
 add_indentation(){
-  sed -r "s/^/$INDENTATION_SPACES/g"
+  sed -r "s/^/${INDENTATION_SPACES}/g"
 }
 
 detect_mime_type(){
@@ -1119,8 +1119,7 @@ print_common_fail_message(){
 
 print_tail_content_of(){
   local file="${1}"
-  MAX_LINES_COUNT=20
-  print_content_of "${file}" |  tail -n "$MAX_LINES_COUNT"
+  print_content_of "${file}" |  tail -n 20
 }
 
 
@@ -1186,54 +1185,6 @@ unquote() {
   sed -r -e "s/^'(.*)'\$/\\1/g" -e 's/^"(.*)"$/\1/g'
 }
 
-#
-
-
-FIRST_KEITARO_TABLE_NAME="acl"
-
-detect_table_prefix(){
-  local file="${1}"
-  if empty "$file"; then
-    return ${SUCCESS_RESULT}
-  fi
-  local mime_type
-  mime_type="$(detect_mime_type "${file}")"
-  debug "Detected mime type: ${mime_type}"
-  local get_head_chunk
-  get_head_chunk="$(build_get_chunk_command "${mime_type}" "${file}" "head -n 100")"
-  if empty "${get_head_chunk}"; then
-    return ${FAILURE_RESULT}
-  fi
-  local command="${get_head_chunk}"
-  command="${command} | grep -P $(build_check_table_exists_expression ".*${FIRST_KEITARO_TABLE_NAME}")"
-  command="${command} | head -n 1"
-  command="${command} | grep -oP '\`.*\`'"
-  command="${command} | sed -e 's/\`//g' -e 's/${FIRST_KEITARO_TABLE_NAME}\$//'"
-  command="(set +o pipefail && ${command})"
-  message="$(translate 'messages.check_keitaro_dump_get_tables_prefix')"
-  rm -f "${DETECTED_PREFIX_PATH}"
-  if run_command "$command" "$message" 'hide_output' 'allow_errors' '' '' "$DETECTED_PREFIX_PATH" > /dev/stderr; then
-    cat "$DETECTED_PREFIX_PATH" | head -n1
-  fi
-}
-
-
-build_check_table_exists_expression() {
-  local table="${1}"
-  echo "'^CREATE TABLE( IF NOT EXISTS)? \`${table}\`'"
-}
-
-
-build_get_chunk_command() {
-  local mime_type="${1}"
-  local file="${2}"
-  local filter="${3}"
-  if [[ "$mime_type" =~ gzip ]]; then
-    echo "zcat '${file}' | ${filter}"
-  else
-    echo "${filter} '${file}'"
-  fi
-}
 
 ensure_valid() {
   local option="${1}"
@@ -1391,19 +1342,15 @@ validate_yes_no(){
 PROVISION_DIRECTORY="kctl-provision"
 PLAYBOOK_DIRECTORY="${PROVISION_DIRECTORY}/playbook"
 KEITARO_ALREADY_INSTALLED_RESULT=0
-DETECTED_PREFIX_PATH="${WORKING_DIR}/detected_prefix"
 
 SERVER_IP=""
 
 INSTALLED_VERSION=""
 
 DICT['en.messages.keitaro_already_installed']='Keitaro is already installed'
-DICT['en.messages.check_keitaro_dump_get_tables_prefix']="Getting tables prefix from dump"
-DICT['en.messages.check_keitaro_dump_validity']="Checking SQL dump"
 DICT['en.messages.validate_nginx_conf']='Checking nginx config'
 DICT['en.messages.successful_install']='Keitaro has been installed!'
 DICT['en.messages.successful_upgrade']='Keitaro has been upgraded!'
-DICT['en.messages.successful_restore']="Keitaro has been restored! Use old login data"
 DICT['en.messages.visit_url']="Please open the link in your browser of choice:"
 DICT['en.errors.wrong_distro']='The installer is not compatible with this operational system. Please reinstall this server with "CentOS 8 Stream" or above'
 DICT['en.errors.not_enough_ram']='The size of RAM on your server should be at least 2 GB'
@@ -1414,7 +1361,6 @@ DICT['en.errors.vesta_cp_installed']='You can not install Keitaro on the server 
 DICT['en.errors.apache_installed']='You can not install Keitaro on the server with Apache HTTP server installed. Please run this program on a clean CentOS server.'
 DICT['en.errors.systemctl_doesnt_work_properly']="You can not install Keitaro on the server where systemctl doesn't work properly. Please run this program on another CentOS server."
 DICT['en.errors.cant_detect_server_ip']="The installer couldn't detect the server IP address, please contact Keitaro support team"
-DICT['en.errors.cant_detect_table_prefix']="The installer couldn't detect dump table prefix"
 DICT['en.errors.already_running']="Another installation process is already running"
 
 DICT['en.prompts.db_restore_path']='Please enter the path to the SQL dump file'
@@ -1429,9 +1375,9 @@ DICT['en.validation_errors.validate_starts_with_latin_letter']='The value must b
 
 get_ansible_galaxy_command() {
   if [[ "$(get_centos_major_release)" == "7" ]]; then
-    echo "ansible-galaxy-3"
+    echo "LC_ALL=C ansible-galaxy-3"
   else
-    echo "ansible-galaxy"
+    echo "LC_ALL=C.UTF-8 ansible-galaxy"
   fi
 }
 install_ansible_collection(){
@@ -1452,6 +1398,10 @@ get_ansible_package_name() {
   fi
 }
 
+get_free_disk_space_mb() {
+  (df -m --output=avail / | tail -n1) 2>/dev/null
+}
+
 get_config_value(){
   local var="${1}"
   local file="${2}"
@@ -1463,18 +1413,6 @@ get_config_value(){
       awk -F"${separator}" '{print $2}' | \
       awk '{$1=$1; print}' | \
       unquote
-  fi
-}
-
-get_ram_size_mb() {
-  (free -m | grep Mem: | awk '{print $2}') 2>/dev/null
-}
-
-clean_up(){
-  if [ -d "$PROVISION_DIRECTORY" ]; then
-    debug "Remove ${PROVISION_DIRECTORY}"
-    rm -rf "$PROVISION_DIRECTORY"
-    (popd || true) &> /dev/null
   fi
 }
 
@@ -1568,6 +1506,14 @@ is_upgrading_mode_full() {
   [[ "${UPGRADING_MODE}" == "${UPGRADING_MODE_FULL}" ]]
 }
 
+clean_up(){
+  if [ -d "$PROVISION_DIRECTORY" ]; then
+    debug "Remove ${PROVISION_DIRECTORY}"
+    rm -rf "$PROVISION_DIRECTORY"
+    (popd || true) &> /dev/null
+  fi
+}
+
 is_running_in_upgrade_mode() {
   [[ "${RUNNING_MODE}" == "${RUNNING_MODE_UPGRADE}" ]]
 }
@@ -1589,8 +1535,8 @@ is_running_in_rescue_mode() {
 }
 
 
-get_free_disk_space_mb() {
-  (df -m --output=avail / | tail -n1) 2>/dev/null
+get_ram_size_mb() {
+  (free -m | grep Mem: | awk '{print $2}') 2>/dev/null
 }
 
 
@@ -1721,15 +1667,62 @@ stage1() {
   debug "Running in mode '${RUNNING_MODE}'"
 }
 
-
-assert_not_running_under_openvz() {
-  debug "Assert we are not running under OpenVZ"
-
-  virtualization_type="$(hostnamectl status | grep Virtualization | awk '{print $2}')"
-  debug "Detected virtualization type: '${virtualization_type}'"
-  if isset "${virtualization_type}" && [[ "${virtualization_type}" == "openvz" ]]; then
-    fail "Servers with OpenVZ virtualization are not supported"
+assert_pannels_not_installed(){
+  if is_installed mysql; then
+    assert_isp_manager_not_installed
+    assert_vesta_cp_not_installed
   fi
+}
+
+
+assert_isp_manager_not_installed(){
+  if database_exists roundcube; then
+    debug "ISP Manager database detected"
+    fail "$(translate errors.isp_manager_installed)"
+  fi
+}
+
+
+assert_vesta_cp_not_installed(){
+  if database_exists admin_default; then
+    debug "Vesta CP database detected"
+    fail "$(translate errors.vesta_cp_installed)"
+  fi
+}
+
+
+database_exists(){
+  local database="${1}"
+  debug "Check if database ${database} exists"
+  mysql -Nse 'show databases' 2>/dev/null | tr '\n' ' ' | grep -Pq "${database}"
+}
+
+assert_server_ip_is_valid() {
+  if ! valid_ip "${SERVER_IP}"; then
+    fail "$(translate 'errors.cant_detect_server_ip')"
+  fi
+}
+
+valid_ip(){
+  local value="${1}"
+  [[ "$value" =~  ^[[:digit:]]+(\.[[:digit:]]+){3}$ ]] && valid_ip_segments "$value"
+}
+
+
+valid_ip_segments(){
+  local ip="${1}"
+  local segments
+  IFS='.' read -r -a segments <<< "${ip}"
+  for segment in "${segments[@]}"; do
+    if ! valid_ip_segment "${segment}"; then
+      return "${FAILURE_RESULT}"
+    fi
+  done
+}
+
+valid_ip_segment(){
+  local ip_segment="${1}"
+  [ "$ip_segment" -ge 0 ] && [ "$ip_segment" -le 255 ]
 }
 
 assert_systemctl_works_properly () {
@@ -1755,6 +1748,12 @@ assert_has_enough_ram(){
     fail "$(translate errors.not_enough_ram)"
   else
     debug "RAM size ${current_ram_size_mb}mb is greater than ${MIN_RAM_SIZE_MB}mb, continuing"
+  fi
+}
+
+assert_apache_not_installed(){
+  if is_installed httpd; then
+    fail "$(translate errors.apache_installed)"
   fi
 }
 MIN_FREE_DISK_SPACE_MB=2048
@@ -1803,34 +1802,15 @@ are_thp_sys_files_existing() {
   file_exists "/sys/kernel/mm/transparent_hugepage/enabled" && file_exists "/sys/kernel/mm/transparent_hugepage/defrag"
 }
 
-assert_pannels_not_installed(){
-  if is_installed mysql; then
-    assert_isp_manager_not_installed
-    assert_vesta_cp_not_installed
+
+assert_not_running_under_openvz() {
+  debug "Assert we are not running under OpenVZ"
+
+  virtualization_type="$(hostnamectl status | grep Virtualization | awk '{print $2}')"
+  debug "Detected virtualization type: '${virtualization_type}'"
+  if isset "${virtualization_type}" && [[ "${virtualization_type}" == "openvz" ]]; then
+    fail "Servers with OpenVZ virtualization are not supported"
   fi
-}
-
-
-assert_isp_manager_not_installed(){
-  if database_exists roundcube; then
-    debug "ISP Manager database detected"
-    fail "$(translate errors.isp_manager_installed)"
-  fi
-}
-
-
-assert_vesta_cp_not_installed(){
-  if database_exists admin_default; then
-    debug "Vesta CP database detected"
-    fail "$(translate errors.vesta_cp_installed)"
-  fi
-}
-
-
-database_exists(){
-  local database="${1}"
-  debug "Check if database ${database} exists"
-  mysql -Nse 'show databases' 2>/dev/null | tr '\n' ' ' | grep -Pq "${database}"
 }
 
 assert_running_on_supported_centos(){
@@ -1851,40 +1831,6 @@ assert_centos_release_is_supportded(){
   fi
 }
 
-assert_apache_not_installed(){
-  if is_installed httpd; then
-    fail "$(translate errors.apache_installed)"
-  fi
-}
-
-assert_server_ip_is_valid() {
-  if ! valid_ip "${SERVER_IP}"; then
-    fail "$(translate 'errors.cant_detect_server_ip')"
-  fi
-}
-
-valid_ip(){
-  local value="${1}"
-  [[ "$value" =~  ^[[:digit:]]+(\.[[:digit:]]+){3}$ ]] && valid_ip_segments "$value"
-}
-
-
-valid_ip_segments(){
-  local ip="${1}"
-  local segments
-  IFS='.' read -r -a segments <<< "${ip}"
-  for segment in "${segments[@]}"; do
-    if ! valid_ip_segment "${segment}"; then
-      return "${FAILURE_RESULT}"
-    fi
-  done
-}
-
-valid_ip_segment(){
-  local ip_segment="${1}"
-  [ "$ip_segment" -ge 0 ] && [ "$ip_segment" -le 255 ]
-}
-
 stage2(){
   debug "Starting stage 2: make some asserts"
   assert_no_another_process_running
@@ -1899,41 +1845,6 @@ stage2(){
   assert_thp_deactivatable
   assert_server_ip_is_valid
   assert_architecture_is_valid
-}
-
-setup_vars() {
-  detect_installed_version
-  setup_default_value installer_version "${INSTALLED_VERSION}" "${RELEASE_VERSION}"
-  setup_default_value db_name 'keitaro'
-  setup_default_value ch_password "$(generate_password)"
-  setup_default_value db_engine "${DB_ENGINE_DEFAULT}"
-  if ! file_exists "${INVENTORY_DIR}/tracker.env"; then
-    setup_default_value db_password "$(get_tracker_config_value 'db' 'password')" "$(generate_password)"
-    setup_default_value db_root_password "$(get_config_value password "/root/my.cnf" '=')"  "$(generate_password)"
-    setup_default_value db_user "$(get_tracker_config_value 'db' 'user')" 'keitaro'
-    setup_default_value postback_key "$(get_config_value 'postback_key' "${TRACKER_CONFIG_FILE}" '=')"
-    setup_default_value salt "$(get_config_value 'salt' "${TRACKER_CONFIG_FILE}" '=')" "$(generate_uuid)"
-    setup_default_value table_prefix "$(get_tracker_config_value 'db' 'prefix')" 'keitaro_'
-  fi
-}
-
-setup_default_value() {
-  local var_name="${1}"
-  local default_value="${2:-${3}}"
-  if empty "${VARS[${var_name}]}"; then
-    if [[ "${var_name}" =~ passw ]]; then
-      debug "VARS['${var_name}'] is empty, set to '***MASKED***'"
-    else
-      debug "VARS['${var_name}'] is empty, set to '${default_value}'"
-    fi
-    VARS["${var_name}"]="${default_value}"
-  else
-    if [[ "${var_name}" =~ passw ]]; then
-      debug "VARS['${var_name}'] is set to '***MASKED***'"
-    else
-      debug "VARS['${var_name}'] is set to '${VARS[$var_name]}'"
-    fi
-  fi
 }
 
 read_inventory(){
@@ -1976,6 +1887,41 @@ parse_line_from_inventory_file(){
   fi
 }
 
+setup_vars() {
+  detect_installed_version
+  setup_default_value installer_version "${INSTALLED_VERSION}" "${RELEASE_VERSION}"
+  setup_default_value db_name 'keitaro'
+  setup_default_value ch_password "$(generate_password)"
+  setup_default_value db_engine "${DB_ENGINE_DEFAULT}"
+  if ! file_exists "${INVENTORY_DIR}/tracker.env"; then
+    setup_default_value db_password "$(get_tracker_config_value 'db' 'password')" "$(generate_password)"
+    setup_default_value db_root_password "$(get_config_value password "/root/.my.cnf" '=')" "$(generate_password)"
+    setup_default_value db_user "$(get_tracker_config_value 'db' 'user')" 'keitaro'
+    setup_default_value postback_key "$(get_config_value 'postback_key' "${TRACKER_CONFIG_FILE}" '=')"
+    setup_default_value salt "$(get_config_value 'salt' "${TRACKER_CONFIG_FILE}" '=')" "$(generate_uuid)"
+    setup_default_value table_prefix "$(get_tracker_config_value 'db' 'prefix')" 'keitaro_'
+  fi
+}
+
+setup_default_value() {
+  local var_name="${1}"
+  local default_value="${2:-${3}}"
+  if empty "${VARS[${var_name}]}"; then
+    if [[ "${var_name}" =~ passw ]]; then
+      debug "VARS['${var_name}'] is empty, set to '***MASKED***'"
+    else
+      debug "VARS['${var_name}'] is empty, set to '${default_value}'"
+    fi
+    VARS["${var_name}"]="${default_value}"
+  else
+    if [[ "${var_name}" =~ passw ]]; then
+      debug "VARS['${var_name}'] is set to '***MASKED***'"
+    else
+      debug "VARS['${var_name}'] is set to '${VARS[$var_name]}'"
+    fi
+  fi
+}
+
 stage3(){
   debug "Starting stage 3: read values from inventory file"
   read_inventory
@@ -1985,6 +1931,16 @@ stage3(){
   else
     assert_keitaro_not_installed
   fi
+}
+
+get_ssh_port(){
+  local ssh_port
+  ssh_port=$(echo "${SSH_CLIENT}" | cut -d' ' -f 3)
+  if empty "${ssh_port}"; then
+    ssh_port="22"
+  fi
+  debug "Detected ssh port: ${ssh_port}"
+  echo "${ssh_port}"
 }
 
 fix_db_engine() {
@@ -2009,32 +1965,6 @@ decteted_db_engine_doesnt_match_inventory() {
     ("${detected_db_engine}" == "${DB_ENGINE_INNODB}" || "${detected_db_engine}" == "${DB_ENGINE_INNODB}") &&
       "${detected_db_engine}" != "${VARS['db_engine']}"
   ]]
-}
-
-get_ssh_port(){
-  local ssh_port
-  ssh_port=$(echo "${SSH_CLIENT}" | cut -d' ' -f 3)
-  if empty "${ssh_port}"; then
-    ssh_port="22"
-  fi
-  debug "Detected ssh port: ${ssh_port}"
-  echo "${ssh_port}"
-}
-
-DEFAULT_SSH_PORT="22"
-
-detect_sshd_port() {
-  local port
-  if ! is_ci_mode && is_installed ss; then
-    debug "Detecting sshd port"
-    port=$(ss -l -4 -p -n | grep -w tcp | grep -w sshd | awk '{ print $5 }' | awk -F: '{ print $2 }' | head -n1)
-    debug "Detected sshd port: ${port}"
-  fi
-  if empty "${port}"; then
-    debug "Reset detected sshd port to 22"
-    port="${DEFAULT_SSH_PORT}"
-  fi
-  echo "${port}"
 }
 
 write_inventory_file(){
@@ -2148,6 +2078,22 @@ installed_version_has_db_engine_bug() {
     )
 }
 
+DEFAULT_SSH_PORT="22"
+
+detect_sshd_port() {
+  local port
+  if ! is_ci_mode && is_installed ss; then
+    debug "Detecting sshd port"
+    port=$(ss -l -4 -p -n | grep -w tcp | grep -w sshd | awk '{ print $5 }' | awk -F: '{ print $2 }' | head -n1)
+    debug "Detected sshd port: ${port}"
+  fi
+  if empty "${port}"; then
+    debug "Reset detected sshd port to 22"
+    port="${DEFAULT_SSH_PORT}"
+  fi
+  echo "${port}"
+}
+
 stage4() {
   debug "Starting stage 4: generate inventory file (running mode is ${RUNNING_MODE})."
   if is_running_in_upgrade_mode && installed_version_has_db_engine_bug; then
@@ -2157,6 +2103,211 @@ stage4() {
   fi
   debug "Starting stage 4: write inventory file"
   write_inventory_file
+}
+
+install_ansible() {
+  if need_to_remove_old_ansible_centos7; then
+    run_command 'yum erase -y ansible' 'Removing old ansible' 'hide_output'
+  fi
+  if need_to_remove_old_ansible_centos8; then
+    run_command 'yum install -y ansible-core --allowerasing' 'Removing old ansible' 'hide_output'
+  fi
+  install_package 'epel-release'
+  install_package "$(get_ansible_package_name)"
+  install_ansible_collection "community.mysql"
+  install_ansible_collection "containers.podman"
+  install_ansible_collection "community.general"
+  install_ansible_collection "ansible.posix"
+}
+
+need_to_remove_old_ansible_centos7() {
+  is_running_in_upgrade_mode && [[ "$(get_centos_major_release)" == "7" ]] && [[ -f /usr/bin/ansible-2 ]]
+}
+
+need_to_remove_old_ansible_centos8() {
+  is_running_in_upgrade_mode && [[ "$(get_centos_major_release)" == "8" ]] && yum list -q installed ansible &> /dev/null
+}
+
+install_kctl_components() {
+  install_kctld
+  install_kctl_ch_converter
+  pull_image "ClickHouse" "${CLICKHOUSE_IMAGE}"
+  pull_image "MariaDB" "${MARIADB_IMAGE}"
+  pull_image "Redis" "${REDIS_IMAGE}"
+  pull_image "CertBot" "${CERTBOT_IMAGE}"
+}
+
+install_kctl_ch_converter() {
+  local converter_path="${KCTL_BIN_DIR}/kctl-ch-converter"
+  local command="curl -fsSL ${KCTL_CH_CONVERTER_URL} | gzip -d > ${converter_path} && chmod a+x ${converter_path}"
+  run_command "${command}" "Installing kctl-ch-converter" "hide_output"
+}
+
+install_core_packages() {
+    install_package file
+    install_package tar
+    install_package curl
+    install_package crontabs
+    install_package logrotate
+    install_kctl_provision
+    install_kctl
+    # shellcheck source=/dev/null
+    source "${INVENTORY_DIR}/components.env"
+}
+
+install_kctld() {
+  run_command "curl -fsSL ${KCTLD_URL} | tar --no-same-owner -xzC ${KCTL_BIN_DIR}" "Installing kctld" "hide_output"
+  if [[ "${KCTLD_MODE}" == "true" ]]; then
+    systemd.start_service 'kctld-worker'
+    systemd.start_service 'kctld-server'
+  else
+    systemd.restart_service 'kctld-worker'
+    systemd.restart_service 'kctld-server'
+  fi
+  systemd.enable_service 'kctld-worker'
+  systemd.enable_service 'kctld-server'
+}
+
+install_kctl() {
+  install "${PROVISION_DIRECTORY}"/bin/* "${KCTL_BIN_DIR}"/
+  install "${PROVISION_DIRECTORY}"/files/etc/cron.daily/* /etc/cron.daily/
+  install -m 0644 "${PROVISION_DIRECTORY}"/files/etc/systemd/system/* /etc/systemd/system/
+  install -m 0644 "${PROVISION_DIRECTORY}"/files/etc/keitaro/config/* /etc/keitaro/config/
+  install -m 0444 "${PROVISION_DIRECTORY}"/files/etc/sudoers.d/* /etc/sudoers.d/
+  install -m 0444 "${PROVISION_DIRECTORY}"/files/etc/logrotate.d/* /etc/logrotate.d/
+  make_kctl_scripts_symlinks
+  systemd.update_units
+  systemd.restart_service 'kctl-monitor'
+  systemd.enable_service 'kctl-monitor'
+}
+
+make_kctl_scripts_symlinks() {
+  local file_name
+  for existing_file_path in "${KCTL_BIN_DIR}"/*; do
+    file_name="${existing_file_path##*/}"
+    ln -s -f "${existing_file_path}" "/usr/local/bin/${file_name}"
+  done
+}
+
+disable_selinux() {
+  if [[ "$(get_selinux_status)" == "Enforcing" ]]; then
+    run_command 'setenforce 0' 'Disabling Selinux' 'hide_output'
+  fi
+
+  if file_exists /usr/sbin/setroubleshootd; then
+    run_command 'yum erase setroubleshoot-server -y && systemctl daemon-reload' 'Removing setroubleshootd' 'hide_output'
+  fi
+}
+
+get_selinux_status(){
+  getenforce
+}
+remove_mariadb_repo(){
+  if [ -f /etc/yum.repos.d/mariadb.repo ]; then
+      debug "Removing mariadb repo"
+      rm -f /etc/yum.repos.d/mariadb.repo
+  fi
+}
+
+switch_to_centos8_stream() {
+  local repo_base_url="http://mirror.centos.org/centos/8-stream/BaseOS/x86_64/os/Packages"
+  local release="8-6"
+  local gpg_keys_package_url="${repo_base_url}/centos-gpg-keys-${release}.el8.noarch.rpm"
+  local repos_package_url="${repo_base_url}/centos-stream-repos-${release}.el8.noarch.rpm"
+  debug 'Switching CentOS 8 -> CentOS Stream 8'
+  print_with_color 'Switching CentOS 8 -> CentOS Stream 8:' 'blue'
+  run_command "dnf install -y --nobest --allowerasing ${gpg_keys_package_url} ${repos_package_url}" \
+              "  Installing CentOS Stream repos"
+  # run_command "dnf swap centos-{linux,stream}-repos -y" "  Switching to CentOS Stream"
+  run_command "dnf distro-sync -y" "  Syncing distro"
+}
+
+install_podman() {
+  if ! is_package_installed 'podman-docker'; then
+    install_package 'podman-docker'
+    if [[ "$(get_centos_major_release)" == "8" ]]; then
+      install_package 'libseccomp-devel'
+    fi
+    supress_podman_warns
+  fi
+  if [[ "$(get_centos_major_release)" != "7" ]]; then
+    start_and_enable_podman_unit
+  fi
+}
+
+
+supress_podman_warns() {
+  touch /etc/containers/nodocker
+}
+
+
+start_and_enable_podman_unit(){
+  if ! systemctl is-active 'podman' > /dev/null 2>&1; then
+    systemd.restart_service 'podman'
+    systemd.enable_service 'podman'
+  fi
+}
+
+pull_image() {
+  local image_name="${1}" image_url="${2}"
+  run_command "podman pull ${image_url}" "Pulling ${image_name} image" "hide_output"
+}
+
+install_kctl_provision() {
+  local kctl_provision_url="https://files.keitaro.io/scripts/${BRANCH}/kctl.tar.gz"
+  local command="curl -fsSL ${kctl_provision_url} | tar -xzC ${PROVISION_DIRECTORY}"
+  mkdir -p "${PROVISION_DIRECTORY}"
+  run_command "${command}" "Installing kctl provision from ${kctl_provision_url}" "hide_output"
+}
+
+disable_fastestmirror(){
+  local disabling_message="Disabling mirrors in repo files"
+  local disabling_command="sed -i -e 's/^#baseurl/baseurl/g; s/^mirrorlist/#mirrorlist/g;'  /etc/yum.repos.d/*"
+  run_command "${disabling_command}" "${disabling_message}" "hide_output"
+
+  if [[ "$(get_centos_major_release)" == "7" ]] && is_fastestmirror_enabled; then
+    disabling_message="Disabling fastestmirror plugin on Centos7"
+    disabling_command="sed -i -e 's/^enabled=1/enabled=0/g' /etc/yum/pluginconf.d/fastestmirror.conf"
+    run_command "${disabling_command}" "${disabling_message}" "hide_output"
+  fi
+}
+
+FASTESTMIROR_CONF_PATH="/etc/yum/pluginconf.d/fastestmirror.conf"
+
+is_fastestmirror_enabled() {
+  file_exists "${FASTESTMIROR_CONF_PATH}" && \
+      grep -q '^enabled=1' "${FASTESTMIROR_CONF_PATH}"
+}
+is_centos8_distro(){
+  file_content_matches /etc/centos-release '-P' '^CentOS Linux.* 8\b'
+}
+
+systemd.enable_service() {
+  local name="${1}"
+  local command="systemctl enable ${name}"
+  run_command "${command}" "Enabling SystemD service ${name}" "hide_output"
+}
+
+systemd.start_service() {
+  local name="${1}"
+  local command="systemctl start ${name}"
+  run_command "${command}" "Starting SystemD service ${name}" "hide_output"
+}
+
+systemd.update_units() {
+  run_command 'systemctl daemon-reload' "Updating SystemD units" "hide_output"
+}
+
+systemd.restart_service() {
+  local name="${1}"
+  local command="systemctl restart ${name}"
+  run_command "${command}" "Restarting SystemD service ${name}" "hide_output"
+}
+
+systemd.reload_service() {
+  local name="${1}"
+  local command="systemctl reload ${name}"
+  run_command "${command}" "Reloading SystemD service ${name}" "hide_output"
 }
 
 install_extra_packages() {
@@ -2180,23 +2331,6 @@ install_extra_packages() {
   fi
   install_kctl_components
   install_ansible
-}
-NGINX_DIRS=("/var/log/nginx" "/etc/keitaro/ssl" "/etc/letsencrypt" "/var/lib/nginx" "/var/cache/nginx" "/var/run/nginx" "${NGINX_CONFIG_ROOT}")
-
-create_nginx_dirs(){
-  for dir in "${NGINX_DIRS[@]}"; do
-    mkdir -p "${dir}"
-    if [[ ! "${dir}" =~ ^/etc/ ]]; then
-      chown nginx:nginx -R "${dir}"
-    fi
-  done
-  rm -f /etc/nginx/nginx.conf.rpmsave
-}
-
-
-copy_nginx_configs() {
-  local cmd="cp -R ${PROVISION_DIRECTORY}/templates/nginx/ /etc/"
-  run_command "${cmd}" "Copying nginx configs" "hide_output"
 }
 
 render_nginx_systemd_config() {
@@ -2263,6 +2397,11 @@ install_nginx_on_docker() {
   systemd.enable_service "nginx"
 }
 
+copy_nginx_configs() {
+  local cmd="cp -R ${PROVISION_DIRECTORY}/templates/nginx/ /etc/"
+  run_command "${cmd}" "Copying nginx configs" "hide_output"
+}
+
 render_nginx_config() {
   local default_conf="${1}"
   cat > "${default_conf}" <<EOF
@@ -2276,214 +2415,21 @@ render_nginx_config() {
     }
 EOF
 }
+NGINX_DIRS=("/var/log/nginx" "/etc/keitaro/ssl" "/etc/letsencrypt" "/var/lib/nginx" "/var/cache/nginx" "/var/run/nginx" "${NGINX_CONFIG_ROOT}")
 
-disable_fastestmirror(){
-  local disabling_message="Disabling mirrors in repo files"
-  local disabling_command="sed -i -e 's/^#baseurl/baseurl/g; s/^mirrorlist/#mirrorlist/g;'  /etc/yum.repos.d/*"
-  run_command "${disabling_command}" "${disabling_message}" "hide_output"
-
-  if [[ "$(get_centos_major_release)" == "7" ]] && is_fastestmirror_enabled; then
-    disabling_message="Disabling fastestmirror plugin on Centos7"
-    disabling_command="sed -i -e 's/^enabled=1/enabled=0/g' /etc/yum/pluginconf.d/fastestmirror.conf"
-    run_command "${disabling_command}" "${disabling_message}" "hide_output"
-  fi
-}
-
-FASTESTMIROR_CONF_PATH="/etc/yum/pluginconf.d/fastestmirror.conf"
-
-is_fastestmirror_enabled() {
-  file_exists "${FASTESTMIROR_CONF_PATH}" && \
-      grep -q '^enabled=1' "${FASTESTMIROR_CONF_PATH}"
-}
-
-install_kctl_components() {
-  install_kctld
-  install_kctl_ch_converter
-  pull_image "ClickHouse" "${CLICKHOUSE_IMAGE}"
-  pull_image "MariaDB" "${MARIADB_IMAGE}"
-  pull_image "Redis" "${REDIS_IMAGE}"
-  pull_image "CertBot" "${CERTBOT_IMAGE}"
-}
-
-pull_image() {
-  local image_name="${1}" image_url="${2}"
-  run_command "podman pull ${image_url}" "Pulling ${image_name} image" "hide_output"
-}
-
-install_ansible() {
-  if need_to_remove_old_ansible_centos7; then
-    run_command 'yum erase -y ansible' 'Removing old ansible' 'hide_output'
-  fi
-  if need_to_remove_old_ansible_centos8; then
-    run_command 'yum install -y ansible-core --allowerasing' 'Removing old ansible' 'hide_output'
-  fi
-  install_package 'epel-release'
-  install_package "$(get_ansible_package_name)"
-  install_ansible_collection "community.mysql"
-  install_ansible_collection "containers.podman"
-  install_ansible_collection "community.general"
-  install_ansible_collection "ansible.posix"
-}
-
-need_to_remove_old_ansible_centos7() {
-  is_running_in_upgrade_mode && [[ "$(get_centos_major_release)" == "7" ]] && [[ -f /usr/bin/ansible-2 ]]
-}
-
-need_to_remove_old_ansible_centos8() {
-  is_running_in_upgrade_mode && [[ "$(get_centos_major_release)" == "8" ]] && yum list -q installed ansible &> /dev/null
-}
-
-switch_to_centos8_stream() {
-  local repo_base_url="http://mirror.centos.org/centos/8-stream/BaseOS/x86_64/os/Packages"
-  local release="8-6"
-  local gpg_keys_package_url="${repo_base_url}/centos-gpg-keys-${release}.el8.noarch.rpm"
-  local repos_package_url="${repo_base_url}/centos-stream-repos-${release}.el8.noarch.rpm"
-  debug 'Switching CentOS 8 -> CentOS Stream 8'
-  print_with_color 'Switching CentOS 8 -> CentOS Stream 8:' 'blue'
-  run_command "dnf install -y --nobest --allowerasing ${gpg_keys_package_url} ${repos_package_url}" \
-              "  Installing CentOS Stream repos"
-  # run_command "dnf swap centos-{linux,stream}-repos -y" "  Switching to CentOS Stream"
-  run_command "dnf distro-sync -y" "  Syncing distro"
-}
-
-install_podman() {
-  if ! is_package_installed 'podman-docker'; then
-    install_package 'podman-docker'
-    if [[ "$(get_centos_major_release)" == "8" ]]; then
-      install_package 'libseccomp-devel'
+create_nginx_dirs(){
+  for dir in "${NGINX_DIRS[@]}"; do
+    mkdir -p "${dir}"
+    if [[ ! "${dir}" =~ ^/etc/ ]]; then
+      chown nginx:nginx -R "${dir}"
     fi
-    supress_podman_warns
-  fi
-  if [[ "$(get_centos_major_release)" != "7" ]]; then
-    start_and_enable_podman_unit
-  fi
-}
-
-
-supress_podman_warns() {
-  touch /etc/containers/nodocker
-}
-
-
-start_and_enable_podman_unit(){
-  if ! systemctl is-active 'podman' > /dev/null 2>&1; then
-    systemd.restart_service 'podman'
-    systemd.enable_service 'podman'
-  fi
-}
-
-install_core_packages() {
-    install_package file
-    install_package tar
-    install_package curl
-    install_package crontabs
-    install_package logrotate
-    install_kctl_provision
-    install_kctl
-    # shellcheck source=/dev/null
-    source "${INVENTORY_DIR}/components.env"
-}
-
-disable_selinux() {
-  if [[ "$(get_selinux_status)" == "Enforcing" ]]; then
-    run_command 'setenforce 0' 'Disabling Selinux' 'hide_output'
-  fi
-
-  if file_exists /usr/sbin/setroubleshootd; then
-    run_command 'yum erase setroubleshoot-server -y && systemctl daemon-reload' 'Removing setroubleshootd' 'hide_output'
-  fi
-}
-
-get_selinux_status(){
-  getenforce
-}
-
-install_kctld() {
-  run_command "curl -fsSL ${KCTLD_URL} | tar --no-same-owner -xzC ${KCTL_BIN_DIR}" "Installing kctld" "hide_output"
-  if [[ "${KCTLD_MODE}" == "true" ]]; then
-    systemd.start_service 'kctld-worker'
-    systemd.start_service 'kctld-server'
-  else
-    systemd.restart_service 'kctld-worker'
-    systemd.restart_service 'kctld-server'
-  fi
-  systemd.enable_service 'kctld-worker'
-  systemd.enable_service 'kctld-server'
-}
-
-install_kctl_ch_converter() {
-  local converter_path="${KCTL_BIN_DIR}/kctl-ch-converter"
-  local command="curl -fsSL ${KCTL_CH_CONVERTER_URL} | gzip -d > ${converter_path} && chmod a+x ${converter_path}"
-  run_command "${command}" "Installing kctl-ch-converter" "hide_output"
-}
-is_centos8_distro(){
-  file_content_matches /etc/centos-release '-P' '^CentOS Linux.* 8\b'
-}
-
-systemd.restart_service() {
-  local name="${1}"
-  local command="systemctl restart ${name}"
-  run_command "${command}" "Restarting SystemD service ${name}" "hide_output"
-}
-
-systemd.update_units() {
-  run_command 'systemctl daemon-reload' "Updating SystemD units" "hide_output"
-}
-
-systemd.enable_service() {
-  local name="${1}"
-  local command="systemctl enable ${name}"
-  run_command "${command}" "Enabling SystemD service ${name}" "hide_output"
-}
-
-systemd.reload_service() {
-  local name="${1}"
-  local command="systemctl reload ${name}"
-  run_command "${command}" "Reloading SystemD service ${name}" "hide_output"
-}
-
-systemd.start_service() {
-  local name="${1}"
-  local command="systemctl start ${name}"
-  run_command "${command}" "Starting SystemD service ${name}" "hide_output"
-}
-
-install_kctl() {
-  install "${PROVISION_DIRECTORY}"/bin/* "${KCTL_BIN_DIR}"/
-  install "${PROVISION_DIRECTORY}"/files/etc/cron.daily/* /etc/cron.daily/
-  install -m 0644 "${PROVISION_DIRECTORY}"/files/etc/systemd/system/* /etc/systemd/system/
-  install -m 0644 "${PROVISION_DIRECTORY}"/files/etc/keitaro/config/* /etc/keitaro/config/
-  install -m 0444 "${PROVISION_DIRECTORY}"/files/etc/sudoers.d/* /etc/sudoers.d/
-  install -m 0444 "${PROVISION_DIRECTORY}"/files/etc/logrotate.d/* /etc/logrotate.d/
-  make_kctl_scripts_symlinks
-  systemd.update_units
-  systemd.restart_service 'kctl-monitor'
-  systemd.enable_service 'kctl-monitor'
-}
-
-make_kctl_scripts_symlinks() {
-  local file_name
-  for existing_file_path in "${KCTL_BIN_DIR}"/*; do
-    file_name="${existing_file_path##*/}"
-    ln -s -f "${existing_file_path}" "/usr/local/bin/${file_name}"
   done
+  rm -f /etc/nginx/nginx.conf.rpmsave
 }
+
 clean_packages_metadata() {
   if empty "$WITHOUTH_YUM_UPDATE"; then
     run_command "yum clean all" "Cleaninig yum meta" "hide_output"
-  fi
-}
-
-install_kctl_provision() {
-  local kctl_provision_url="https://files.keitaro.io/scripts/${BRANCH}/kctl.tar.gz"
-  local command="curl -fsSL ${kctl_provision_url} | tar -xzC ${PROVISION_DIRECTORY}"
-  mkdir -p "${PROVISION_DIRECTORY}"
-  run_command "${command}" "Installing kctl provision from ${kctl_provision_url}" "hide_output"
-}
-remove_mariadb_repo(){
-  if [ -f /etc/yum.repos.d/mariadb.repo ]; then
-      debug "Removing mariadb repo"
-      rm -f /etc/yum.repos.d/mariadb.repo
   fi
 }
 
@@ -2551,8 +2497,9 @@ stage6() {
     run_command "${KCTL_BIN_DIR}/kctl certificates prune safe"
   fi
 }
-json2dict() {
 
+json2dict() {
+  # the largest part of the code is gotten from https://github.com/dominictarr/JSON.sh
   throw() {
     echo "$*" >&2
     exit 1
@@ -2564,55 +2511,19 @@ json2dict() {
   NO_HEAD=0             # No-head. Do not show nodes that have no path (lines that start with []).
   NORMALIZE_SOLIDUS=0   # Remove escaping of the solidus symbol (straight slash)
 
-  awk_egrep () {
-    local pattern_string=$1
-
-    gawk '{
-      while ($0) {
-        start=match($0, pattern);
-        token=substr($0, start, RLENGTH);
-        print token;
-        $0=substr($0, start+RLENGTH);
-      }
-    }' pattern="$pattern_string"
-  }
-
-  tokenize () {
-    local GREP
-    local ESCAPE
-    local CHAR
-
-    if echo "test string" | grep -ao -E --color=never "test" >/dev/null 2>&1
-    then
-      GREP='grep -ao -E --color=never'
-    else
-      GREP='grep -ao -E'
-    fi
-
-    if echo "test string" | grep -o -E "test" >/dev/null 2>&1
-    then
-      ESCAPE='(\\[^u[:cntrl:]]|\\u[0-9a-fA-F]{4})'
-      CHAR='[^[:cntrl:]"\\]'
-    else
-      GREP=awk_egrep
-      ESCAPE='(\\\\[^u[:cntrl:]]|\\u[0-9a-fA-F]{4})'
-      CHAR='[^[:cntrl:]"\\\\]'
-    fi
-
+  tokenize() {
+    local GREP='grep -ao -E --color=never'
+    local ESCAPE='(\\[^u[:cntrl:]]|\\u[0-9a-fA-F]{4})'
+    local CHAR='[^[:cntrl:]"\\]'
     local STRING="\"$CHAR*($ESCAPE$CHAR*)*\""
     local NUMBER='-?(0|[1-9][0-9]*)([.][0-9]*)?([eE][+-]?[0-9]*)?'
     local KEYWORD='null|false|true'
     local SPACE='[[:space:]]+'
 
-    # Force zsh to expand $A into multiple words
-    local is_wordsplit_disabled
-    is_wordsplit_disabled=$(unsetopt 2>/dev/null | grep -c '^shwordsplit$')
-    if [ "$is_wordsplit_disabled" != 0 ]; then setopt shwordsplit; fi
     $GREP "$STRING|$NUMBER|$KEYWORD|$SPACE|." | grep -v -E "^$SPACE$"
-    if [ "$is_wordsplit_disabled" != 0 ]; then unsetopt shwordsplit; fi
   }
 
-  parse_array () {
+  parse_array() {
     local index=0
     local ary=''
     read -r token
@@ -2634,11 +2545,11 @@ json2dict() {
         done
         ;;
     esac
-    [ "$BRIEF" -eq 0 ] && value=$(printf '[%s]' "$ary") || value=
+    [[ "$BRIEF" -eq 0 ]] && value=$(printf '[%s]' "$ary") || value=
     :
   }
 
-  parse_object () {
+  parse_object() {
     local key
     local obj=''
     read -r token
@@ -2670,11 +2581,11 @@ json2dict() {
         done
       ;;
     esac
-    [ "$BRIEF" -eq 0 ] && value=$(printf '{%s}' "$obj") || value=
+    [[ "$BRIEF" -eq 0 ]] && value=$(printf '{%s}' "$obj") || value=
     :
   }
 
-  parse_value () {
+  parse_value() {
     local jpath="${1:+$1$3}$2" isleaf=0 isempty=0 print=0
     case "$token" in
       '{') parse_object "$jpath" ;;
@@ -2683,21 +2594,22 @@ json2dict() {
       ''|[!0-9]) throw "EXPECTED value GOT ${token:-EOF}" ;;
       *) value=$token
         # if asked, replace solidus ("\/") in json strings with normalized value: "/"
-        [ "$NORMALIZE_SOLIDUS" -eq 1 ] && value="${value//\\}"
+        [[ "$NORMALIZE_SOLIDUS" -eq 1 ]] && value="${value//\\}"
         isleaf=1
-        [ "$value" = '""' ] && isempty=1
+        [[ "$value" = '""' ]] && isempty=1
         ;;
     esac
-    [ "$value" = '' ] && return
-    [ "$NO_HEAD" -eq 1 ] && [ -z "$jpath" ] && return
 
-    [ "$LEAFONLY" -eq 0 ] && [ "$PRUNE" -eq 0 ] && print=1
-    [ "$LEAFONLY" -eq 1 ] && [ "$isleaf" -eq 1 ] && [ $PRUNE -eq 0 ] && print=1
-    [ "$LEAFONLY" -eq 0 ] && [ "$PRUNE" -eq 1 ] && [ "$isempty" -eq 0 ] && print=1
-    [ "$LEAFONLY" -eq 1 ] && [ "$isleaf" -eq 1 ] && \
-      [ $PRUNE -eq 1 ] && [ $isempty -eq 0 ] && print=1
-    [ "$print" -eq 1 ] && [ "$value" != 'null' ] && print_value "$jpath" "$value"
-    #printf "['%s']=%s " "$jpath" "$value"
+    [[ "$value" = '' ]] && return
+    [[ "$NO_HEAD" -eq 1 ]] && [[ -z "$jpath" ]] && return
+
+    [[ "$LEAFONLY" -eq 0 ]] && [[ "$PRUNE" -eq 0 ]] && print=1
+    [[ "$LEAFONLY" -eq 1 ]] && [[ "$isleaf" -eq 1 ]] && [[ $PRUNE -eq 0 ]] && print=1
+    [[ "$LEAFONLY" -eq 0 ]] && [[ "$PRUNE" -eq 1 ]] && [[ "$isempty" -eq 0 ]] && print=1
+    [[ "$LEAFONLY" -eq 1 ]] && [[ "$isleaf" -eq 1 ]] && [[ $PRUNE -eq 1 ]] && [[ $isempty -eq 0 ]] && print=1
+
+    [[ "$print" -eq 1 ]] && [[ "$value" != 'null' ]] && print_value "$jpath" "$value"
+    #printf "[['%s']]=%s " "$jpath" "$value"
     :
   }
 
@@ -2706,7 +2618,7 @@ json2dict() {
     printf "['%s']=%s " "$jpath" "$value"
   }
 
-  json_parse () {
+  json_parse() {
     read -r token
     parse_value
     read -r token
@@ -2716,7 +2628,7 @@ json2dict() {
     esac
   }
 
-  echo "("; (tokenize | json_parse); echo ")"
+  printf "( %s)" "$(tokenize | json_parse || true)"
 }
 
 write_inventory_on_finish() {
@@ -2729,7 +2641,6 @@ write_inventory_on_finish() {
   VARS['license_key']=""
   VARS['salt']=""
   VARS['postback_key']=""
-  VARS['table_prefix']=""
   VARS['tracker_stability']=""
   reset_changeable_values
   write_inventory_file
@@ -2747,14 +2658,13 @@ reset_changeable_values() {
 
 
 ANSIBLE_TASK_HEADER="^TASK \[(.*)\].*"
-ANSIBLE_TASK_FAILURE_HEADER="^(fatal|failed): "
-ANSIBLE_FAILURE_JSON_FILEPATH="${WORKING_DIR}/ansible_failure.json"
+ANSIBLE_TASK_FAILURE_HEADER="^(fatal|failed): \[localhost\]: [A-Z]+! => "
 ANSIBLE_LAST_TASK_LOG="${WORKING_DIR}/ansible_last_task.log"
 
-run_ansible_playbook(){
+run_ansible_playbook() {
   # shellcheck source=/dev/null
   source "${INVENTORY_DIR}/components.env"
-  local env=""
+  local env cmd
   env="${env} ANSIBLE_FORCE_COLOR=true"
   env="${env} ANSIBLE_CONFIG=${PLAYBOOK_DIRECTORY}/ansible.cfg"
   env="${env} KCTL_BRANCH=${BRANCH}"
@@ -2762,27 +2672,22 @@ run_ansible_playbook(){
   env="${env} KCTL_TRACKER_VERSION_TO_INSTALL=${KCTL_TRACKER_VERSION_TO_INSTALL}"
   env="${env} ROADRUNNER_URL=${ROADRUNNER_URL}"
 
-  if [ -f "$DETECTED_PREFIX_PATH" ]; then
-    env="${env} TABLES_PREFIX='$(cat "${DETECTED_PREFIX_PATH}" | head -n1)'"
-    rm -f "${DETECTED_PREFIX_PATH}"
-  fi
-  local command
-  command="${env} $(get_ansible_playbook_command) -v -i ${INVENTORY_PATH} ${PLAYBOOK_DIRECTORY}/playbook.yml"
-  if isset "$ANSIBLE_TAGS"; then
-    command="${command} --tags ${ANSIBLE_TAGS}"
-  fi
+  cmd="${env} $(get_ansible_playbook_command) -v -i ${INVENTORY_PATH} ${PLAYBOOK_DIRECTORY}/playbook.yml"
 
-  if isset "$ANSIBLE_IGNORE_TAGS"; then
-    command="${command} --skip-tags ${ANSIBLE_IGNORE_TAGS}"
+  if isset "${ANSIBLE_TAGS}"; then
+    cmd="${cmd} --tags ${ANSIBLE_TAGS}"
   fi
-  run_command "${command}" '' '' '' '' 'print_ansible_fail_message'
+  if isset "${ANSIBLE_IGNORE_TAGS}"; then
+    cmd="${cmd} --skip-tags ${ANSIBLE_IGNORE_TAGS}"
+  fi
+  run_command "${cmd}" '' '' '' '' 'print_ansible_fail_message'
 }
 
 get_ansible_playbook_command() {
   if [[ "$(get_centos_major_release)" == "7" ]]; then
-    echo "ansible-playbook-3"
+    echo "LC_ALL=C ansible-playbook-3"
   else
-    echo "ansible-playbook"
+    echo "LC_ALL=C.UTF-8 ansible-playbook"
   fi
 }
 
@@ -2810,104 +2715,63 @@ print_ansible_last_task_info(){
 }
 
 print_ansible_last_task_external_info(){
-  if ansible_task_failure_found; then
-    debug "Found last ansible failure"
-    cat "$ANSIBLE_LAST_TASK_LOG" \
-      | keep_json_only \
-      > "$ANSIBLE_FAILURE_JSON_FILEPATH"
+  if file_content_matches "${ANSIBLE_LAST_TASK_LOG}" "-P" "${ANSIBLE_TASK_FAILURE_HEADER}"; then
+    debug "Found ansible failure"
+    cat "${ANSIBLE_LAST_TASK_LOG}" | extract_ansible_task_json | print_ansible_task_json
   fi
-  print_ansible_task_module_info
-  rm "$ANSIBLE_FAILURE_JSON_FILEPATH"
 }
 
-ansible_task_failure_found(){
-  grep -qP "$ANSIBLE_TASK_FAILURE_HEADER" "$ANSIBLE_LAST_TASK_LOG"
-}
-
-
-keep_json_only(){
-  # The json with error is inbuilt into text. The structure of text is about:
+extract_ansible_task_json() {
+  # The json with error is inbuilt into text. The structure of the text is about:
   #
   # TASK [$ROLE_NAME : "$TASK_NAME"] *******
   # task path: /path/to/task/file.yml:$LINE
-  # .....
-  # fatal: [localhost]: FAILED! => {
-  #     .....
-  #     failure JSON
-  #     .....
-  # }
-  # .....
+  # fatal: [localhost]: FAILED! => {"some": "json", "content": "here"}
   #
-  # So, first remove all before "fatal: [localhost]: FAILED! => {" line
-  # then replace first line to just '{'
-  # then remove all after '}'
-  sed -n -r "/${ANSIBLE_TASK_FAILURE_HEADER}/,\$p" \
-    | sed '1c{' \
-    | sed -e '/^}$/q'
-  }
+  # So, we simply remove JSON prefix (fatal: ... => ) from this message
+  grep -Po "${ANSIBLE_TASK_FAILURE_HEADER}\K.*" | head -n 1
+}
 
 remove_text_before_last_pattern_occurence(){
   local pattern="${1}"
   sed -n -r "H;/${pattern}/h;\${g;p;}"
 }
 
-print_ansible_task_module_info(){
-  declare -A   json
-  eval "json=$(cat "$ANSIBLE_FAILURE_JSON_FILEPATH" | json2dict)" 2>/dev/null
-  ansible_module="${json['invocation.module_name']}"
-  if isset "${json['invocation.module_name']}"; then
-    echo "Ansible module: ${json['invocation.module_name']}"
-  fi
-  if isset "${json['msg']}"; then
-    print_field_content "Field 'msg'" "${json['msg']}"
-  fi
-  if need_print_stdout_stderr "$ansible_module" "${json['stdout']}" "${json['stderr']}"; then
-    print_field_content "Field 'stdout'" "${json['stdout']}"
-    print_field_content "Field 'stderr'" "${json['stderr']}"
-  fi
-  if need_print_full_json "$ansible_module" "${json['stdout']}" "${json['stderr']}" "${json['msg']}"; then
-    print_content_of "$ANSIBLE_FAILURE_JSON_FILEPATH"
-  fi
-}
+print_ansible_task_json() {
+  local error_dict_string
+  read -r json_string
 
-print_field_content(){
-  local field_caption="${1}"
-  local field_content="${2}"
-  if empty "${field_content}"; then
-    echo "${field_caption} is empty"
+  error_dict_string="$(echo "${json_string}" | json2dict)"
+  declare -A error_dict="${error_dict_string}"
+
+  if isset "${error_dict['msg']}" || isset "${error_dict['stdout']}" || isset "${error_dict['stderr']}"; then
+    print_field_content "ansible module" "${error_dict['invocation.module_name']}"
+    print_field_content "error" "${error_dict['msg']}"
+    print_field_content "stdout" "${error_dict['stdout']}"
+    print_field_content "stderr" "${error_dict['stderr']}"
   else
-    echo "${field_caption}:"
-    echo -e "${field_content}" | fold -s -w $((${COLUMNS:-80} - INDENTATION_LENGTH)) | add_indentation
+    for field in "${!error_dict[@]}"; do
+      print_field_content "${field}" "${error_dict["${field}"]}"
+    done
   fi
 }
 
-need_print_stdout_stderr(){
-  local ansible_module="${1}"
-  local stdout="${2}"
-  local stderr="${3}"
-  isset "${stdout}"
-  local is_stdout_set=$?
-  isset "${stderr}"
-  local is_stderr_set=$?
-  [[ "$ansible_module" == 'cmd' || ${is_stdout_set} == "${SUCCESS_RESULT}" || ${is_stderr_set} == "${SUCCESS_RESULT}" ]]
-}
+    TERM_SIZE="$(stty size 2>/dev/null)" && [ "$TERM_SIZE" ] ||
+        TERM_SIZE='25 80'
 
-need_print_full_json(){
-  local ansible_module="${1}"
-  local stdout="${2}"
-  local stderr="${3}"
-  local msg="${4}"
-  need_print_stdout_stderr "$ansible_module" "$stdout" "$stderr"
-  local need_print_output_fields=$?
-  isset "$msg"
-  is_msg_set=$?
-  [[ ${need_print_output_fields} != "${SUCCESS_RESULT}" && ${is_msg_set} != "${SUCCESS_RESULT}"  ]]
-}
+print_field_content() {
+  local field_caption="${1}" field_content="${2}"
+  local terminal_witdth
 
-get_printable_fields(){
-  local ansible_module="${1}"
-  local fields="${2}"
-  echo "$fields"
+  terminal_width="$( (stty size | awk '{print $2}') 2>/dev/null )"
+  terminal_width="${terminal_width:-80}"
+
+  if isset "${field_content}"; then
+    echo "    ${field_caption^^}:"
+    echo -e "${field_content}" \
+            | fold -s -w "$((terminal_width - 6))" \
+            | add_indentation | add_indentation | add_indentation
+  fi
 }
 
 stage7() {
