@@ -39,9 +39,9 @@
         - set_fact:
             tracker_stability: "{{ 'unstable' if get_tracker_stability.query_result[0][0]['value'] == '1' else 'stable' }}"
 
-    - name: Set default tracker stability as 'stable'
+    - name: Set default tracker stability
       set_fact:
-        tracker_stability: unstable
+        tracker_stability: "{{ default_tracker_stability }}"
       when: tracker_stability is undefined
 
     - name: Set disable_delay

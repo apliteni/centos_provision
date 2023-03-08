@@ -31,3 +31,5 @@ __kctl_version: "{{ lookup('file', lookup('env', 'PLAYBOOK_ROOT') + 'RELEASE_VER
 kctl_force_regenerate_ssl: "{{ lookup('env', 'FORCE_REGENERATE_SSL') | default ('false', true) | bool }}"
 
 kctld_uri: localhost:7001
+
+default_tracker_stability: stable

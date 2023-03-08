@@ -3,23 +3,6 @@
     name: [sendmail, sendmail-cf, ntp]
     state: absent
 
-- name: Copy old files to the new location
-  copy:
-    src: "{{ item.src }}"
-    dest: "{{ item.dest }}"
-    remote_src: true
-    mode: '0644'
-  failed_when: false
-  with_items:
-    - src: /etc/nginx/ssl/cert.pem
-      dest: "{{ ssl_cert_path }}"
-    - src: /etc/nginx/ssl/privkey.pem
-      dest: "{{ ssl_privkey_path }}"
-    - src: /etc/ssl/certs/dhparam.pem
-      dest: "{{ ssl_dhparam_path }}"
-    - src: /etc/nginx/conf.d/vhosts.conf
-      dest: /etc/nginx/conf.d/keitaro.conf
-
 - name: Remove old files
   file:
     path: "{{ item }}"

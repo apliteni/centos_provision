@@ -1,23 +1,7 @@
-- name: Detect tracker stability
+- name: Set tracker stability as stable if it is not set yet
   when: tracker_stability is undefined
-  block:
-    - name: Get tracker stability by version
-      uri:
-        url: "{{ keitaro_url }}/external_api/updates/stability"
-        method: GET
-        body_format: json
-        body:
-          version: "{{ tracker_version_to_install }}"
-        return_content: true
-      failed_when: >-
-         get_installed_tracker_stability_result.content != 'stable'
-         and get_installed_tracker_stability_result.content != 'unstable'
-      register: get_installed_tracker_stability_result
-      changed_when: false
-
-    - name: Set installed_tracker_stability variable
-      set_fact:
-        tracker_stability: "{{ get_installed_tracker_stability_result.content }}"
+  set_fact:
+    tracker_stability: "stable"
 
 - name: Set is_beta_channel variable
   set_fact:

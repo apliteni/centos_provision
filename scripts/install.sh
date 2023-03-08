@@ -52,7 +52,7 @@ TOOL_NAME='install'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.41.6'
+RELEASE_VERSION='2.41.7'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -302,18 +302,33 @@ AS_VERSION__REGEX="(${AS_VERSION__PART_REGEX}\.){1,${AS_VERSION__PARTS_TO_KEEP}}
 as_version() {
   local version_string="${1}"
   # Expand version string by adding `.` to the end to simplify logic
-  local major_part='0'
-  local minor_part='0'
-  local patch_part='0'
-  local additional_part='0'
+  local major='0'
+  local minor='0'
+  local patch='0'
+  local extra='0'
   if [[ "${version_string}." =~ ^${AS_VERSION__REGEX}$ ]]; then
     IFS='.' read -r -a parts <<< "${version_string}"
-    major_part="${parts[0]:-${major_part}}"
-    minor_part="${parts[1]:-${minor_part}}"
-    patch_part="${parts[2]:-${patch_part}}"
-    additional_part="${parts[3]:-${additional_part}}"
+    major="${parts[0]:-${major}}"
+    minor="${parts[1]:-${minor}}"
+    patch="${parts[2]:-${patch}}"
+    extra="${parts[3]:-${extra}}"
   fi
-  printf '1%03d%03d%03d%03d' "${major_part}" "${minor_part}" "${patch_part}" "${additional_part}"
+  printf '1%03d%03d%03d%03d' "${major}" "${minor}" "${patch}" "${extra}"
+}
+
+version_as_str() {
+  local version="${1}" major minor patch extra
+
+  major="${version:1:3}"; major="${major#0}"; major="${major#0}"
+  minor="${version:4:3}"; minor="${minor#0}"; minor="${minor#0}"
+  patch="${version:7:3}"; patch="${patch#0}"; patch="${patch#0}"
+  extra="${version:10:3}"; extra="${extra#0}"; extra="${extra#0}"
+
+  if [[ "${extra}" != "0" ]]; then
+    echo "${major}.${minor}.${patch}.${extra}"
+  else
+    echo "${major}.${minor}.${patch}"
+  fi
 }
 
 as_minor_version() {
@@ -374,13 +389,6 @@ create_user() {
     command="useradd ${command_args}"
     run_command "${command}" '' '' '' '' 'print_ansible_fail_message'
   fi
-}
-detect_db_engine() {
-  local sql="SELECT lower(engine) FROM information_schema.tables WHERE table_name = 'keitaro_clicks'"
-  local db_engine
-  db_engine="$(mysql "${VARS['db_name']}" -se "${sql}" 2>/dev/null)"
-  debug "Detected engine from keitaro_clicks table - '${db_engine}'"
-  echo "${db_engine}"
 }
 
 detect_installed_version(){
@@ -1434,7 +1442,6 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['install-postfix']='2.29.8'
   ['setup-journald']='2.32.0'
   ['setup-root-home']="2.37.4"
-  ['setup-thp']='0.9'
   ['setup-timezone']='0.9'
   ['tune-swap']='2.39.27'
   ['tune-sysctl']='2.39.31'
@@ -1588,15 +1595,15 @@ parse_options(){
         ;;
       R)
         # shellcheck disable=SC2016
-        fail '-R option is unsupported. Install tracker and use `kctl-transfer restore-from-sql` to restore'
+        fail '-R option is unsupported. Install tracker and use `kctl transfers restore-from-sql` to restore'
         ;;
       F)
         # shellcheck disable=SC2016
-        fail '-F option is unsupported. Install tracker and use `kctl-transfer restore-from-sql` to restore'
+        fail '-F option is unsupported. Install tracker and use `kctl transfers restore-from-sql` to restore'
         ;;
       S)
         # shellcheck disable=SC2016
-        fail '-S option is unsupported. Install tracker and use `kctl-transfer restore-from-sql` to restore'
+        fail '-S option is unsupported. Install tracker and use `kctl transfers restore-from-sql` to restore'
         ;;
       L)
         print_deprecation_warning '-l option is ignored'
@@ -1943,30 +1950,6 @@ get_ssh_port(){
   echo "${ssh_port}"
 }
 
-fix_db_engine() {
-  local detected_db_engine
-  debug "Detected installer with version ${INSTALLED_VERSION} which possibly sets wrong db_engine"
-  detected_db_engine=$(detect_db_engine)
-  debug "Detected engine - '${detected_db_engine}', engine in the inventory - '${VARS['db_engine']}'"
-  if decteted_db_engine_doesnt_match_inventory "${detected_db_engine}"; then
-    debug "Detected engine and engine in the inventory are not matching, reconfiguring"
-    VARS['db_engine']="${detected_db_engine}"
-    write_inventory_file
-    expand_ansible_tags_with_tag "install-mariadb"
-  else
-    debug "Everything looks good, don't need to reconfigure db engine"
-  fi
-}
-
-
-decteted_db_engine_doesnt_match_inventory() {
-  local detected_db_engine="${1}"
-  [[
-    ("${detected_db_engine}" == "${DB_ENGINE_INNODB}" || "${detected_db_engine}" == "${DB_ENGINE_INNODB}") &&
-      "${detected_db_engine}" != "${VARS['db_engine']}"
-  ]]
-}
-
 write_inventory_file(){
   debug 'Writing inventory file: STARTED'
   create_inventory_file
@@ -2070,12 +2053,67 @@ print_line_to_inventory_file() {
   echo "$line" >> "$INVENTORY_PATH"
 }
 
-installed_version_has_db_engine_bug() {
-  (( $(as_version "${INSTALLED_VERSION}") <= $(as_version "1.5.0") )) || \
-    (
-      (( $(as_version "${INSTALLED_VERSION}") >= $(as_version "2.23.0") )) && \
-      (( $(as_version "${INSTALLED_VERSION}") < $(as_version "2.29.0") ))
-    )
+PREPARE_UPGRADE_FN_PREFIX="preupgrade_checkpoint_"
+PREPARE_UPGRADE_FN_PREFIX_LENGTH="${#PREPARE_UPGRADE_FN_PREFIX}"
+
+stage4.prepare_upgrade() {
+  local version_str kctl_config_version prepare_upgrade_function_name message
+
+  kctl_config_version="$(as_version "${INSTALLED_VERSION}")"
+
+  for checkpoint_version in $(stage4.list_checkpoint_versions); do
+    debug "kctl_config_version: ${kctl_config_version}, checkpoint_version: ${checkpoint_version}"
+    if (( kctl_config_version <= checkpoint_version )); then
+      version_str="$(version_as_str "${checkpoint_version}")"
+      prepare_upgrade_fn_name="${PREPARE_UPGRADE_FN_PREFIX}${version_str//./_}"
+
+      print_with_color "Upgrading from v${version_str}" 'blue'
+      debug "Upgrading from v${version_str}"
+
+      debug "Evaluating ${prepare_upgrade_fn_name}()"
+      if "${prepare_upgrade_fn_name}"; then
+        print_step_info "Successfully upgraded from v${version_str}" 'green'
+      else
+        fail "Unexpected error while evaluating upgrade from v${version_str}"
+      fi
+    fi
+  done
+}
+
+stage4.list_checkpoint_versions() {
+  local checkpoint_versions prepare_upgrade_fns
+
+  prepare_upgrade_fns="$(stage4.list_checkpoint_functions)"
+
+  for prepare_upgrade_fn in ${prepare_upgrade_fns}; do
+    checkpoint_versions="$(stage4.extract_step_version "${prepare_upgrade_fn}")\n${checkpoint_versions}"
+  done
+
+  echo -e -n "${checkpoint_versions}" | sort | uniq
+}
+
+stage4.extract_step_version() {
+  local preupgrade_step="${1}" version_str
+
+  version_str="${preupgrade_step:${PREPARE_UPGRADE_FN_PREFIX_LENGTH}}"
+
+  as_version "${version_str//_/.}"
+}
+
+stage4.list_checkpoint_functions() {
+  declare -F | awk '{print $3}' | grep "${PREPARE_UPGRADE_FN_PREFIX}" | grep -vF '.'
+}
+
+run_upgrade_step() {
+  local cmd="${1}" msg="${2}"
+
+  run_command "${cmd}" "  ${msg}" 'hide_output'
+}
+
+print_step_info() {
+  local msg="${1}" color="${2:-green}"
+  print_with_color "${msg}" "${color}"
+  debug "${msg}"
 }
 
 DEFAULT_SSH_PORT="22"
@@ -2094,14 +2132,143 @@ detect_sshd_port() {
   echo "${port}"
 }
 
+preupgrade_checkpoint_2_29_0() {
+
+  detect_db_engine() {
+    local sql="SELECT lower(engine) FROM information_schema.tables WHERE table_name = 'keitaro_clicks'"
+    local db_engine
+    mysql "${VARS['db_name']}" -se "${sql}"
+  }
+
+  local detected_db_engine
+
+  detected_db_engine="$(detect_db_engine)"
+
+  if empty "${detected_db_engine}"; then
+    fail "Couldn't detect current database engine"
+  fi
+
+  if [[ "${detected_db_engine}" != "${VARS['db_engine']}" ]]; then
+    VARS['db_engine']="${detected_db_engine}"
+    write_inventory_file
+    expand_ansible_tags_with_tag "install-mariadb"
+    print_step_info "Scheduled reconfiguring db to use ${detected_db_engine}"
+  fi
+}
+
+preupgrade_checkpoint_2_41_6() {
+  local olap_db db_ttl ch_ttl
+
+  olap_db="$(get_olap_db)"
+
+  if [[ "${olap_db}" == "${OLAP_DB_CLICKHOUSE}" ]]; then
+    db_ttl="$(preupgrade_checkpoint_2_41_6.get_db_ttl)"
+    ch_ttl="$(preupgrade_checkpoint_2_41_6.get_ch_ttl)"
+    if preupgrade_checkpoint_2_41_6.need_to_change_ch_ttl "${db_ttl}" "${ch_ttl}"; then
+      preupgrade_checkpoint_2_41_6.set_ch_db_ttl "keitaro_clicks" "datetime" "${db_ttl}"
+      preupgrade_checkpoint_2_41_6.set_ch_db_ttl "keitaro_conversions" "postback_datetime" "${db_ttl}"
+    fi
+  fi
+
+  if [[ -f /sbin/manage-thp ]]; then
+    run_upgrade_step 'rm -f /sbin/manage-thp' 'Removing manage-thp'
+  fi
+}
+
+preupgrade_checkpoint_2_41_6.get_ch_ttl() {
+  local table_sql ch_tt show_table_query='show create table keitaro_clicks'
+
+  table_sql="$("${KCTL_BIN_DIR}"/kctl run clickhouse-query "${show_table_query}")"
+
+  if [[ "${table_sql}" != "" ]]; then
+    ch_ttl="$(echo -e "${table_sql}" | grep -oP '(?<=TTL datetime \+ toIntervalDay\()[0-9]+')"
+    if [[ "${ch_ttl}" == "" ]]; then
+      ch_ttl="0"
+    fi
+    echo "${ch_ttl}"
+  fi
+}
+
+preupgrade_checkpoint_2_41_6.get_db_ttl() {
+  "${KCTL_BIN_DIR}"/kctl run cli-php system:get_setting 'stats_ttl'
+}
+
+preupgrade_checkpoint_2_41_6.need_to_change_ch_ttl() {
+  local db_ttl="${1}" ch_ttl="${2}"
+
+  [[ "${db_ttl}" != "" ]] \
+    && [[ "${ch_ttl}" != "" ]] \
+    && [[ "${db_ttl}" != "${ch_ttl}" ]]
+}
+
+preupgrade_checkpoint_2_41_6.set_ch_db_ttl() {
+  local table="${1}" datetime_field="${2}" ttl="${3}" sql msg
+
+  if [[ "${ttl}" == "0" ]]; then
+    sql="ALTER TABLE ${table} REMOVE TTL"
+    msg="Removing TTL from ClickHouse table ${table}"
+  else
+    sql="ALTER TABLE ${table} MODIFY TTL ${datetime_field} + toIntervalDay(${ttl})"
+    msg="Setting TTL for ClickHouse table ${table}"
+  fi
+
+  run_upgrade_step "${KCTL_BIN_DIR}/kctl run clickhouse-query '${sql}'" "${msg}"
+}
+
+preupgrade_checkpoint_2_26_0() {
+  preupgrade_checkpoint_2_26_0.move_nginx_file \
+          /etc/nginx/conf.d/vhosts.conf /etc/nginx/conf.d/keitaro.conf
+
+  for old_dir in /etc/ssl/certs /etc/nginx/ssl; do
+    for cert_name in dhparam.pem cert.pem privkey.pem; do
+      preupgrade_checkpoint_2_26_0.move_nginx_file \
+              "${old_dir}/${cert_name}" "/etc/keitaro/ssl/${cert_name}"
+    done
+  done
+
+  preupgrade_checkpoint_2_26_0.remove_old_log_format_from_nginx_configs
+}
+
+preupgrade_checkpoint_2_26_0.move_nginx_file() {
+  local path_to_old_file="${1}" path_to_new_file="${2}" old_configs_count cmd msg
+
+  if [[ -f "${path_to_old_file}" ]] && [[ ! -f ${path_to_new_file} ]]; then
+    cmd="mkdir -p '${path_to_new_file%/*}'"
+    cmd="${cmd} && mv '${path_to_old_file}' '${path_to_new_file}'"
+ 
+    run_upgrade_step "${cmd}" "Moving ${path_to_old_file} -> ${path_to_new_file}"
+  fi
+
+  old_configs_count="$(grep -r -l -F "${path_to_old_file}" /etc/nginx | wc -l)"
+
+  if [[ "${old_configs_count}" != "0" ]]; then
+    cmd="grep -r -l -F '${path_to_old_file}' /etc/nginx"
+    cmd="${cmd} | xargs -r sed -i 's|${path_to_old_file}|${path_to_new_file}|g'"
+
+    run_upgrade_step "${cmd}" \
+            "Changing path ${path_to_old_file} -> ${path_to_new_file} in ${old_configs_count} nginx configs"
+  fi
+}
+
+
+preupgrade_checkpoint_2_26_0.remove_old_log_format_from_nginx_configs() {
+  local old_log_format="tracker.status" cmd
+
+  old_configs_count="$(grep -r -l -F "${old_log_format}" /etc/nginx/conf.d | wc -l)"
+
+  if [[ "${old_configs_count}" != "0" ]]; then
+    cmd="grep -r -l -F '${old_log_format}' /etc/nginx/conf.d | xargs -r sed -i '/${old_log_format}/d'"
+
+    run_upgrade_step "${cmd}" \
+            "Removing old log format ${old_log_format} from ${old_configs_count} nginx configs"
+  fi
+}
+
 stage4() {
   debug "Starting stage 4: generate inventory file (running mode is ${RUNNING_MODE})."
-  if is_running_in_upgrade_mode && installed_version_has_db_engine_bug; then
-    fix_db_engine
-  else
-    debug "Current kctl version ${INSTALLED_VERSION} doesn't have db engine problems"
+  if is_running_in_upgrade_mode; then
+    stage4.prepare_upgrade
   fi
-  debug "Starting stage 4: write inventory file"
   write_inventory_file
 }
 
@@ -2177,6 +2344,10 @@ install_kctl() {
   install -m 0444 "${PROVISION_DIRECTORY}"/files/etc/logrotate.d/* /etc/logrotate.d/
   make_kctl_scripts_symlinks
   systemd.update_units
+  systemd.restart_service 'schedule-fs-check-on-boot'
+  systemd.enable_service 'schedule-fs-check-on-boot'
+  systemd.restart_service 'disable-thp'
+  systemd.enable_service 'disable-thp'
   systemd.restart_service 'kctl-monitor'
   systemd.enable_service 'kctl-monitor'
 }
@@ -2378,10 +2549,6 @@ PATH_TO_NGINX_ROADRUNNER_CONFIG="/etc/nginx/conf.d/keitaro/locations/roadrunner.
 install_nginx_on_docker() {
   create_user "nginx" "${TRACKER_ROOT}" "/sbin/nologin"
   create_nginx_dirs
-
-  if [[ -d "/etc/nginx/conf.d/keitaro" ]]; then
-    grep -r -l -F tracker.status /etc/nginx/conf.d/keitaro | xargs -r sed -i "/tracker.status/d"
-  fi
 
   if [[ -f "/etc/nginx/nginx.conf.rpmsave" ]] || [[ ! -d /etc/nginx/conf.d ]] || [[ ! -f /etc/nginx/mime.types ]]; then
     copy_nginx_configs

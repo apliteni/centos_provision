@@ -113,7 +113,7 @@ Usage:
 <!-- start of 'kctl-transfers help' output -->
 
 ```
-Usage: kctl-transfers ACTION [HOST] [BACKUP_PATH]
+Usage: kctl transfers ACTION [HOST] [BACKUP_PATH]
 
 ACTION
   dump                  - dump Keitaro data from HOST to BACKUP_PATH directory
@@ -137,8 +137,8 @@ Environment variables for restore-from-sql action:
   POSTBACK_KEY          - specify old tracker postback key
 
 Examples:
-  SSH_PASSWORD=mypassword kctl-transfer copy-from 1.2.3.4
-  SALT=3a4e4a2c749c421cb8a75ba9f8fbbf2b kctl-transfer restore-from-sql local ./keitaro.sql.gz
+  SSH_PASSWORD=mypassword kctl transfers copy-from 1.2.3.4
+  SALT=3a4e4a2c749c421cb8a75ba9f8fbbf2b kctl transfers restore-from-sql local ./keitaro.sql.gz
 ```
 
 <!-- end of 'kctl-transfers help' output -->
@@ -174,12 +174,6 @@ Automation:
   -U                       upgrade the system configuration and tracker
 
   -C                       rescue the system configuration and tracker
-
-  -R                       restore tracker using dump
-
-  -F DUMP_FILEPATH         set filepath to dump (-S and -R should be specified)
-
-  -S SALT                  set salt for dump restoring (-F and -R should be specified)
 
 Customization:
   -a PATH_TO_PACKAGE       set path to Keitaro installation package

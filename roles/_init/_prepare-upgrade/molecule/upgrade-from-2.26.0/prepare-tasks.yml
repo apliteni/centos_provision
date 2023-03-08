@@ -10,11 +10,6 @@
     path: /etc/nginx/ssl
     state: directory
 
-- name: Create fake old cert
-  file:
-    path: /etc/nginx/ssl/cert.pem
-    state: touch
-
 - name: Create fake cron.php call from root's cron
   copy:
     dest: /var/spool/cron/root

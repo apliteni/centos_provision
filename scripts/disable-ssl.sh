@@ -51,7 +51,7 @@ TOOL_NAME='disable-ssl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.41.6'
+RELEASE_VERSION='2.41.7'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -266,18 +266,33 @@ AS_VERSION__REGEX="(${AS_VERSION__PART_REGEX}\.){1,${AS_VERSION__PARTS_TO_KEEP}}
 as_version() {
   local version_string="${1}"
   # Expand version string by adding `.` to the end to simplify logic
-  local major_part='0'
-  local minor_part='0'
-  local patch_part='0'
-  local additional_part='0'
+  local major='0'
+  local minor='0'
+  local patch='0'
+  local extra='0'
   if [[ "${version_string}." =~ ^${AS_VERSION__REGEX}$ ]]; then
     IFS='.' read -r -a parts <<< "${version_string}"
-    major_part="${parts[0]:-${major_part}}"
-    minor_part="${parts[1]:-${minor_part}}"
-    patch_part="${parts[2]:-${patch_part}}"
-    additional_part="${parts[3]:-${additional_part}}"
+    major="${parts[0]:-${major}}"
+    minor="${parts[1]:-${minor}}"
+    patch="${parts[2]:-${patch}}"
+    extra="${parts[3]:-${extra}}"
   fi
-  printf '1%03d%03d%03d%03d' "${major_part}" "${minor_part}" "${patch_part}" "${additional_part}"
+  printf '1%03d%03d%03d%03d' "${major}" "${minor}" "${patch}" "${extra}"
+}
+
+version_as_str() {
+  local version="${1}" major minor patch extra
+
+  major="${version:1:3}"; major="${major#0}"; major="${major#0}"
+  minor="${version:4:3}"; minor="${minor#0}"; minor="${minor#0}"
+  patch="${version:7:3}"; patch="${patch#0}"; patch="${patch#0}"
+  extra="${version:10:3}"; extra="${extra#0}"; extra="${extra#0}"
+
+  if [[ "${extra}" != "0" ]]; then
+    echo "${major}.${minor}.${patch}.${extra}"
+  else
+    echo "${major}.${minor}.${patch}"
+  fi
 }
 
 as_minor_version() {
