@@ -170,7 +170,7 @@ kctl-install installs and configures Keitaro
 
 Example: kctl-install
 
-Automation:
+Modes:
   -U                       upgrade the system configuration and tracker
 
   -C                       rescue the system configuration and tracker

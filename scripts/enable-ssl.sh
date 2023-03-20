@@ -51,7 +51,7 @@ TOOL_NAME='enable-ssl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.41.7'
+RELEASE_VERSION='2.41.8'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -406,23 +406,25 @@ create_user() {
   local user="${1}"
   local homedir="${2}"
   local shell="${3}"
-  local command_args=""
+  local command_args command
 
-  if [ -f "${homedir}" ]; then
+  if isset "$(get_user_id "${user}")"; then
+    return
+  fi
+
+  if [[ -f "${homedir}" ]]; then
     command_args="${command_args} -d ${homedir}"
   fi
 
-  if [ -f "${shell}" ]; then
-   command_args="${command_args} -s ${shell}"
+  if [[ -f "${shell}" ]]; then
+    command_args="${command_args} -s ${shell}"
   fi
 
   command_args="${command_args} -M ${user}"
 
-  if empty "$(get_user_id "${user}")"; then
-    local command
-    command="useradd ${command_args}"
-    run_command "${command}" '' '' '' '' 'print_ansible_fail_message'
-  fi
+  command="useradd ${command_args}"
+
+  run_command "${command}" "Creating user ${user}" 'hide_output'
 }
 
 detect_installed_version(){
