@@ -51,7 +51,7 @@ TOOL_NAME='enable-ssl'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.41.8'
+RELEASE_VERSION='2.41.9'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -525,12 +525,18 @@ interpolate(){
 is_installed(){
   local command="${1}"
   debug "Looking for command '$command'"
-  if which "$command" &>/dev/null; then
+  if is_command_installed "${command}"; then
     debug "FOUND: Command '$command' found"
   else
     debug "NOT FOUND: Command '$command' not found"
     return ${FAILURE_RESULT}
   fi
+}
+
+is_command_installed() {
+  local command="${1}"
+  (is_ci_mode && sh -c "command -v '$command' -gt /dev/null") ||
+    which "$command" &>/dev/null
 }
 
 is_package_installed(){
