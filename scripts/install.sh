@@ -52,7 +52,7 @@ TOOL_NAME='install'
 SELF_NAME=${0}
 
 
-RELEASE_VERSION='2.41.9'
+RELEASE_VERSION='2.41.10'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -1414,34 +1414,9 @@ get_ansible_package_name() {
   fi
 }
 
-clean_up(){
-  if [ -d "$PROVISION_DIRECTORY" ]; then
-    debug "Remove ${PROVISION_DIRECTORY}"
-    rm -rf "$PROVISION_DIRECTORY"
-    (popd || true) &> /dev/null
-  fi
+get_free_disk_space_mb() {
+  (df -m --output=avail / | tail -n1) 2>/dev/null
 }
-
-is_running_in_upgrade_mode() {
-  [[ "${RUNNING_MODE}" == "${RUNNING_MODE_UPGRADE}" ]]
-}
-
-is_running_in_install_mode() {
-  [[ "${RUNNING_MODE}" == "${RUNNING_MODE_INSTALL}" ]]
-}
-
-is_running_in_fast_upgrade_mode() {
-  is_running_in_upgrade_mode && [[ "${UPGRADING_MODE}" == "${UPGRADING_MODE_FAST}" ]]
-}
-
-is_running_in_full_upgrade_mode() {
-  is_running_in_upgrade_mode && [[ "${UPGRADING_MODE}" == "${UPGRADING_MODE_FULL}" ]]
-}
-
-is_running_in_rescue_mode() {
-  is_running_in_full_upgrade_mode
-}
-
 
 get_config_value(){
   local var="${1}"
@@ -1483,7 +1458,7 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['install-mariadb']='2.41.8'
   ['install-redis']='2.39.12'
 
-  ['tune-nginx']='2.38.2'
+  ['tune-nginx']='2.41.9'
 
   ['install-php']='2.30.10'
   ['install-roadrunner']='2.40.8'
@@ -1546,22 +1521,38 @@ is_upgrading_mode_full() {
   [[ "${UPGRADING_MODE}" == "${UPGRADING_MODE_FULL}" ]]
 }
 
-get_free_disk_space_mb() {
-  (df -m --output=avail / | tail -n1) 2>/dev/null
+clean_up(){
+  if [ -d "$PROVISION_DIRECTORY" ]; then
+    debug "Remove ${PROVISION_DIRECTORY}"
+    rm -rf "$PROVISION_DIRECTORY"
+    (popd || true) &> /dev/null
+  fi
 }
+
+is_running_in_upgrade_mode() {
+  [[ "${RUNNING_MODE}" == "${RUNNING_MODE_UPGRADE}" ]]
+}
+
+is_running_in_install_mode() {
+  [[ "${RUNNING_MODE}" == "${RUNNING_MODE_INSTALL}" ]]
+}
+
+is_running_in_fast_upgrade_mode() {
+  is_running_in_upgrade_mode && [[ "${UPGRADING_MODE}" == "${UPGRADING_MODE_FAST}" ]]
+}
+
+is_running_in_full_upgrade_mode() {
+  is_running_in_upgrade_mode && [[ "${UPGRADING_MODE}" == "${UPGRADING_MODE_FULL}" ]]
+}
+
+is_running_in_rescue_mode() {
+  is_running_in_full_upgrade_mode
+}
+
 
 get_ram_size_mb() {
   (free -m | grep Mem: | awk '{print $2}') 2>/dev/null
 }
-MYIP_KEITARO_IO="https://myip.keitaro.io"
-
-detect_server_ip() {
-  debug "Detecting server IP address"
-  debug "Getting url '${MYIP_KEITARO_IO}'"
-  SERVER_IP="$(curl -fsSL4 ${MYIP_KEITARO_IO} 2>&1)"
-  debug "Done, result is '${SERVER_IP}'"
-}
-
 
 RUNNING_MODE_INSTALL="install"
 RUNNING_MODE_UPGRADE="upgrade"
@@ -1673,121 +1664,21 @@ help_en(){
   echo "  -w                       do not run 'yum upgrade'"
   echo
 }
+MYIP_KEITARO_IO="https://myip.keitaro.io"
+
+detect_server_ip() {
+  debug "Detecting server IP address"
+  debug "Getting url '${MYIP_KEITARO_IO}'"
+  SERVER_IP="$(curl -fsSL4 ${MYIP_KEITARO_IO} 2>&1)"
+  debug "Done, result is '${SERVER_IP}'"
+}
+
 
 stage1() {
   debug "Starting stage 1: initial script setup"
   parse_options "$@"
   detect_server_ip
   debug "Running in mode '${RUNNING_MODE}'"
-}
-
-assert_server_ip_is_valid() {
-  if ! valid_ip "${SERVER_IP}"; then
-    fail "$(translate 'errors.cant_detect_server_ip')"
-  fi
-}
-
-valid_ip(){
-  local value="${1}"
-  [[ "$value" =~  ^[[:digit:]]+(\.[[:digit:]]+){3}$ ]] && valid_ip_segments "$value"
-}
-
-
-valid_ip_segments(){
-  local ip="${1}"
-  local segments
-  IFS='.' read -r -a segments <<< "${ip}"
-  for segment in "${segments[@]}"; do
-    if ! valid_ip_segment "${segment}"; then
-      return "${FAILURE_RESULT}"
-    fi
-  done
-}
-
-valid_ip_segment(){
-  local ip_segment="${1}"
-  [ "$ip_segment" -ge 0 ] && [ "$ip_segment" -le 255 ]
-}
-
-assert_apache_not_installed(){
-  if is_installed httpd; then
-    fail "$(translate errors.apache_installed)"
-  fi
-}
-
-assert_running_on_supported_centos(){
-  assert_installed 'yum' 'errors.wrong_distro'
-  if ! file_exists /etc/centos-release; then
-    fail "$(translate errors.wrong_distro)"
-  fi
-  if empty "${SKIP_CENTOS_RELEASE_CHECK}"; then
-    if ! is_running_in_upgrade_mode; then
-      assert_centos_release_is_supportded
-    fi
-  fi
-}
-
-assert_centos_release_is_supportded(){
-  if ! file_content_matches /etc/centos-release '-P' '^CentOS .* (8|9)\b'; then
-    fail "$(translate errors.wrong_distro)"
-  fi
-}
-
-assert_systemctl_works_properly () {
-  local message
-  message=$(print_with_color 'Checking if systemd works' 'blue')
-  echo -en "${message} . "
-  if systemctl &> /dev/null; then
-    print_with_color 'OK' 'green'
-  else
-    print_with_color 'NOK' 'red'
-    fail "$(translate errors.systemctl_doesnt_work_properly)"
-  fi
-}
-
-
-assert_thp_deactivatable() {
-  debug "Checking if it is possible to disable THP"
-  if is_ci_mode; then
-    debug "Skip actual checking"
-    return
-  fi
-  if are_thp_sys_files_existing; then
-    debug "There are THP files in /sys fs, checking for ability to disable THP" 
-    echo never > /sys/kernel/mm/transparent_hugepage/enabled
-    echo never > /sys/kernel/mm/transparent_hugepage/defrag
-    thp_enabled="$(cat /sys/kernel/mm/transparent_hugepage/enabled)"
-    if [ "$thp_enabled" == "always madvise [never]" ]; then
-      debug "OK, THP was successfully disabled"
-    else
-      fail "Can't disable Transparent Huge Pages" 
-    fi
-  else
-    debug "There are no THP files in /sys fs, continuing installation process" 
-  fi
-}
-
-are_thp_sys_files_existing() {
-  file_exists "/sys/kernel/mm/transparent_hugepage/enabled" && file_exists "/sys/kernel/mm/transparent_hugepage/defrag"
-}
-MIN_FREE_DISK_SPACE_MB=2048
-
-assert_has_enough_free_disk_space(){
-  debug "Checking free disk spice"
-
-  if [[ "${SKIP_FREE_SPACE_CHECK}" != "" ]] || is_running_in_rescue_mode; then
-    debug "Free disk space checking skipped"
-    return
-  fi
-
-  local current_free_disk_space_mb
-  current_free_disk_space_mb=$(get_free_disk_space_mb)
-  if [[ "${current_free_disk_space_mb}" -lt "${MIN_FREE_DISK_SPACE_MB}" ]]; then
-    debug "Free disk space ${current_free_disk_space_mb}mb is less than ${MIN_FREE_DISK_SPACE_MB}mb, raising error"
-    fail "$(translate errors.not_enough_free_disk_space)"
-  else
-    debug "Free disk space ${current_free_disk_space_mb}mb is greater than ${MIN_FREE_DISK_SPACE_MB}mb, continuing"
-  fi
 }
 
 assert_pannels_not_installed(){
@@ -1819,6 +1710,46 @@ database_exists(){
   debug "Check if database ${database} exists"
   mysql -Nse 'show databases' 2>/dev/null | tr '\n' ' ' | grep -Pq "${database}"
 }
+
+assert_server_ip_is_valid() {
+  if ! valid_ip "${SERVER_IP}"; then
+    fail "$(translate 'errors.cant_detect_server_ip')"
+  fi
+}
+
+valid_ip(){
+  local value="${1}"
+  [[ "$value" =~  ^[[:digit:]]+(\.[[:digit:]]+){3}$ ]] && valid_ip_segments "$value"
+}
+
+
+valid_ip_segments(){
+  local ip="${1}"
+  local segments
+  IFS='.' read -r -a segments <<< "${ip}"
+  for segment in "${segments[@]}"; do
+    if ! valid_ip_segment "${segment}"; then
+      return "${FAILURE_RESULT}"
+    fi
+  done
+}
+
+valid_ip_segment(){
+  local ip_segment="${1}"
+  [ "$ip_segment" -ge 0 ] && [ "$ip_segment" -le 255 ]
+}
+
+assert_systemctl_works_properly () {
+  local message
+  message=$(print_with_color 'Checking if systemd works' 'blue')
+  echo -en "${message} . "
+  if systemctl &> /dev/null; then
+    print_with_color 'OK' 'green'
+  else
+    print_with_color 'NOK' 'red'
+    fail "$(translate errors.systemctl_doesnt_work_properly)"
+  fi
+}
 MIN_RAM_SIZE_MB=1500
 
 assert_has_enough_ram(){
@@ -1834,6 +1765,57 @@ assert_has_enough_ram(){
   fi
 }
 
+assert_apache_not_installed(){
+  if is_installed httpd; then
+    fail "$(translate errors.apache_installed)"
+  fi
+}
+MIN_FREE_DISK_SPACE_MB=2048
+
+assert_has_enough_free_disk_space(){
+  debug "Checking free disk spice"
+
+  if [[ "${SKIP_FREE_SPACE_CHECK}" != "" ]] || is_running_in_rescue_mode; then
+    debug "Free disk space checking skipped"
+    return
+  fi
+
+  local current_free_disk_space_mb
+  current_free_disk_space_mb=$(get_free_disk_space_mb)
+  if [[ "${current_free_disk_space_mb}" -lt "${MIN_FREE_DISK_SPACE_MB}" ]]; then
+    debug "Free disk space ${current_free_disk_space_mb}mb is less than ${MIN_FREE_DISK_SPACE_MB}mb, raising error"
+    fail "$(translate errors.not_enough_free_disk_space)"
+  else
+    debug "Free disk space ${current_free_disk_space_mb}mb is greater than ${MIN_FREE_DISK_SPACE_MB}mb, continuing"
+  fi
+}
+
+
+assert_thp_deactivatable() {
+  debug "Checking if it is possible to disable THP"
+  if is_ci_mode; then
+    debug "Skip actual checking"
+    return
+  fi
+  if are_thp_sys_files_existing; then
+    debug "There are THP files in /sys fs, checking for ability to disable THP" 
+    echo never > /sys/kernel/mm/transparent_hugepage/enabled
+    echo never > /sys/kernel/mm/transparent_hugepage/defrag
+    thp_enabled="$(cat /sys/kernel/mm/transparent_hugepage/enabled)"
+    if [ "$thp_enabled" == "always madvise [never]" ]; then
+      debug "OK, THP was successfully disabled"
+    else
+      fail "Can't disable Transparent Huge Pages" 
+    fi
+  else
+    debug "There are no THP files in /sys fs, continuing installation process" 
+  fi
+}
+
+are_thp_sys_files_existing() {
+  file_exists "/sys/kernel/mm/transparent_hugepage/enabled" && file_exists "/sys/kernel/mm/transparent_hugepage/defrag"
+}
+
 
 assert_not_running_under_openvz() {
   debug "Assert we are not running under OpenVZ"
@@ -1842,6 +1824,24 @@ assert_not_running_under_openvz() {
   debug "Detected virtualization type: '${virtualization_type}'"
   if isset "${virtualization_type}" && [[ "${virtualization_type}" == "openvz" ]]; then
     fail "Servers with OpenVZ virtualization are not supported"
+  fi
+}
+
+assert_running_on_supported_centos(){
+  assert_installed 'yum' 'errors.wrong_distro'
+  if ! file_exists /etc/centos-release; then
+    fail "$(translate errors.wrong_distro)"
+  fi
+  if empty "${SKIP_CENTOS_RELEASE_CHECK}"; then
+    if ! is_running_in_upgrade_mode; then
+      assert_centos_release_is_supportded
+    fi
+  fi
+}
+
+assert_centos_release_is_supportded(){
+  if ! file_content_matches /etc/centos-release '-P' '^CentOS .* (8|9)\b'; then
+    fail "$(translate errors.wrong_distro)"
   fi
 }
 
@@ -1859,41 +1859,6 @@ stage2(){
   assert_thp_deactivatable
   assert_server_ip_is_valid
   assert_architecture_is_valid
-}
-
-setup_vars() {
-  detect_installed_version
-  setup_default_value installer_version "${INSTALLED_VERSION}" "${RELEASE_VERSION}"
-  setup_default_value db_name 'keitaro'
-  setup_default_value ch_password "$(generate_password)"
-  setup_default_value db_engine "${DB_ENGINE_DEFAULT}"
-  if ! file_exists "${INVENTORY_DIR}/tracker.env"; then
-    setup_default_value db_password "$(get_tracker_config_value 'db' 'password')" "$(generate_password)"
-    setup_default_value db_root_password "$(get_config_value password "/root/.my.cnf" '=')" "$(generate_password)"
-    setup_default_value db_user "$(get_tracker_config_value 'db' 'user')" 'keitaro'
-    setup_default_value postback_key "$(get_config_value 'postback_key' "${TRACKER_CONFIG_FILE}" '=')"
-    setup_default_value salt "$(get_config_value 'salt' "${TRACKER_CONFIG_FILE}" '=')" "$(generate_uuid)"
-    setup_default_value table_prefix "$(get_tracker_config_value 'db' 'prefix')" 'keitaro_'
-  fi
-}
-
-setup_default_value() {
-  local var_name="${1}"
-  local default_value="${2:-${3}}"
-  if empty "${VARS[${var_name}]}"; then
-    if [[ "${var_name}" =~ passw ]]; then
-      debug "VARS['${var_name}'] is empty, set to '***MASKED***'"
-    else
-      debug "VARS['${var_name}'] is empty, set to '${default_value}'"
-    fi
-    VARS["${var_name}"]="${default_value}"
-  else
-    if [[ "${var_name}" =~ passw ]]; then
-      debug "VARS['${var_name}'] is set to '***MASKED***'"
-    else
-      debug "VARS['${var_name}'] is set to '${VARS[$var_name]}'"
-    fi
-  fi
 }
 
 read_inventory(){
@@ -1932,6 +1897,41 @@ parse_line_from_inventory_file(){
       debug "  $var_name=***MASKED***"
     else
       debug "  $var_name=${VARS[$var_name]}"
+    fi
+  fi
+}
+
+setup_vars() {
+  detect_installed_version
+  setup_default_value installer_version "${INSTALLED_VERSION}" "${RELEASE_VERSION}"
+  setup_default_value db_name 'keitaro'
+  setup_default_value ch_password "$(generate_password)"
+  setup_default_value db_engine "${DB_ENGINE_DEFAULT}"
+  if ! file_exists "${INVENTORY_DIR}/tracker.env"; then
+    setup_default_value db_password "$(get_tracker_config_value 'db' 'password')" "$(generate_password)"
+    setup_default_value db_root_password "$(get_config_value password "/root/.my.cnf" '=')" "$(generate_password)"
+    setup_default_value db_user "$(get_tracker_config_value 'db' 'user')" 'keitaro'
+    setup_default_value postback_key "$(get_config_value 'postback_key' "${TRACKER_CONFIG_FILE}" '=')"
+    setup_default_value salt "$(get_config_value 'salt' "${TRACKER_CONFIG_FILE}" '=')" "$(generate_uuid)"
+    setup_default_value table_prefix "$(get_tracker_config_value 'db' 'prefix')" 'keitaro_'
+  fi
+}
+
+setup_default_value() {
+  local var_name="${1}"
+  local default_value="${2:-${3}}"
+  if empty "${VARS[${var_name}]}"; then
+    if [[ "${var_name}" =~ passw ]]; then
+      debug "VARS['${var_name}'] is empty, set to '***MASKED***'"
+    else
+      debug "VARS['${var_name}'] is empty, set to '${default_value}'"
+    fi
+    VARS["${var_name}"]="${default_value}"
+  else
+    if [[ "${var_name}" =~ passw ]]; then
+      debug "VARS['${var_name}'] is set to '***MASKED***'"
+    else
+      debug "VARS['${var_name}'] is set to '${VARS[$var_name]}'"
     fi
   fi
 }
@@ -2081,96 +2081,6 @@ stage4() {
   upgrades.run_upgrade_checkpoints 'early'
   write_inventory_file
 }
-remove_mariadb_repo(){
-  if [ -f /etc/yum.repos.d/mariadb.repo ]; then
-      debug "Removing mariadb repo"
-      rm -f /etc/yum.repos.d/mariadb.repo
-  fi
-}
-is_centos8_distro(){
-  file_content_matches /etc/centos-release '-P' '^CentOS Linux.* 8\b'
-}
-
-install_core_packages() {
-    install_package file
-    install_package tar
-    install_package curl
-    install_package crontabs
-    install_package logrotate
-    install_kctl_provision
-    install_kctl
-    # shellcheck source=/dev/null
-    source "${INVENTORY_DIR}/components.env"
-}
-
-install_kctl_components() {
-  install_kctld
-  install_kctl_ch_converter
-  pull_image "ClickHouse" "${CLICKHOUSE_IMAGE}"
-  pull_image "MariaDB" "${MARIADB_IMAGE}"
-  pull_image "Redis" "${REDIS_IMAGE}"
-  pull_image "CertBot" "${CERTBOT_IMAGE}"
-}
-
-disable_selinux() {
-  if [[ "$(get_selinux_status)" == "Enforcing" ]]; then
-    run_command 'setenforce 0' 'Disabling Selinux' 'hide_output'
-  fi
-
-  if file_exists /usr/sbin/setroubleshootd; then
-    run_command 'yum erase setroubleshoot-server -y && systemctl daemon-reload' 'Removing setroubleshootd' 'hide_output'
-  fi
-}
-
-get_selinux_status(){
-  getenforce
-}
-
-install_kctld() {
-  run_command "curl -fsSL ${KCTLD_URL} | tar --no-same-owner -xzC ${KCTL_BIN_DIR}" "Installing kctld" "hide_output"
-  if [[ "${KCTLD_MODE}" == "true" ]]; then
-    systemd.start_service 'kctld-worker'
-    systemd.start_service 'kctld-server'
-  else
-    systemd.restart_service 'kctld-worker'
-    systemd.restart_service 'kctld-server'
-  fi
-  systemd.enable_service 'kctld-worker'
-  systemd.enable_service 'kctld-server'
-}
-
-pull_image() {
-  local image_name="${1}" image_url="${2}"
-  run_command "podman pull ${image_url}" "Pulling ${image_name} image" "hide_output"
-}
-
-systemd.start_service() {
-  local name="${1}"
-  local command="systemctl start ${name}"
-  run_command "${command}" "Starting SystemD service ${name}" "hide_output"
-}
-
-systemd.reload_service() {
-  local name="${1}"
-  local command="systemctl reload ${name}"
-  run_command "${command}" "Reloading SystemD service ${name}" "hide_output"
-}
-
-systemd.update_units() {
-  run_command 'systemctl daemon-reload' "Updating SystemD units" "hide_output"
-}
-
-systemd.restart_service() {
-  local name="${1}"
-  local command="systemctl restart ${name}"
-  run_command "${command}" "Restarting SystemD service ${name}" "hide_output"
-}
-
-systemd.enable_service() {
-  local name="${1}"
-  local command="systemctl enable ${name}"
-  run_command "${command}" "Enabling SystemD service ${name}" "hide_output"
-}
 
 install_ansible() {
   if need_to_remove_old_ansible_centos7; then
@@ -2193,6 +2103,104 @@ need_to_remove_old_ansible_centos7() {
 
 need_to_remove_old_ansible_centos8() {
   is_running_in_upgrade_mode && [[ "$(get_centos_major_release)" == "8" ]] && yum list -q installed ansible &> /dev/null
+}
+
+install_kctl_components() {
+  install_kctld
+  install_kctl_ch_converter
+  pull_image "ClickHouse" "${CLICKHOUSE_IMAGE}"
+  pull_image "MariaDB" "${MARIADB_IMAGE}"
+  pull_image "Redis" "${REDIS_IMAGE}"
+  pull_image "CertBot" "${CERTBOT_IMAGE}"
+}
+
+install_kctl_ch_converter() {
+  local converter_path="${KCTL_BIN_DIR}/kctl-ch-converter"
+  local command="curl -fsSL ${KCTL_CH_CONVERTER_URL} | gzip -d > ${converter_path} && chmod a+x ${converter_path}"
+  run_command "${command}" "Installing kctl-ch-converter" "hide_output"
+}
+
+install_core_packages() {
+    install_package file
+    install_package tar
+    install_package curl
+    install_package crontabs
+    install_package logrotate
+    install_kctl_provision
+    install_kctl
+    # shellcheck source=/dev/null
+    source "${INVENTORY_DIR}/components.env"
+}
+
+install_kctld() {
+  run_command "curl -fsSL ${KCTLD_URL} | tar --no-same-owner -xzC ${KCTL_BIN_DIR}" "Installing kctld" "hide_output"
+  if [[ "${KCTLD_MODE}" == "true" ]]; then
+    systemd.start_service 'kctld-worker'
+    systemd.start_service 'kctld-server'
+  else
+    systemd.restart_service 'kctld-worker'
+    systemd.restart_service 'kctld-server'
+  fi
+  systemd.enable_service 'kctld-worker'
+  systemd.enable_service 'kctld-server'
+}
+
+install_kctl() {
+  install "${PROVISION_DIRECTORY}"/bin/* "${KCTL_BIN_DIR}"/
+  install "${PROVISION_DIRECTORY}"/files/etc/cron.daily/* /etc/cron.daily/
+  install -m 0644 "${PROVISION_DIRECTORY}"/files/etc/systemd/system/* /etc/systemd/system/
+  install -m 0644 "${PROVISION_DIRECTORY}"/files/etc/keitaro/config/* /etc/keitaro/config/
+  install -m 0444 "${PROVISION_DIRECTORY}"/files/etc/sudoers.d/* /etc/sudoers.d/
+  install -m 0444 "${PROVISION_DIRECTORY}"/files/etc/logrotate.d/* /etc/logrotate.d/
+  make_kctl_scripts_symlinks
+  systemd.update_units
+  systemd.restart_service 'schedule-fs-check-on-boot'
+  systemd.enable_service 'schedule-fs-check-on-boot'
+  systemd.restart_service 'disable-thp'
+  systemd.enable_service 'disable-thp'
+  systemd.restart_service 'kctl-monitor'
+  systemd.enable_service 'kctl-monitor'
+}
+
+make_kctl_scripts_symlinks() {
+  local file_name
+  for existing_file_path in "${KCTL_BIN_DIR}"/*; do
+    file_name="${existing_file_path##*/}"
+    ln -s -f "${existing_file_path}" "/usr/local/bin/${file_name}"
+  done
+}
+
+disable_selinux() {
+  if [[ "$(get_selinux_status)" == "Enforcing" ]]; then
+    run_command 'setenforce 0' 'Disabling Selinux' 'hide_output'
+  fi
+
+  if file_exists /usr/sbin/setroubleshootd; then
+    run_command 'yum erase setroubleshoot-server -y && systemctl daemon-reload' 'Removing setroubleshootd' 'hide_output'
+  fi
+}
+
+get_selinux_status(){
+  getenforce
+}
+remove_mariadb_repo(){
+  if [ -f /etc/yum.repos.d/mariadb.repo ]; then
+      debug "Removing mariadb repo"
+      rm -f /etc/yum.repos.d/mariadb.repo
+  fi
+}
+
+switch_to_centos8_stream() {
+  local repo_base_url="http://mirror.centos.org/centos/8-stream/BaseOS/x86_64/os/Packages"
+  local release="8-6"
+  local gpg_keys_package_url="${repo_base_url}/centos-gpg-keys-${release}.el8.noarch.rpm"
+  local repos_package_url="${repo_base_url}/centos-stream-repos-${release}.el8.noarch.rpm"
+  debug 'Switching CentOS 8 -> CentOS Stream 8'
+  print_with_color 'Switching CentOS 8 -> CentOS Stream 8:' 'blue'
+  run_command "dnf install -y --nobest --allowerasing ${gpg_keys_package_url} ${repos_package_url}" \
+              "  Installing CentOS Stream repos"
+  # run_command "dnf swap centos-{linux,stream}-repos -y" "  Switching to CentOS Stream"
+  run_command "dnf distro-sync -y" "  Syncing distro"
 }
 
 install_podman() {
@@ -2228,18 +2236,89 @@ install_registry_keitaro_config(){
   install -m 0644 "${PROVISION_DIRECTORY}"/files/etc/containers/registries.conf.d/* /etc/containers/registries.conf.d/
 }
 
-render_nginx_config() {
-  local default_conf="${1}"
-  cat > "${default_conf}" <<EOF
-    server {
-        listen       80 default_server;
-        listen       [::]:80 default_server;
-        server_name  _;
-        root         ${TRACKER_ROOT};
+pull_image() {
+  local image_name="${1}" image_url="${2}"
+  run_command "podman pull ${image_url}" "Pulling ${image_name} image" "hide_output"
+}
 
-        location = / { return 301 /admin/; }
-    }
-EOF
+install_kctl_provision() {
+  local kctl_provision_url="https://files.keitaro.io/scripts/${BRANCH}/kctl.tar.gz"
+  local command="curl -fsSL ${kctl_provision_url} | tar -xzC ${PROVISION_DIRECTORY}"
+  mkdir -p "${PROVISION_DIRECTORY}"
+  run_command "${command}" "Installing kctl provision from ${kctl_provision_url}" "hide_output"
+}
+
+disable_fastestmirror(){
+  local disabling_message="Disabling mirrors in repo files"
+  local disabling_command="sed -i -e 's/^#baseurl/baseurl/g; s/^mirrorlist/#mirrorlist/g;'  /etc/yum.repos.d/*"
+  run_command "${disabling_command}" "${disabling_message}" "hide_output"
+
+  if [[ "$(get_centos_major_release)" == "7" ]] && is_fastestmirror_enabled; then
+    disabling_message="Disabling fastestmirror plugin on Centos7"
+    disabling_command="sed -i -e 's/^enabled=1/enabled=0/g' /etc/yum/pluginconf.d/fastestmirror.conf"
+    run_command "${disabling_command}" "${disabling_message}" "hide_output"
+  fi
+}
+
+FASTESTMIROR_CONF_PATH="/etc/yum/pluginconf.d/fastestmirror.conf"
+
+is_fastestmirror_enabled() {
+  file_exists "${FASTESTMIROR_CONF_PATH}" && \
+      grep -q '^enabled=1' "${FASTESTMIROR_CONF_PATH}"
+}
+is_centos8_distro(){
+  file_content_matches /etc/centos-release '-P' '^CentOS Linux.* 8\b'
+}
+
+systemd.enable_service() {
+  local name="${1}"
+  local command="systemctl enable ${name}"
+  run_command "${command}" "Enabling SystemD service ${name}" "hide_output"
+}
+
+systemd.start_service() {
+  local name="${1}"
+  local command="systemctl start ${name}"
+  run_command "${command}" "Starting SystemD service ${name}" "hide_output"
+}
+
+systemd.update_units() {
+  run_command 'systemctl daemon-reload' "Updating SystemD units" "hide_output"
+}
+
+systemd.restart_service() {
+  local name="${1}"
+  local command="systemctl restart ${name}"
+  run_command "${command}" "Restarting SystemD service ${name}" "hide_output"
+}
+
+systemd.reload_service() {
+  local name="${1}"
+  local command="systemctl reload ${name}"
+  run_command "${command}" "Reloading SystemD service ${name}" "hide_output"
+}
+
+install_extra_packages() {
+  install_podman
+  if is_running_in_upgrade_mode; then
+    debug "Running mode is '${KCTL_RUNNING_MODE}', skip installing packages"
+    if is_package_installed "nginx"; then
+      debug "Found host based nginx. Remove it and install nginx on docker"
+      run_command "podman pull ${NGINX_IMAGE}"
+      yum remove -y nginx
+      install_nginx_on_docker
+    else
+      render_nginx_systemd_config
+      systemd.update_units
+      systemd.restart_service "nginx"
+    fi
+  else
+    debug "Running mode is '${KCTL_RUNNING_MODE}', installing packages"
+    install_nginx_on_docker
+    install_starting_page
+  fi
+  install_kctl_components
+  install_ansible
 }
 
 render_nginx_systemd_config() {
@@ -2282,23 +2361,6 @@ WantedBy=multi-user.target
 EOF
 }
 
-copy_nginx_configs() {
-  local cmd="cp -R ${PROVISION_DIRECTORY}/templates/nginx/ /etc/"
-  run_command "${cmd}" "Copying nginx configs" "hide_output"
-}
-NGINX_DIRS=("/var/log/nginx" "/etc/keitaro/ssl" "/etc/letsencrypt" "/var/lib/nginx" "/var/cache/nginx" "/var/run/nginx" "${NGINX_CONFIG_ROOT}")
-
-create_nginx_dirs(){
-  for dir in "${NGINX_DIRS[@]}"; do
-    mkdir -p "${dir}"
-    if [[ ! "${dir}" =~ ^/etc/ ]]; then
-      chown nginx:nginx -R "${dir}"
-    fi
-  done
-  rm -f /etc/nginx/nginx.conf.rpmsave
-}
-
-
 PATH_TO_NGINX_ROADRUNNER_CONFIG="/etc/nginx/conf.d/keitaro/locations/roadrunner.inc"
 
 install_nginx_on_docker() {
@@ -2319,98 +2381,36 @@ install_nginx_on_docker() {
   systemd.enable_service "nginx"
 }
 
-install_kctl() {
-  install "${PROVISION_DIRECTORY}"/bin/* "${KCTL_BIN_DIR}"/
-  install "${PROVISION_DIRECTORY}"/files/etc/cron.daily/* /etc/cron.daily/
-  install -m 0644 "${PROVISION_DIRECTORY}"/files/etc/systemd/system/* /etc/systemd/system/
-  install -m 0644 "${PROVISION_DIRECTORY}"/files/etc/keitaro/config/* /etc/keitaro/config/
-  install -m 0444 "${PROVISION_DIRECTORY}"/files/etc/sudoers.d/* /etc/sudoers.d/
-  install -m 0444 "${PROVISION_DIRECTORY}"/files/etc/logrotate.d/* /etc/logrotate.d/
-  make_kctl_scripts_symlinks
-  systemd.update_units
-  systemd.restart_service 'schedule-fs-check-on-boot'
-  systemd.enable_service 'schedule-fs-check-on-boot'
-  systemd.restart_service 'disable-thp'
-  systemd.enable_service 'disable-thp'
-  systemd.restart_service 'kctl-monitor'
-  systemd.enable_service 'kctl-monitor'
+copy_nginx_configs() {
+  local cmd="cp -R ${PROVISION_DIRECTORY}/templates/nginx/ /etc/"
+  run_command "${cmd}" "Copying nginx configs" "hide_output"
 }
 
-make_kctl_scripts_symlinks() {
-  local file_name
-  for existing_file_path in "${KCTL_BIN_DIR}"/*; do
-    file_name="${existing_file_path##*/}"
-    ln -s -f "${existing_file_path}" "/usr/local/bin/${file_name}"
-  done
-}
+render_nginx_config() {
+  local default_conf="${1}"
+  cat > "${default_conf}" <<EOF
+    server {
+        listen       80 default_server;
+        listen       [::]:80 default_server;
+        server_name  _;
+        root         ${TRACKER_ROOT};
 
-install_kctl_provision() {
-  local kctl_provision_url="https://files.keitaro.io/scripts/${BRANCH}/kctl.tar.gz"
-  local command="curl -fsSL ${kctl_provision_url} | tar -xzC ${PROVISION_DIRECTORY}"
-  mkdir -p "${PROVISION_DIRECTORY}"
-  run_command "${command}" "Installing kctl provision from ${kctl_provision_url}" "hide_output"
+        location = / { return 301 /admin/; }
+    }
+EOF
 }
+NGINX_DIRS=("/var/log/nginx" "/etc/keitaro/ssl" "/etc/letsencrypt" "/var/lib/nginx" "/var/cache/nginx" "/var/run/nginx" "${NGINX_CONFIG_ROOT}")
 
-install_extra_packages() {
-  install_podman
-  if is_running_in_upgrade_mode; then
-    debug "Running mode is '${KCTL_RUNNING_MODE}', skip installing packages"
-    if is_package_installed "nginx"; then
-      debug "Found host based nginx. Remove it and install nginx on docker"
-      run_command "podman pull ${NGINX_IMAGE}"
-      yum remove -y nginx
-      install_nginx_on_docker
-    else
-      render_nginx_systemd_config
-      systemd.update_units
-      systemd.restart_service "nginx"
+create_nginx_dirs(){
+  for dir in "${NGINX_DIRS[@]}"; do
+    mkdir -p "${dir}"
+    if [[ ! "${dir}" =~ ^/etc/ ]]; then
+      chown nginx:nginx -R "${dir}"
     fi
-  else
-    debug "Running mode is '${KCTL_RUNNING_MODE}', installing packages"
-    install_nginx_on_docker
-    install_starting_page
-  fi
-  install_kctl_components
-  install_ansible
+  done
+  rm -f /etc/nginx/nginx.conf.rpmsave
 }
 
-install_kctl_ch_converter() {
-  local converter_path="${KCTL_BIN_DIR}/kctl-ch-converter"
-  local command="curl -fsSL ${KCTL_CH_CONVERTER_URL} | gzip -d > ${converter_path} && chmod a+x ${converter_path}"
-  run_command "${command}" "Installing kctl-ch-converter" "hide_output"
-}
-
-switch_to_centos8_stream() {
-  local repo_base_url="http://mirror.centos.org/centos/8-stream/BaseOS/x86_64/os/Packages"
-  local release="8-6"
-  local gpg_keys_package_url="${repo_base_url}/centos-gpg-keys-${release}.el8.noarch.rpm"
-  local repos_package_url="${repo_base_url}/centos-stream-repos-${release}.el8.noarch.rpm"
-  debug 'Switching CentOS 8 -> CentOS Stream 8'
-  print_with_color 'Switching CentOS 8 -> CentOS Stream 8:' 'blue'
-  run_command "dnf install -y --nobest --allowerasing ${gpg_keys_package_url} ${repos_package_url}" \
-              "  Installing CentOS Stream repos"
-  # run_command "dnf swap centos-{linux,stream}-repos -y" "  Switching to CentOS Stream"
-  run_command "dnf distro-sync -y" "  Syncing distro"
-}
-
-disable_fastestmirror(){
-  local disabling_message="Disabling mirrors in repo files"
-  local disabling_command="sed -i -e 's/^#baseurl/baseurl/g; s/^mirrorlist/#mirrorlist/g;'  /etc/yum.repos.d/*"
-  run_command "${disabling_command}" "${disabling_message}" "hide_output"
-
-  if [[ "$(get_centos_major_release)" == "7" ]] && is_fastestmirror_enabled; then
-    disabling_message="Disabling fastestmirror plugin on Centos7"
-    disabling_command="sed -i -e 's/^enabled=1/enabled=0/g' /etc/yum/pluginconf.d/fastestmirror.conf"
-    run_command "${disabling_command}" "${disabling_message}" "hide_output"
-  fi
-}
-
-FASTESTMIROR_CONF_PATH="/etc/yum/pluginconf.d/fastestmirror.conf"
-
-is_fastestmirror_enabled() {
-  file_exists "${FASTESTMIROR_CONF_PATH}" && \
-      grep -q '^enabled=1' "${FASTESTMIROR_CONF_PATH}"
-}
 clean_packages_metadata() {
   if empty "$WITHOUTH_YUM_UPDATE"; then
     run_command "yum clean all" "Cleaninig yum meta" "hide_output"
@@ -2926,6 +2926,24 @@ postupgrade_checkpoint_2_41_7.set_ch_table_ttl() {
 }
 
 
+preupgrade_checkpoint_2_41_7() {
+  preupgrade_checkpoint_2_41_7.fix_db_engine
+  preupgrade_checkpoint_2_41_7.fix_nginx_log_dir_permissions
+}
+
+preupgrade_checkpoint_2_41_7.fix_db_engine() {
+  fix_db_engine
+}
+
+preupgrade_checkpoint_2_41_7.fix_nginx_log_dir_permissions() {
+  local cmd
+  local nginx_log_dir="/var/log/nginx"
+  cmd="mkdir -p ${nginx_log_dir}"
+  cmd="${cmd} && chown nginx:nginx ${nginx_log_dir}"
+  cmd="${cmd} && chmod 0750 ${nginx_log_dir}"
+  upgrades.run_upgrade_checkpoint_command "${cmd}" "Fixing nginx directory permissions"
+}
+
 fix_db_engine() {
   detect_db_engine() {
     local sql="SELECT lower(engine) FROM information_schema.tables WHERE table_name = 'schema_migrations'"
@@ -2939,7 +2957,7 @@ fix_db_engine() {
   detect_db_engine_failsafe() {
     local tokudb_file_exists
 
-    tokudb_file_exists="$(find /var/lib/mysql -maxdepth 1 -name '*schema_migrations*tokudb' -printf 1 -quit)"
+    tokudb_file_exists="$(find /var/lib/mysql -maxdepth 1 -name '*tokudb' -printf 1 -quit)"
 
     if [[ "${tokudb_file_exists}" == "1" ]]; then
       echo "tokudb"
@@ -2959,24 +2977,6 @@ fix_db_engine() {
   upgrades.print_checkpoint_info "MariaDB tables engine is set to ${detected_db_engine}"
   VARS['db_engine']="${detected_db_engine}"
   write_inventory_file
-}
-
-preupgrade_checkpoint_2_41_7() {
-  preupgrade_checkpoint_2_41_7.fix_db_engine
-  preupgrade_checkpoint_2_41_7.fix_nginx_log_dir_permissions
-}
-
-preupgrade_checkpoint_2_41_7.fix_db_engine() {
-  fix_db_engine
-}
-
-preupgrade_checkpoint_2_41_7.fix_nginx_log_dir_permissions() {
-  local cmd
-  local nginx_log_dir="/var/log/nginx"
-  cmd="mkdir -p ${nginx_log_dir}"
-  cmd="${cmd} && chown nginx:nginx ${nginx_log_dir}"
-  cmd="${cmd} && chmod 0750 ${nginx_log_dir}"
-  upgrades.run_upgrade_checkpoint_command "${cmd}" "Fixing nginx directory permissions"
 }
 
 preupgrade_checkpoint_2_41_8() {
