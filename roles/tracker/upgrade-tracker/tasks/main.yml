@@ -8,4 +8,4 @@
 
 - name: Download and unpack tracker package
   include_tasks: "../_shared/install-package.yml"
-  when: tracker_version_to_install is defined
+  when: tracker_version_to_install is defined and tracker_version_to_install != installed_tracker_version

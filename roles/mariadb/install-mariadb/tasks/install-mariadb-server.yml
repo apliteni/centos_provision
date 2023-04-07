@@ -1,21 +1,3 @@
-- name: Set mariadb_user_id
-  set_fact:
-    mariadb_user_id: "{{ mariadb_user_info.uid }}"
-    mariadb_group_id: "{{ mariadb_user_info.group }}"
-
-- name: Pull image
-  shell: source /etc/keitaro/config/components.env && podman pull ${MARIADB_IMAGE}
-  changed_when: false
-
-- name: Generate systemd mariadb config
-  template:
-    src: systemd/mariadb.service.j2
-    dest: /etc/systemd/system/mariadb.service
-    mode: '0640'
-  notify:
-    - reconfigure systemd
-    - restart mariadb
-
 - name: Render configs
   template:
     src: "my.cnf.j2"
@@ -26,15 +8,3 @@
 
 - name: Do daemon-reload & restart service if need
   meta: flush_handlers
-
-- name: Start and enable service
-  service:
-    name: mariadb
-    state: started
-    enabled: true
-
-- name: Generate logrotate config
-  template:
-    src: "mariadb-logrotate.j2"
-    dest: "/etc/logrotate.d/mysql"
-    mode: '0644'

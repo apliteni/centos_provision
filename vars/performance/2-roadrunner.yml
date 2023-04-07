@@ -1,4 +1,4 @@
 roadrunner_memory_mb: "{{ (roadrunner_memory_usage_to_ram_ratio * ansible_memtotal_mb) | int }}"
 roadrunner_worker_size_mb: 50
 roadrunner_worker_max_requests: 512
-roadrunner_workers_count: "{{ ((roadrunner_memory_mb|int) / roadrunner_worker_size_mb) | int_between(5, 100) }}"
+roadrunner_workers_count: "{{ ((roadrunner_memory_mb|int) / roadrunner_worker_size_mb) | int_between(5, 50) }}"

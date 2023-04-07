@@ -7,7 +7,7 @@ default_storage_engine = {{ db_engine }}
 default_tmp_storage_engine = {{ db_engine }}
 
 # logging
-log-error = {{ mariadb_path_to_error_log }}
+log-error = stderr
 
 # listen
 bind_address={{ mariadb_bind_address }}

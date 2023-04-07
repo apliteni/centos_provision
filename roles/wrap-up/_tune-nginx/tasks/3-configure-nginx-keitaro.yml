@@ -50,5 +50,17 @@
   notify:
     - reload nginx
 
+- name: Stop and disable nginx_starting_page
+  service:
+    name: nginx_starting_page
+    state: stopped
+    enabled: false
+
+- name: Enable and start nginx
+  service:
+    name: nginx
+    state: started
+    enabled: true
+
 - name: Force reloading nginx if there were config changes
   meta: flush_handlers

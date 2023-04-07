@@ -24,7 +24,6 @@
     - {role: 'mariadb/install-mariadb',               tags: 'install-mariadb,               tune'}    # noqa yaml
     - {role: 'mariadb/wrap-up-db-configuration',      tags: 'wrap-up-db-configuration'}               # noqa yaml
     - {role: 'php/install-php',                       tags: 'install-php'}                            # noqa yaml
-    - {role: 'php/install-roadrunner',                tags: 'install-roadrunner'}                     # noqa yaml
     - {role: 'php/tune-php',                          tags: 'tune-php,                      tune'}    # noqa yaml
     - {role: 'php/tune-roadrunner',                   tags: 'tune-roadrunner,               tune'}    # noqa yaml
     - {role: 'redis/install-redis',                   tags: 'install-redis,                 tune'}    # noqa yaml

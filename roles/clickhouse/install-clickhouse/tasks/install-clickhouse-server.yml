@@ -1,21 +1,3 @@
-- name: Set clickhouse_uid
-  set_fact:
-    clickhouse_user_id: "{{ clickhouse_user_info.uid }}"
-    clickhouse_group_id: "{{ clickhouse_user_info.group }}"
-
-- name: Pull image
-  shell: source /etc/keitaro/config/components.env && podman pull ${CLICKHOUSE_IMAGE}
-  changed_when: false
-
-- name: Generate SystemD unit
-  template:
-    src: clickhouse.service.j2
-    dest: /etc/systemd/system/clickhouse.service
-    mode: '0640'
-  notify:
-    - reconfigure systemd
-    - restart clickhouse
-
 - name: Render configs
   template:
     src: "configs/{{ item }}.j2"
@@ -31,9 +13,3 @@
 
 - name: Do daemon-reload & restart service if need
   meta: flush_handlers
-
-- name: Start and enable service
-  service:
-    name: clickhouse
-    state: started
-    enabled: true

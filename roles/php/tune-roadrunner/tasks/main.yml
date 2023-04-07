@@ -1,6 +1,3 @@
-- name: Install helper tools
-  include_tasks: install-tools.yml
-
 - name: Tune roadrunner
   include_tasks: tune-roadrunner.yml
 

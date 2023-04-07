@@ -1,8 +1,1 @@
-- include_tasks: create-user-and-group.yml
-
-- name: Ensure that redis not installed
-  yum:
-    name: redis
-    state: removed
-
 - include_tasks: install-redis-server.yml

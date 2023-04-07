@@ -51,8 +51,7 @@ TOOL_NAME='install'
 
 SELF_NAME=${0}
 
-
-RELEASE_VERSION='2.41.10'
+RELEASE_VERSION='2.42.0'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -287,6 +286,82 @@ file_exists(){
   fi
 }
 
+PATH_TO_CACHE_ROOT="${ROOT_PREFIX}/var/cache/kctl/installer"
+CACHING_PERIOD_IN_DAYS="3"
+DOWNLOADING_TRIES=10
+
+cache.retrieve_or_download() {
+  local url="${1}" tries="${2:-${DOWNLOADING_TRIES}}"
+  local path msg
+
+  cache.remove_rotten_files
+
+  path="$(cache.path_by_url "${url}")"
+  if [[ -f "${path}" ]]; then
+    print_with_color "Skip downloading ${url} - got from cache" 'green'
+  else
+    cache.force_download "${url}" "${tries}"
+  fi
+}
+
+cache.path_by_url() {
+  local url="${1}"
+  local url_wo_args file_name url_hash
+
+  url_hash="$(md5sum <<< "${url}" | awk '{print $1}')"
+  url_wo_args="${url%\?*}"        # http://some.site/path/to/some.file?args -> http://some.site/path/to/some.file
+  file_name="${url_wo_args##*/}"  # http://some.site/path/to/some.file      -> some.file
+
+  echo "${PATH_TO_CACHE_ROOT}/${url_hash}/${file_name}"
+}
+
+cache.purge() {
+  if [[ -d "${PATH_TO_CACHE_ROOT}" ]]; then
+    rm -rf "${PATH_TO_CACHE_ROOT}"
+  fi
+}
+
+cache.remove_rotten_files() {
+  if [[ -d "${PATH_TO_CACHE_ROOT}" ]]; then
+    find "${PATH_TO_CACHE_ROOT}" -type f -mtime "+${CACHING_PERIOD_IN_DAYS}" -delete
+  fi
+}
+
+cache.force_download() {
+  local url="${1}" tries="${2:-${DOWNLOADING_TRIES}}"
+  local dir path tmp_path sleep_time connect_timeout
+
+  print_with_color "Downloading ${url} " 'blue'
+
+  path="$(cache.path_by_url "${url}")"
+  tmp_path="${path}.tmp"
+
+  dir="${path%/*}"
+
+  mkdir -p "${dir}"
+
+  for ((i=0; i<tries; i++)); do
+    connect_timeout="$(( 2 * i + 1 ))"
+
+    print_with_color "  Try $(( i+1 ))/${tries}" 'yellow'
+
+    if curl -fsSL4 "${url}" --connect-timeout "${connect_timeout}" -o "${tmp_path}" 2>&1; then
+      print_with_color "Successfully downloaded ${url}" 'green'
+      if ! is_ci_mode; then
+        mv "${tmp_path}" "${path}"
+      fi
+      return
+    else
+      if (( i < tries - 1 )); then
+        sleep_time="$(( 5 * i + 1 ))"
+        sleep "${sleep_time}"
+      fi
+    fi
+  done
+
+  fail "Couldn't download ${url}"
+}
+
 # Based on https://stackoverflow.com/a/53400482/612799
 #
 # Use:
@@ -368,31 +443,6 @@ ensure_nginx_config_correct() {
   fi
 }
 
-create_user() {
-  local user="${1}"
-  local homedir="${2}"
-  local shell="${3}"
-  local command_args command
-
-  if isset "$(get_user_id "${user}")"; then
-    return
-  fi
-
-  if [[ -f "${homedir}" ]]; then
-    command_args="${command_args} -d ${homedir}"
-  fi
-
-  if [[ -f "${shell}" ]]; then
-    command_args="${command_args} -s ${shell}"
-  fi
-
-  command_args="${command_args} -M ${user}"
-
-  command="useradd ${command_args}"
-
-  run_command "${command}" "Creating user ${user}" 'hide_output'
-}
-
 detect_installed_version(){
   if empty "${INSTALLED_VERSION}"; then
     detect_inventory_path
@@ -432,16 +482,6 @@ get_olap_db(){
   echo "${OLAP_DB}"
 }
 
-get_user_gid(){
-  local user="${1}"
-  
-  id -g "${user}" 2>/dev/null
-}
-get_user_id(){
-  local user="${1}"
-  
-  id -u "${user}" 2>/dev/null
-}
 is_compatible_with_current_release() {
   [[ "${RELEASE_VERSION}" == "${INSTALLED_VERSION}" ]]
 }
@@ -467,6 +507,259 @@ run_obsolete_tool_version_if_need() {
   fi
 }
 
+components.assert_var_is_set() {
+  local component="${1}" var_name="${2}"
+
+  value="$(components.get_var "${component}" "${var_name}")"
+
+  if [[ "${value}" == "" ]]; then
+    fail "${component^^}_${var_name^^} is not set!"
+  fi
+}
+
+components.create_group() {
+  local component="${1}"
+  local group group_id cmd
+
+  group_id="$(components.get_group_id "${component}")"
+  if [[ "${group_id}" != "" ]]; then
+    return
+  fi
+
+  components.assert_var_is_set "${component}" "group"
+  group="$(components.get_var "${component}" "group")"
+
+  cmd="groupadd --system ${group}"
+  run_command "${cmd}" "Creating group ${group}" 'hide_output'
+}
+
+components.create_user() {
+  local component="${1}"
+  local user group user_id home cmd
+
+  user_id="$(components.get_user_id "${component}")"
+  if [[ "${user_id}" != "" ]]; then
+    return
+  fi
+
+  components.assert_var_is_set "${component}" "user"
+  user="$(components.get_var "${component}" "user")"
+
+  components.assert_var_is_set "${component}" "group"
+  group="$(components.get_var "${component}" "group")"
+
+  components.assert_var_is_set "${component}" "home"
+  home="$(components.get_var "${component}" "home")"
+
+  cmd="useradd --no-create-home --system --home-dir ${home} --shell /sbin/nologin --gid ${group} ${user}"
+  run_command "${cmd}" "Creating user ${user}" 'hide_output'
+}
+
+COMPONENTS_OWN_VOLUMES_PREFIXES="/var/cache/ /var/log/ /var/lib/"
+
+components.create_volumes() {
+  local component="${1}" user group volumes 
+ 
+  volumes="$(components.get_var "${component}" "volumes")"
+  if [[ "${volumes}" == "" ]]; then
+    return
+  fi
+
+  components.assert_var_is_set "${component}" "user"
+  user="$(components.get_var "${component}" "user")"
+
+  components.assert_var_is_set "${component}" "group"
+  group="$(components.get_var "${component}" "group")"
+
+  for volume in ${volumes}; do
+    if [[ ${volume} =~ /$ ]] && [[ ! -d ${volume} ]]; then
+      components.create_volumes.create_volume_dir "${volume}" "${user}" "${group}"
+    fi
+  done
+}
+
+components.create_volumes.create_volume_dir() {
+  local volume="${1}" user="${2}" group="${3}"
+
+  mkdir -p "${volume}"
+  for own_volume_prefix in ${COMPONENTS_OWN_VOLUMES_PREFIXES}; do
+    if [[ "${volume}" =~ ^${own_volume_prefix} ]]; then
+      chown "${user}:${group}" "${volume}"
+    fi
+  done
+}
+
+components.get_group_id() {
+  local component="${1}" group
+
+  components.assert_var_is_set "${component}" "group"
+  group="$(components.get_var "${component}" "group")"
+
+  (getent group "${group}" | awk -F: '{print $3}') 2>/dev/null || true
+}
+
+components.get_user_id() {
+  local component="${1}" user
+
+  components.assert_var_is_set "${component}" "user"
+  user="$(components.get_var "${component}" "user")"
+
+  id -u "${user}" 2>/dev/null || true
+}
+
+components.get_var() {
+  local component="${1}"
+  local var="${2}"
+  local component_var="${component^^}_${var^^}"
+
+  env_files.read "${ROOT_PREFIX}/etc/keitaro/config/components.env"
+  env_files.read "${ROOT_PREFIX}/etc/keitaro/config/components/${component}.env"
+
+  echo "${!component_var}"
+}
+#/usr/bin/env bash
+
+components.install() {
+  local component="${1}"
+
+  debug "Installing ${component} component"
+
+  components.create_group "${component}"
+  components.create_user "${component}"
+  components.create_volumes "${component}"
+  components.pull "${component}"
+}
+
+components.pull() {
+  local component="${1}" image
+
+  components.assert_var_is_set "${component}" "image"
+  image="$(components.get_var "${component}" "image")"
+
+  run_command "podman pull ${image}" "Pulling ${component} image" "hide_output"
+}
+
+components.run() {
+  local component="${1}" podman_extra_args="${2}"; shift 2 || true
+  local image volumes_args volumes
+
+  components.assert_var_is_set "${component}" "image"
+  image="$(components.get_var "${component}" "image")"
+
+  volumes="$(components.get_var "${component}" "volumes")"
+
+  for volume_path in ${volumes}; do
+    volumes_args="${volumes_args} -v ${volume_path}:${volume_path}"
+  done
+
+  # shellcheck disable=SC2086
+  /usr/bin/podman run \
+                      --rm \
+                      --net host \
+                      --name "${component}" \
+                      --cap-add=CAP_NET_BIND_SERVICE \
+                      ${volumes_args} \
+                      ${podman_extra_args} \
+                      "${image}"
+                      "${@}"
+}
+
+ALIVENESS_PROBES_NO=10
+
+components.wait_until_is_up() {
+  local component="${1}" msg
+
+  if is_ci_mode || components.is_alive "${component}"; then
+    return
+  fi
+
+  print_with_color "Waiting for a component ${component} to start accepting connections"  "blue"
+
+  for ((i=0; i<ALIVENESS_PROBES_NO; i++)); do
+    sleep 1
+    if components.is_alive "${component}"; then
+      print_with_color "Component ${component} is accepting connections"  "green"
+      return
+    else
+      print_with_color "  Try $(( i + 1 ))/${ALIVENESS_PROBES_NO} - no connect" "yellow"
+    fi
+  done
+
+  print_with_color "Component ${component} is still not accepting connections"  "red"
+  return 1
+}
+
+components.is_alive() {
+  local component="${1}" host port
+
+  components.assert_var_is_set "${component}" "host"
+  host="$(components.get_var "${component}" "host")"
+
+  components.assert_var_is_set "${component}" "port"
+  port="$(components.get_var "${component}" "port")"
+
+  timeout 0.1 bash -c "</dev/tcp/${host}/${port}" &>/dev/null
+}
+
+env_files.assert_var_is_set() {
+  local path_to_env_file="${1}" var_name="${2}"
+
+  if ! env_files.has_var "${path_to_env_file}" "${var_name}"; then
+    fail "Variable ${var_name} is not set in ${path_to_env_file} environment files"
+  fi
+}
+
+env_files.forced_save_var() {
+  local path_to_env_file="${1}" var_name="${2}" var_value="${3}"
+
+  debug "Set ${var_name} to '$(strings.mask "${var_name}" "${var_value}")' in ${path_to_env_file}"
+
+  if env_files.has_var "${path_to_env_file}" "${var_name}"; then
+    sed -i -e "s/^${var_name}=.*/${var_name}=${var_value}/" "${path_to_env_file}"
+  else
+    echo "${var_name}=${var_value}" >> "${path_to_env_file}"
+  fi
+}
+
+env_files.has_var() {
+  local path_to_env_file="${1}" env_name="${2}"
+  [[ -f "${path_to_env_file}" ]] && grep -qP "^${env_name}=" "${path_to_env_file}"
+}
+
+
+env_files.read() {
+  local path_to_env_file="${1}"
+
+  if [[ -f "${path_to_env_file}" ]]; then
+    debug "Reading env file ${path_to_env_file}"
+    # shellcheck source=/dev/null
+    source "${path_to_env_file}"
+
+    if [[ "${path_to_env_file}" =~ \.env$ ]]; then 
+      local path_to_local_env_file="${path_to_env_file::-4}.local.env"
+
+      if [[ -f "${path_to_local_env_file}" ]]; then
+        debug "Reading env file ${path_to_local_env_file}"
+        # shellcheck source=/dev/null
+        source "${path_to_local_env_file}"
+      else
+        debug "Couldn't read env file ${path_to_local_env_file} - file doesn't exist"
+      fi
+    else
+      debug "Couldn't read env file ${path_to_env_file} - file doesn't exist"
+    fi
+  fi
+}
+
+env_files.safely_save_var() {
+  local env_file_name="${1}" var_name="${2}" var_value="${3}"
+
+  if ! env_files.has_var "${env_file_name}" "${var_name}"; then
+    env_files.forced_save_var "${env_file_name}" "${var_name}" "${var_value}"
+  fi
+}
+
+
 
 translate(){
   local key="${1}"
@@ -488,7 +781,7 @@ interpolate(){
   echo "${string}"
 }
 
-install_package(){
+install_package() {
   local package="${1}"
   if ! is_package_installed "${package}"; then
     debug "Installing package ${package}"
@@ -496,6 +789,13 @@ install_package(){
   else
     debug "Package ${package} is already installed"
   fi
+}
+
+install_packages() {
+  while [[ "${#}" != "0" ]]; do
+    install_package "${1}"      
+    shift
+  done
 }
 
 is_installed(){
@@ -524,7 +824,15 @@ is_package_installed(){
     debug "NOT FOUND: Package '$package' not found"
     return ${FAILURE_RESULT}
   fi
-  
+}
+
+upgrade_package() {
+  local package="${1}"
+  if is_package_installed "${package}"; then
+    run_command "yum upgrade -y ${package}" "Upgrading package ${package}" "hide_output"
+  else
+    debug "Package ${package} is not installed"
+  fi
 }
 
 detect_inventory_path(){
@@ -581,95 +889,6 @@ read_stdin(){
     read -r variable
   fi
   echo "$variable"
-}
-
-generate_vhost(){
-  local domain="${1}"
-  shift
-  debug "Generate vhost by ${TOOL_NAME} for domain $domain"
-  local vhost_path
-  vhost_path="$(get_vhost_path "$domain")"
-  if nginx_vhost_already_processed "$vhost_path"; then
-    print_with_color "$(translate 'messages.skip_nginx_conf_generation')" "yellow"
-  else
-    local commands
-    commands="$(get_vhost_generating_commands "${vhost_path}" "${@}")"
-    local message
-    message="$(translate "messages.generating_nginx_vhost" "domain=${domain}")"
-    run_command "$commands" "$message" hide_output
-  fi
-}
-
-get_vhost_generating_commands(){
-  local vhost_path="${1}"
-  shift
-  declare -a   local commands
-  local vhost_override_path
-  local vhost_backup_path
-  vhost_override_path="$(get_vhost_override_path "$domain")"
-  if nginx_vhost_relevant "$vhost_path"; then
-    debug "File ${vhost_path} generated by relevant installer tool, skip regenerating"
-  else
-    debug "File ${vhost_path}, force generating"
-    commands+=("cp ${NGINX_KEITARO_CONF} ${vhost_path}")
-    commands+=("touch ${vhost_override_path}")
-  fi
-  sed_expressions="$(nginx_vhost_sed_expressions "${vhost_path}" "${vhost_override_path}" "${@}")"
-  commands+=("sed -i ${sed_expressions} ${vhost_path}")
-  join_by " && " "${commands[@]}"
-}
-
-get_vhost_override_path(){
-  local domain="${1}"
-  echo "${NGINX_VHOSTS_DIR}/local/${domain}.inc"
-}
-
-get_vhost_path(){
-  local domain="${1}"
-  echo "${NGINX_VHOSTS_DIR}/${domain}.conf"
-}
-
-nginx_vhost_sed_expressions(){
-  local vhost_path="${1}"
-  local vhost_override_path="${2}"
-  shift 2
-  local expressions=''
-  expressions="${expressions} -e '1a# Post-processed by Keitaro ${TOOL_NAME} tool v${RELEASE_VERSION}'"
-  if ! file_content_matches "$vhost_path" "-F" "include ${vhost_override_path};"; then
-    expressions="${expressions} -e '/server.inc;/a\ \ include ${vhost_override_path};'"
-  fi
-  expressions="${expressions} -e 's/server_name _/server_name ${domain}/'"
-  expressions="${expressions} -e 's/ default_server;/;/'"
-  while isset "${1}"; do
-    expressions="${expressions} -e '${1}'"
-    shift
-  done
-  echo "$expressions"
-}
-
-
-nginx_vhost_relevant(){
-  local vhost_path="${1}"
-  file_content_matches "$vhost_path" "-F" "# Generated by Keitaro install tool v${RELEASE_VERSION}"
-}
-
-
-nginx_vhost_already_processed(){
-  local vhost_path="${1}"
-  file_content_matches "$vhost_path" "-F" "# Post-processed by Keitaro ${TOOL_NAME} tool v${RELEASE_VERSION}"
-}
-
-install_starting_page() {
-  mkdir -p "${TRACKER_ROOT}/admin"
-  download_install_page "https://files.keitaro.io/keitaro/files/install_page.tar.gz"
-  chown -R nginx:nginx "${TRACKER_ROOT}"
-  render_nginx_config "/etc/nginx/conf.d/default.conf"
-  run_command "sed 's/default_server//g' /etc/nginx/nginx.conf -i" "Fixing nginx configs" "hide_output"
-}
-
-download_install_page(){
-  install_page_link="${1}"
-  curl -s  "${install_page_link}" | tar xzf  - -C "${TRACKER_ROOT}/admin/"
 }
 
 clean_up(){
@@ -949,7 +1168,7 @@ RESET_FORMATTING='\e[0m'
 print_with_color(){
   local message="${1}"
   local color="${2}"
-  if ! empty "$color"; then
+  if [[ "$color" != "" ]]; then
     escape_sequence="\e[${COLOR_CODE[$color]}m"
     echo -e "${escape_sequence}${message}${RESET_FORMATTING}"
   else
@@ -1159,6 +1378,58 @@ start_or_reload_nginx(){
   fi
 }
 
+systemd.disable_and_stop_service() {
+  local name="${1}"
+  systemd.disable_service "${name}"
+  systemd.stop_service "${name}"
+}
+
+systemd.disable_service() {
+  local name="${1}"
+  local command="systemctl disable ${name}"
+  run_command "${command}" "Disabling SystemD service ${name}" "hide_output"
+}
+
+systemd.enable_and_start_service() {
+  local name="${1}"
+  systemd.enable_service "${name}"
+  systemd.start_service "${name}"
+}
+
+systemd.enable_service() {
+  local name="${1}"
+  local command="systemctl enable ${name}"
+  run_command "${command}" "Enabling SystemD service ${name}" "hide_output"
+}
+
+systemd.reload_service() {
+  local name="${1}"
+  local command="systemctl reload ${name}"
+  run_command "${command}" "Reloading SystemD service ${name}" "hide_output"
+}
+
+systemd.restart_service() {
+  local name="${1}"
+  local command="systemctl restart ${name}"
+  run_command "${command}" "Restarting SystemD service ${name}" "hide_output"
+}
+
+systemd.start_service() {
+  local name="${1}"
+  local command="systemctl start ${name}"
+  run_command "${command}" "Starting SystemD service ${name}" "hide_output"
+}
+
+systemd.stop_service() {
+  local name="${1}"
+  local command="systemctl stop ${name}"
+  run_command "${command}" "Stopping SystemD service ${name}" "hide_output"
+}
+
+systemd.update_units() {
+  run_command 'systemctl daemon-reload' "Updating SystemD units" "hide_output"
+}
+
 TRACKER_VERSION_PHP="${TRACKER_ROOT}/version.php"
 
 get_tracker_version() {
@@ -1355,7 +1626,8 @@ validate_yes_no(){
 }
 
 
-PROVISION_DIRECTORY="kctl-provision"
+PROVISIONS_ROOT="${ROOT_PREFIX}/var/lib/kctl/provision"
+PROVISION_DIRECTORY="${PROVISIONS_ROOT}/${RELEASE_VERSION}-${BRANCH##*/}"
 PLAYBOOK_DIRECTORY="${PROVISION_DIRECTORY}/playbook"
 KEITARO_ALREADY_INSTALLED_RESULT=0
 
@@ -1396,14 +1668,21 @@ get_ansible_galaxy_command() {
     echo "LC_ALL=C.UTF-8 ansible-galaxy"
   fi
 }
-install_ansible_collection(){
+install_ansible_collection() {
   local collection="${1}"
   local package="${collection//\./-}.tar.gz"
   local collection_url="${FILES_KEITARO_ROOT_URL}/scripts/ansible-galaxy-collections/${package}"
-  local message="Installing ansible galaxy collection ${collection}"
-  ansible_galaxy_command="$(get_ansible_galaxy_command)"
-  debug "Installing ansible collection ${collection} from ${collection_url}"
-  run_command "${ansible_galaxy_command} collection install ${collection_url} --force" "${message}" "hide"
+  local cmd
+
+  if ! is_ansible_collection_installed "${collection}"; then
+    cmd="$(get_ansible_galaxy_command) collection install ${collection_url} --force"
+    run_command "${cmd}" "Installing ansible galaxy collection ${collection}" "hide"
+  fi
+}
+
+is_ansible_collection_installed() {
+  local collection="${1}"
+  [[ -d "/root/.ansible/collections/ansible_collections/${collection//.//}" ]]
 }
 
 get_ansible_package_name() {
@@ -1454,16 +1733,15 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['tune-swap']='2.39.27'
   ['tune-sysctl']='2.39.31'
 
-  ['install-clickhouse']='2.41.8'
-  ['install-mariadb']='2.41.8'
-  ['install-redis']='2.39.12'
+  ['install-clickhouse']='2.41.10'
+  ['install-mariadb']='2.41.10'
+  ['install-redis']='2.41.10'
 
-  ['tune-nginx']='2.41.9'
+  ['tune-nginx']='2.41.10'
 
   ['install-php']='2.30.10'
-  ['install-roadrunner']='2.40.8'
   ['tune-php']='2.38.2'
-  ['tune-roadrunner']='2.40.8'
+  ['tune-roadrunner']='2.41.10'
 
   ['wrap-up-tracker-configuration']='2.41.8'
 )
@@ -1521,12 +1799,8 @@ is_upgrading_mode_full() {
   [[ "${UPGRADING_MODE}" == "${UPGRADING_MODE_FULL}" ]]
 }
 
-clean_up(){
-  if [ -d "$PROVISION_DIRECTORY" ]; then
-    debug "Remove ${PROVISION_DIRECTORY}"
-    rm -rf "$PROVISION_DIRECTORY"
-    (popd || true) &> /dev/null
-  fi
+clean_up() {
+  popd &> /dev/null || true
 }
 
 is_running_in_upgrade_mode() {
@@ -2083,12 +2357,6 @@ stage4() {
 }
 
 install_ansible() {
-  if need_to_remove_old_ansible_centos7; then
-    run_command 'yum erase -y ansible' 'Removing old ansible' 'hide_output'
-  fi
-  if need_to_remove_old_ansible_centos8; then
-    run_command 'yum install -y ansible-core --allowerasing' 'Removing old ansible' 'hide_output'
-  fi
   install_package 'epel-release'
   install_package "$(get_ansible_package_name)"
   install_ansible_collection "community.mysql"
@@ -2097,77 +2365,69 @@ install_ansible() {
   install_ansible_collection "ansible.posix"
 }
 
-need_to_remove_old_ansible_centos7() {
-  is_running_in_upgrade_mode && [[ "$(get_centos_major_release)" == "7" ]] && [[ -f /usr/bin/ansible-2 ]]
-}
-
-need_to_remove_old_ansible_centos8() {
-  is_running_in_upgrade_mode && [[ "$(get_centos_major_release)" == "8" ]] && yum list -q installed ansible &> /dev/null
-}
-
-install_kctl_components() {
-  install_kctld
-  install_kctl_ch_converter
-  pull_image "ClickHouse" "${CLICKHOUSE_IMAGE}"
-  pull_image "MariaDB" "${MARIADB_IMAGE}"
-  pull_image "Redis" "${REDIS_IMAGE}"
-  pull_image "CertBot" "${CERTBOT_IMAGE}"
-}
-
-install_kctl_ch_converter() {
-  local converter_path="${KCTL_BIN_DIR}/kctl-ch-converter"
-  local command="curl -fsSL ${KCTL_CH_CONVERTER_URL} | gzip -d > ${converter_path} && chmod a+x ${converter_path}"
-  run_command "${command}" "Installing kctl-ch-converter" "hide_output"
-}
 
 install_core_packages() {
-    install_package file
-    install_package tar
-    install_package curl
-    install_package crontabs
-    install_package logrotate
-    install_kctl_provision
-    install_kctl
-    # shellcheck source=/dev/null
-    source "${INVENTORY_DIR}/components.env"
+  if install_core_packages.is_centos8_distro; then
+    install_core_packages.switch_to_centos8_stream
+  fi
+
+  if [[ "$(get_centos_major_release)" == "8" ]]; then
+    upgrade_package 'rpm'
+  fi
+
+  install_packages file tar curl crontabs logrotate
+  install_core_packages.install_podman
 }
 
-install_kctld() {
-  run_command "curl -fsSL ${KCTLD_URL} | tar --no-same-owner -xzC ${KCTL_BIN_DIR}" "Installing kctld" "hide_output"
-  if [[ "${KCTLD_MODE}" == "true" ]]; then
-    systemd.start_service 'kctld-worker'
-    systemd.start_service 'kctld-server'
-  else
-    systemd.restart_service 'kctld-worker'
-    systemd.restart_service 'kctld-server'
+install_core_packages.install_podman() {
+  if is_package_installed 'podman-docker'; then
+    return
   fi
-  systemd.enable_service 'kctld-worker'
-  systemd.enable_service 'kctld-server'
+
+  install_package 'podman-docker'
+
+  if [[ "$(get_centos_major_release)" == "8" ]]; then
+    install_package 'libseccomp-devel'
+  fi
+
+  if [[ "$(get_centos_major_release)" != "7" ]]; then
+    install_core_packages.install_podman.start_and_enable_podman_unit
+  fi
+}
+
+install_core_packages.install_podman.start_and_enable_podman_unit() {
+  if ! systemctl is-active 'podman' &>/dev/null; then
+    systemd.enable_service 'podman'
+    systemd.restart_service 'podman'
+  fi
+}
+
+install_core_packages.is_centos8_distro() {
+  file_content_matches /etc/centos-release '-P' '^CentOS Linux.* 8\b'
+}
+
+install_core_packages.switch_to_centos8_stream() {
+  local repo_base_url="http://mirror.centos.org/centos/8-stream/BaseOS/x86_64/os/Packages"
+  local release="8-6"
+  local gpg_keys_package_url="${repo_base_url}/centos-gpg-keys-${release}.el8.noarch.rpm"
+  local repos_package_url="${repo_base_url}/centos-stream-repos-${release}.el8.noarch.rpm"
+  debug 'Switching CentOS 8 -> CentOS Stream 8'
+  print_with_color 'Switching CentOS 8 -> CentOS Stream 8:' 'blue'
+  run_command "dnf install -y --nobest --allowerasing ${gpg_keys_package_url} ${repos_package_url}" \
+              "  Installing CentOS Stream repos"
+  # run_command "dnf swap centos-{linux,stream}-repos -y" "  Switching to CentOS Stream"
+  run_command "dnf distro-sync -y" "  Syncing distro"
 }
 
 install_kctl() {
-  install "${PROVISION_DIRECTORY}"/bin/* "${KCTL_BIN_DIR}"/
-  install "${PROVISION_DIRECTORY}"/files/etc/cron.daily/* /etc/cron.daily/
-  install -m 0644 "${PROVISION_DIRECTORY}"/files/etc/systemd/system/* /etc/systemd/system/
-  install -m 0644 "${PROVISION_DIRECTORY}"/files/etc/keitaro/config/* /etc/keitaro/config/
-  install -m 0444 "${PROVISION_DIRECTORY}"/files/etc/sudoers.d/* /etc/sudoers.d/
-  install -m 0444 "${PROVISION_DIRECTORY}"/files/etc/logrotate.d/* /etc/logrotate.d/
-  make_kctl_scripts_symlinks
-  systemd.update_units
-  systemd.restart_service 'schedule-fs-check-on-boot'
-  systemd.enable_service 'schedule-fs-check-on-boot'
-  systemd.restart_service 'disable-thp'
-  systemd.enable_service 'disable-thp'
-  systemd.restart_service 'kctl-monitor'
-  systemd.enable_service 'kctl-monitor'
-}
-
-make_kctl_scripts_symlinks() {
-  local file_name
-  for existing_file_path in "${KCTL_BIN_DIR}"/*; do
-    file_name="${existing_file_path##*/}"
-    ln -s -f "${existing_file_path}" "/usr/local/bin/${file_name}"
-  done
+  install_kctl.install_provision
+  install_kctl.install_binaries
+  install_kctl.install_configs
+  install_kctl.install_components
+  install_kctl.install_roadrunner
+  install_kctl.install_kctl_ch_converter
+  install_kctl.install_kctld
+  install_kctl.configure_systemd
 }
 
 disable_selinux() {
@@ -2183,70 +2443,185 @@ disable_selinux() {
 get_selinux_status(){
   getenforce
 }
-remove_mariadb_repo(){
-  if [ -f /etc/yum.repos.d/mariadb.repo ]; then
-      debug "Removing mariadb repo"
-      rm -f /etc/yum.repos.d/mariadb.repo
+
+install_kctl.install_components() {
+  if is_running_in_install_mode; then
+    components.install "nginx_starting_page"
+    systemd.update_units
+    systemd.disable_and_stop_service "nginx"
+    systemd.enable_and_start_service "nginx_starting_page"
+
+    components.install "certbot"
+    components.install "clickhouse"
+    components.install "mariadb"
+    components.install "nginx"
+    components.install "redis"
   fi
 }
 
-switch_to_centos8_stream() {
-  local repo_base_url="http://mirror.centos.org/centos/8-stream/BaseOS/x86_64/os/Packages"
-  local release="8-6"
-  local gpg_keys_package_url="${repo_base_url}/centos-gpg-keys-${release}.el8.noarch.rpm"
-  local repos_package_url="${repo_base_url}/centos-stream-repos-${release}.el8.noarch.rpm"
-  debug 'Switching CentOS 8 -> CentOS Stream 8'
-  print_with_color 'Switching CentOS 8 -> CentOS Stream 8:' 'blue'
-  run_command "dnf install -y --nobest --allowerasing ${gpg_keys_package_url} ${repos_package_url}" \
-              "  Installing CentOS Stream repos"
-  # run_command "dnf swap centos-{linux,stream}-repos -y" "  Switching to CentOS Stream"
-  run_command "dnf distro-sync -y" "  Syncing distro"
+install_kctl.install_binaries() {
+  local file_name
+
+  install "${PROVISION_DIRECTORY}"/bin/* "${KCTL_BIN_DIR}"/
+
+  for existing_file_path in "${KCTL_BIN_DIR}"/*; do
+    file_name="${existing_file_path##*/}"
+    ln -s -f "${existing_file_path}" "/usr/local/bin/${file_name}"
+  done
+
+  install -m 0755 "${PROVISION_DIRECTORY}/files/bin/"* "${ROOT_PREFIX}/usr/local/bin/"
 }
 
-install_podman() {
-  if ! is_package_installed 'podman-docker'; then
-    install_package 'podman-docker'
-    if [[ "$(get_centos_major_release)" == "8" ]]; then
-      install_package 'libseccomp-devel'
-    fi
-    supress_podman_warns
+ROADRUNNER_ROOT_DIR="${ROOT_PREFIX}/usr/local/bin"
+ROADRUNNER_PATH="${ROADRUNNER_ROOT_DIR}/roadrunner"
+
+install_kctl.install_roadrunner() {
+  local path_to_bin path_to_tar_gz url version cmd
+
+  url="$(components.get_var "roadrunner" "url")"
+  version="$(components.get_var "roadrunner" "version")"
+  release_name="roadrunner-${version}-linux-amd64"
+  path_to_bin="${ROADRUNNER_PATH}-${version}"
+
+  if [[ -f "${path_to_bin}" ]]; then
+    debug "Skip installing roadrunner v${version} - already installed"
+    print_with_color "Skip installing roadrunner v${version} - already installed" 'blue'
+  else
+    cache.retrieve_or_download "${url}"
+    path_to_tar_gz="$(cache.path_by_url "${url}")"
+
+    cmd="rm -f ${ROADRUNNER_PATH} ${ROADRUNNER_PATH}-*"                                                           # uninstall old
+    cmd="${cmd} && cd /usr/local/bin"                                                                             # change dir
+    cmd="${cmd} && tar -xzf ${path_to_tar_gz} --no-same-owner --no-same-permissions --strip 1 ${release_name}/rr" # extract
+    cmd="${cmd} && mv ${ROADRUNNER_ROOT_DIR}/rr ${path_to_bin}"                                                   # install new
+    cmd="${cmd} && ln -s ${path_to_bin} ${ROADRUNNER_PATH}"                                                       # make symlink
+
+    run_command "${cmd}" "Installing roadrunner v${version}" "hide_output"
   fi
+}
+
+KCTLD_SERVER_PATH="${KCTL_BIN_DIR}/kctld-server"
+KCTLD_WORKER_PATH="${KCTL_BIN_DIR}/kctld-worker"
+
+install_kctl.install_kctld() {
+  local worker_path server_path url cmd
+
+  url="$(components.get_var "kctld" "url")"
+  version="$(components.get_var "kctld" "version")"
+  server_path="${KCTLD_SERVER_PATH}-${version}"
+  worker_path="${KCTLD_WORKER_PATH}-${version}"
+
+  if [[ -f "${server_path}" ]] && [[ -f "${worker_path}" ]]; then
+    debug "Skip installing kctld v${version} - already installed"
+    print_with_color "Skip installing kctld v${version} - already installed" 'blue'
+  else
+    cache.retrieve_or_download "${url}"
+
+    cmd="rm -f ${KCTLD_SERVER_PATH} ${KCTLD_SERVER_PATH}-*"                                             # uninstall prev server
+    cmd="${cmd} && rm -f ${KCTLD_WORKER_PATH} ${KCTLD_WORKER_PATH}-*"                                   # uninstall prev worker
+    cmd="${cmd} && tar -f $(cache.path_by_url "${url}") --no-same-owner -xzC ${KCTL_BIN_DIR}"           # install new kctld
+    cmd="${cmd} && mv ${KCTLD_SERVER_PATH} ${server_path} && ln -s ${server_path} ${KCTLD_SERVER_PATH}" # make server symlinks
+    cmd="${cmd} && mv ${KCTLD_WORKER_PATH} ${worker_path} && ln -s ${worker_path} ${KCTLD_WORKER_PATH}" # make worker symlinks
+    run_command "${cmd}" "Installing kctld v${version}" "hide_output"
+  fi
+}
+
+install_kctl.configure_systemd() {
+  systemd.update_units
+  systemd.enable_service 'schedule-fs-check-on-boot'
+  systemd.restart_service 'schedule-fs-check-on-boot'
+  systemd.enable_service 'disable-thp'
+  systemd.restart_service 'disable-thp'
+  systemd.enable_service 'kctl-monitor'
+  systemd.restart_service 'kctl-monitor'
+  systemd.enable_service 'kctld-worker'
+  systemd.enable_service 'kctld-server'
+  if [[ "${KCTLD_MODE}" == "true" ]]; then
+    systemd.start_service 'kctld-worker'
+    systemd.start_service 'kctld-server'
+  else
+    systemd.restart_service 'kctld-worker'
+    systemd.restart_service 'kctld-server'
+  fi
+}
+
+
+KCTL_CH_CONVERTER_PATH="${KCTL_BIN_DIR}/kctl-ch-converter"
+
+install_kctl.install_kctl_ch_converter() {
+  local kctl_ch_converter_path url version cmd
+
+  url="$(components.get_var "kctl_ch_converter" "url")"
+  version="$(components.get_var "kctl_ch_converter" "version")"
+  kctl_ch_converter_path="${KCTL_CH_CONVERTER_PATH}-${version}"
+
+  if [[ -f ${kctl_ch_converter_path} ]]; then
+    debug "Skip installing kctl-ch-converter v${version} - already installed"
+    print_with_color "Skip installing kctl-ch-converter v${version} - already installed" 'blue'
+  else
+    cache.retrieve_or_download "${url}"
+
+    cmd="rm -f ${KCTL_CH_CONVERTER_PATH} ${KCTL_CH_CONVERTER_PATH}-*"                       # uninstall previous versions
+    cmd="${cmd} && zcat $(cache.path_by_url "${url}") > ${kctl_ch_converter_path}"         # install new converter
+    cmd="${cmd} && chmod a+x ${kctl_ch_converter_path}"                                     # make it executable
+    cmd="${cmd} && ln -s ${kctl_ch_converter_path} ${KCTL_CH_CONVERTER_PATH}"               # make symlink
+    run_command "${cmd}" "Installing kctl-ch-converter v${version}" "hide_output"
+  fi
+}
+
+install_kctl.install_provision() {
+  local provision_url
+
+  if [[ -d "${PROVISION_DIRECTORY}" ]] && ! install_kctl.install_provision.is_dev_branch; then
+    debug "Skip installing kctl provision v${RELEASE_VERSION} - already installed"
+    print_with_color "Skip installing kctl provision v${RELEASE_VERSION} - already installed" 'blue'
+  else
+    provision_url="$(install_kctl.install_provision.get_provision_url)"
+
+    cache.retrieve_or_download "${provision_url}"
+
+    cmd="rm -rf ${PROVISIONS_ROOT}/"
+    cmd="${cmd} && mkdir -p ${PROVISION_DIRECTORY}"
+    cmd="${cmd} && tar -f $(cache.path_by_url "${provision_url}") -xzC ${PROVISION_DIRECTORY}"
+
+    run_command "${cmd}" "Installing kctl provision v${RELEASE_VERSION}" "hide_output"
+  fi
+}
+
+
+install_kctl.install_provision.get_provision_url() {
+  if install_kctl.install_provision.is_dev_branch; then
+    echo "https://files.keitaro.io/scripts/${BRANCH}/kctl.tar.gz?$(date +"%s")"
+  else
+    echo "https://files.keitaro.io/scripts/releases/${RELEASE_VERSION}/kctl.tar.gz"
+  fi
+}
+
+install_kctl.install_provision.is_dev_branch() {
+  [[ ! ${BRANCH} =~ stable ]] && [[ ! "${BRANCH}" =~ beta ]] && [[ ! "${BRANCH}" =~ alpha ]]
+}
+
+install_kctl.install_configs() {
+  mkdir -p "${ROOT_PREFIX}/etc/keitaro/config/components/"
+  mkdir -p "${ROOT_PREFIX}/etc/nginx/"
+  mkdir -p "${ROOT_PREFIX}/etc/containers/registries.conf.d"/
+
+  install -m 0444 "${PROVISION_DIRECTORY}/files/etc/sudoers.d"/* "${ROOT_PREFIX}/etc/sudoers.d/"
+  install -m 0644 "${PROVISION_DIRECTORY}/files/etc/cron.daily"/* "${ROOT_PREFIX}/etc/cron.daily/"
+  install -m 0644 "${PROVISION_DIRECTORY}/files/etc/systemd/system"/* "${ROOT_PREFIX}/etc/systemd/system/"
+  install -m 0644 "${PROVISION_DIRECTORY}/files/etc/keitaro/config/components"/* "${ROOT_PREFIX}/etc/keitaro/config/components/"
+  install -m 0644 "${PROVISION_DIRECTORY}/files/etc/keitaro/config"/*.env "${ROOT_PREFIX}/etc/keitaro/config/"
+  install -m 0644 "${PROVISION_DIRECTORY}/files/etc/logrotate.d"/* "${ROOT_PREFIX}/etc/logrotate.d"/
+  install -m 0644 "${PROVISION_DIRECTORY}/files/etc/nginx"/* "${ROOT_PREFIX}/etc/nginx/"
+  install -m 0644 "${PROVISION_DIRECTORY}/files/etc/containers"/nodocker "${ROOT_PREFIX}/etc/containers/"
+
   if [[ "$(get_centos_major_release)" != "7" ]]; then
-    start_and_enable_podman_unit
-    install_registry_keitaro_config
-  fi
-  
-}
-
-
-supress_podman_warns() {
-  touch /etc/containers/nodocker
-}
-
-
-start_and_enable_podman_unit(){
-  if ! systemctl is-active 'podman' > /dev/null 2>&1; then
-    systemd.restart_service 'podman'
-    systemd.enable_service 'podman'
+    install -m 0644 "${PROVISION_DIRECTORY}/files/etc/containers/registries.conf.d"/* \
+            "${ROOT_PREFIX}/etc/containers/registries.conf.d/"
   fi
 }
 
-
-install_registry_keitaro_config(){
-  install -m 0644 "${PROVISION_DIRECTORY}"/files/etc/containers/registries.conf.d/* /etc/containers/registries.conf.d/
-}
-
-pull_image() {
-  local image_name="${1}" image_url="${2}"
-  run_command "podman pull ${image_url}" "Pulling ${image_name} image" "hide_output"
-}
-
-install_kctl_provision() {
-  local kctl_provision_url="https://files.keitaro.io/scripts/${BRANCH}/kctl.tar.gz"
-  local command="curl -fsSL ${kctl_provision_url} | tar -xzC ${PROVISION_DIRECTORY}"
-  mkdir -p "${PROVISION_DIRECTORY}"
-  run_command "${command}" "Installing kctl provision from ${kctl_provision_url}" "hide_output"
-}
+FASTESTMIROR_CONF_PATH="/etc/yum/pluginconf.d/fastestmirror.conf"
 
 disable_fastestmirror(){
   local disabling_message="Disabling mirrors in repo files"
@@ -2260,157 +2635,10 @@ disable_fastestmirror(){
   fi
 }
 
-FASTESTMIROR_CONF_PATH="/etc/yum/pluginconf.d/fastestmirror.conf"
-
 is_fastestmirror_enabled() {
   file_exists "${FASTESTMIROR_CONF_PATH}" && \
       grep -q '^enabled=1' "${FASTESTMIROR_CONF_PATH}"
 }
-is_centos8_distro(){
-  file_content_matches /etc/centos-release '-P' '^CentOS Linux.* 8\b'
-}
-
-systemd.enable_service() {
-  local name="${1}"
-  local command="systemctl enable ${name}"
-  run_command "${command}" "Enabling SystemD service ${name}" "hide_output"
-}
-
-systemd.start_service() {
-  local name="${1}"
-  local command="systemctl start ${name}"
-  run_command "${command}" "Starting SystemD service ${name}" "hide_output"
-}
-
-systemd.update_units() {
-  run_command 'systemctl daemon-reload' "Updating SystemD units" "hide_output"
-}
-
-systemd.restart_service() {
-  local name="${1}"
-  local command="systemctl restart ${name}"
-  run_command "${command}" "Restarting SystemD service ${name}" "hide_output"
-}
-
-systemd.reload_service() {
-  local name="${1}"
-  local command="systemctl reload ${name}"
-  run_command "${command}" "Reloading SystemD service ${name}" "hide_output"
-}
-
-install_extra_packages() {
-  install_podman
-  if is_running_in_upgrade_mode; then
-    debug "Running mode is '${KCTL_RUNNING_MODE}', skip installing packages"
-    if is_package_installed "nginx"; then
-      debug "Found host based nginx. Remove it and install nginx on docker"
-      run_command "podman pull ${NGINX_IMAGE}"
-      yum remove -y nginx
-      install_nginx_on_docker
-    else
-      render_nginx_systemd_config
-      systemd.update_units
-      systemd.restart_service "nginx"
-    fi
-  else
-    debug "Running mode is '${KCTL_RUNNING_MODE}', installing packages"
-    install_nginx_on_docker
-    install_starting_page
-  fi
-  install_kctl_components
-  install_ansible
-}
-
-render_nginx_systemd_config() {
-  cat > /etc/systemd/system/nginx.service <<EOF
-[Unit]
-Description=Nginx server
-After=network.target
-
-[Service]
-Type=simple
-
-ExecStartPre=-/opt/keitaro/bin/kctl podman prune nginx
-ExecStart=/bin/bash -c 'source /etc/keitaro/config/components.env; \\
-                      source /etc/keitaro/config/nginx.env; \\
-                      /usr/bin/podman \\
-                      run \\
-                      --net host \\
-                      --cap-add=CAP_NET_BIND_SERVICE \\
-                      --rm \\
-                      --name nginx \\
-                      -e NGINX_USER_UID=$(get_user_id "nginx") \\
-                      -e NGINX_USER_GID=$(get_user_gid "nginx") \\
-                      -v /etc/nginx:/etc/nginx \\
-                      -v /var/log/nginx:/var/log/nginx \\
-                      -v /var/www/:/var/www/ \\
-                      -v /etc/keitaro/ssl:/etc/keitaro/ssl \\
-                      -v /etc/letsencrypt:/etc/letsencrypt \\
-                      -v /var/lib/nginx:/var/lib/nginx \\
-                      -v /var/cache/nginx:/var/cache/nginx \\
-                      \$NGINX_IMAGE'
-ExecStop=/usr/bin/podman stop nginx
-ExecReload=/usr/bin/podman exec -it nginx nginx -s reload
-
-Restart=always
-RestartSec=5
-KillMode=none
-
-[Install]
-WantedBy=multi-user.target
-EOF
-}
-
-PATH_TO_NGINX_ROADRUNNER_CONFIG="/etc/nginx/conf.d/keitaro/locations/roadrunner.inc"
-
-install_nginx_on_docker() {
-  create_user "nginx" "${TRACKER_ROOT}" "/sbin/nologin"
-  create_nginx_dirs
-
-  if [[ -f "/etc/nginx/nginx.conf.rpmsave" ]] || [[ ! -d /etc/nginx/conf.d ]] || [[ ! -f /etc/nginx/mime.types ]]; then
-    copy_nginx_configs
-    rm -f /etc/nginx/nginx.conf.rpmsave
-  fi
-
-  pull_image "Nginx" "${NGINX_IMAGE}"
-
-  render_nginx_systemd_config
-
-  systemd.update_units
-  systemd.start_service "nginx"
-  systemd.enable_service "nginx"
-}
-
-copy_nginx_configs() {
-  local cmd="cp -R ${PROVISION_DIRECTORY}/templates/nginx/ /etc/"
-  run_command "${cmd}" "Copying nginx configs" "hide_output"
-}
-
-render_nginx_config() {
-  local default_conf="${1}"
-  cat > "${default_conf}" <<EOF
-    server {
-        listen       80 default_server;
-        listen       [::]:80 default_server;
-        server_name  _;
-        root         ${TRACKER_ROOT};
-
-        location = / { return 301 /admin/; }
-    }
-EOF
-}
-NGINX_DIRS=("/var/log/nginx" "/etc/keitaro/ssl" "/etc/letsencrypt" "/var/lib/nginx" "/var/cache/nginx" "/var/run/nginx" "${NGINX_CONFIG_ROOT}")
-
-create_nginx_dirs(){
-  for dir in "${NGINX_DIRS[@]}"; do
-    mkdir -p "${dir}"
-    if [[ ! "${dir}" =~ ^/etc/ ]]; then
-      chown nginx:nginx -R "${dir}"
-    fi
-  done
-  rm -f /etc/nginx/nginx.conf.rpmsave
-}
-
 clean_packages_metadata() {
   if empty "$WITHOUTH_YUM_UPDATE"; then
     run_command "yum clean all" "Cleaninig yum meta" "hide_output"
@@ -2419,15 +2647,17 @@ clean_packages_metadata() {
 
 stage5() {
   debug "Starting stage 5: upgrade current and install necessary packages"
+
   disable_fastestmirror
   disable_selinux
-  remove_mariadb_repo
   clean_packages_metadata
-  install_core_packages
-  if is_centos8_distro; then
-    switch_to_centos8_stream
+  if is_running_in_rescue_mode; then
+    cache.purge
   fi
-  install_extra_packages
+
+  install_core_packages
+  install_kctl
+  install_ansible
 }
 
 LETSENCRYPT_ACCOUNTS_PATH="${LETSENCRYPT_DIR}/accounts/acme-v02.api.letsencrypt.org/directory/"
@@ -2488,6 +2718,13 @@ stage6() {
       print_with_color "${err}" "red"
     fi
   fi
+}
+
+stage7.enable_services() {
+  systemd.enable_service "clickhouse"
+  systemd.enable_service "mariadb"
+  systemd.enable_service "nginx"
+  systemd.enable_service "redis"
 }
 
 json2dict() {
@@ -2628,7 +2865,7 @@ json2dict() {
   printf "( %s)" "$(tokenize | json_parse || true)"
 }
 
-write_inventory_on_finish() {
+stage7.write_inventory_on_finish() {
   debug "Signaling successful installation by writing 'installed' flag to the inventory file"
   VARS['db_password']=""
   VARS['db_restore_path']=""
@@ -2658,10 +2895,11 @@ ANSIBLE_TASK_HEADER="^TASK \[(.*)\].*"
 ANSIBLE_TASK_FAILURE_HEADER="^(fatal|failed): \[localhost\]: [A-Z]+! => "
 ANSIBLE_LAST_TASK_LOG="${WORKING_DIR}/ansible_last_task.log"
 
-run_ansible_playbook() {
+stage7.run_ansible_playbook() {
   # shellcheck source=/dev/null
   source "${INVENTORY_DIR}/components.env"
   local env cmd
+
   env="${env} ANSIBLE_FORCE_COLOR=true"
   env="${env} ANSIBLE_CONFIG=${PLAYBOOK_DIRECTORY}/ansible.cfg"
   env="${env} KCTL_BRANCH=${BRANCH}"
@@ -2671,6 +2909,7 @@ run_ansible_playbook() {
 
   cmd="${env} $(get_ansible_playbook_command) -v -i ${INVENTORY_PATH} ${PLAYBOOK_DIRECTORY}/playbook.yml"
 
+  expand_ansible_tags_on_upgrade
   if isset "${ANSIBLE_TAGS}"; then
     cmd="${cmd} --tags ${ANSIBLE_TAGS}"
   fi
@@ -2776,11 +3015,11 @@ print_field_content() {
 stage7() {
   debug "Starting stage 7: run ansible playbook"
   upgrades.run_upgrade_checkpoints 'pre'
-  expand_ansible_tags_on_upgrade
-  run_ansible_playbook
+  stage7.run_ansible_playbook
   clean_up
   upgrades.run_upgrade_checkpoints 'post'
-  write_inventory_on_finish
+  stage7.enable_services
+  stage7.write_inventory_on_finish
 }
 
 print_successful_message(){
@@ -2805,25 +3044,26 @@ upgrade_packages() {
 }
 
 stage8() {
+  debug "Starting stage 8: finalyze installation"
   upgrade_packages
   print_successful_message
 }
 
-earlyupgrade_checkpoint_2_29_0() {
-  earlyupgrade_checkpoint_2_29_0.move_nginx_file \
+earlyupgrade_checkpoint_2_40_0() {
+  earlyupgrade_checkpoint_2_40_0.move_nginx_file \
           /etc/nginx/conf.d/vhosts.conf /etc/nginx/conf.d/keitaro.conf
 
   for old_dir in /etc/ssl/certs /etc/nginx/ssl; do
     for cert_name in dhparam.pem cert.pem privkey.pem; do
-      earlyupgrade_checkpoint_2_29_0.move_nginx_file \
+      earlyupgrade_checkpoint_2_40_0.move_nginx_file \
               "${old_dir}/${cert_name}" "/etc/keitaro/ssl/${cert_name}"
     done
   done
 
-  earlyupgrade_checkpoint_2_29_0.remove_old_log_format_from_nginx_configs
+  earlyupgrade_checkpoint_2_40_0.remove_old_log_format_from_nginx_configs
 }
 
-earlyupgrade_checkpoint_2_29_0.move_nginx_file() {
+earlyupgrade_checkpoint_2_40_0.move_nginx_file() {
   local path_to_old_file="${1}" path_to_new_file="${2}" old_configs_count cmd msg
 
   if [[ -f "${path_to_old_file}" ]] && [[ ! -f ${path_to_new_file} ]]; then
@@ -2845,7 +3085,7 @@ earlyupgrade_checkpoint_2_29_0.move_nginx_file() {
 }
 
 
-earlyupgrade_checkpoint_2_29_0.remove_old_log_format_from_nginx_configs() {
+earlyupgrade_checkpoint_2_40_0.remove_old_log_format_from_nginx_configs() {
   local old_log_format="tracker.status" cmd
 
   old_configs_count="$(grep -r -l -F "${old_log_format}" /etc/nginx/conf.d | wc -l)"
@@ -2858,7 +3098,49 @@ earlyupgrade_checkpoint_2_29_0.remove_old_log_format_from_nginx_configs() {
   fi
 }
 
+earlyupgrade_checkpoint_2_41_10() {
+  earlyupgrade_checkpoint_2_41_10.remove_nginx_package
+  earlyupgrade_checkpoint_2_41_10.change_nginx_home
+  earlyupgrade_checkpoint_2_41_10.remove_mariadb_repo
+  earlyupgrade_checkpoint_2_41_10.remove_old_ansible
+}
+
+earlyupgrade_checkpoint_2_41_10.remove_nginx_package() {
+  if is_package_installed 'nginx'; then
+    upgrades.run_upgrade_checkpoint_command "yum erase -y nginx" "Erasing nginx package"
+  fi
+}
+
+earlyupgrade_checkpoint_2_41_10.change_nginx_home() {
+  local nginx_home
+  nginx_home="$( (getent passwd nginx | awk -F: '{print $6}') &>/dev/null || true)"
+  if [[ "${nginx_home}" != "/var/cache/nginx" ]]; then
+    upgrades.run_upgrade_checkpoint_command "usermod -d /var/cache/nginx nginx; rm -rf /home/nginx" "Changing nginx user home"
+  fi
+}
+
+earlyupgrade_checkpoint_2_41_10.remove_mariadb_repo() {
+  if [ -f /etc/yum.repos.d/mariadb.repo ]; then
+    upgrades.run_upgrade_checkpoint_command "rm -f /etc/yum.repos.d/mariadb.repo" "Removing mariadb repo"
+  fi
+}
+
+earlyupgrade_checkpoint_2_41_10.remove_old_ansible() {
+  if [[ "$(get_centos_major_release)" == "7" ]] && [[ -f /usr/bin/ansible-2 ]]; then
+    upgrades.run_upgrade_checkpoint_command "yum erase -y ansible" "Removing old ansible"
+  fi
+  if [[ "$(get_centos_major_release)" == "8" ]] && is_package_installed "ansible"; then
+    upgrades.run_upgrade_checkpoint_command "yum install -y ansible-core --allowerasing" "Removing old ansible"
+  fi
+}
+
 postupgrade_checkpoint_2_41_7() {
+  if ! components.wait_until_is_up 'mariadb'; then
+    fail "Couldn't connect to mariadb"
+  fi
+  if ! components.wait_until_is_up 'clickhouse'; then
+    fail "Couldn't connect to clickhouse"
+  fi
   postupgrade_checkpoint_2_41_7.fix_ch_ttl
 }
 
@@ -2926,9 +3208,15 @@ postupgrade_checkpoint_2_41_7.set_ch_table_ttl() {
 }
 
 
+postupgrade_checkpoint_2_41_10() {
+  rm -f /etc/keitaro/config/nginx.env
+  find /var/www/keitaro/var/ -maxdepth 1 -type f -name 'stats.json-*.tmp' -delete || true
+}
+
 preupgrade_checkpoint_2_41_7() {
   preupgrade_checkpoint_2_41_7.fix_db_engine
   preupgrade_checkpoint_2_41_7.fix_nginx_log_dir_permissions
+  preupgrade_checkpoint_2_41_7.install_components
 }
 
 preupgrade_checkpoint_2_41_7.fix_db_engine() {
@@ -2942,6 +3230,14 @@ preupgrade_checkpoint_2_41_7.fix_nginx_log_dir_permissions() {
   cmd="${cmd} && chown nginx:nginx ${nginx_log_dir}"
   cmd="${cmd} && chmod 0750 ${nginx_log_dir}"
   upgrades.run_upgrade_checkpoint_command "${cmd}" "Fixing nginx directory permissions"
+}
+
+preupgrade_checkpoint_2_41_7.install_components() {
+  components.install "certbot"
+  components.install "clickhouse"
+  components.install "mariadb"
+  components.install "nginx"
+  components.install "redis"
 }
 
 fix_db_engine() {
@@ -2995,7 +3291,6 @@ upgrades.run_upgrade_checkpoints() {
   local upgrade_kind="${1}"
   local upgrade_fn_prefix="${upgrade_kind}${UPGRADE_FN_SUFFIX}"
   local version_str kctl_config_version message
-  local slept
 
   if is_running_in_install_mode; then
     return
@@ -3008,11 +3303,6 @@ upgrades.run_upgrade_checkpoints() {
     if is_running_in_rescue_mode || (( kctl_config_version <= checkpoint_version )); then
       version_str="$(version_as_str "${checkpoint_version}")"
       upgrade_fn_name="${upgrade_fn_prefix}${version_str//./_}"
-
-      if empty "${slept}"; then
-        upgrades.run_upgrade_checkpoint_command "sleep 10" "Waiting for the database to be ready"
-        slept="true"
-      fi
 
       print_with_color "Evaluating ${upgrade_kind}upgrade steps from v${version_str}" 'blue'
       debug "Evaluating ${upgrade_kind}upgrade steps from v${version_str}"
@@ -3081,7 +3371,7 @@ main(){
   stage6                    # apply fixes
   stage7                    # run ansible playbook
   stage8                    # upgrade packages
-  popd &> /dev/null
+  popd &> /dev/null || true
 }
 
 main "$@"

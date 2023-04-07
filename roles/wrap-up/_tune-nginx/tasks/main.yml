@@ -6,9 +6,3 @@
 
 - name: Configure nginx
   include_tasks: 3-configure-nginx-keitaro.yml
-
-- name: Enable and start nginx
-  service:
-    name: nginx
-    state: started
-    enabled: true

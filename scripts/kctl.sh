@@ -49,8 +49,7 @@ TOOL_NAME='kctl'
 
 SELF_NAME=${0}
 
-
-RELEASE_VERSION='2.41.10'
+RELEASE_VERSION='2.42.0'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -317,6 +316,200 @@ env_files.safely_save_var() {
   fi
 }
 
+
+components.assert_var_is_set() {
+  local component="${1}" var_name="${2}"
+
+  value="$(components.get_var "${component}" "${var_name}")"
+
+  if [[ "${value}" == "" ]]; then
+    fail "${component^^}_${var_name^^} is not set!"
+  fi
+}
+
+components.create_group() {
+  local component="${1}"
+  local group group_id cmd
+
+  group_id="$(components.get_group_id "${component}")"
+  if [[ "${group_id}" != "" ]]; then
+    return
+  fi
+
+  components.assert_var_is_set "${component}" "group"
+  group="$(components.get_var "${component}" "group")"
+
+  cmd="groupadd --system ${group}"
+  run_command "${cmd}" "Creating group ${group}" 'hide_output'
+}
+
+components.create_user() {
+  local component="${1}"
+  local user group user_id home cmd
+
+  user_id="$(components.get_user_id "${component}")"
+  if [[ "${user_id}" != "" ]]; then
+    return
+  fi
+
+  components.assert_var_is_set "${component}" "user"
+  user="$(components.get_var "${component}" "user")"
+
+  components.assert_var_is_set "${component}" "group"
+  group="$(components.get_var "${component}" "group")"
+
+  components.assert_var_is_set "${component}" "home"
+  home="$(components.get_var "${component}" "home")"
+
+  cmd="useradd --no-create-home --system --home-dir ${home} --shell /sbin/nologin --gid ${group} ${user}"
+  run_command "${cmd}" "Creating user ${user}" 'hide_output'
+}
+
+COMPONENTS_OWN_VOLUMES_PREFIXES="/var/cache/ /var/log/ /var/lib/"
+
+components.create_volumes() {
+  local component="${1}" user group volumes 
+ 
+  volumes="$(components.get_var "${component}" "volumes")"
+  if [[ "${volumes}" == "" ]]; then
+    return
+  fi
+
+  components.assert_var_is_set "${component}" "user"
+  user="$(components.get_var "${component}" "user")"
+
+  components.assert_var_is_set "${component}" "group"
+  group="$(components.get_var "${component}" "group")"
+
+  for volume in ${volumes}; do
+    if [[ ${volume} =~ /$ ]] && [[ ! -d ${volume} ]]; then
+      components.create_volumes.create_volume_dir "${volume}" "${user}" "${group}"
+    fi
+  done
+}
+
+components.create_volumes.create_volume_dir() {
+  local volume="${1}" user="${2}" group="${3}"
+
+  mkdir -p "${volume}"
+  for own_volume_prefix in ${COMPONENTS_OWN_VOLUMES_PREFIXES}; do
+    if [[ "${volume}" =~ ^${own_volume_prefix} ]]; then
+      chown "${user}:${group}" "${volume}"
+    fi
+  done
+}
+
+components.get_group_id() {
+  local component="${1}" group
+
+  components.assert_var_is_set "${component}" "group"
+  group="$(components.get_var "${component}" "group")"
+
+  (getent group "${group}" | awk -F: '{print $3}') 2>/dev/null || true
+}
+
+components.get_user_id() {
+  local component="${1}" user
+
+  components.assert_var_is_set "${component}" "user"
+  user="$(components.get_var "${component}" "user")"
+
+  id -u "${user}" 2>/dev/null || true
+}
+
+components.get_var() {
+  local component="${1}"
+  local var="${2}"
+  local component_var="${component^^}_${var^^}"
+
+  env_files.read "${ROOT_PREFIX}/etc/keitaro/config/components.env"
+  env_files.read "${ROOT_PREFIX}/etc/keitaro/config/components/${component}.env"
+
+  echo "${!component_var}"
+}
+#/usr/bin/env bash
+
+components.install() {
+  local component="${1}"
+
+  debug "Installing ${component} component"
+
+  components.create_group "${component}"
+  components.create_user "${component}"
+  components.create_volumes "${component}"
+  components.pull "${component}"
+}
+
+components.pull() {
+  local component="${1}" image
+
+  components.assert_var_is_set "${component}" "image"
+  image="$(components.get_var "${component}" "image")"
+
+  run_command "podman pull ${image}" "Pulling ${component} image" "hide_output"
+}
+
+components.run() {
+  local component="${1}" podman_extra_args="${2}"; shift 2 || true
+  local image volumes_args volumes
+
+  components.assert_var_is_set "${component}" "image"
+  image="$(components.get_var "${component}" "image")"
+
+  volumes="$(components.get_var "${component}" "volumes")"
+
+  for volume_path in ${volumes}; do
+    volumes_args="${volumes_args} -v ${volume_path}:${volume_path}"
+  done
+
+  # shellcheck disable=SC2086
+  /usr/bin/podman run \
+                      --rm \
+                      --net host \
+                      --name "${component}" \
+                      --cap-add=CAP_NET_BIND_SERVICE \
+                      ${volumes_args} \
+                      ${podman_extra_args} \
+                      "${image}"
+                      "${@}"
+}
+
+ALIVENESS_PROBES_NO=10
+
+components.wait_until_is_up() {
+  local component="${1}" msg
+
+  if is_ci_mode || components.is_alive "${component}"; then
+    return
+  fi
+
+  print_with_color "Waiting for a component ${component} to start accepting connections"  "blue"
+
+  for ((i=0; i<ALIVENESS_PROBES_NO; i++)); do
+    sleep 1
+    if components.is_alive "${component}"; then
+      print_with_color "Component ${component} is accepting connections"  "green"
+      return
+    else
+      print_with_color "  Try $(( i + 1 ))/${ALIVENESS_PROBES_NO} - no connect" "yellow"
+    fi
+  done
+
+  print_with_color "Component ${component} is still not accepting connections"  "red"
+  return 1
+}
+
+components.is_alive() {
+  local component="${1}" host port
+
+  components.assert_var_is_set "${component}" "host"
+  host="$(components.get_var "${component}" "host")"
+
+  components.assert_var_is_set "${component}" "port"
+  port="$(components.get_var "${component}" "port")"
+
+  timeout 0.1 bash -c "</dev/tcp/${host}/${port}" &>/dev/null
+}
 
 
 translate(){
@@ -659,7 +852,7 @@ RESET_FORMATTING='\e[0m'
 print_with_color(){
   local message="${1}"
   local color="${2}"
-  if ! empty "$color"; then
+  if [[ "$color" != "" ]]; then
     escape_sequence="\e[${COLOR_CODE[$color]}m"
     echo -e "${escape_sequence}${message}${RESET_FORMATTING}"
   else
@@ -1078,6 +1271,11 @@ on_exit(){
   exit 1
 }
 
+kctl.get_user_id() {
+  local user_name="${1}"
+  get_user_id "${user_name}"
+}
+
 kctl_features.disable() {
   local feature="${1}"
   if empty "${feature}"; then
@@ -1212,97 +1410,111 @@ kctl_podman() {
   shift
 
   case "${action}" in
+    start)
+      kctl_podman.start "${1}"
+      ;;
+    stop)
+      kctl_podman.stop "${1}"
+      ;;
     prune)
-      if [[ "${#}" != 1 ]]; then
-        kctl_podman.usage
-      else
-        kctl_podman.prune "${1}"
-      fi
+      kctl_podman.prune "${1}"
       ;;
     stats)
-      podman stats --no-stream --format json
+      kctl_podman.stats
       ;;
     help)
       kctl_podman.usage
       ;;
     *)
-      kctl_podman
+      kctl_podman.usage
       exit 1
       ;;
   esac
 }
-#/usr/bin/env bash
 
-kctl_components.print(){
-  # shellcheck source=/dev/null
-  source "${INVENTORY_DIR}"/*.env
-  # shellcheck disable=SC2207
-  component_list=( $(ls -1 "${INVENTORY_DIR}"/*.env ) )
-  
-  for component_file in "${component_list[@]}"; do
-    # shellcheck source=/dev/null
-    if [[ $( basename "${component_file}") != "components.env" ]]; then
-      source "${component_file}"
-    fi
-  done
-  # shellcheck disable=SC2207 
-  component_keys=( $(get_component_keys) )
-
-  for component in "${component_keys[@]}"; do
-      echo "${component}: " "${!component}"
-  done
-}
-
-get_component_keys(){
-# shellcheck disable=SC2013   
-  for component in $(cat "${INVENTORY_DIR}"/components.env); do
-    cut -d "=" -f 1 <<< "${component}"
-  done
-}
-#/usr/bin/env bash
-
-kctl_components.change(){
+kctl_podman.stop() {
   local component="${1}"
-  local parameter="${2}"
-  local value="${3}"
-  
-  if [[ -f "${INVENTORY_DIR}/${component}.env" ]] && grep -q "${parameter}" "${INVENTORY_DIR}/${component}.env"; then
-      sed -i -e "s/^${parameter}.*/${parameter}=${value}/g" "${INVENTORY_DIR}/${component}.env"
-  else
-    echo "ENV file or parameter not found"
-  fi  
 
-  restart_component  "${component}"
+  kctl_podman.assert_component_is_supported "${component}"
+
+  echo "Stopping ${container} container"
+  /usr/bin/podman stop "${component}"
+
+  kctl_podman.prune "${component}"
 }
 
+declare -a PODMAN_SUPPORTED_COMPONENTS=(clickhouse mariadb nginx nginx_starting_page redis)
 
-restart_component(){
+kctl_podman.assert_component_is_supported() {
   local component="${1}"
-  local command="systemctl restart ${component}"
-  
-  if systemctl list-unit-files | grep -q -E  "${component}"; then
-    run_command "${command}" "Restarting SystemD service ${component}" "hide_output"
+
+  if ! arrays.in "${component}" "${PODMAN_SUPPORTED_COMPONENTS[@]}"; then
+    kctl_podman.usage
+    exit 1
   fi
 }
 
+
 kctl_podman.usage(){
   echo "Usage:"
+  echo "  kctl podman start CONTAINTER_NAME              starts container"
+  echo "  kctl podman stop CONTAINTER_NAME               stops container"
   echo "  kctl podman prune CONTAINTER_NAME              removes container and storage assotiated with it"
-  echo "  kctl podman statistics [--format json]         prints statistics"
+  echo "  kctl podman stats                              prints statistics"
   echo "  kctl podman usage                              prints this info"
+  echo
+  echo "Allowed CONTAINER_NAMEs are: ${PODMAN_SUPPORTED_COMPONENTS[*]}"
+}
+
+kctl_podman.stats() {
+  podman stats --no-stream --format json
+}
+
+kctl_podman.start() {
+  local component="${1}"
+
+  kctl_podman.assert_component_is_supported "${component}"
+  kctl_podman.prune "${component}"
+  kctl_podman.start_service "${component}"
+}
+
+kctl_podman.start_service() {
+  local component="${1}"
+  local uid_var="${component^^}_USER_UID" gid_var="${component^^}_USER_GID"
+  local user_id group_id extra_args root_mode
+
+  root_mode="$(components.get_var "${component}" "service_run_as_root")"
+  user_id=$(components.get_user_id "${component}")
+  group_id=$(components.get_group_id "${component}")
+  extra_args="$(components.get_var "${component}" "service_podman_args")"
+
+  debug "Detected vars - root_mode: ${root_mode}, user_id: ${user_id}, group_id: ${group_id}, extra_args: ${extra_args}"
+
+  if [[ "${root_mode}" == "" ]]; then
+    extra_args="${extra_args} --user ${user_id}:${group_id}"
+  else
+    extra_args="${extra_args} --env ${uid_var}=${user_id} --env ${gid_var}=${group_id}"
+  fi
+
+  components.run "${component}" "${extra_args}"
 }
 
 PATH_TO_CONTAINERS_JSON="/var/lib/containers/storage/overlay-containers/containers.json"
 
 kctl_podman.prune() {
-  local container_name="${1}"
-  if podman ps -a --format "{{.Names}}" | grep -qwF "${container_name}"; then
-    echo "Removing running ${container_name} container"
-    podman rm --force "${container_name}"
+  local container="${1}"
+  local container_json_regex="\"names\":[\"${container}\"]"
+
+  kctl_podman.assert_component_is_supported "${container}"
+
+  if podman ps -a --format "{{.Names}}" | grep -qwF "${container}"; then
+    echo "Removing running ${container} container"
+    podman rm --force "${container}"
   fi
-  if grep -q -F "\"names\":[\"${container_name}\"]" "${PATH_TO_CONTAINERS_JSON}"; then
-    echo "Removing ${container_name} container's storage"
-    podman rm --force --storage "${container_name}"
+
+  if [[ -f "${PATH_TO_CONTAINERS_JSON}" ]] && grep -q -F "${container_json_regex}" "${PATH_TO_CONTAINERS_JSON}"; then
+    echo "Removing ${container} container's storage"
+    podman rm --force --storage "${container}"
   fi
 }
 
@@ -1375,20 +1587,7 @@ kctl_run_nginx_in_docker() {
 }
 
 kctl_run_certbot() {
-  # shellcheck source=/dev/null
-  source /etc/keitaro/config/components.env
-
-  /usr/bin/podman run \
-                  --network host \
-                  --rm \
-                  --name certbot \
-                  --volume /etc/letsencrypt:/etc/letsencrypt \
-                  --volume /var/lib/letsencrypt:/var/lib/letsencrypt \
-                  --volume /var/log/letsencrypt:/var/log/letsencrypt \
-                  --volume /var/www/keitaro:/var/www/keitaro \
-                  "${CERTBOT_IMAGE}" \
-                  "${@}"
-  
+  components.run "certbot" "" "${@}"
 }
 
 kctl_run_usage(){
@@ -1598,25 +1797,6 @@ remove_last_certificate_from_chain() {
 
 kctl_certificates.prune() {
   /opt/keitaro/bin/kctl-certificates-prune "${@}"
-}
-#/usr/bin/env bash
-kctl-components(){
-  local action="${1}"; shift
-  case "${action}" in
-    change)
-      kctl_components.change "${@}"
-      ;;
-    enable-starting-page)
-      #shellcheck disable=SC2016
-      kctl_components.change "nginx" "NGINX_IMAGE" '"${STARTING_PAGE_IMAGE}"'
-      ;;
-    disable-starting-page)
-      #shellcheck disable=SC2016
-      kctl_components.change "nginx" "NGINX_IMAGE" '"${NGINX_IMAGE}"'
-      ;;
-    *)
-      kctl_components.usage
-  esac
 }
 
 ENABLED_FEATURES=()

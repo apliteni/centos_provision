@@ -1,8 +1,0 @@
-- name: Install helper tools
-  template:
-    src: "bin/{{ item }}.j2"
-    dest: "/usr/local/bin/{{ item }}"
-    mode: '0755'
-  with_items:
-    - keitaro-regenerate_systemd_roadrunner_watcher_path
-    - keitaro-roadrunner

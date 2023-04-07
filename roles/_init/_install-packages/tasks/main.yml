@@ -18,6 +18,7 @@
       - openssl
       - screen
     state: present
+  changed_when: false
 
 - name: Install REMI repository
   package:
