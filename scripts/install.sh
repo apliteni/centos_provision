@@ -51,7 +51,7 @@ TOOL_NAME='install'
 
 SELF_NAME=${0}
 
-RELEASE_VERSION='2.42.1'
+RELEASE_VERSION='2.42.2'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -3132,6 +3132,11 @@ earlyupgrade_checkpoint_2_40_0.remove_old_log_format_from_nginx_configs() {
     upgrades.run_upgrade_checkpoint_command "${cmd}" \
             "Removing old log format ${old_log_format} from ${old_configs_count} nginx configs"
   fi
+}
+
+earlyupgrade_checkpoint_2_42_1() {
+  upgrades.run_upgrade_checkpoint_command "rm -f /etc/logrotate.d/{redis,mysql}" \
+            "Removing old logrotate configs"
 }
 
 postupgrade_checkpoint_2_41_10() {
