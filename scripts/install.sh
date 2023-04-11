@@ -51,7 +51,7 @@ TOOL_NAME='install'
 
 SELF_NAME=${0}
 
-RELEASE_VERSION='2.42.2'
+RELEASE_VERSION='2.42.3'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -3256,7 +3256,6 @@ fix_db_engine() {
 preupgrade_checkpoint_2_41_7() {
   preupgrade_checkpoint_2_41_7.fix_db_engine
   preupgrade_checkpoint_2_41_7.fix_nginx_log_dir_permissions
-  preupgrade_checkpoint_2_41_7.install_components
 }
 
 preupgrade_checkpoint_2_41_7.fix_db_engine() {
@@ -3272,7 +3271,11 @@ preupgrade_checkpoint_2_41_7.fix_nginx_log_dir_permissions() {
   upgrades.run_upgrade_checkpoint_command "${cmd}" "Fixing nginx directory permissions"
 }
 
-preupgrade_checkpoint_2_41_7.install_components() {
+preupgrade_checkpoint_2_42_2() {
+  preupgrade_checkpoint_2_42_2.install_components
+}
+
+preupgrade_checkpoint_2_42_2.install_components() {
   components.install "certbot"
   components.install "clickhouse"
   components.install "mariadb"
