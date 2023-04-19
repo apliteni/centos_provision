@@ -51,7 +51,7 @@ TOOL_NAME='install'
 
 SELF_NAME=${0}
 
-RELEASE_VERSION='2.42.3'
+RELEASE_VERSION='2.42.4'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -1693,30 +1693,9 @@ get_ansible_package_name() {
   fi
 }
 
-clean_up() {
-  popd &> /dev/null || true
+get_free_disk_space_mb() {
+  (df -m --output=avail / | tail -n1) 2>/dev/null
 }
-
-is_running_in_upgrade_mode() {
-  [[ "${RUNNING_MODE}" == "${RUNNING_MODE_UPGRADE}" ]]
-}
-
-is_running_in_install_mode() {
-  [[ "${RUNNING_MODE}" == "${RUNNING_MODE_INSTALL}" ]]
-}
-
-is_running_in_fast_upgrade_mode() {
-  is_running_in_upgrade_mode && [[ "${UPGRADING_MODE}" == "${UPGRADING_MODE_FAST}" ]]
-}
-
-is_running_in_full_upgrade_mode() {
-  is_running_in_upgrade_mode && [[ "${UPGRADING_MODE}" == "${UPGRADING_MODE_FULL}" ]]
-}
-
-is_running_in_rescue_mode() {
-  is_running_in_full_upgrade_mode
-}
-
 
 get_config_value(){
   local var="${1}"
@@ -1764,7 +1743,7 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['tune-php']='2.38.2'
   ['tune-roadrunner']='2.41.10'
 
-  ['wrap-up-tracker-configuration']='2.41.8'
+  ['wrap-up-tracker-configuration']='2.42.3'
 )
 
 expand_ansible_tags_on_upgrade() {
@@ -1820,22 +1799,34 @@ is_upgrading_mode_full() {
   [[ "${UPGRADING_MODE}" == "${UPGRADING_MODE_FULL}" ]]
 }
 
-get_free_disk_space_mb() {
-  (df -m --output=avail / | tail -n1) 2>/dev/null
+clean_up() {
+  popd &> /dev/null || true
 }
+
+is_running_in_upgrade_mode() {
+  [[ "${RUNNING_MODE}" == "${RUNNING_MODE_UPGRADE}" ]]
+}
+
+is_running_in_install_mode() {
+  [[ "${RUNNING_MODE}" == "${RUNNING_MODE_INSTALL}" ]]
+}
+
+is_running_in_fast_upgrade_mode() {
+  is_running_in_upgrade_mode && [[ "${UPGRADING_MODE}" == "${UPGRADING_MODE_FAST}" ]]
+}
+
+is_running_in_full_upgrade_mode() {
+  is_running_in_upgrade_mode && [[ "${UPGRADING_MODE}" == "${UPGRADING_MODE_FULL}" ]]
+}
+
+is_running_in_rescue_mode() {
+  is_running_in_full_upgrade_mode
+}
+
 
 get_ram_size_mb() {
   (free -m | grep Mem: | awk '{print $2}') 2>/dev/null
 }
-MYIP_KEITARO_IO="https://myip.keitaro.io"
-
-detect_server_ip() {
-  debug "Detecting server IP address"
-  debug "Getting url '${MYIP_KEITARO_IO}'"
-  SERVER_IP="$(curl -fsSL4 ${MYIP_KEITARO_IO} 2>&1)"
-  debug "Done, result is '${SERVER_IP}'"
-}
-
 
 RUNNING_MODE_INSTALL="install"
 RUNNING_MODE_UPGRADE="upgrade"
@@ -1947,121 +1938,21 @@ help_en(){
   echo "  -w                       do not run 'yum upgrade'"
   echo
 }
+MYIP_KEITARO_IO="https://myip.keitaro.io"
+
+detect_server_ip() {
+  debug "Detecting server IP address"
+  debug "Getting url '${MYIP_KEITARO_IO}'"
+  SERVER_IP="$(curl -fsSL4 ${MYIP_KEITARO_IO} 2>&1)"
+  debug "Done, result is '${SERVER_IP}'"
+}
+
 
 stage1() {
   debug "Starting stage 1: initial script setup"
   parse_options "$@"
   detect_server_ip
   debug "Running in mode '${RUNNING_MODE}'"
-}
-
-assert_server_ip_is_valid() {
-  if ! valid_ip "${SERVER_IP}"; then
-    fail "$(translate 'errors.cant_detect_server_ip')"
-  fi
-}
-
-valid_ip(){
-  local value="${1}"
-  [[ "$value" =~  ^[[:digit:]]+(\.[[:digit:]]+){3}$ ]] && valid_ip_segments "$value"
-}
-
-
-valid_ip_segments(){
-  local ip="${1}"
-  local segments
-  IFS='.' read -r -a segments <<< "${ip}"
-  for segment in "${segments[@]}"; do
-    if ! valid_ip_segment "${segment}"; then
-      return "${FAILURE_RESULT}"
-    fi
-  done
-}
-
-valid_ip_segment(){
-  local ip_segment="${1}"
-  [ "$ip_segment" -ge 0 ] && [ "$ip_segment" -le 255 ]
-}
-
-assert_apache_not_installed(){
-  if is_installed httpd; then
-    fail "$(translate errors.apache_installed)"
-  fi
-}
-
-assert_running_on_supported_centos(){
-  assert_installed 'yum' 'errors.wrong_distro'
-  if ! file_exists /etc/centos-release; then
-    fail "$(translate errors.wrong_distro)"
-  fi
-  if empty "${SKIP_CENTOS_RELEASE_CHECK}"; then
-    if ! is_running_in_upgrade_mode; then
-      assert_centos_release_is_supportded
-    fi
-  fi
-}
-
-assert_centos_release_is_supportded(){
-  if ! file_content_matches /etc/centos-release '-P' '^CentOS .* (8|9)\b'; then
-    fail "$(translate errors.wrong_distro)"
-  fi
-}
-
-assert_systemctl_works_properly () {
-  local message
-  message=$(print_with_color 'Checking if systemd works' 'blue')
-  echo -en "${message} . "
-  if systemctl &> /dev/null; then
-    print_with_color 'OK' 'green'
-  else
-    print_with_color 'NOK' 'red'
-    fail "$(translate errors.systemctl_doesnt_work_properly)"
-  fi
-}
-
-
-assert_thp_deactivatable() {
-  debug "Checking if it is possible to disable THP"
-  if is_ci_mode; then
-    debug "Skip actual checking"
-    return
-  fi
-  if are_thp_sys_files_existing; then
-    debug "There are THP files in /sys fs, checking for ability to disable THP" 
-    echo never > /sys/kernel/mm/transparent_hugepage/enabled
-    echo never > /sys/kernel/mm/transparent_hugepage/defrag
-    thp_enabled="$(cat /sys/kernel/mm/transparent_hugepage/enabled)"
-    if [ "$thp_enabled" == "always madvise [never]" ]; then
-      debug "OK, THP was successfully disabled"
-    else
-      fail "Can't disable Transparent Huge Pages" 
-    fi
-  else
-    debug "There are no THP files in /sys fs, continuing installation process" 
-  fi
-}
-
-are_thp_sys_files_existing() {
-  file_exists "/sys/kernel/mm/transparent_hugepage/enabled" && file_exists "/sys/kernel/mm/transparent_hugepage/defrag"
-}
-MIN_FREE_DISK_SPACE_MB=2048
-
-assert_has_enough_free_disk_space(){
-  debug "Checking free disk spice"
-
-  if [[ "${SKIP_FREE_SPACE_CHECK}" != "" ]] || is_running_in_rescue_mode; then
-    debug "Free disk space checking skipped"
-    return
-  fi
-
-  local current_free_disk_space_mb
-  current_free_disk_space_mb=$(get_free_disk_space_mb)
-  if [[ "${current_free_disk_space_mb}" -lt "${MIN_FREE_DISK_SPACE_MB}" ]]; then
-    debug "Free disk space ${current_free_disk_space_mb}mb is less than ${MIN_FREE_DISK_SPACE_MB}mb, raising error"
-    fail "$(translate errors.not_enough_free_disk_space)"
-  else
-    debug "Free disk space ${current_free_disk_space_mb}mb is greater than ${MIN_FREE_DISK_SPACE_MB}mb, continuing"
-  fi
 }
 
 assert_pannels_not_installed(){
@@ -2093,6 +1984,46 @@ database_exists(){
   debug "Check if database ${database} exists"
   mysql -Nse 'show databases' 2>/dev/null | tr '\n' ' ' | grep -Pq "${database}"
 }
+
+assert_server_ip_is_valid() {
+  if ! valid_ip "${SERVER_IP}"; then
+    fail "$(translate 'errors.cant_detect_server_ip')"
+  fi
+}
+
+valid_ip(){
+  local value="${1}"
+  [[ "$value" =~  ^[[:digit:]]+(\.[[:digit:]]+){3}$ ]] && valid_ip_segments "$value"
+}
+
+
+valid_ip_segments(){
+  local ip="${1}"
+  local segments
+  IFS='.' read -r -a segments <<< "${ip}"
+  for segment in "${segments[@]}"; do
+    if ! valid_ip_segment "${segment}"; then
+      return "${FAILURE_RESULT}"
+    fi
+  done
+}
+
+valid_ip_segment(){
+  local ip_segment="${1}"
+  [ "$ip_segment" -ge 0 ] && [ "$ip_segment" -le 255 ]
+}
+
+assert_systemctl_works_properly () {
+  local message
+  message=$(print_with_color 'Checking if systemd works' 'blue')
+  echo -en "${message} . "
+  if systemctl &> /dev/null; then
+    print_with_color 'OK' 'green'
+  else
+    print_with_color 'NOK' 'red'
+    fail "$(translate errors.systemctl_doesnt_work_properly)"
+  fi
+}
 MIN_RAM_SIZE_MB=1500
 
 assert_has_enough_ram(){
@@ -2108,6 +2039,57 @@ assert_has_enough_ram(){
   fi
 }
 
+assert_apache_not_installed(){
+  if is_installed httpd; then
+    fail "$(translate errors.apache_installed)"
+  fi
+}
+MIN_FREE_DISK_SPACE_MB=2048
+
+assert_has_enough_free_disk_space(){
+  debug "Checking free disk spice"
+
+  if [[ "${SKIP_FREE_SPACE_CHECK}" != "" ]] || is_running_in_rescue_mode; then
+    debug "Free disk space checking skipped"
+    return
+  fi
+
+  local current_free_disk_space_mb
+  current_free_disk_space_mb=$(get_free_disk_space_mb)
+  if [[ "${current_free_disk_space_mb}" -lt "${MIN_FREE_DISK_SPACE_MB}" ]]; then
+    debug "Free disk space ${current_free_disk_space_mb}mb is less than ${MIN_FREE_DISK_SPACE_MB}mb, raising error"
+    fail "$(translate errors.not_enough_free_disk_space)"
+  else
+    debug "Free disk space ${current_free_disk_space_mb}mb is greater than ${MIN_FREE_DISK_SPACE_MB}mb, continuing"
+  fi
+}
+
+
+assert_thp_deactivatable() {
+  debug "Checking if it is possible to disable THP"
+  if is_ci_mode; then
+    debug "Skip actual checking"
+    return
+  fi
+  if are_thp_sys_files_existing; then
+    debug "There are THP files in /sys fs, checking for ability to disable THP" 
+    echo never > /sys/kernel/mm/transparent_hugepage/enabled
+    echo never > /sys/kernel/mm/transparent_hugepage/defrag
+    thp_enabled="$(cat /sys/kernel/mm/transparent_hugepage/enabled)"
+    if [ "$thp_enabled" == "always madvise [never]" ]; then
+      debug "OK, THP was successfully disabled"
+    else
+      fail "Can't disable Transparent Huge Pages" 
+    fi
+  else
+    debug "There are no THP files in /sys fs, continuing installation process" 
+  fi
+}
+
+are_thp_sys_files_existing() {
+  file_exists "/sys/kernel/mm/transparent_hugepage/enabled" && file_exists "/sys/kernel/mm/transparent_hugepage/defrag"
+}
+
 
 assert_not_running_under_openvz() {
   debug "Assert we are not running under OpenVZ"
@@ -2116,6 +2098,24 @@ assert_not_running_under_openvz() {
   debug "Detected virtualization type: '${virtualization_type}'"
   if isset "${virtualization_type}" && [[ "${virtualization_type}" == "openvz" ]]; then
     fail "Servers with OpenVZ virtualization are not supported"
+  fi
+}
+
+assert_running_on_supported_centos(){
+  assert_installed 'yum' 'errors.wrong_distro'
+  if ! file_exists /etc/centos-release; then
+    fail "$(translate errors.wrong_distro)"
+  fi
+  if empty "${SKIP_CENTOS_RELEASE_CHECK}"; then
+    if ! is_running_in_upgrade_mode; then
+      assert_centos_release_is_supportded
+    fi
+  fi
+}
+
+assert_centos_release_is_supportded(){
+  if ! file_content_matches /etc/centos-release '-P' '^CentOS .* (8|9)\b'; then
+    fail "$(translate errors.wrong_distro)"
   fi
 }
 
@@ -2133,41 +2133,6 @@ stage2(){
   assert_thp_deactivatable
   assert_server_ip_is_valid
   assert_architecture_is_valid
-}
-
-setup_vars() {
-  detect_installed_version
-  setup_default_value installer_version "${INSTALLED_VERSION}" "${RELEASE_VERSION}"
-  setup_default_value db_name 'keitaro'
-  setup_default_value ch_password "$(generate_password)"
-  setup_default_value db_engine "${DB_ENGINE_DEFAULT}"
-  if ! file_exists "${INVENTORY_DIR}/tracker.env"; then
-    setup_default_value db_password "$(get_tracker_config_value 'db' 'password')" "$(generate_password)"
-    setup_default_value db_root_password "$(get_config_value password "/root/.my.cnf" '=')" "$(generate_password)"
-    setup_default_value db_user "$(get_tracker_config_value 'db' 'user')" 'keitaro'
-    setup_default_value postback_key "$(get_config_value 'postback_key' "${TRACKER_CONFIG_FILE}" '=')"
-    setup_default_value salt "$(get_config_value 'salt' "${TRACKER_CONFIG_FILE}" '=')" "$(generate_uuid)"
-    setup_default_value table_prefix "$(get_tracker_config_value 'db' 'prefix')" 'keitaro_'
-  fi
-}
-
-setup_default_value() {
-  local var_name="${1}"
-  local default_value="${2:-${3}}"
-  if empty "${VARS[${var_name}]}"; then
-    if [[ "${var_name}" =~ passw ]]; then
-      debug "VARS['${var_name}'] is empty, set to '***MASKED***'"
-    else
-      debug "VARS['${var_name}'] is empty, set to '${default_value}'"
-    fi
-    VARS["${var_name}"]="${default_value}"
-  else
-    if [[ "${var_name}" =~ passw ]]; then
-      debug "VARS['${var_name}'] is set to '***MASKED***'"
-    else
-      debug "VARS['${var_name}'] is set to '${VARS[$var_name]}'"
-    fi
-  fi
 }
 
 read_inventory(){
@@ -2206,6 +2171,41 @@ parse_line_from_inventory_file(){
       debug "  $var_name=***MASKED***"
     else
       debug "  $var_name=${VARS[$var_name]}"
+    fi
+  fi
+}
+
+setup_vars() {
+  detect_installed_version
+  setup_default_value installer_version "${INSTALLED_VERSION}" "${RELEASE_VERSION}"
+  setup_default_value db_name 'keitaro'
+  setup_default_value ch_password "$(generate_password)"
+  setup_default_value db_engine "${DB_ENGINE_DEFAULT}"
+  if ! file_exists "${INVENTORY_DIR}/tracker.env"; then
+    setup_default_value db_password "$(get_tracker_config_value 'db' 'password')" "$(generate_password)"
+    setup_default_value db_root_password "$(get_config_value password "/root/.my.cnf" '=')" "$(generate_password)"
+    setup_default_value db_user "$(get_tracker_config_value 'db' 'user')" 'keitaro'
+    setup_default_value postback_key "$(get_config_value 'postback_key' "${TRACKER_CONFIG_FILE}" '=')"
+    setup_default_value salt "$(get_config_value 'salt' "${TRACKER_CONFIG_FILE}" '=')" "$(generate_uuid)"
+    setup_default_value table_prefix "$(get_tracker_config_value 'db' 'prefix')" 'keitaro_'
+  fi
+}
+
+setup_default_value() {
+  local var_name="${1}"
+  local default_value="${2:-${3}}"
+  if empty "${VARS[${var_name}]}"; then
+    if [[ "${var_name}" =~ passw ]]; then
+      debug "VARS['${var_name}'] is empty, set to '***MASKED***'"
+    else
+      debug "VARS['${var_name}'] is empty, set to '${default_value}'"
+    fi
+    VARS["${var_name}"]="${default_value}"
+  else
+    if [[ "${var_name}" =~ passw ]]; then
+      debug "VARS['${var_name}'] is set to '***MASKED***'"
+    else
+      debug "VARS['${var_name}'] is set to '${VARS[$var_name]}'"
     fi
   fi
 }
@@ -2356,6 +2356,16 @@ stage4() {
   write_inventory_file
 }
 
+install_ansible() {
+  install_package 'epel-release'
+  install_package "$(get_ansible_package_name)"
+  install_ansible_collection "community.mysql"
+  install_ansible_collection "containers.podman"
+  install_ansible_collection "community.general"
+  install_ansible_collection "ansible.posix"
+}
+
+
 install_core_packages() {
   if install_core_packages.is_centos8_distro; then
     install_core_packages.switch_to_centos8_stream
@@ -2409,6 +2419,17 @@ install_core_packages.switch_to_centos8_stream() {
   run_command "dnf distro-sync -y" "  Syncing distro"
 }
 
+install_kctl() {
+  install_kctl.install_provision
+  install_kctl.install_binaries
+  install_kctl.install_configs
+  install_kctl.install_components
+  install_kctl.install_roadrunner
+  install_kctl.install_kctl_ch_converter
+  install_kctl.install_kctld
+  install_kctl.configure_systemd
+}
+
 disable_selinux() {
   if [[ "$(get_selinux_status)" == "Enforcing" ]]; then
     run_command 'setenforce 0' 'Disabling Selinux' 'hide_output'
@@ -2423,25 +2444,32 @@ get_selinux_status(){
   getenforce
 }
 
-install_ansible() {
-  install_package 'epel-release'
-  install_package "$(get_ansible_package_name)"
-  install_ansible_collection "community.mysql"
-  install_ansible_collection "containers.podman"
-  install_ansible_collection "community.general"
-  install_ansible_collection "ansible.posix"
+install_kctl.install_components() {
+  if is_running_in_install_mode; then
+    components.install "nginx_starting_page"
+    systemd.update_units
+    systemd.disable_and_stop_service "nginx"
+    systemd.enable_and_start_service "nginx_starting_page"
+
+    components.install "certbot"
+    components.install "clickhouse"
+    components.install "mariadb"
+    components.install "nginx"
+    components.install "redis"
+  fi
 }
 
+install_kctl.install_binaries() {
+  local file_name
 
-install_kctl() {
-  install_kctl.install_provision
-  install_kctl.install_binaries
-  install_kctl.install_configs
-  install_kctl.install_components
-  install_kctl.install_roadrunner
-  install_kctl.install_kctl_ch_converter
-  install_kctl.install_kctld
-  install_kctl.configure_systemd
+  install "${PROVISION_DIRECTORY}"/bin/* "${KCTL_BIN_DIR}"/
+
+  for existing_file_path in "${KCTL_BIN_DIR}"/*; do
+    file_name="${existing_file_path##*/}"
+    ln -s -f "${existing_file_path}" "/usr/local/bin/${file_name}"
+  done
+
+  install -m 0755 "${PROVISION_DIRECTORY}/files/bin/"* "${ROOT_PREFIX}/usr/local/bin/"
 }
 
 ROADRUNNER_ROOT_DIR="${ROOT_PREFIX}/usr/local/bin"
@@ -2472,26 +2500,6 @@ install_kctl.install_roadrunner() {
   fi
 }
 
-install_kctl.configure_systemd() {
-  systemd.update_units
-  systemd.enable_service 'schedule-fs-check-on-boot'
-  systemd.restart_service 'schedule-fs-check-on-boot'
-  systemd.enable_service 'disable-thp'
-  systemd.restart_service 'disable-thp'
-  systemd.enable_service 'kctl-monitor'
-  systemd.restart_service 'kctl-monitor'
-  systemd.enable_service 'kctld-worker'
-  systemd.enable_service 'kctld-server'
-  if [[ "${KCTLD_MODE}" == "true" ]]; then
-    systemd.start_service 'kctld-worker'
-    systemd.start_service 'kctld-server'
-  else
-    systemd.restart_service 'kctld-worker'
-    systemd.restart_service 'kctld-server'
-  fi
-}
-
-
 KCTLD_SERVER_PATH="${KCTL_BIN_DIR}/kctld-server"
 KCTLD_WORKER_PATH="${KCTL_BIN_DIR}/kctld-worker"
 
@@ -2518,17 +2526,47 @@ install_kctl.install_kctld() {
   fi
 }
 
-install_kctl.install_binaries() {
-  local file_name
+install_kctl.configure_systemd() {
+  systemd.update_units
+  systemd.enable_service 'schedule-fs-check-on-boot'
+  systemd.restart_service 'schedule-fs-check-on-boot'
+  systemd.enable_service 'disable-thp'
+  systemd.restart_service 'disable-thp'
+  systemd.enable_service 'kctl-monitor'
+  systemd.restart_service 'kctl-monitor'
+  systemd.enable_service 'kctld-worker'
+  systemd.enable_service 'kctld-server'
+  if [[ "${KCTLD_MODE}" == "true" ]]; then
+    systemd.start_service 'kctld-worker'
+    systemd.start_service 'kctld-server'
+  else
+    systemd.restart_service 'kctld-worker'
+    systemd.restart_service 'kctld-server'
+  fi
+}
 
-  install "${PROVISION_DIRECTORY}"/bin/* "${KCTL_BIN_DIR}"/
 
-  for existing_file_path in "${KCTL_BIN_DIR}"/*; do
-    file_name="${existing_file_path##*/}"
-    ln -s -f "${existing_file_path}" "/usr/local/bin/${file_name}"
-  done
+KCTL_CH_CONVERTER_PATH="${KCTL_BIN_DIR}/kctl-ch-converter"
 
-  install -m 0755 "${PROVISION_DIRECTORY}/files/bin/"* "${ROOT_PREFIX}/usr/local/bin/"
+install_kctl.install_kctl_ch_converter() {
+  local kctl_ch_converter_path url version cmd
+
+  url="$(components.get_var "kctl_ch_converter" "url")"
+  version="$(components.get_var "kctl_ch_converter" "version")"
+  kctl_ch_converter_path="${KCTL_CH_CONVERTER_PATH}-${version}"
+
+  if [[ -f ${kctl_ch_converter_path} ]]; then
+    debug "Skip installing kctl-ch-converter v${version} - already installed"
+    print_with_color "Skip installing kctl-ch-converter v${version} - already installed" 'blue'
+  else
+    cache.retrieve_or_download "${url}"
+
+    cmd="rm -f ${KCTL_CH_CONVERTER_PATH} ${KCTL_CH_CONVERTER_PATH}-*"                       # uninstall previous versions
+    cmd="${cmd} && zcat $(cache.path_by_url "${url}") > ${kctl_ch_converter_path}"         # install new converter
+    cmd="${cmd} && chmod a+x ${kctl_ch_converter_path}"                                     # make it executable
+    cmd="${cmd} && ln -s ${kctl_ch_converter_path} ${KCTL_CH_CONVERTER_PATH}"               # make symlink
+    run_command "${cmd}" "Installing kctl-ch-converter v${version}" "hide_output"
+  fi
 }
 
 install_kctl.install_provision() {
@@ -2580,44 +2618,6 @@ install_kctl.install_configs() {
   if [[ "$(get_centos_major_release)" != "7" ]]; then
     install -m 0644 "${PROVISION_DIRECTORY}/files/etc/containers/registries.conf.d"/* \
             "${ROOT_PREFIX}/etc/containers/registries.conf.d/"
-  fi
-}
-
-install_kctl.install_components() {
-  if is_running_in_install_mode; then
-    components.install "nginx_starting_page"
-    systemd.update_units
-    systemd.disable_and_stop_service "nginx"
-    systemd.enable_and_start_service "nginx_starting_page"
-
-    components.install "certbot"
-    components.install "clickhouse"
-    components.install "mariadb"
-    components.install "nginx"
-    components.install "redis"
-  fi
-}
-
-KCTL_CH_CONVERTER_PATH="${KCTL_BIN_DIR}/kctl-ch-converter"
-
-install_kctl.install_kctl_ch_converter() {
-  local kctl_ch_converter_path url version cmd
-
-  url="$(components.get_var "kctl_ch_converter" "url")"
-  version="$(components.get_var "kctl_ch_converter" "version")"
-  kctl_ch_converter_path="${KCTL_CH_CONVERTER_PATH}-${version}"
-
-  if [[ -f ${kctl_ch_converter_path} ]]; then
-    debug "Skip installing kctl-ch-converter v${version} - already installed"
-    print_with_color "Skip installing kctl-ch-converter v${version} - already installed" 'blue'
-  else
-    cache.retrieve_or_download "${url}"
-
-    cmd="rm -f ${KCTL_CH_CONVERTER_PATH} ${KCTL_CH_CONVERTER_PATH}-*"                       # uninstall previous versions
-    cmd="${cmd} && zcat $(cache.path_by_url "${url}") > ${kctl_ch_converter_path}"         # install new converter
-    cmd="${cmd} && chmod a+x ${kctl_ch_converter_path}"                                     # make it executable
-    cmd="${cmd} && ln -s ${kctl_ch_converter_path} ${KCTL_CH_CONVERTER_PATH}"               # make symlink
-    run_command "${cmd}" "Installing kctl-ch-converter v${version}" "hide_output"
   fi
 }
 
@@ -2718,6 +2718,13 @@ stage6() {
       print_with_color "${err}" "red"
     fi
   fi
+}
+
+stage7.enable_services() {
+  systemd.enable_service "clickhouse"
+  systemd.enable_service "mariadb"
+  systemd.enable_service "nginx"
+  systemd.enable_service "redis"
 }
 
 json2dict() {
@@ -2856,13 +2863,6 @@ json2dict() {
   }
 
   printf "( %s)" "$(tokenize | json_parse || true)"
-}
-
-stage7.enable_services() {
-  systemd.enable_service "clickhouse"
-  systemd.enable_service "mariadb"
-  systemd.enable_service "nginx"
-  systemd.enable_service "redis"
 }
 
 stage7.write_inventory_on_finish() {
@@ -3049,40 +3049,9 @@ stage8() {
   print_successful_message
 }
 
-earlyupgrade_checkpoint_2_41_10() {
-  earlyupgrade_checkpoint_2_41_10.remove_nginx_package
-  earlyupgrade_checkpoint_2_41_10.change_nginx_home
-  earlyupgrade_checkpoint_2_41_10.remove_mariadb_repo
-  earlyupgrade_checkpoint_2_41_10.remove_old_ansible
-}
-
-earlyupgrade_checkpoint_2_41_10.remove_nginx_package() {
-  if is_package_installed 'nginx'; then
-    upgrades.run_upgrade_checkpoint_command "yum erase -y nginx" "Erasing nginx package"
-  fi
-}
-
-earlyupgrade_checkpoint_2_41_10.change_nginx_home() {
-  local nginx_home
-  nginx_home="$( (getent passwd nginx | awk -F: '{print $6}') &>/dev/null || true)"
-  if [[ "${nginx_home}" != "/var/cache/nginx" ]]; then
-    upgrades.run_upgrade_checkpoint_command "usermod -d /var/cache/nginx nginx; rm -rf /home/nginx" "Changing nginx user home"
-  fi
-}
-
-earlyupgrade_checkpoint_2_41_10.remove_mariadb_repo() {
-  if [ -f /etc/yum.repos.d/mariadb.repo ]; then
-    upgrades.run_upgrade_checkpoint_command "rm -f /etc/yum.repos.d/mariadb.repo" "Removing mariadb repo"
-  fi
-}
-
-earlyupgrade_checkpoint_2_41_10.remove_old_ansible() {
-  if [[ "$(get_centos_major_release)" == "7" ]] && [[ -f /usr/bin/ansible-2 ]]; then
-    upgrades.run_upgrade_checkpoint_command "yum erase -y ansible" "Removing old ansible"
-  fi
-  if [[ "$(get_centos_major_release)" == "8" ]] && is_package_installed "ansible"; then
-    upgrades.run_upgrade_checkpoint_command "yum install -y ansible-core --allowerasing" "Removing old ansible"
-  fi
+earlyupgrade_checkpoint_2_42_1() {
+  upgrades.run_upgrade_checkpoint_command "rm -f /etc/logrotate.d/{redis,mysql}" \
+            "Removing old logrotate configs"
 }
 
 earlyupgrade_checkpoint_2_40_0() {
@@ -3134,14 +3103,40 @@ earlyupgrade_checkpoint_2_40_0.remove_old_log_format_from_nginx_configs() {
   fi
 }
 
-earlyupgrade_checkpoint_2_42_1() {
-  upgrades.run_upgrade_checkpoint_command "rm -f /etc/logrotate.d/{redis,mysql}" \
-            "Removing old logrotate configs"
+earlyupgrade_checkpoint_2_41_10() {
+  earlyupgrade_checkpoint_2_41_10.remove_nginx_package
+  earlyupgrade_checkpoint_2_41_10.change_nginx_home
+  earlyupgrade_checkpoint_2_41_10.remove_mariadb_repo
+  earlyupgrade_checkpoint_2_41_10.remove_old_ansible
 }
 
-postupgrade_checkpoint_2_41_10() {
-  rm -f /etc/keitaro/config/nginx.env
-  find /var/www/keitaro/var/ -maxdepth 1 -type f -name 'stats.json-*.tmp' -delete || true
+earlyupgrade_checkpoint_2_41_10.remove_nginx_package() {
+  if is_package_installed 'nginx'; then
+    upgrades.run_upgrade_checkpoint_command "yum erase -y nginx" "Erasing nginx package"
+  fi
+}
+
+earlyupgrade_checkpoint_2_41_10.change_nginx_home() {
+  local nginx_home
+  nginx_home="$( (getent passwd nginx | awk -F: '{print $6}') &>/dev/null || true)"
+  if [[ "${nginx_home}" != "/var/cache/nginx" ]]; then
+    upgrades.run_upgrade_checkpoint_command "usermod -d /var/cache/nginx nginx; rm -rf /home/nginx" "Changing nginx user home"
+  fi
+}
+
+earlyupgrade_checkpoint_2_41_10.remove_mariadb_repo() {
+  if [ -f /etc/yum.repos.d/mariadb.repo ]; then
+    upgrades.run_upgrade_checkpoint_command "rm -f /etc/yum.repos.d/mariadb.repo" "Removing mariadb repo"
+  fi
+}
+
+earlyupgrade_checkpoint_2_41_10.remove_old_ansible() {
+  if [[ "$(get_centos_major_release)" == "7" ]] && [[ -f /usr/bin/ansible-2 ]]; then
+    upgrades.run_upgrade_checkpoint_command "yum erase -y ansible" "Removing old ansible"
+  fi
+  if [[ "$(get_centos_major_release)" == "8" ]] && is_package_installed "ansible"; then
+    upgrades.run_upgrade_checkpoint_command "yum install -y ansible-core --allowerasing" "Removing old ansible"
+  fi
 }
 
 postupgrade_checkpoint_2_41_7() {
@@ -3218,6 +3213,29 @@ postupgrade_checkpoint_2_41_7.set_ch_table_ttl() {
 }
 
 
+postupgrade_checkpoint_2_41_10() {
+  rm -f /etc/keitaro/config/nginx.env
+  find /var/www/keitaro/var/ -maxdepth 1 -type f -name 'stats.json-*.tmp' -delete || true
+}
+
+preupgrade_checkpoint_2_41_7() {
+  preupgrade_checkpoint_2_41_7.fix_db_engine
+  preupgrade_checkpoint_2_41_7.fix_nginx_log_dir_permissions
+}
+
+preupgrade_checkpoint_2_41_7.fix_db_engine() {
+  fix_db_engine
+}
+
+preupgrade_checkpoint_2_41_7.fix_nginx_log_dir_permissions() {
+  local cmd
+  local nginx_log_dir="/var/log/nginx"
+  cmd="mkdir -p ${nginx_log_dir}"
+  cmd="${cmd} && chown nginx:nginx ${nginx_log_dir}"
+  cmd="${cmd} && chmod 0750 ${nginx_log_dir}"
+  upgrades.run_upgrade_checkpoint_command "${cmd}" "Fixing nginx directory permissions"
+}
+
 fix_db_engine() {
   detect_db_engine() {
     local sql="SELECT lower(engine) FROM information_schema.tables WHERE table_name = 'schema_migrations'"
@@ -3253,22 +3271,14 @@ fix_db_engine() {
   write_inventory_file
 }
 
-preupgrade_checkpoint_2_41_7() {
-  preupgrade_checkpoint_2_41_7.fix_db_engine
-  preupgrade_checkpoint_2_41_7.fix_nginx_log_dir_permissions
+preupgrade_checkpoint_2_41_8() {
+  preupgrade_checkpoint_2_41_8.fix_db_engine
 }
 
-preupgrade_checkpoint_2_41_7.fix_db_engine() {
-  fix_db_engine
-}
-
-preupgrade_checkpoint_2_41_7.fix_nginx_log_dir_permissions() {
-  local cmd
-  local nginx_log_dir="/var/log/nginx"
-  cmd="mkdir -p ${nginx_log_dir}"
-  cmd="${cmd} && chown nginx:nginx ${nginx_log_dir}"
-  cmd="${cmd} && chmod 0750 ${nginx_log_dir}"
-  upgrades.run_upgrade_checkpoint_command "${cmd}" "Fixing nginx directory permissions"
+preupgrade_checkpoint_2_41_8.fix_db_engine() {
+  if [[ "${VARS['db_engine']}" != "tokudb" ]] && [[ "${VARS['db_engine']}" != "innodb" ]]; then
+    fix_db_engine
+  fi
 }
 
 preupgrade_checkpoint_2_42_2() {
@@ -3281,16 +3291,6 @@ preupgrade_checkpoint_2_42_2.install_components() {
   components.install "mariadb"
   components.install "nginx"
   components.install "redis"
-}
-
-preupgrade_checkpoint_2_41_8() {
-  preupgrade_checkpoint_2_41_8.fix_db_engine
-}
-
-preupgrade_checkpoint_2_41_8.fix_db_engine() {
-  if [[ "${VARS['db_engine']}" != "tokudb" ]] && [[ "${VARS['db_engine']}" != "innodb" ]]; then
-    fix_db_engine
-  fi
 }
 
 UPGRADE_FN_SUFFIX="upgrade_checkpoint_"

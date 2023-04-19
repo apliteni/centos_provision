@@ -90,9 +90,13 @@ Usage:
 
 ```
 Usage:
+  kctl podman start CONTAINTER_NAME              starts container
+  kctl podman stop CONTAINTER_NAME               stops container
   kctl podman prune CONTAINTER_NAME              removes container and storage assotiated with it
-  kctl podman statistics [--format json]         prints statistics
+  kctl podman stats                              prints statistics
   kctl podman usage                              prints this info
+
+Allowed CONTAINER_NAMEs are: clickhouse mariadb nginx nginx_starting_page redis
 ```
 
 <!-- end of 'kctl podman help' output -->
@@ -129,6 +133,7 @@ BACKUP_DIR
   Specify Keitaro data directory (default - /var/lib/kctl-transfers)
 
 Environment variables:
+  SSH_USER              - specify ssh user
   SSH_PASSWORD          - specify ssh password
   SSH_PORT              - specify ssh port
   SSH_PATH_TO_KEY       - specify path to ssh key

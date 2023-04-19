@@ -2,7 +2,7 @@
   cron:
     user: "{{ keitaro_user }}"
     name: "keitaro cron (channel {{ item }})"
-    job: "CHANNEL={{ item }} {{ kctl_php_path }} {{ keitaro_app_dir }}/cron.php > /dev/null"
+    job: "/bin/sh -c 'sleep {{ box_creation_time | extract_minute }} && CHANNEL={{ item }} {{ kctl_php_path }} {{ keitaro_app_dir }}/cron.php > /dev/null'"
   loop: [1, 2, 3, 4]
 
 # weekly task
