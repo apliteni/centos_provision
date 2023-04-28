@@ -50,7 +50,7 @@ TOOL_NAME='enable-ssl'
 
 SELF_NAME=${0}
 
-RELEASE_VERSION='2.42.4'
+RELEASE_VERSION='2.42.5'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -58,6 +58,8 @@ BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
 KEITARO_URL='https://keitaro.io'
 FILES_KEITARO_ROOT_URL="https://files.keitaro.io"
 FILES_KEITARO_URL="https://files.keitaro.io/scripts/${BRANCH}"
+KEITARO_SUPPORT_USER='keitaro-support'
+KEITARO_SUPPORT_HOME_DIR="${ROOT_PREFIX}/home/${KEITARO_SUPPORT_USER}"
 
 if is_ci_mode; then
   ROOT_PREFIX='.keitaro'
@@ -397,7 +399,11 @@ ensure_nginx_config_correct() {
   if is_installed "nginx"; then
     run_command "nginx -t" "$(translate 'messages.validate_nginx_conf')" "hide_output"
   else
-    run_command "/opt/keitaro/bin/kctl run nginx -t" "$(translate 'messages.validate_nginx_conf')" "hide_output"
+    if podman ps | grep -q nginx; then
+      run_command "/opt/keitaro/bin/kctl run nginx -t" "$(translate 'messages.validate_nginx_conf')" "hide_output"
+    else
+      print_with_color "Can't find running nginx container, skipping nginx config checks", 'yellow'
+    fi
   fi
 }
 
@@ -1054,6 +1060,15 @@ start_or_reload_nginx(){
     debug "Nginx is not running, starting"
     print_with_color "$(translate 'messages.nginx_is_not_running')" "yellow"
     run_command "systemctl start nginx" "$(translate 'messages.starting_nginx')" 'hide_output'
+  fi
+}
+
+system.users.create() {
+  local user="${1}" home_dir="${2}" cmd
+
+  if ! getent passwd "${user}" > /dev/null; then
+    cmd="/usr/sbin/useradd --create-home --home-dir ${home_dir} --user-group --shell /bin/bash ${user}"
+    run_command "${cmd}" "Creating user ${user}" 'hide_output'
   fi
 }
 

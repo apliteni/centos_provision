@@ -55,12 +55,30 @@
     name: nginx_starting_page
     state: stopped
     enabled: false
+  register: stop_nginx_starting_page
 
-- name: Enable and start nginx
+- name: Start nginx
   service:
     name: nginx
     state: started
-    enabled: true
+  when: stop_nginx_starting_page.changed
+  register: start_nginx
+
+- name: Sleep a bit
+  command: sleep 5
+  changed_when: false
+  when: stop_nginx_starting_page.changed
+
+- name: Restart nginx
+  service:
+    name: nginx
+    state: restarted
+  when: stop_nginx_starting_page.changed
+
+- name: Sleep a bit
+  command: sleep 5
+  changed_when: false
+  when: stop_nginx_starting_page.changed
 
 - name: Force reloading nginx if there were config changes
   meta: flush_handlers

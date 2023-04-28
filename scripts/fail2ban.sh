@@ -48,7 +48,7 @@ TOOL_NAME='kctl-fail2ban'
 
 SELF_NAME=${0}
 
-RELEASE_VERSION='2.42.4'
+RELEASE_VERSION='2.42.5'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -56,6 +56,8 @@ BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
 KEITARO_URL='https://keitaro.io'
 FILES_KEITARO_ROOT_URL="https://files.keitaro.io"
 FILES_KEITARO_URL="https://files.keitaro.io/scripts/${BRANCH}"
+KEITARO_SUPPORT_USER='keitaro-support'
+KEITARO_SUPPORT_HOME_DIR="${ROOT_PREFIX}/home/${KEITARO_SUPPORT_USER}"
 
 if is_ci_mode; then
   ROOT_PREFIX='.keitaro'

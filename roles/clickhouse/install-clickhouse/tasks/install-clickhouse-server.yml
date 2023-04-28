@@ -13,3 +13,9 @@
 
 - name: Do daemon-reload & restart service if need
   meta: flush_handlers
+
+- name: Ensure clickhouse is started
+  service:
+    name: clickhouse
+    state: started
+    enabled: true

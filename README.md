@@ -56,8 +56,6 @@ Environment variables:
 
 ```
 Usage:
-  kctl certificates issue domain1.tld domain2.tld ...     issue LE certificates for specified domains
-  kctl certificates revoke domain1.tld domain2.tld ...    revoke LE certificates for specified domains
   kctl certificates renew                                 renew LE certificates
   kctl certificates remove-old-logs                       remove old issuing logs
   kctl certificates prune <KIND>                          prunes LE ssl certificates

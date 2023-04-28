@@ -9,3 +9,9 @@
 
 - name: Do daemon-reload & restart service if need
   meta: flush_handlers
+
+- name: Ensure redis is started
+  service:
+    name: redis
+    state: started
+    enabled: true

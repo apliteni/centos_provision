@@ -17,6 +17,3 @@
 
 - name: Prepare mariadb upgrade
   include_tasks: prepare-mariadb-upgrade.yml
-
-- name: Prepare clickhouse upgrade
-  include_tasks: prepare-clickhouse-upgrade.yml

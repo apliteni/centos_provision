@@ -5,19 +5,12 @@
 
     [[ -f /etc/keitaro/config/tracker.env ]] && source /etc/keitaro/config/tracker.env
 
-    if [[ -f /etc/systemd/system/clickhouse.service ]] && ! grep -q CLICKHOUSE_CONFIG /etc/systemd/system/clickhouse.service; then
-      chown -R root:clickhouse /etc/clickhouse
-      chown -R root:clickhouse /var/log/clickhouse/
-      chmod -R g+w /var/log/clickhouse
-
-      sed -i "s|--name clickhouse|--name clickhouse --env CLICKHOUSE_CONFIG=/etc/clickhouse/config.xml|g" \
-        /etc/systemd/system/clickhouse.service
-      systemctl daemon-reload
-      systemctl restart clickhouse
+    if [[ -f /etc/clickhouse/config.xml ]]; then
+      systemctl start clickhouse
       sleep 10
     fi
 
-    if [[ "${CH_PASSWORD}" != "" ]]; then
+    if [[ -f /etc/clickhouse/config.xml ]] && [[ "${CH_PASSWORD}" != "" ]]; then
       tables_sql="SELECT DISTINCT table FROM system.parts WHERE active AND (table ILIKE '%_log' OR table ILIKE '%_log_%')"
 
       tables="$(podman exec clickhouse clickhouse-client --password "${CH_PASSWORD}" -u keitaro -d system -q "${tables_sql}")"
@@ -33,7 +26,5 @@
       done
     fi
     if [[ -d /var/log/clickhouse ]]; then
-      rm -f /var/log/clickhouse/*.gz
-      > /var/log/clickhouse/server.log
-      > /var/log/clickhouse/err.log
+      rm -f /var/log/clickhouse/*
     fi
