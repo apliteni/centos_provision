@@ -51,7 +51,7 @@ TOOL_NAME='install'
 
 SELF_NAME=${0}
 
-RELEASE_VERSION='2.42.5'
+RELEASE_VERSION='2.42.6'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -2631,7 +2631,7 @@ install_kctl.install_configs() {
   mkdir -p "${ROOT_PREFIX}/etc/containers/registries.conf.d"/
 
   install -m 0444 "${PROVISION_DIRECTORY}/files/etc/sudoers.d"/* "${ROOT_PREFIX}/etc/sudoers.d/"
-  install -m 0644 "${PROVISION_DIRECTORY}/files/etc/cron.daily"/* "${ROOT_PREFIX}/etc/cron.daily/"
+  install -m 0755 "${PROVISION_DIRECTORY}/files/etc/cron.daily"/* "${ROOT_PREFIX}/etc/cron.daily/"
   install -m 0644 "${PROVISION_DIRECTORY}/files/etc/systemd/system"/* "${ROOT_PREFIX}/etc/systemd/system/"
   install -m 0644 "${PROVISION_DIRECTORY}/files/etc/keitaro/config/components"/* "${ROOT_PREFIX}/etc/keitaro/config/components/"
   install -m 0644 "${PROVISION_DIRECTORY}/files/etc/keitaro/config"/*.env "${ROOT_PREFIX}/etc/keitaro/config/"
