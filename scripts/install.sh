@@ -51,7 +51,7 @@ TOOL_NAME='install'
 
 SELF_NAME=${0}
 
-RELEASE_VERSION='2.42.6'
+RELEASE_VERSION='2.42.7'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -2677,64 +2677,8 @@ stage5() {
   install_ansible
 }
 
-LETSENCRYPT_ACCOUNTS_PATH="${LETSENCRYPT_DIR}/accounts/acme-v02.api.letsencrypt.org/directory/"
-
-remove_unnecessary_letsencrypt_accounts() {
-  if [[ ! -d "${LETSENCRYPT_ACCOUNTS_PATH}" ]]; then
-    debug "No letsencrypt accounts found"
-    return
-  fi
-  #shellcheck disable=SC2207
-  sorted_le_accounts=( $(ls -t "${LETSENCRYPT_ACCOUNTS_PATH}") )
-
-  if [[ "${#sorted_le_accounts[@]}" == "1" ]]; then
-    debug "Only one letsencrypt account found"
-    return
-  fi
-
-  debug "Found several letsenctypt accounts: ${sorted_le_accounts[*]}"
- 
-  le_accounts_to_remove=( "${sorted_le_accounts[@]:1}" )
-  debug "Removing ${#le_accounts_to_remove[@]} accounts: ${le_accounts_to_remove[*]}"
-
-  for le_account in "${le_accounts_to_remove[@]}"; do
-    rm -rf "${LETSENCRYPT_ACCOUNTS_PATH:?}/${le_account:?}"
-  done
- 
-  change_account_to_abbadoned_domains "${sorted_le_accounts[@]:0:1}"
-}
-
-change_account_to_abbadoned_domains() {
-  local le_account="${1}"
-
-  for path_to_domain_conf in $(get_abbadoned_domains "${le_account}"); do
-    debug "Changing account for domain ${path_to_domain_conf} to ${le_account}"
-    run_command "sed 's/account = .*/account = ${le_account}/' -i ${path_to_domain_conf}"
-  done
-}
-
-get_abbadoned_domains() {
-  local le_account="${1}"
-  if [ -d "${LETSENCRYPT_DIR}/renewal/" ]; then
-    grep -R -L "account = ${le_account}" "${LETSENCRYPT_DIR}"/renewal/
-  else
-    return
-  fi
-}
-
 stage6() {
-  local cmd msg err
-  if is_running_in_rescue_mode; then
-    remove_unnecessary_letsencrypt_accounts
-
-    cmd="${KCTL_BIN_DIR}/kctl certificates prune safe || true"
-    msg="Pruning certificates"
-
-    if ! run_command "${cmd}" "${msg}" hide_output allow_errors; then
-      err="An unknown error has occured while pruning certificates. See /var/log/keitaro/kctl-certificates-prune.log for details"
-      print_with_color "${err}" "red"
-    fi
-  fi
+  debug "Running stage6"
 }
 
 json2dict() {
@@ -3182,6 +3126,11 @@ earlyupgrade_checkpoint_2_41_10.remove_old_ansible() {
   if [[ "$(get_centos_major_release)" == "8" ]] && is_package_installed "ansible"; then
     upgrades.run_upgrade_checkpoint_command "yum install -y ansible-core --allowerasing" "Removing old ansible"
   fi
+}
+
+postupgrade_checkpoint_2_42_6() {
+  run_command "${KCTL_BIN_DIR}/kctl certificates fix-le-accounts" "Fixing LE accounts" hide_output
+  nohup /etc/cron.daily/kctl-certificates-renew &> /dev/null &
 }
 
 postupgrade_checkpoint_2_41_7() {

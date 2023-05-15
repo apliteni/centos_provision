@@ -50,7 +50,7 @@ TOOL_NAME='enable-ssl'
 
 SELF_NAME=${0}
 
-RELEASE_VERSION='2.42.6'
+RELEASE_VERSION='2.42.7'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -320,6 +320,14 @@ file_exists(){
 
 build_certbot_command() {
   echo "/opt/keitaro/bin/kctl run certbot"
+}
+
+certbot.register_account() {
+  local cmd
+  cmd="$(build_certbot_command) register"
+  cmd="${cmd} --agree-tos --non-interactive --register-unsafely-without-email"
+
+  run_command "${cmd}" "Creating certbot account" "hide_output"
 }
 
 # Based on https://stackoverflow.com/a/53400482/612799

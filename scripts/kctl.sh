@@ -49,7 +49,7 @@ TOOL_NAME='kctl'
 
 SELF_NAME=${0}
 
-RELEASE_VERSION='2.42.6'
+RELEASE_VERSION='2.42.7'
 VERY_FIRST_VERSION='0.9'
 DEFAULT_BRANCH="releases/stable"
 BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
@@ -258,6 +258,14 @@ file_exists(){
 
 build_certbot_command() {
   echo "/opt/keitaro/bin/kctl run certbot"
+}
+
+certbot.register_account() {
+  local cmd
+  cmd="$(build_certbot_command) register"
+  cmd="${cmd} --agree-tos --non-interactive --register-unsafely-without-email"
+
+  run_command "${cmd}" "Creating certbot account" "hide_output"
 }
 
 env_files.assert_var_is_set() {
@@ -1416,6 +1424,59 @@ kctl_certificates.prune() {
   /opt/keitaro/bin/kctl-certificates-prune "${@}"
 }
 
+LETSENCRYPT_ACCOUNTS_PATH="${LETSENCRYPT_DIR}/accounts/acme-v02.api.letsencrypt.org/directory/"
+
+kctl_certificates.fix_le_accounts() {
+  local accounts_count
+
+  if [[ ! -d "${LETSENCRYPT_ACCOUNTS_PATH}" ]]; then
+    certbot.register_account
+  fi
+
+  accounts_count="$(kctl_certificates.count_account)"
+
+  if [[ "${accounts_count}" == '0' ]]; then
+    certbot.register_account
+  fi
+
+  if [[ "${accounts_count}" -gt '1' ]]; then
+    kctl_certificate.remove_redundant_accounts
+  fi
+
+  kctl_certificates.fix_account_in_renewal_configs
+}
+
+kctl_certificates.count_account() {
+ find "${LETSENCRYPT_ACCOUNTS_PATH}" -maxdepth 1 -mindepth 1 -type d | wc -l 
+}
+
+kctl_certificates.remove_redundant_accounts() {
+  local sorted_accounts accounts_to_remove
+
+  #shellcheck disable=SC2207
+  sorted_accounts=( $(/usr/bin/ls -t "${LETSENCRYPT_ACCOUNTS_PATH}") )
+
+  accounts_to_remove=( "${sorted_accounts[@]:1}" )
+  debug "Removing ${#accounts_to_remove[@]} accounts: ${accounts_to_remove[*]}"
+
+  for account in "${accounts_to_remove[@]}"; do
+    rm -rf "${LETSENCRYPT_ACCOUNTS_PATH}/${account:?}"
+  done
+
+}
+
+kctl_certificates.fix_account_in_renewal_configs() {
+  local account
+
+  account="$(/usr/bin/ls -t "${LETSENCRYPT_ACCOUNTS_PATH}" | head -n 1)"
+
+  if [[ -d "${LETSENCRYPT_DIR}/renewal/" ]]; then
+    cmd="grep -R -L 'account = ${account}' ${LETSENCRYPT_DIR}/renewal/"
+    cmd="${cmd} | xargs --max-args=100 --no-run-if-empty sed 's/account = .*/account = ${account}/' -i"
+    run_command "${cmd}" " Fix renewal configs"
+  fi
+}
+
 kctl_certificates.remove_old_logs() {
   /usr/bin/find /var/log/keitaro/ssl -mtime +30 -type f -delete
 }
@@ -1896,6 +1957,9 @@ kctl_certificates() {
       ;;
     fix-x3-expiration)
       kctl_certificates.fix_x3_expiration
+      ;;
+    fix-le-accounts)
+      LOG_PATH="${LOG_DIR}/kctl-certificates-fix-le-accounts.log" kctl_certificates.fix_le_accounts
       ;;
     *)
       kctl_certificates_usage
