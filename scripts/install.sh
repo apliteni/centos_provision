@@ -38,10 +38,6 @@ values() {
   echo "$2"
 }
 
-is_ci_mode() {
-  [[ "$EUID" != "$ROOT_UID" || "${CI}" != "" ]]
-}
-
 is_pipe_mode(){
   [ "${SELF_NAME}" == 'bash' ]
 }
@@ -51,22 +47,46 @@ TOOL_NAME='install'
 
 SELF_NAME=${0}
 
-RELEASE_VERSION='2.42.9'
-VERY_FIRST_VERSION='0.9'
-DEFAULT_BRANCH="releases/stable"
-BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
-
-KEITARO_URL='https://keitaro.io'
-FILES_KEITARO_ROOT_URL="https://files.keitaro.io"
-FILES_KEITARO_URL="https://files.keitaro.io/scripts/${BRANCH}"
-KEITARO_SUPPORT_USER='keitaro-support'
-KEITARO_SUPPORT_HOME_DIR="${ROOT_PREFIX}/home/${KEITARO_SUPPORT_USER}"
+is_ci_mode() {
+  [[ "$EUID" != "$ROOT_UID" || "${CI}" != "" ]]
+}
 
 if is_ci_mode; then
   ROOT_PREFIX='.keitaro'
 else
   ROOT_PREFIX=''
 fi
+
+RELEASE_VERSION='2.43.0'
+VERY_FIRST_VERSION='0.9'
+
+KCTL_IN_KCTL="${KCTL_IN_KCTL:-}"
+
+KEITARO_URL='https://keitaro.io'
+FILES_KEITARO_ROOT_URL="https://files.keitaro.io"
+RELEASE_API_BASE_URL="https://release-api.keitaro.io"
+
+KEITARO_SUPPORT_USER='keitaro-support'
+KEITARO_SUPPORT_HOME_DIR="/home/${KEITARO_SUPPORT_USER}"
+
+UPDATE_CHANNEL_ALPHA="alpha"
+UPDATE_CHANNEL_BETA="beta"
+UPDATE_CHANNEL_RC="rc"
+UPDATE_CHANNEL_STABLE="stable"
+DEFAULT_UPDATE_CHANNEL="${UPDATE_CHANNEL_STABLE}"
+
+declare -a UPDATE_CHANNELS=( \
+  "${UPDATE_CHANNEL_ALPHA}" \
+  "${UPDATE_CHANNEL_BETA}" \
+  "${UPDATE_CHANNEL_RC}" \
+  "${UPDATE_CHANNEL_STABLE}" \
+)
+
+
+PATH_TO_ENV_DIR="${ROOT_PREFIX}/etc/keitaro/env"
+PATH_TO_COMPONENTS_ENV="${PATH_TO_ENV_DIR}/components.env"
+PATH_TO_SYSTEM_ENV="${PATH_TO_ENV_DIR}/system.env"
+PATH_TO_APPLIED_COMPONENTS_ENV="${PATH_TO_ENV_DIR}/components-applied.env"
 
 declare -A VARS
 declare -A ARGS
@@ -164,7 +184,7 @@ DICT['en.validation_errors.validate_presence']='Please enter value'
 DICT['en.validation_errors.validate_absence']='Should not be specified'
 DICT['en.validation_errors.validate_yes_no']='Please answer "yes" or "no"'
 
-#/usr/bin/env bash
+
 assert_architecture_is_valid(){
   if [[ "$(uname -m)" != "x86_64" ]]; then
     fail "$(translate errors.wrong_architecture)"
@@ -222,9 +242,13 @@ is_keitaro_installed() {
 }
 
 use_old_algorithm_for_installation_check() {
-  (( $(as_version "${INSTALLED_VERSION}") <= $(as_version "${USE_NEW_ALGORITHM_FOR_INSTALLATION_CHECK_SINCE}") ))
+  versions.lte "${INSTALLED_VERSION}" "${USE_NEW_ALGORITHM_FOR_INSTALLATION_CHECK_SINCE}"
 }
 assert_no_another_process_running(){
+
+  if [[ "${KCTL_IN_KCTL}" != "" ]]; then
+    return
+  fi
 
   exec 8>/var/run/${SCRIPT_NAME}.lock
 
@@ -288,21 +312,35 @@ file_exists(){
   fi
 }
 
+arrays.index_of() {
+  local value="${1}"; shift
+  local array=("${@}")
+  local index
+
+  for ((index=0; index<${#array[@]}; index++)); do
+    if [[ "${array[$index]}" == "${value}" ]]; then
+      echo "${index}"
+      return
+    fi
+  done
+}
+
 PATH_TO_CACHE_ROOT="${ROOT_PREFIX}/var/cache/kctl/installer"
 CACHING_PERIOD_IN_DAYS="3"
 DOWNLOADING_TRIES=10
 
 cache.retrieve_or_download() {
-  local url="${1}" tries="${2:-${DOWNLOADING_TRIES}}"
+  local url="${1}" skip_cache="${SKIP_CACHE:-}"
   local path msg
 
   cache.remove_rotten_files
 
   path="$(cache.path_by_url "${url}")"
-  if [[ -f "${path}" ]]; then
-    print_with_color "Skip downloading ${url} - got from cache" 'green'
+  if [[ -f "${path}" ]] && [[ "${skip_cache}" == "" ]]; then
+    debug "Skip downloading ${url} - got from cache"
+    print_with_color "Skip downloading ${url} - got from cached ${path}" 'green'
   else
-    cache.download "${url}" "${tries}"
+    cache.download "${url}"
   fi
 }
 
@@ -326,13 +364,15 @@ cache.purge() {
 cache.remove_rotten_files() {
   if [[ -d "${PATH_TO_CACHE_ROOT}" ]]; then
     find "${PATH_TO_CACHE_ROOT}" -type f -mtime "+${CACHING_PERIOD_IN_DAYS}" -delete
+    find "${PATH_TO_CACHE_ROOT}" -type d -mtime "+${CACHING_PERIOD_IN_DAYS}" -delete 2>/dev/null || true
   fi
 }
 
 cache.download() {
-  local url="${1}" tries="${2:-${DOWNLOADING_TRIES}}"
+  local url="${1}" tries="${downloading_tries:-${DOWNLOADING_TRIES}}"
   local dir path tmp_path sleep_time connect_timeout
 
+  debug "Downloading ${url}"
   print_with_color "Downloading ${url} " 'blue'
 
   path="$(cache.path_by_url "${url}")"
@@ -342,80 +382,16 @@ cache.download() {
 
   mkdir -p "${dir}"
 
-  for ((i=0; i<tries; i++)); do
-    connect_timeout="$(( 2 * i + 1 ))"
+  if requests.get "${url}" "${tmp_path}" "${tries}"; then
+    debug "Successfully downloaded ${url}"
+    print_with_color "Successfully downloaded ${url}" 'green'
 
-    print_with_color "  Try $(( i+1 ))/${tries}" 'yellow'
-
-    if curl -fsSL4 "${url}" --connect-timeout "${connect_timeout}" -o "${tmp_path}" 2>&1; then
-      print_with_color "Successfully downloaded ${url}" 'green'
-      if ! is_ci_mode || (is_ci_mode && [[ -f "${tmp_path}" ]]); then
-        mv "${tmp_path}" "${path}"
-      fi
-      return
-    else
-      if (( i < tries - 1 )); then
-        sleep_time="$(( 5 * i + 1 ))"
-        sleep "${sleep_time}"
-      fi
+    if ! is_ci_mode || (is_ci_mode && [[ -f "${tmp_path}" ]]); then
+      mv "${tmp_path}" "${path}"
     fi
-  done
-
-  fail "Couldn't download ${url}"
-}
-
-# Based on https://stackoverflow.com/a/53400482/612799
-#
-# Use:
-#   (( $(as_version 1.2.3.4) >= $(as_version 1.2.3.3) )) && echo "yes" || echo "no"
-#
-# Version number should contain from 1 to 4 parts (3 dots) and each part should contain from 1 to 3 digits
-#
-AS_VERSION__MAX_DIGITS_PER_PART=3
-AS_VERSION__PART_REGEX="[[:digit:]]{1,${AS_VERSION__MAX_DIGITS_PER_PART}}"
-AS_VERSION__PARTS_TO_KEEP=4
-AS_VERSION__REGEX="(${AS_VERSION__PART_REGEX}\.){1,${AS_VERSION__PARTS_TO_KEEP}}"
-
-as_version() {
-  local version_string="${1}"
-  # Expand version string by adding `.` to the end to simplify logic
-  local major='0'
-  local minor='0'
-  local patch='0'
-  local extra='0'
-  if [[ "${version_string}." =~ ^${AS_VERSION__REGEX}$ ]]; then
-    IFS='.' read -r -a parts <<< "${version_string}"
-    major="${parts[0]:-${major}}"
-    minor="${parts[1]:-${minor}}"
-    patch="${parts[2]:-${patch}}"
-    extra="${parts[3]:-${extra}}"
-  fi
-  printf '1%03d%03d%03d%03d' "${major}" "${minor}" "${patch}" "${extra}"
-}
-
-version_as_str() {
-  local version="${1}" major minor patch extra
-
-  major="${version:1:3}"; major="${major#0}"; major="${major#0}"
-  minor="${version:4:3}"; minor="${minor#0}"; minor="${minor#0}"
-  patch="${version:7:3}"; patch="${patch#0}"; patch="${patch#0}"
-  extra="${version:10:3}"; extra="${extra#0}"; extra="${extra#0}"
-
-  if [[ "${extra}" != "0" ]]; then
-    echo "${major}.${minor}.${patch}.${extra}"
   else
-    echo "${major}.${minor}.${patch}"
+    fail "Couldn't download ${url}"
   fi
-}
-
-as_minor_version() {
-  local version_string="${1}"
-  local version_number
-  version_number=$(as_version "${version_string}")
-  local meaningful_version_length=$(( 1 + 2*AS_VERSION__MAX_DIGITS_PER_PART ))
-  local zeroes_length=$(( 1 + AS_VERSION__PARTS_TO_KEEP * AS_VERSION__MAX_DIGITS_PER_PART - meaningful_version_length ))
-  local meaningful_version=${version_number:0:${meaningful_version_length}}
-  printf "%d%0${zeroes_length}d" "${meaningful_version}"
 }
 
 assert_upgrade_allowed() {
@@ -442,7 +418,7 @@ ensure_nginx_config_correct() {
     run_command "nginx -t" "$(translate 'messages.validate_nginx_conf')" "hide_output"
   else
     if podman ps | grep -q nginx; then
-      run_command "/opt/keitaro/bin/kctl run nginx -t" "$(translate 'messages.validate_nginx_conf')" "hide_output"
+      run_command "${KCTL_BIN_DIR}/kctl run nginx -t" "$(translate 'messages.validate_nginx_conf')" "hide_output"
     else
       print_with_color "Can't find running nginx container, skipping nginx config checks", 'yellow'
     fi
@@ -492,27 +468,6 @@ is_compatible_with_current_release() {
   [[ "${RELEASE_VERSION}" == "${INSTALLED_VERSION}" ]]
 }
 
-run_obsolete_tool_version_if_need() {
-  debug 'Ensure configs has been genereated by relevant installer'
-  if isset "${FORCE_ISSUING_CERTS}"; then
-    debug "Skip checking current version and force isuuing certs"
-  elif is_compatible_with_current_release; then
-    debug "Current ${RELEASE_VERSION} is compatible with ${INSTALLED_VERSION}"
-  else
-    local tool_url="${KEITARO_URL}/v${INSTALLED_VERSION}/${TOOL_NAME}.sh"
-    local tool_args="${TOOL_ARGS}"
-    if (( $(as_version "${INSTALLED_VERSION}") < $(as_version "1.13") )); then
-      fail "$(translate 'errors.upgrade_server')"
-    fi
-    if [[ "${TOOL_NAME}" == "enable-ssl" ]]; then
-      tool_args="-D ${VARS['ssl_domains']}"
-    fi
-    command="curl -fsSL ${tool_url} | bash -s -- ${tool_args}"
-    run_command "${command}" "Running obsolete ${TOOL_NAME} (v${INSTALLED_VERSION})"
-    exit
-  fi
-}
-
 components.assert_var_is_set() {
   local component="${1}" variable="${2}" component_var value
 
@@ -537,7 +492,7 @@ components.create_group() {
   group="$(components.get_var "${component}" "group")"
 
   cmd="groupadd --system ${group}"
-  run_command "${cmd}" "Creating group ${group}" 'hide_output'
+  run_command "${cmd}" "  Creating group ${group}" 'hide_output'
 }
 
 components.create_user() {
@@ -559,7 +514,7 @@ components.create_user() {
   home="$(components.get_var "${component}" "home")"
 
   cmd="useradd --no-create-home --system --home-dir ${home} --shell /sbin/nologin --gid ${group} ${user}"
-  run_command "${cmd}" "Creating user ${user}" 'hide_output'
+  run_command "${cmd}" "  Creating user ${user}" 'hide_output'
 }
 
 COMPONENTS_OWN_VOLUMES_PREFIXES="/var/cache/ /var/log/ /var/lib/"
@@ -596,6 +551,16 @@ components.create_volumes.create_volume_dir() {
   done
 }
 
+components.get_directory() {
+  local component="${1}" version
+
+  version="$(components.get_var "${component}" 'version')"
+  url="$(components.get_var "${component}" 'url')"
+  url_hash="$(md5sum <<< "${url}" | awk '{print $1}')"
+
+  echo "${KCTL_LIB}/${component}/${url_hash}/${version}"
+}
+
 components.get_group_id() {
   local component="${1}" group
 
@@ -603,6 +568,10 @@ components.get_group_id() {
   group="$(components.get_var "${component}" "group")"
 
   (getent group "${group}" | awk -F: '{print $3}') 2>/dev/null || true
+}
+
+components.get_keitaro_version() {
+  env_files.get_var "${PATH_TO_APPLIED_COMPONENTS_ENV}" 'KEITARO_VERSION'
 }
 
 components.get_user_id() {
@@ -621,8 +590,8 @@ components.get_var() {
 
   component_var="$(components.get_var_name "${component}" "${variable}")"
 
-  env_files.read "${ROOT_PREFIX}/etc/keitaro/config/components.env"
-  env_files.read "${ROOT_PREFIX}/etc/keitaro/config/components/${component}.env"
+  env_files.read "${PATH_TO_COMPONENTS_ENV}"
+  env_files.read "${PATH_TO_ENV_DIR}/components/${component}.env"
 
   echo "${!component_var}"
 }
@@ -633,17 +602,101 @@ components.get_var_name() {
   local raw_component_var="${component^^}_${var^^}"
   echo "${raw_component_var//-/_}"
 }
-#/usr/bin/env bash
 
 components.install() {
-  local component="${1}"
+  local component="${1}" url version
 
-  debug "Installing ${component} component"
+  version="$(components.get_var "${component}" 'version')"
+  debug "Installing ${component} v${version} component"
+  print_with_color "Installing component ${component} v${version}" 'blue'
 
   components.create_group "${component}"
   components.create_user "${component}"
   components.create_volumes "${component}"
   components.pull "${component}"
+}
+
+components.install_binaries() {
+  local component="${1}" version src_dir dst_dir msg
+
+  components.preinstall "${component}"
+
+  version="$(components.get_var "${component}" "version")"
+
+  src_dir="$(components.get_directory "${component}")"
+  dst_dir="$(components.get_var "${component}" "working_directory")"
+
+  msg="Installing ${component} v${version}"
+  debug "${msg}"; print_with_color "${msg}" 'blue'
+
+  # shellcheck disable=SC2044
+  for path_to_bin_file in $(find "${src_dir}" -maxdepth 1 -perm -u=x -type f); do
+    local bin_file="${path_to_bin_file##*/}"
+    local bin_file_versioned="${bin_file}-${version}"
+
+    if [[ -f "${dst_dir}/${bin_file_versioned}" ]]; then
+      msg="  Skip installing ${bin_file} - already installed"
+      debug "${msg}"; print_with_color "${msg}" 'blue'
+    else
+      cmd="rm -f ${dst_dir}/${bin_file} ${dst_dir}/${bin_file}-*"                       # uninstall old
+      cmd="${cmd} && cp ${src_dir}/${bin_file} ${dst_dir}/${bin_file_versioned}"        # install new
+      cmd="${cmd} && ln -s ${dst_dir}/${bin_file_versioned} ${dst_dir}/${bin_file}"     # make symlink
+      run_command "${cmd}" "  Installing ${bin_file}" "hide_output"
+    fi
+  done
+}
+
+components.list_all() {
+  echo "${CERTBOT_COMPONENT}" 
+  echo "${CLICKHOUSE_COMPONENT}" 
+  echo "${KCTLD_COMPONENT}" 
+  echo "${KCTL_CH_CONVERTER_COMPONENT}" 
+  echo "${KCTL_COMPONENT}"
+  echo "${MARIADB_COMPONENT}"
+  echo "${NGINX_STARTING_PAGE_COMPONENT}"
+  echo "${NGINX_COMPONENT}"
+  echo "${REDIS_COMPONENT}"
+  echo "${ROADRUNNER_COMPONENT}"
+  echo "${TRACKER_COMPONENT}"
+}
+
+components.preinstall() {
+  local component="${1}" url version directory cmd base_directory unpack_cmd msg
+
+  version="$(components.get_var "${component}" 'version')"
+  url="$(components.get_var "${component}" 'url')"
+  directory="$(components.get_directory "${component}")"
+
+  msg="Preinstalling component ${component} v${version} from ${url}"
+  debug "${msg}"; print_with_color "${msg}" 'blue'
+
+  if [[ "${SKIP_CACHE}" == "" ]] && [[ -d "${directory}" ]]; then
+    msg="Skip preinstalling ${component} v${version} - already preinstalled to ${directory}"
+    debug "${msg}"; print_with_color "  ${msg}" 'blue'
+  else
+    cache.retrieve_or_download "${url}"
+
+    base_directory="${directory%/*}"
+    unpack_cmd="$(components.preinstall.build_unpack_cmd "${component}" "${version}" "${url}" "${directory}")"
+
+    cmd="rm -rf ${base_directory}/*"
+    cmd="${cmd} && mkdir -p ${directory}"
+    cmd="${cmd} && ${unpack_cmd}"
+
+    run_command "${cmd}" "  Unpacking ${component} v${version} to ${directory}" "hide_output"
+  fi
+}
+
+components.preinstall.build_unpack_cmd() {
+  local component="${1}" version="${2}" url="${3}" directory="${4}" path
+  
+  path="$(cache.path_by_url "${url}")"
+
+  if [[ "${path}" =~ \.zip$ ]]; then
+    echo "unzip ${path} -d ${directory}"
+  elif [[ "${path}" =~ \.tar\.gz$ ]]; then
+    echo "tar -xz --no-same-owner --no-same-permissions -f ${path} -C ${directory}"
+  fi
 }
 
 components.pull() {
@@ -652,7 +705,7 @@ components.pull() {
   components.assert_var_is_set "${component}" "image"
   image="$(components.get_var "${component}" "image")"
 
-  run_command "podman pull ${image}" "Pulling ${component} image" "hide_output"
+  run_command "podman pull ${image}" "  Pulling ${component} image" "hide_output"
 }
 
 components.run() {
@@ -678,6 +731,29 @@ components.run() {
                       ${podman_extra_args} \
                       "${image}" \
                       "${@}"
+}
+
+components.save_applied() {
+  local msg='Saving applied env values'; debug "${msg}"; print_with_color "${msg}" 'blue'
+
+  components.save_var 'keitaro' 'version'
+
+  for component in $(components.list_all); do
+    components.save_var 'keitaro' 'version'
+    local image; image="$(components.get_var "${component}" 'image')"
+    if [[ "${image}" != "" ]]; then
+      components.save_var "${component}" 'image'
+    else
+      components.save_var "${component}" 'url'
+    fi
+  done
+}
+
+components.save_var() {
+  local component="${1}" variable="${2}" value
+
+  value="$(components.get_var "${component}" "${variable}")"
+  env_files.forced_save_var "${PATH_TO_APPLIED_COMPONENTS_ENV}" "${component^^}_${variable^^}" "${value}"
 }
 
 ALIVENESS_PROBES_NO=10
@@ -731,10 +807,18 @@ env_files.forced_save_var() {
   debug "Set ${var_name} to '$(strings.mask "${var_name}" "${var_value}")' in ${path_to_env_file}"
 
   if env_files.has_var "${path_to_env_file}" "${var_name}"; then
-    sed -i -e "s/^${var_name}=.*/${var_name}=${var_value}/" "${path_to_env_file}"
+    sed -i -e "s/^${var_name}=.*/${var_name}=${var_value//\//\\/}/" "${path_to_env_file}"
   else
     echo "${var_name}=${var_value}" >> "${path_to_env_file}"
   fi
+}
+
+env_files.get_var() {
+  local path_to_env_file="${1}" variable="${2^^}"
+
+  env_files.read "${path_to_env_file}"
+
+  echo "${!variable}"
 }
 
 env_files.has_var() {
@@ -905,6 +989,51 @@ read_stdin(){
     read -r variable
   fi
   echo "$variable"
+}
+
+release_api.get_keitaro_version() {
+  local local_keitaro_version="${1}" update_channel="${2:-}" url
+
+  if [[ "${update_channel}" == "" ]]; then
+    update_channel="$(env_files.get_var "${PATH_TO_SYSTEM_ENV}" "UPDATE_CHANNEL")" 
+  fi
+
+  url="${RELEASE_API_BASE_URL}/v2/releases/${update_channel}/latest?for_version=${local_keitaro_version}"
+
+  cache.retrieve_or_download "${url}" >&2
+
+  path_to_response="$(cache.path_by_url "${url}")"
+
+  if [[ -f "${path_to_response}" ]] && jq -Mre '.version' "${path_to_response}" &> /dev/null; then
+    jq -Mr '.version' "${path_to_response}"
+  else
+    echo "${local_keitaro_version}"
+  fi
+}
+
+requests.get() {
+  local url="${1}" save_to="${2:-"-"}" tries="${3:-${DOWNLOADING_TRIES}}"
+
+  debug "Start getting ${url}"
+
+  for ((i=1; i<tries+1; i++)); do
+    local connect_timeout="$(( 2*(i-1) + 1 ))"
+
+    debug "Try #${i}/${tries}"
+
+    if curl -fsSL4 "${url}" --connect-timeout "${connect_timeout}" -o "${save_to}" 2>&1; then
+      debug "Successfully got ${url}"
+      return
+    else
+      debug "Error getting ${url}"
+
+      if [[ "${i}" == "${tries}" ]]; then
+        return 1 # ERROR
+      fi
+
+      sleep "${connect_timeout}"
+    fi
+  done
 }
 
 clean_up(){
@@ -1455,10 +1584,24 @@ systemd.update_units() {
   run_command 'systemctl daemon-reload' "Updating SystemD units" "hide_output"
 }
 
+tracker.get_update_channel() {
+  local is_beta_channel
+
+  is_beta_channel="$(LOG_PATH=/dev/null kctl run cli-php system:get_setting is_beta_channel 2>/dev/null || true)"
+
+  debug "Got tracker setting is_beta_channel - '${is_beta_channel}'"
+
+  if [[ "${is_beta_channel}" == "1" ]]; then
+    echo "${UPDATE_CHANNEL_BETA}"
+  elif [[ "${is_beta_channel}" == "0" ]]; then
+    echo "${UPDATE_CHANNEL_STABLE}"
+  fi
+}
+
 TRACKER_VERSION_PHP="${TRACKER_ROOT}/version.php"
 
-get_tracker_version() {
-  if file_exists "${TRACKER_VERSION_PHP}"; then
+tracker.get_version() {
+  if [[ -f "${TRACKER_VERSION_PHP}" ]]; then
     cut -d "'" -f 2 "${TRACKER_VERSION_PHP}"
   fi
 }
@@ -1623,6 +1766,182 @@ validate_starts_with_latin_letter(){
   [[ "$value" =~  ^[A-Za-z] ]]
 }
 
+versions.cmp() {
+  local version1="${1}" version2="${2}" segments1 segments2 i
+
+  version1="$(versions.normalize "${version1}")"
+  version2="$(versions.normalize "${version2}")"
+
+  declare -a segments1="(${version1//./ })"
+  declare -a segments2="(${version2//./ })"
+
+  if [[ "${#segments1[@]}" -gt "${#segments2[@]}" ]]; then
+    local length="${#segments1[@]}"
+  else
+    local length="${#segments2[@]}"
+  fi
+
+  for ((i=0; i<length; i++)); do
+    local cmp; cmp="$(versions.cmp_segment "${segments1[${i}]}" "${segments2[${i}]}")"
+
+    if [[ "${cmp}" != "0" ]]; then
+      echo "${cmp}"
+      return
+    fi
+  done
+
+  echo "0"
+}
+
+versions.cmp_segment() {
+  local segment1="${1:-0}" segment2="${2:-0}"
+
+  if [[ "${segment1}" == "${segment2}" ]]; then
+    echo "0"
+    return
+  fi
+
+  if [[ "${segment1}" =~ [[:digit:]] ]] && [[ "${segment2}" =~ [[:digit:]] ]]; then
+    if [[ "${segment1}" -gt "${segment2}" ]]; then
+      echo "1"
+      return
+    fi
+
+    if [[ "${segment1}" -lt "${segment2}" ]]; then
+      echo "-1"
+      return
+    fi
+
+    echo "0"
+    return
+  fi
+
+  if [[ "${segment1}" =~ [[:digit:]] ]]; then
+    echo "1"
+    return
+  fi
+
+  if [[ "${segment2}" =~ [[:digit:]] ]]; then
+    echo "-1"
+    return
+  fi
+
+  # all segments are symbolic
+  local index1; index1="$(arrays.index_of "${segment1}" "${UPDATE_CHANNELS[@]}")"
+  local index2; index2="$(arrays.index_of "${segment2}" "${UPDATE_CHANNELS[@]}")"
+
+  versions.cmp_segments "${index1}" "${index2}"
+}
+
+versions.eq() {
+  local cmp; cmp="$(versions.cmp "${1}" "${2}")"
+
+  [[ "${cmp}" -eq "0" ]]
+}
+
+versions.gt() {
+  local cmp; cmp="$(versions.cmp "${1}" "${2}")"
+
+  [[ "${cmp}" -gt "0" ]]
+}
+
+versions.gte() {
+  ! versions.lt "${1}" "${2}"
+}
+
+versions.lt() {
+  local cmp; cmp="$(versions.cmp "${1}" "${2}")"
+
+  [[ "${cmp}" -lt "0" ]]
+}
+
+versions.lte() {
+  ! versions.gt "${1}" "${2}"
+}
+
+versions.ne() {
+  ! versions.eq "${1}" "${2}"
+}
+
+versions.normalize() {
+  local version="${1}" normalized_version channels="${UPDATE_CHANNELS[*]}" channel_re
+ 
+  # downcase string, so 10.1-ALPHA -> 10.1-alpha
+  normalized_version="${version,,}"
+
+  # downcase string, so 10.1-ALPHA -> 10.1-alpha
+  normalized_version="${normalized_version,,}"
+
+  # build channel RE
+  channel_re="(.*)(${channels// /|})(.*)"
+  if [[ "${normalized_version}" =~ ${channel_re} ]]; then
+    # surround channel name with dots, so 10.1beta1 -> 10.beta.1
+    normalized_version="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.${BASH_REMATCH[3]}"
+  fi
+
+  # change dashes to dots, so 10.1-beta -> 10.1.beta
+  normalized_version="${normalized_version//-/.}"
+
+  while [[ "${normalized_version}" =~ \.\. ]]; do
+    # remove double dots, so 10..1 -> 10.1
+    normalized_version="${normalized_version//../.}"
+  done
+
+  # remove dot in the end, so 10.1. -> 10.1
+  normalized_version="${normalized_version%%.}"
+
+  if [[ "${normalized_version: -1}" =~ [[:alpha:]] ]]; then
+    normalized_version="${normalized_version}.0"
+  fi
+
+  echo "${normalized_version}"
+}
+
+versions.patch() {
+  local version="${1}" length i
+
+  version="$(versions.normalize "${version}")"
+
+  declare -a segments="(${version//./ })"
+
+  if [[ "${segments[2]}" =~ [[:alpha:]] ]]; then
+    length=4
+  else
+    length=3
+  fi 
+
+  printf "%s" "${segments[0]}"
+
+  for ((i=1; i<length; i++)); do
+    if [[ "${segments[$i]}" != "" ]]; then
+      printf ".%s" "${segments[$i]}"
+    else
+      printf ".0"
+    fi
+  done
+}
+
+versions.sort() {
+  local i j length
+  readarray -t versions
+
+  length="${#versions[@]}"
+
+  for ((i=0; i<length-1; i++)); do
+    for ((j=i+1; j<length; j++)); do
+      if versions.gt "${versions[$i]}" "${versions[$j]}"; then
+        local tmp="${versions[$i]}"
+        versions[$i]="${versions[$j]}"
+        versions[$j]="${tmp}"
+      fi
+    done
+  done
+
+  for ((i=0; i<length; i++)); do
+    echo "${versions[$i]}"
+  done
+}
+
 is_no(){
   local answer="${1}"
   shopt -s nocasematch
@@ -1651,14 +1970,25 @@ validate_yes_no(){
 }
 
 
-PROVISIONS_ROOT="${ROOT_PREFIX}/var/lib/kctl/provision"
-PROVISION_DIRECTORY="${PROVISIONS_ROOT}/${RELEASE_VERSION}-${BRANCH##*/}"
-PLAYBOOK_DIRECTORY="${PROVISION_DIRECTORY}/playbook"
+KCTL_LIB="${ROOT_PREFIX}/var/lib/kctl"
+PACKAGED_TRACKERS_ROOT="${KCTL_LIB}/tracker"
 KEITARO_ALREADY_INSTALLED_RESULT=0
 
 SERVER_IP=""
 
 INSTALLED_VERSION=""
+
+CERTBOT_COMPONENT="certbot"
+CLICKHOUSE_COMPONENT="clickhouse"
+KCTLD_COMPONENT="kctld"
+KCTL_CH_CONVERTER_COMPONENT="kctl"
+KCTL_COMPONENT="kctl"
+MARIADB_COMPONENT="mariadb"
+NGINX_COMPONENT="nginx"
+NGINX_STARTING_PAGE_COMPONENT="nginx"
+REDIS_COMPONENT="redis"
+ROADRUNNER_COMPONENT="roadrunner"
+TRACKER_COMPONENT="tracker"
 
 DICT['en.messages.keitaro_already_installed']='Keitaro is already installed'
 DICT['en.messages.validate_nginx_conf']='Checking nginx config'
@@ -1771,8 +2101,6 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
   ['install-php']='2.30.10'
   ['tune-php']='2.38.2'
   ['tune-roadrunner']='2.41.10'
-
-  ['wrap-up-tracker-configuration']='2.42.3'
 )
 
 expand_ansible_tags_on_upgrade() {
@@ -1809,7 +2137,7 @@ expand_ansible_tags_with_role_tags() {
   local installed_version=${1}
   for role_tag in "${!REPLAY_ROLE_TAGS_SINCE[@]}"; do
     replay_role_tag_since=${REPLAY_ROLE_TAGS_SINCE[${role_tag}]}
-    if (( $(as_version "${installed_version}") <= $(as_version "${replay_role_tag_since}") )); then
+    if versions.lte "${installed_version}" "${replay_role_tag_since}"; then
       expand_ansible_tags_with_tag "${role_tag}"
     fi
   done
@@ -1873,20 +2201,24 @@ parse_options(){
       U)
         RUNNING_MODE="${RUNNING_MODE_UPGRADE}"
         ;;
-      a)
-        KCTL_TRACKER_VERSION_TO_INSTALL="${option_value}"
-        ;;
       t)
+        print_deprecation_warning '-t option will be removed soon, use ANSIBLE_TAGS var to specify the tags'
         ANSIBLE_TAGS="${option_value}"
         ;;
       i)
+        print_deprecation_warning '-i option will be removed soon, use ANSIBLE_IGNORE_TAGS var to specify the ignored tags'
         ANSIBLE_IGNORE_TAGS="${option_value}"
         ;;
       w)
+        print_deprecation_warning '-w option will be removed soon, use WITHOUT_YUM_UPDATE var to skip yum update'
         WITHOUTH_YUM_UPDATE="true"
         ;;
       o)
+        print_deprecation_warning '-o option will be removed soon, use LOG_PATH var to specify path to log file'
         LOG_PATH="${option_value}"
+        ;;
+      a)
+        fail '-a is unsupported, use TRACKER_VERSION or TRACKER_URL to specify the package'
         ;;
       W)
         print_deprecation_warning '-W option will be removed soon, you can safely omit it'
@@ -1935,9 +2267,6 @@ parse_options(){
         ;;
     esac
   done
-  if [[ "${RUNNING_MODE}" == "${RUNNING_MODE_INSTALL}" ]] && empty "${KCTL_TRACKER_VERSION_TO_INSTALL}"; then
-    KCTL_TRACKER_VERSION_TO_INSTALL="latest-stable"
-  fi
   ensure_options_correct
 }
 
@@ -2295,7 +2624,6 @@ write_inventory_file(){
   print_nonempty_inventory_item 'db_password'
   print_nonempty_inventory_item 'db_root_password'
   print_nonempty_inventory_item 'db_restore_path'
-  print_nonempty_inventory_item 'tracker_stability'
   print_nonempty_inventory_item 'installed'
   print_nonempty_inventory_item 'installer_version'
 
@@ -2419,7 +2747,7 @@ install_core_packages() {
     upgrade_package 'rpm'
   fi
 
-  install_packages file tar curl crontabs logrotate
+  install_packages epel-release file tar curl crontabs logrotate jq unzip
   install_core_packages.install_podman
 }
 
@@ -2478,13 +2806,10 @@ get_selinux_status(){
 }
 
 install_kctl() {
-  install_kctl.install_provision
-  install_kctl.install_binaries
-  install_kctl.install_configs
+  install_kctl.install_components_env
+  install_kctl.preinstall_kctl
+  install_kctl.install_kctl_files
   install_kctl.install_components
-  install_kctl.install_roadrunner
-  install_kctl.install_kctl_ch_converter
-  install_kctl.install_kctld
   install_kctl.configure_systemd
 }
 clean_packages_metadata() {
@@ -2513,154 +2838,194 @@ install_kctl.configure_systemd() {
 }
 
 
-KCTL_CH_CONVERTER_PATH="${KCTL_BIN_DIR}/kctl-ch-converter"
+install_kctl.preinstall_kctl() {
+  local path_to_preinstalled_kctl msg installer_mode
 
-install_kctl.install_kctl_ch_converter() {
-  local kctl_ch_converter_path url version cmd
+  components.preinstall 'kctl'
 
-  url="$(components.get_var "kctl_ch_converter" "url")"
-  version="$(components.get_var "kctl_ch_converter" "version")"
-  kctl_ch_converter_path="${KCTL_CH_CONVERTER_PATH}-${version}"
+  if [[ "${KCTL_IN_KCTL}" != "" ]]; then
+    return
+  fi
 
-  if [[ -f ${kctl_ch_converter_path} ]]; then
-    debug "Skip installing kctl-ch-converter v${version} - already installed"
-    print_with_color "Skip installing kctl-ch-converter v${version} - already installed" 'blue'
-  else
-    cache.retrieve_or_download "${url}"
+  if is_running_in_install_mode; then
+    return
+  fi
 
-    cmd="rm -f ${KCTL_CH_CONVERTER_PATH} ${KCTL_CH_CONVERTER_PATH}-*"                       # uninstall previous versions
-    cmd="${cmd} && zcat $(cache.path_by_url "${url}") > ${kctl_ch_converter_path}"         # install new converter
-    cmd="${cmd} && chmod a+x ${kctl_ch_converter_path}"                                     # make it executable
-    cmd="${cmd} && ln -s ${kctl_ch_converter_path} ${KCTL_CH_CONVERTER_PATH}"               # make symlink
-    run_command "${cmd}" "Installing kctl-ch-converter v${version}" "hide_output"
+  if install_kctl.need_to_run_new_kctl; then
+    path_to_preinstalled_kctl="$(components.get_directory 'kctl')"
+
+    msg="Running new KCTL from ${path_to_preinstalled_kctl}"
+    debug "${msg}"; print_with_color "${msg}" 'blue'
+
+    if is_running_in_rescue_mode; then
+      installer_mode="C"
+    else
+      installer_mode="U"
+    fi
+
+    KCTL_IN_KCTL=true SKIP_CACHE="" "${path_to_preinstalled_kctl}/bin/kctl-install" -${installer_mode}
+
+    exit
   fi
 }
 
-install_kctl.install_provision() {
-  local provision_url
+install_kctl.need_to_run_new_kctl() {
+  local  kctl_url="${KCTL_URL:-}" kctl_version="${RELEASE_VERSION}" components_kctl_url components_kctl_version
 
-  if [[ -d "${PROVISION_DIRECTORY}" ]] && ! install_kctl.install_provision.is_dev_branch; then
-    debug "Skip installing kctl provision v${RELEASE_VERSION} - already installed"
-    print_with_color "Skip installing kctl provision v${RELEASE_VERSION} - already installed" 'blue'
+  components_kctl_version="$(components.get_var 'kctl' 'version')"
+  components_kctl_url="$(components.get_var 'kctl' 'url')"
+
+  [[ "${kctl_version}" != "${components_kctl_version}" ]] \
+    || { [[ "${kctl_version}" != "" ]] && [[ "${kctl_url}" != "${components_kctl_url}" ]]; }
+}
+
+install_kctl.install_components_env() {
+  local components_env_url
+
+  if [[ "${COMPONENTS_ENV_URL:-}" != "" ]]; then
+    components_env_url="${COMPONENTS_ENV_URL}"
   else
-    provision_url="$(install_kctl.install_provision.get_provision_url)"
-
-    cache.retrieve_or_download "${provision_url}"
-
-    cmd="rm -rf ${PROVISIONS_ROOT}/"
-    cmd="${cmd} && mkdir -p ${PROVISION_DIRECTORY}"
-    cmd="${cmd} && tar -f $(cache.path_by_url "${provision_url}") -xzC ${PROVISION_DIRECTORY}"
-
-    run_command "${cmd}" "Installing kctl provision v${RELEASE_VERSION}" "hide_output"
+    components_env_url="$(SKIP_CACHE=true install_kctl.install_components_env.get_components_env_url)"
   fi
+
+  SKIP_CACHE=true install_kctl.install_components_env.install "${components_env_url}"
 }
 
+install_kctl.install_components_env.get_components_env_url() {
+  local local_keitaro_version remote_keitaro_version update_channel
 
-install_kctl.install_provision.get_provision_url() {
-  if install_kctl.install_provision.is_dev_branch; then
-    echo "https://files.keitaro.io/scripts/${BRANCH}/kctl.tar.gz?$(date +"%s")"
-  else
-    echo "https://files.keitaro.io/scripts/releases/${RELEASE_VERSION}/kctl.tar.gz"
+  local_keitaro_version="$(install_kctl.install_components_env.get_local_keitaro_version)"
+
+  update_channel="$(install_kctl.install_components_env.get_update_channel)"
+
+  remote_keitaro_version="$(release_api.get_keitaro_version "${local_keitaro_version}" "${update_channel}")"
+  debug "Got remote keitaro version: ${remote_keitaro_version}"
+
+  echo "${FILES_KEITARO_ROOT_URL}/keitaro/keitaro/releases/${remote_keitaro_version}/components.env"
+}
+
+install_kctl.install_components_env.get_local_keitaro_version() {
+  local local_keitaro_version
+
+  if is_running_in_install_mode; then
+    debug "Running in install mode - do not pass Keitaro version"
+    return
   fi
+
+  local_keitaro_version="$(components.get_keitaro_version)"
+  debug "Got local keitaro version from components: ${local_keitaro_version}"
+
+  if [[ "${local_keitaro_version}" == "" ]]; then
+    local_keitaro_version="$(tracker.get_version)"
+    debug "Got local keitaro version from installed tracker: ${local_keitaro_version}"
+  fi
+
+  echo "${local_keitaro_version}"
 }
 
-install_kctl.install_provision.is_dev_branch() {
-  [[ ! ${BRANCH} =~ stable ]] && [[ ! "${BRANCH}" =~ beta ]] && [[ ! "${BRANCH}" =~ alpha ]]
+install_kctl.install_components_env.get_update_channel() {
+  local update_channel
+
+  if [[ "${UPDATE_CHANNEL:-}" != "" ]]; then
+    debug "Got update channel from env UPDATE_CHANNEL ${UPDATE_CHANNEL}"
+    echo "${UPDATE_CHANNEL}"
+    return
+  fi
+
+  if is_running_in_install_mode; then
+    debug "Running in install mode, set update channel to default ${DEFAULT_UPDATE_CHANNEL}"
+    echo "${DEFAULT_UPDATE_CHANNEL}"
+    return
+  fi
+
+  update_channel="$(env_files.get_var "${PATH_TO_SYSTEM_ENV}" "UPDATE_CHANNEL")"
+  if [[ "${update_channel}" != "" ]]; then
+    debug "Got update channel from ${PATH_TO_SYSTEM_ENV} - ${update_channel}"
+    echo "${update_channel}"
+    return
+  fi
+
+  if versions.lt "${local_keitaro_version}" "10.0.0"; then
+    debug "Too old tracker v${local_keitaro_version} is installed set update channel to ${DEFAULT_UPDATE_CHANNEL}"
+    echo "${DEFAULT_UPDATE_CHANNEL}"
+    return
+  fi
+
+  update_channel="$(tracker.get_update_channel)"
+
+  if [[ "${update_channel}" != "" ]]; then
+    debug "Got update channel from tracker - ${update_channel}"
+    echo "${update_channel}"
+    return
+  fi
+
+  debug "Using default update channel - ${DEFAULT_UPDATE_CHANNEL}"
+  echo "${DEFAULT_UPDATE_CHANNEL}"
 }
 
-install_kctl.install_binaries() {
-  local file_name
+install_kctl.install_components_env.install() {
+  local components_env_url="${1}"
 
-  install "${PROVISION_DIRECTORY}"/bin/* "${KCTL_BIN_DIR}"/
+  cache.retrieve_or_download "${components_env_url}"
+
+  path_to_new_components_env="$(cache.path_by_url "${components_env_url}")"
+
+  mkdir -p "${PATH_TO_ENV_DIR}"
+  install -m 0600 "${path_to_new_components_env}" "${PATH_TO_ENV_DIR}"
+}
+
+install_kctl.install_kctl_files() {
+  local provivsion_directory msg
+
+  preinstalled_kctl_directory="$(components.get_directory "${KCTL_COMPONENT}")"
+  msg="Installing kctl from ${preinstalled_kctl_directory}"
+  debug "${msg}"; print_with_color "${msg}" "blue"
+  install_kctl.install_kctl_files.install_binaries "${preinstalled_kctl_directory}"
+  install_kctl.install_kctl_files.install_configs "${preinstalled_kctl_directory}"
+}
+
+install_kctl.install_kctl_files.install_binaries() {
+  local preinstalled_kctl_directory="${1}"
+
+  install "${preinstalled_kctl_directory}"/bin/* "${KCTL_BIN_DIR}"/
 
   for existing_file_path in "${KCTL_BIN_DIR}"/*; do
-    file_name="${existing_file_path##*/}"
+    local file_name="${existing_file_path##*/}"
     ln -s -f "${existing_file_path}" "/usr/local/bin/${file_name}"
   done
 
-  install -m 0755 "${PROVISION_DIRECTORY}/files/bin/"* "${ROOT_PREFIX}/usr/local/bin/"
+  install -m 0755 "${preinstalled_kctl_directory}/files/bin/"* "${ROOT_PREFIX}/usr/local/bin/"
 }
 
-KCTLD_SERVER_PATH="${KCTL_BIN_DIR}/kctld-server"
-KCTLD_WORKER_PATH="${KCTL_BIN_DIR}/kctld-worker"
+install_kctl.install_kctl_files.install_configs() {
+  local preinstalled_kctl_directory="${1}"
 
-install_kctl.install_kctld() {
-  local worker_path server_path url cmd
-
-  url="$(components.get_var "kctld" "url")"
-  version="$(components.get_var "kctld" "version")"
-  server_path="${KCTLD_SERVER_PATH}-${version}"
-  worker_path="${KCTLD_WORKER_PATH}-${version}"
-
-  if [[ -f "${server_path}" ]] && [[ -f "${worker_path}" ]]; then
-    debug "Skip installing kctld v${version} - already installed"
-    print_with_color "Skip installing kctld v${version} - already installed" 'blue'
-  else
-    cache.retrieve_or_download "${url}"
-
-    cmd="rm -f ${KCTLD_SERVER_PATH} ${KCTLD_SERVER_PATH}-*"                                             # uninstall prev server
-    cmd="${cmd} && rm -f ${KCTLD_WORKER_PATH} ${KCTLD_WORKER_PATH}-*"                                   # uninstall prev worker
-    cmd="${cmd} && tar -f $(cache.path_by_url "${url}") --no-same-owner -xzC ${KCTL_BIN_DIR}"           # install new kctld
-    cmd="${cmd} && mv ${KCTLD_SERVER_PATH} ${server_path} && ln -s ${server_path} ${KCTLD_SERVER_PATH}" # make server symlinks
-    cmd="${cmd} && mv ${KCTLD_WORKER_PATH} ${worker_path} && ln -s ${worker_path} ${KCTLD_WORKER_PATH}" # make worker symlinks
-    run_command "${cmd}" "Installing kctld v${version}" "hide_output"
-  fi
-}
-
-ROADRUNNER_ROOT_DIR="${ROOT_PREFIX}/usr/local/bin"
-ROADRUNNER_PATH="${ROADRUNNER_ROOT_DIR}/roadrunner"
-
-install_kctl.install_roadrunner() {
-  local path_to_bin path_to_tar_gz url version cmd
-
-  url="$(components.get_var "roadrunner" "url")"
-  version="$(components.get_var "roadrunner" "version")"
-  release_name="roadrunner-${version}-linux-amd64"
-  path_to_bin="${ROADRUNNER_PATH}-${version}"
-
-  if [[ -f "${path_to_bin}" ]]; then
-    debug "Skip installing roadrunner v${version} - already installed"
-    print_with_color "Skip installing roadrunner v${version} - already installed" 'blue'
-  else
-    cache.retrieve_or_download "${url}"
-    path_to_tar_gz="$(cache.path_by_url "${url}")"
-
-    cmd="rm -f ${ROADRUNNER_PATH} ${ROADRUNNER_PATH}-*"                                                           # uninstall old
-    cmd="${cmd} && cd /usr/local/bin"                                                                             # change dir
-    cmd="${cmd} && tar -xzf ${path_to_tar_gz} --no-same-owner --no-same-permissions --strip 1 ${release_name}/rr" # extract
-    cmd="${cmd} && mv ${ROADRUNNER_ROOT_DIR}/rr ${path_to_bin}"                                                   # install new
-    cmd="${cmd} && ln -s ${path_to_bin} ${ROADRUNNER_PATH}"                                                       # make symlink
-
-    run_command "${cmd}" "Installing roadrunner v${version}" "hide_output"
-  fi
-}
-
-install_kctl.install_configs() {
-  mkdir -p "${ROOT_PREFIX}/etc/keitaro/config/components/"
+  mkdir -p "${ROOT_PREFIX}/etc/keitaro/env/components/"
+  mkdir -p "${ROOT_PREFIX}/etc/keitaro/config/"
   mkdir -p "${ROOT_PREFIX}/etc/nginx/"
-  mkdir -p "${ROOT_PREFIX}/etc/containers/registries.conf.d"/
+  mkdir -p "${ROOT_PREFIX}/etc/containers/registries.conf.d/"
 
-  install -m 0444 "${PROVISION_DIRECTORY}/files/etc/sudoers.d"/* "${ROOT_PREFIX}/etc/sudoers.d/"
-  install -m 0755 "${PROVISION_DIRECTORY}/files/etc/cron.daily"/* "${ROOT_PREFIX}/etc/cron.daily/"
-  install -m 0644 "${PROVISION_DIRECTORY}/files/etc/systemd/system"/* "${ROOT_PREFIX}/etc/systemd/system/"
-  install -m 0644 "${PROVISION_DIRECTORY}/files/etc/keitaro/config/components"/* "${ROOT_PREFIX}/etc/keitaro/config/components/"
-  install -m 0644 "${PROVISION_DIRECTORY}/files/etc/keitaro/config"/*.env "${ROOT_PREFIX}/etc/keitaro/config/"
-  install -m 0644 "${PROVISION_DIRECTORY}/files/etc/logrotate.d"/* "${ROOT_PREFIX}/etc/logrotate.d"/
-  install -m 0644 "${PROVISION_DIRECTORY}/files/etc/nginx"/* "${ROOT_PREFIX}/etc/nginx/"
-  install -m 0644 "${PROVISION_DIRECTORY}/files/etc/containers"/nodocker "${ROOT_PREFIX}/etc/containers/"
+  install -m 0444 "${preinstalled_kctl_directory}/files/etc/sudoers.d"/* "${ROOT_PREFIX}/etc/sudoers.d/"
+  install -m 0755 "${preinstalled_kctl_directory}/files/etc/cron.daily"/* "${ROOT_PREFIX}/etc/cron.daily/"
+  install -m 0644 "${preinstalled_kctl_directory}/files/etc/systemd/system"/* "${ROOT_PREFIX}/etc/systemd/system/"
+  install -m 0644 "${preinstalled_kctl_directory}/files/etc/keitaro/env/components"/* "${ROOT_PREFIX}/etc/keitaro/env/components/"
+  install -m 0644 "${preinstalled_kctl_directory}/files/etc/keitaro/config"/*.env "${ROOT_PREFIX}/etc/keitaro/config/"
+  install -m 0644 "${preinstalled_kctl_directory}/files/etc/logrotate.d"/* "${ROOT_PREFIX}/etc/logrotate.d"/
+  install -m 0644 "${preinstalled_kctl_directory}/files/etc/nginx"/* "${ROOT_PREFIX}/etc/nginx/"
+  install -m 0644 "${preinstalled_kctl_directory}/files/etc/containers"/nodocker "${ROOT_PREFIX}/etc/containers/"
 
   if [[ "$(get_centos_major_release)" != "7" ]]; then
-    install -m 0644 "${PROVISION_DIRECTORY}/files/etc/containers/registries.conf.d"/* \
+    install -m 0644 "${preinstalled_kctl_directory}/files/etc/containers/registries.conf.d"/* \
             "${ROOT_PREFIX}/etc/containers/registries.conf.d/"
   fi
 }
 
 install_kctl.install_components() {
   if is_running_in_install_mode; then
-    components.install "nginx_starting_page"
+    components.install "nginx-starting-page"
     systemd.update_units
     systemd.disable_and_stop_service "nginx"
-    systemd.enable_and_start_service "nginx_starting_page"
+    systemd.enable_and_start_service "nginx-starting-page"
 
     components.install "certbot"
     components.install "certbot-renew"
@@ -2668,7 +3033,12 @@ install_kctl.install_components() {
     components.install "mariadb"
     components.install "nginx"
     components.install "redis"
+
+    components.install_binaries "kctl-ch-converter"
+    components.install_binaries "kctld"
+    components.install_binaries "roadrunner"
   fi
+  components.preinstall "tracker"
 }
 
 stage5() {
@@ -2847,7 +3217,6 @@ stage7.write_inventory_on_finish() {
   VARS['license_key']=""
   VARS['salt']=""
   VARS['postback_key']=""
-  VARS['tracker_stability']=""
   reset_changeable_values
   write_inventory_file
 }
@@ -2868,18 +3237,19 @@ ANSIBLE_TASK_FAILURE_HEADER="^(fatal|failed): \[localhost\]: [A-Z]+! => "
 ANSIBLE_LAST_TASK_LOG="${WORKING_DIR}/ansible_last_task.log"
 
 stage7.run_ansible_playbook() {
-  # shellcheck source=/dev/null
-  source "${INVENTORY_DIR}/components.env"
-  local env cmd
+  local env cmd tracker_version_to_install tracker_directory playbook_directory
+
+  tracker_version_to_install="$(components.get_var "${TRACKER_COMPONENT}" 'version')"
+  tracker_directory="$(components.get_directory "${TRACKER_COMPONENT}")"
+  playbook_directory="$(components.get_directory "${KCTL_COMPONENT}")/playbook"
 
   env="${env} ANSIBLE_FORCE_COLOR=true"
-  env="${env} ANSIBLE_CONFIG=${PLAYBOOK_DIRECTORY}/ansible.cfg"
-  env="${env} KCTL_BRANCH=${BRANCH}"
+  env="${env} ANSIBLE_CONFIG=${playbook_directory}/ansible.cfg"
   env="${env} KCTL_RUNNING_MODE=${RUNNING_MODE}"
-  env="${env} KCTL_TRACKER_VERSION_TO_INSTALL=${KCTL_TRACKER_VERSION_TO_INSTALL}"
-  env="${env} ROADRUNNER_URL=${ROADRUNNER_URL}"
+  env="${env} KCTL_TRACKER_DIRECTORY=${tracker_directory}"
+  env="${env} KCTL_TRACKER_VERSION_TO_INSTALL=${tracker_version_to_install}"
 
-  cmd="${env} $(get_ansible_playbook_command) -v -i ${INVENTORY_PATH} ${PLAYBOOK_DIRECTORY}/playbook.yml"
+  cmd="${env} $(get_ansible_playbook_command) -v -i ${INVENTORY_PATH} ${playbook_directory}/playbook.yml"
 
   expand_ansible_tags_on_upgrade
   if isset "${ANSIBLE_TAGS}"; then
@@ -2991,7 +3361,9 @@ stage7() {
   clean_up
   upgrades.run_upgrade_checkpoints 'post'
   stage7.enable_services
+  components.save_applied
   stage7.write_inventory_on_finish
+  systemd.restart_service kctl-monitor
 }
 
 print_successful_message(){
@@ -3149,13 +3521,20 @@ postupgrade_checkpoint_2_42_8() {
   cmd="nohup /etc/cron.daily/kctl-certificates-renew &> /dev/null &"
   upgrades.run_upgrade_checkpoint_command "${cmd}" "Schedule renewing certificates"
 
-  cmd="(/opt/keitaro/bin/kctl podman stop certbot || true)"
-  cmd="${cmd} && (/opt/keitaro/bin/kctl podman prune certbot || true)"
+  cmd="(${KCTL_BIN_DIR}/kctl podman stop certbot || true)"
+  cmd="${cmd} && (${KCTL_BIN_DIR}/kctl podman prune certbot || true)"
   upgrades.run_upgrade_checkpoint_command "${cmd}" "Prune certbot containers"
 }
 
 postupgrade_checkpoint_2_42_6() {
   run_command "${KCTL_BIN_DIR}/kctl certificates fix-le-accounts" "Fixing LE accounts" hide_output
+}
+
+postupgrade_checkpoint_2_42_9() {
+  local dir='/etc/keitaro/config'
+  local cmd="rm -rf ${dir}/components.env ${dir}/components.local.env ${dir}/components"
+
+  upgrades.run_upgrade_checkpoint_command "${cmd}" "Remove old env files"
 }
 
 postupgrade_checkpoint_2_41_7() {
@@ -3280,6 +3659,12 @@ fix_db_engine() {
   write_inventory_file
 }
 
+preupgrade_checkpoint_2_42_9() {
+  components.install_binaries "kctl-ch-converter"
+  components.install_binaries "kctld"
+  components.install_binaries "roadrunner"
+}
+
 preupgrade_checkpoint_2_41_8() {
   preupgrade_checkpoint_2_41_8.fix_db_engine
 }
@@ -3326,17 +3711,16 @@ upgrades.run_upgrade_checkpoints() {
   local upgrade_kind="${1}"
   local upgrade_fn_prefix="${upgrade_kind}${UPGRADE_FN_SUFFIX}"
   local version_str kctl_config_version message
+  local kctl_config_version="${INSTALLED_VERSION}"
 
   if is_running_in_install_mode; then
     return
   fi
 
-  kctl_config_version="$(as_version "${INSTALLED_VERSION}")"
-
-  for checkpoint_version in $(upgrades.list_checkpoint_versions "${upgrade_fn_prefix}"); do
+  for checkpoint_version in $(upgrades.list_checkpoint_versions "${upgrade_fn_prefix}" | versions.sort | uniq); do
     debug "kctl_config_version: ${kctl_config_version}, checkpoint_version: ${checkpoint_version}"
-    if is_running_in_rescue_mode || (( kctl_config_version <= checkpoint_version )); then
-      version_str="$(version_as_str "${checkpoint_version}")"
+    if is_running_in_rescue_mode || versions.lte "${kctl_config_version}" "${checkpoint_version}"; then
+      version_str="$(versions.patch "${checkpoint_version}")"
       upgrade_fn_name="${upgrade_fn_prefix}${version_str//./_}"
 
       print_with_color "Evaluating ${upgrade_kind}upgrade steps from v${version_str}" 'blue'
@@ -3358,15 +3742,13 @@ upgrades.list_checkpoint_versions() {
   local checkpoint_versions upgrade_fns
 
   for upgrade_fn in $(upgrades.list_upgrade_fns "${upgrade_fn_prefix}"); do
-    checkpoint_versions="$(upgrades.extract_checkpoint_version "${upgrade_fn_prefix}" "${upgrade_fn}")\n${checkpoint_versions}"
+    upgrades.extract_checkpoint_version "${upgrade_fn_prefix}" "${upgrade_fn}"
   done
-
-  echo -e -n "${checkpoint_versions}" | sort | uniq
 }
 
 upgrades.list_upgrade_fns() {
   local upgrade_fn_prefix="${1}"
-
+  # `declare -F` shows all declared functions
   declare -F | awk '{print $3}' | grep "${upgrade_fn_prefix}" | grep -vF '.'
 }
 
@@ -3375,7 +3757,7 @@ upgrades.extract_checkpoint_version() {
   local upgrade_fn_prefix_length="${#upgrade_fn_prefix}"
   local version_str="${upgrade_fn:${upgrade_fn_prefix_length}}"
 
-  as_version "${version_str//_/.}"
+  echo "${version_str//_/.}"
 }
 
 upgrades.run_upgrade_checkpoint_command() {

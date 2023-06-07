@@ -1,17 +1,24 @@
-- name: Get lockfile status
-  stat:
-    path: "{{ keitaro_app_dir }}/var/install.lock"
-  register: lockfile
+- name: Force all notified handlers to run at this point
+  meta: flush_handlers
 
-- name: Install keitaro
-  when: not lockfile.stat.exists
+- name: Get installed tracker version
+  include_tasks: "detect-installed-tracker-version.yml"
+
+- name: Install tracker application
+  include_tasks: "install-tracker-app.yml"
+  when: installed_tracker_version is not defined
+        or installed_tracker_version is version(kctl_tracker_version_to_install, '<')
+
+- name: Setup keitaro database
+  when: kctl_running_mode == "install"
   block:
-    - name: Install tracker package
-      include_tasks: "install-tracker-package.yml"
-      vars:
-        ansible_python_interpreter: '/usr/bin/python3'
+  - name: Get lockfile status
+    stat:
+      path: "{{ keitaro_app_dir }}/var/install.lock"
+    register: lockfile
 
-    - name: Execute appropriate tasks
-      include_tasks: "{{ kctl_running_mode }}.yml"
-      vars:
-        ansible_python_interpreter: "/usr/bin/python3"
+  - name: Execute appropriate tasks
+    when: not lockfile.stat.exists
+    include_tasks: "setup-database.yml"
+    vars:
+      ansible_python_interpreter: "/usr/bin/python3"

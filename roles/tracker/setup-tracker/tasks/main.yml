@@ -1,7 +1,6 @@
 - name: Configure tracker
-  when: (kctl_running_mode == "install")
-        or (tracker_version_to_install is defined and installed_tracker_version != tracker_version_to_install)
-        or ('wrap-up-tracker-configuration' in kctl_tags)
+  when: installed_tracker_version is not defined
+        or installed_tracker_version is version(kctl_tracker_version_to_install, '<')
   block:
     - include_tasks: 01-generate-env-file.yml
 
@@ -14,6 +13,7 @@
     - include_tasks: 06-set-olap-db.yml
 
     - include_tasks: 07-set-tracker-stability.yml
+      when: update_channel != ''
 
     - include_tasks: 08-setup-clickhouse.yml
       when: olap_db == 'clickhouse'

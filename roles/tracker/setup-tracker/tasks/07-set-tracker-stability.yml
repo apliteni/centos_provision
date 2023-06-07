@@ -1,0 +1,7 @@
+- name: Set is_beta_channel variable
+  set_fact:
+    is_beta_channel: "{{ '1' if update_channel == 'beta' else '0' }}"
+
+- name: Set tracker stability
+  command: '{{ kctl_path }} run cli-php system:set_setting is_beta_channel {{ is_beta_channel }}'
+  changed_when: false

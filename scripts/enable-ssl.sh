@@ -38,10 +38,6 @@ values() {
   echo "$2"
 }
 
-is_ci_mode() {
-  [[ "$EUID" != "$ROOT_UID" || "${CI}" != "" ]]
-}
-
 is_pipe_mode(){
   [ "${SELF_NAME}" == 'bash' ]
 }
@@ -50,22 +46,46 @@ TOOL_NAME='enable-ssl'
 
 SELF_NAME=${0}
 
-RELEASE_VERSION='2.42.9'
-VERY_FIRST_VERSION='0.9'
-DEFAULT_BRANCH="releases/stable"
-BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
-
-KEITARO_URL='https://keitaro.io'
-FILES_KEITARO_ROOT_URL="https://files.keitaro.io"
-FILES_KEITARO_URL="https://files.keitaro.io/scripts/${BRANCH}"
-KEITARO_SUPPORT_USER='keitaro-support'
-KEITARO_SUPPORT_HOME_DIR="${ROOT_PREFIX}/home/${KEITARO_SUPPORT_USER}"
+is_ci_mode() {
+  [[ "$EUID" != "$ROOT_UID" || "${CI}" != "" ]]
+}
 
 if is_ci_mode; then
   ROOT_PREFIX='.keitaro'
 else
   ROOT_PREFIX=''
 fi
+
+RELEASE_VERSION='2.43.0'
+VERY_FIRST_VERSION='0.9'
+
+KCTL_IN_KCTL="${KCTL_IN_KCTL:-}"
+
+KEITARO_URL='https://keitaro.io'
+FILES_KEITARO_ROOT_URL="https://files.keitaro.io"
+RELEASE_API_BASE_URL="https://release-api.keitaro.io"
+
+KEITARO_SUPPORT_USER='keitaro-support'
+KEITARO_SUPPORT_HOME_DIR="/home/${KEITARO_SUPPORT_USER}"
+
+UPDATE_CHANNEL_ALPHA="alpha"
+UPDATE_CHANNEL_BETA="beta"
+UPDATE_CHANNEL_RC="rc"
+UPDATE_CHANNEL_STABLE="stable"
+DEFAULT_UPDATE_CHANNEL="${UPDATE_CHANNEL_STABLE}"
+
+declare -a UPDATE_CHANNELS=( \
+  "${UPDATE_CHANNEL_ALPHA}" \
+  "${UPDATE_CHANNEL_BETA}" \
+  "${UPDATE_CHANNEL_RC}" \
+  "${UPDATE_CHANNEL_STABLE}" \
+)
+
+
+PATH_TO_ENV_DIR="${ROOT_PREFIX}/etc/keitaro/env"
+PATH_TO_COMPONENTS_ENV="${PATH_TO_ENV_DIR}/components.env"
+PATH_TO_SYSTEM_ENV="${PATH_TO_ENV_DIR}/system.env"
+PATH_TO_APPLIED_COMPONENTS_ENV="${PATH_TO_ENV_DIR}/components-applied.env"
 
 declare -A VARS
 declare -A ARGS
@@ -194,7 +214,7 @@ DICT['en.messages.ssl_not_enabled_for_domains']="There were errors while issuing
 DICT['en.warnings.nginx_config_exists_for_domain']="nginx config already exists"
 DICT['en.warnings.certificate_exists_for_domain']="certificate already exists"
 DICT['en.warnings.skip_nginx_config_generation']="skipping nginx config generation"
-#/usr/bin/env bash
+
 assert_architecture_is_valid(){
   if [[ "$(uname -m)" != "x86_64" ]]; then
     fail "$(translate errors.wrong_architecture)"
@@ -252,9 +272,13 @@ is_keitaro_installed() {
 }
 
 use_old_algorithm_for_installation_check() {
-  (( $(as_version "${INSTALLED_VERSION}") <= $(as_version "${USE_NEW_ALGORITHM_FOR_INSTALLATION_CHECK_SINCE}") ))
+  versions.lte "${INSTALLED_VERSION}" "${USE_NEW_ALGORITHM_FOR_INSTALLATION_CHECK_SINCE}"
 }
 assert_no_another_process_running(){
+
+  if [[ "${KCTL_IN_KCTL}" != "" ]]; then
+    return
+  fi
 
   exec 8>/var/run/${SCRIPT_NAME}.lock
 
@@ -319,7 +343,7 @@ file_exists(){
 }
 
 build_certbot_command() {
-  echo "/opt/keitaro/bin/kctl run certbot"
+  echo "${KCTL_BIN_DIR}/kctl run certbot"
 }
 
 certbot.register_account() {
@@ -328,60 +352,6 @@ certbot.register_account() {
   cmd="${cmd} --agree-tos --non-interactive --register-unsafely-without-email"
 
   run_command "${cmd}" "Creating certbot account" "hide_output"
-}
-
-# Based on https://stackoverflow.com/a/53400482/612799
-#
-# Use:
-#   (( $(as_version 1.2.3.4) >= $(as_version 1.2.3.3) )) && echo "yes" || echo "no"
-#
-# Version number should contain from 1 to 4 parts (3 dots) and each part should contain from 1 to 3 digits
-#
-AS_VERSION__MAX_DIGITS_PER_PART=3
-AS_VERSION__PART_REGEX="[[:digit:]]{1,${AS_VERSION__MAX_DIGITS_PER_PART}}"
-AS_VERSION__PARTS_TO_KEEP=4
-AS_VERSION__REGEX="(${AS_VERSION__PART_REGEX}\.){1,${AS_VERSION__PARTS_TO_KEEP}}"
-
-as_version() {
-  local version_string="${1}"
-  # Expand version string by adding `.` to the end to simplify logic
-  local major='0'
-  local minor='0'
-  local patch='0'
-  local extra='0'
-  if [[ "${version_string}." =~ ^${AS_VERSION__REGEX}$ ]]; then
-    IFS='.' read -r -a parts <<< "${version_string}"
-    major="${parts[0]:-${major}}"
-    minor="${parts[1]:-${minor}}"
-    patch="${parts[2]:-${patch}}"
-    extra="${parts[3]:-${extra}}"
-  fi
-  printf '1%03d%03d%03d%03d' "${major}" "${minor}" "${patch}" "${extra}"
-}
-
-version_as_str() {
-  local version="${1}" major minor patch extra
-
-  major="${version:1:3}"; major="${major#0}"; major="${major#0}"
-  minor="${version:4:3}"; minor="${minor#0}"; minor="${minor#0}"
-  patch="${version:7:3}"; patch="${patch#0}"; patch="${patch#0}"
-  extra="${version:10:3}"; extra="${extra#0}"; extra="${extra#0}"
-
-  if [[ "${extra}" != "0" ]]; then
-    echo "${major}.${minor}.${patch}.${extra}"
-  else
-    echo "${major}.${minor}.${patch}"
-  fi
-}
-
-as_minor_version() {
-  local version_string="${1}"
-  local version_number
-  version_number=$(as_version "${version_string}")
-  local meaningful_version_length=$(( 1 + 2*AS_VERSION__MAX_DIGITS_PER_PART ))
-  local zeroes_length=$(( 1 + AS_VERSION__PARTS_TO_KEEP * AS_VERSION__MAX_DIGITS_PER_PART - meaningful_version_length ))
-  local meaningful_version=${version_number:0:${meaningful_version_length}}
-  printf "%d%0${zeroes_length}d" "${meaningful_version}"
 }
 
 assert_upgrade_allowed() {
@@ -408,7 +378,7 @@ ensure_nginx_config_correct() {
     run_command "nginx -t" "$(translate 'messages.validate_nginx_conf')" "hide_output"
   else
     if podman ps | grep -q nginx; then
-      run_command "/opt/keitaro/bin/kctl run nginx -t" "$(translate 'messages.validate_nginx_conf')" "hide_output"
+      run_command "${KCTL_BIN_DIR}/kctl run nginx -t" "$(translate 'messages.validate_nginx_conf')" "hide_output"
     else
       print_with_color "Can't find running nginx container, skipping nginx config checks", 'yellow'
     fi
@@ -456,27 +426,6 @@ get_olap_db(){
 
 is_compatible_with_current_release() {
   [[ "${RELEASE_VERSION}" == "${INSTALLED_VERSION}" ]]
-}
-
-run_obsolete_tool_version_if_need() {
-  debug 'Ensure configs has been genereated by relevant installer'
-  if isset "${FORCE_ISSUING_CERTS}"; then
-    debug "Skip checking current version and force isuuing certs"
-  elif is_compatible_with_current_release; then
-    debug "Current ${RELEASE_VERSION} is compatible with ${INSTALLED_VERSION}"
-  else
-    local tool_url="${KEITARO_URL}/v${INSTALLED_VERSION}/${TOOL_NAME}.sh"
-    local tool_args="${TOOL_ARGS}"
-    if (( $(as_version "${INSTALLED_VERSION}") < $(as_version "1.13") )); then
-      fail "$(translate 'errors.upgrade_server')"
-    fi
-    if [[ "${TOOL_NAME}" == "enable-ssl" ]]; then
-      tool_args="-D ${VARS['ssl_domains']}"
-    fi
-    command="curl -fsSL ${tool_url} | bash -s -- ${tool_args}"
-    run_command "${command}" "Running obsolete ${TOOL_NAME} (v${INSTALLED_VERSION})"
-    exit
-  fi
 }
 
 
@@ -1331,13 +1280,11 @@ help_en(){
   print_err
 }
 
-stage2(){
+stage2() {
   debug "Starting stage 2: make some asserts"
   assert_caller_root
   assert_no_another_process_running
   assert_that_another_certbot_process_not_runing
-  detect_installed_version
-  run_obsolete_tool_version_if_need
 }
 
 stage3(){

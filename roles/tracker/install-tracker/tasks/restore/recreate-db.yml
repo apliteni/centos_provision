@@ -1,9 +1,0 @@
-- name: Drop newly created keitaro DB
-  community.mysql.mysql_db:
-    name: "{{ db_name }}"
-    state: absent
-
-- name: Create a new keitaro DB
-  community.mysql.mysql_db:
-    name: "{{ db_name }}"
-    state: present

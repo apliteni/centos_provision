@@ -50,9 +50,9 @@
   notify:
     - reload nginx
 
-- name: Stop and disable nginx_starting_page
+- name: Stop and disable nginx-starting-page
   service:
-    name: nginx_starting_page
+    name: nginx-starting-page
     state: stopped
     enabled: false
   register: stop_nginx_starting_page

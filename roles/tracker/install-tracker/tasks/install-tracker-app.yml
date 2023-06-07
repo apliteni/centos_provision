@@ -1,0 +1,34 @@
+- name: Update tracker application dir with new files
+  synchronize:
+    src: "{{ kctl_tracker_directory }}/www/"
+    dest: "{{ keitaro_app_dir }}/"
+    rsync_opts: '--quiet'
+    owner: true
+    group: true
+  delegate_to: "{{ inventory_hostname }}"
+  become_user: "{{ keitaro_user }}"
+  notify:
+    - restart php-fpm
+    - restart roadrunner
+
+- name: Delete old files from updated tracker
+  synchronize:
+    src: "{{ kctl_tracker_directory }}/www/{{ item }}/"
+    dest: "{{ keitaro_app_dir }}/{{ item }}/"
+    owner: true
+    group: true
+    delete: true
+  with_items:
+    - "application/Admin"
+    - "application/Component"
+    - "application/Core"
+    - "application/Traffic"
+    - "admin"
+    - "bin"
+    - "vendor"
+  delegate_to: "{{ inventory_hostname }}"
+  become_user: "{{ keitaro_user }}"
+  notify:
+    - restart php-fpm
+    - restart roadrunner
+    - restart kctl-monitor

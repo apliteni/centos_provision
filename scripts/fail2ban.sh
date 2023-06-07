@@ -36,10 +36,6 @@ values() {
   echo "$2"
 }
 
-is_ci_mode() {
-  [[ "$EUID" != "$ROOT_UID" || "${CI}" != "" ]]
-}
-
 is_pipe_mode(){
   [ "${SELF_NAME}" == 'bash' ]
 }
@@ -48,22 +44,46 @@ TOOL_NAME='kctl-fail2ban'
 
 SELF_NAME=${0}
 
-RELEASE_VERSION='2.42.9'
-VERY_FIRST_VERSION='0.9'
-DEFAULT_BRANCH="releases/stable"
-BRANCH="${BRANCH:-${DEFAULT_BRANCH}}"
-
-KEITARO_URL='https://keitaro.io'
-FILES_KEITARO_ROOT_URL="https://files.keitaro.io"
-FILES_KEITARO_URL="https://files.keitaro.io/scripts/${BRANCH}"
-KEITARO_SUPPORT_USER='keitaro-support'
-KEITARO_SUPPORT_HOME_DIR="${ROOT_PREFIX}/home/${KEITARO_SUPPORT_USER}"
+is_ci_mode() {
+  [[ "$EUID" != "$ROOT_UID" || "${CI}" != "" ]]
+}
 
 if is_ci_mode; then
   ROOT_PREFIX='.keitaro'
 else
   ROOT_PREFIX=''
 fi
+
+RELEASE_VERSION='2.43.0'
+VERY_FIRST_VERSION='0.9'
+
+KCTL_IN_KCTL="${KCTL_IN_KCTL:-}"
+
+KEITARO_URL='https://keitaro.io'
+FILES_KEITARO_ROOT_URL="https://files.keitaro.io"
+RELEASE_API_BASE_URL="https://release-api.keitaro.io"
+
+KEITARO_SUPPORT_USER='keitaro-support'
+KEITARO_SUPPORT_HOME_DIR="/home/${KEITARO_SUPPORT_USER}"
+
+UPDATE_CHANNEL_ALPHA="alpha"
+UPDATE_CHANNEL_BETA="beta"
+UPDATE_CHANNEL_RC="rc"
+UPDATE_CHANNEL_STABLE="stable"
+DEFAULT_UPDATE_CHANNEL="${UPDATE_CHANNEL_STABLE}"
+
+declare -a UPDATE_CHANNELS=( \
+  "${UPDATE_CHANNEL_ALPHA}" \
+  "${UPDATE_CHANNEL_BETA}" \
+  "${UPDATE_CHANNEL_RC}" \
+  "${UPDATE_CHANNEL_STABLE}" \
+)
+
+
+PATH_TO_ENV_DIR="${ROOT_PREFIX}/etc/keitaro/env"
+PATH_TO_COMPONENTS_ENV="${PATH_TO_ENV_DIR}/components.env"
+PATH_TO_SYSTEM_ENV="${PATH_TO_ENV_DIR}/system.env"
+PATH_TO_APPLIED_COMPONENTS_ENV="${PATH_TO_ENV_DIR}/components-applied.env"
 
 declare -A VARS
 declare -A ARGS

@@ -5,7 +5,6 @@
       - cpu_cores
       - is_ci_mode
       - kctl_ansible_hostname
-      - kctl_tools_branch
       - kctl_tracker_version_to_install
       - kctl_version
       - keitaro_user

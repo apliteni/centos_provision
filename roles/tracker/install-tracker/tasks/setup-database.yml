@@ -9,5 +9,11 @@
     db_schema_is_empty: "{{ db_schema_exists_query.query_result == [[]] }}"
 
 - name: Generate DB schema
-  include_tasks: install/generate-db-schema.yml
   when: db_schema_is_empty
+  community.mysql.mysql_db:
+    state: import
+    name: "{{ db_name }}"
+    target: "{{ item }}"
+  with_items:
+    - "{{ keitaro_database_schema }}"
+    - "{{ keitaro_database_data }}"
