@@ -94,7 +94,7 @@ Usage:
   kctl podman stats                              prints statistics
   kctl podman usage                              prints this info
 
-Allowed CONTAINER_NAMEs are: clickhouse mariadb nginx nginx_starting_page redis
+Allowed CONTAINER_NAMEs are: certbot certbot-renew clickhouse mariadb nginx nginx_starting_page nginx-starting-page redis
 ```
 
 <!-- end of 'kctl podman help' output -->
@@ -104,6 +104,7 @@ Allowed CONTAINER_NAMEs are: clickhouse mariadb nginx nginx_starting_page redis
 
 ```
 Usage:
+  kctl resolvers autofix                           sets google dns if current resolver works slow
   kctl resolvers set-google                        sets google dns
   kctl resolvers reset                             resets settings
   kctl resolvers usage                             prints this page

@@ -57,7 +57,10 @@ else
   ROOT_PREFIX=''
 fi
 
-RELEASE_VERSION='2.43.1'
+CACHING_PERIOD_IN_DAYS="2"
+CACHING_PERIOD_IN_MINUTES="$((CACHING_PERIOD_IN_DAYS * 24 * 60))"
+
+RELEASE_VERSION='2.43.2'
 VERY_FIRST_VERSION='0.9'
 
 KCTL_IN_KCTL="${KCTL_IN_KCTL:-}"
@@ -326,7 +329,6 @@ arrays.index_of() {
 }
 
 PATH_TO_CACHE_ROOT="${ROOT_PREFIX}/var/cache/kctl/installer"
-CACHING_PERIOD_IN_DAYS="2"
 DOWNLOADING_TRIES=10
 
 cache.retrieve_or_download() {
@@ -363,8 +365,8 @@ cache.purge() {
 
 cache.remove_rotten_files() {
   if [[ -d "${PATH_TO_CACHE_ROOT}" ]]; then
-    find "${PATH_TO_CACHE_ROOT}" -type f -mtime "+$((CACHING_PERIOD_IN_DAYS - 1))" -delete
-    find "${PATH_TO_CACHE_ROOT}" -type d -mtime "+$((CACHING_PERIOD_IN_DAYS - 1))" -delete 2>/dev/null || true
+    find "${PATH_TO_CACHE_ROOT}" -type f -mmin "+${CACHING_PERIOD_IN_MINUTES}" -delete
+    find "${PATH_TO_CACHE_ROOT}" -type d -mmin "+${CACHING_PERIOD_IN_MINUTES}" -delete 2>/dev/null || true
   fi
 }
 
@@ -549,6 +551,16 @@ components.create_volumes.create_volume_dir() {
       chown "${user}:${group}" "${volume}"
     fi
   done
+}
+
+components.get_applied_var() {
+  local component="${1}"
+  local variable="${2}"
+  local component_var
+
+  component_var="$(components.get_var_name "${component}" "${variable}")"
+
+  env_files.get_var "${PATH_TO_APPLIED_COMPONENTS_ENV}" "${component_var}"
 }
 
 components.get_directory() {
@@ -738,24 +750,26 @@ components.run() {
 components.save_applied() {
   local msg='Saving applied env values'; debug "${msg}"; print_with_color "${msg}" 'blue'
 
-  components.save_var 'keitaro' 'version'
+  components.save_applied_var 'keitaro' 'version'
 
   for component in $(components.list_all); do
-    components.save_var 'keitaro' 'version'
+    components.save_applied_var "${component}" 'version'
     local image; image="$(components.get_var "${component}" 'image')"
     if [[ "${image}" != "" ]]; then
-      components.save_var "${component}" 'image'
+      components.save_applied_var "${component}" 'image'
     else
-      components.save_var "${component}" 'url'
+      components.save_applied_var "${component}" 'url'
     fi
   done
 }
 
-components.save_var() {
-  local component="${1}" variable="${2}" value
+components.save_applied_var() {
+  local component="${1}" variable="${2}" component_var value 
+
+  component_var="$(components.get_var_name "${component}" "${variable}")"
 
   value="$(components.get_var "${component}" "${variable}")"
-  env_files.forced_save_var "${PATH_TO_APPLIED_COMPONENTS_ENV}" "${component^^}_${variable^^}" "${value}"
+  env_files.forced_save_var "${PATH_TO_APPLIED_COMPONENTS_ENV}" "${component_var}" "${value}"
 }
 
 ALIVENESS_PROBES_NO=10
@@ -2897,6 +2911,10 @@ install_kctl.preinstall_kctl() {
     return
   fi
 
+  if is_ci_mode; then
+    return
+  fi
+
   if install_kctl.need_to_run_new_kctl; then
     path_to_preinstalled_kctl="$(components.get_directory 'kctl')"
 
@@ -2916,13 +2934,14 @@ install_kctl.preinstall_kctl() {
 }
 
 install_kctl.need_to_run_new_kctl() {
-  local  kctl_url="${KCTL_URL:-}" kctl_version="${RELEASE_VERSION}" components_kctl_url components_kctl_version
+  local kctl_url applied_kctl_url
 
-  components_kctl_version="$(components.get_var 'kctl' 'version')"
-  components_kctl_url="$(components.get_var 'kctl' 'url')"
+  if [[ -f "${PATH_TO_APPLIED_COMPONENTS_ENV}" ]]; then
+    kctl_url="$(components.get_var 'kctl' 'url')"
+    applied_kctl_url="$(components.get_applied_var 'kctl' 'url')"
 
-  [[ "${kctl_version}" != "${components_kctl_version}" ]] \
-    || { [[ "${kctl_version}" != "" ]] && [[ "${kctl_url}" != "${components_kctl_url}" ]]; }
+    [[ "${kctl_url}" != "${applied_kctl_url}" ]]
+  fi
 }
 
 install_kctl.install_components_env() {

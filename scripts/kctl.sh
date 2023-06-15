@@ -55,7 +55,10 @@ else
   ROOT_PREFIX=''
 fi
 
-RELEASE_VERSION='2.43.1'
+CACHING_PERIOD_IN_DAYS="2"
+CACHING_PERIOD_IN_MINUTES="$((CACHING_PERIOD_IN_DAYS * 24 * 60))"
+
+RELEASE_VERSION='2.43.2'
 VERY_FIRST_VERSION='0.9'
 
 KCTL_IN_KCTL="${KCTL_IN_KCTL:-}"
@@ -323,7 +326,6 @@ arrays.remove() {
 }
 
 PATH_TO_CACHE_ROOT="${ROOT_PREFIX}/var/cache/kctl/installer"
-CACHING_PERIOD_IN_DAYS="2"
 DOWNLOADING_TRIES=10
 
 cache.retrieve_or_download() {
@@ -360,8 +362,8 @@ cache.purge() {
 
 cache.remove_rotten_files() {
   if [[ -d "${PATH_TO_CACHE_ROOT}" ]]; then
-    find "${PATH_TO_CACHE_ROOT}" -type f -mtime "+$((CACHING_PERIOD_IN_DAYS - 1))" -delete
-    find "${PATH_TO_CACHE_ROOT}" -type d -mtime "+$((CACHING_PERIOD_IN_DAYS - 1))" -delete 2>/dev/null || true
+    find "${PATH_TO_CACHE_ROOT}" -type f -mmin "+${CACHING_PERIOD_IN_MINUTES}" -delete
+    find "${PATH_TO_CACHE_ROOT}" -type d -mmin "+${CACHING_PERIOD_IN_MINUTES}" -delete 2>/dev/null || true
   fi
 }
 
@@ -484,6 +486,16 @@ components.create_volumes.create_volume_dir() {
       chown "${user}:${group}" "${volume}"
     fi
   done
+}
+
+components.get_applied_var() {
+  local component="${1}"
+  local variable="${2}"
+  local component_var
+
+  component_var="$(components.get_var_name "${component}" "${variable}")"
+
+  env_files.get_var "${PATH_TO_APPLIED_COMPONENTS_ENV}" "${component_var}"
 }
 
 components.get_directory() {
@@ -673,24 +685,26 @@ components.run() {
 components.save_applied() {
   local msg='Saving applied env values'; debug "${msg}"; print_with_color "${msg}" 'blue'
 
-  components.save_var 'keitaro' 'version'
+  components.save_applied_var 'keitaro' 'version'
 
   for component in $(components.list_all); do
-    components.save_var 'keitaro' 'version'
+    components.save_applied_var "${component}" 'version'
     local image; image="$(components.get_var "${component}" 'image')"
     if [[ "${image}" != "" ]]; then
-      components.save_var "${component}" 'image'
+      components.save_applied_var "${component}" 'image'
     else
-      components.save_var "${component}" 'url'
+      components.save_applied_var "${component}" 'url'
     fi
   done
 }
 
-components.save_var() {
-  local component="${1}" variable="${2}" value
+components.save_applied_var() {
+  local component="${1}" variable="${2}" component_var value 
+
+  component_var="$(components.get_var_name "${component}" "${variable}")"
 
   value="$(components.get_var "${component}" "${variable}")"
-  env_files.forced_save_var "${PATH_TO_APPLIED_COMPONENTS_ENV}" "${component^^}_${variable^^}" "${value}"
+  env_files.forced_save_var "${PATH_TO_APPLIED_COMPONENTS_ENV}" "${component_var}" "${value}"
 }
 
 ALIVENESS_PROBES_NO=10
@@ -2113,17 +2127,22 @@ kctl.update_channels.set_from_tracker() {
 
   echo "Got current update channel from tracker - '${update_channel_from_tracker}'"
 
-  if [[ "${update_channel_from_tracker}" != "" ]]; then
-    local update_channel_from_env; update_channel_from_env="$(env_files.get_var "${PATH_TO_SYSTEM_ENV}" "UPDATE_CHANNEL")"
-    echo "Got current update channel from env - '${update_channel_from_env}'"
+  local update_channel_from_env; update_channel_from_env="$(env_files.get_var "${PATH_TO_SYSTEM_ENV}" "UPDATE_CHANNEL")"
+  echo "Got current update channel from env - '${update_channel_from_env}'"
 
+  if [[ "${update_channel_from_tracker}" != "" ]]; then
     if [[ "${update_channel_from_tracker}" != "${update_channel_from_env}" ]]; then
       kctl.update_channels.set "${update_channel_from_tracker}"
     else
       echo "Current update channel is already set to ${update_channel_from_tracker}"
     fi
   else
-    fail "Couldn't get update channel from tracker"
+    if [[ "${update_channel_from_env}" == "" ]]; then
+      echo "Current update channel is not set in the tracker. Set to ${UPDATE_CHANNEL_STABLE}"
+      kctl.update_channels.set "${UPDATE_CHANNEL_STABLE}"
+    else
+      fail "Couldn't get update channel from tracker"
+    fi
   fi
 }
 
