@@ -10,7 +10,7 @@ location ~ /\..* {
 }
 
 # Cache assets
-location ~* \.(jpg|jpeg|gif|png|js|json|css|txt|zip|ico|gz|csv|svg|ttf|woff|mp.|mpeg|mkv|woff2)$ {
+location ~* \.(jpg|jpeg|gif|png|js|json|css|txt|zip|ico|gz|csv|svg|ttf|otf|woff|mp.|mpeg|mkv|woff2|webp)$ {
   add_header Access-Control-Allow-Origin *;
   access_log off;
   expires 10d;

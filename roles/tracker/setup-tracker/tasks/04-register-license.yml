@@ -1,5 +1,0 @@
-- name: Register license
-  command: "{{ kctl_path }} run cli-php system:set_license_key {{ license_key }}"
-  args:
-    creates: "{{ keitaro_app_dir }}/var/license/key.lic"
-  when: license_key is defined

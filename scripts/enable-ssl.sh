@@ -59,7 +59,7 @@ fi
 CACHING_PERIOD_IN_DAYS="2"
 CACHING_PERIOD_IN_MINUTES="$((CACHING_PERIOD_IN_DAYS * 24 * 60))"
 
-RELEASE_VERSION='2.43.4'
+RELEASE_VERSION='2.43.6'
 VERY_FIRST_VERSION='0.9'
 
 KCTL_IN_KCTL="${KCTL_IN_KCTL:-}"
@@ -277,7 +277,8 @@ is_keitaro_installed() {
 use_old_algorithm_for_installation_check() {
   versions.lte "${INSTALLED_VERSION}" "${USE_NEW_ALGORITHM_FOR_INSTALLATION_CHECK_SINCE}"
 }
-assert_no_another_process_running(){
+
+assert_no_another_process_running() {
 
   if [[ "${KCTL_IN_KCTL}" != "" ]]; then
     return

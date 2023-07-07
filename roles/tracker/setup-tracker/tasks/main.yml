@@ -6,25 +6,26 @@
   block:
     - include_tasks: 01-generate-env-file.yml
 
-    - include_tasks: 02-generate-application-config.yml
+    - include_tasks: 02-generate-config.yml
 
-    - include_tasks: 03-migrate-db.yml
+    - include_tasks: 03-set-olap-db.yml
 
-    - include_tasks: 04-register-license.yml
+    - include_tasks: 04-setup-clickhouse.yml
+      when: olap_db == 'clickhouse'
 
-    - include_tasks: 06-set-olap-db.yml
+    - include_tasks: 05-migrate-clickhouse.yml
+      when: olap_db == 'clickhouse'
 
-    - include_tasks: 07-set-tracker-stability.yml
+    - include_tasks: 06-migrate-mariadb.yml
+
+    - include_tasks: 07-setup-clickhouse-foreign-tables.yml
+      when: olap_db == 'clickhouse'
+
+    - include_tasks: 08-set-tracker-stability.yml
       when: update_channel != ''
 
-    - include_tasks: 08-setup-clickhouse.yml
-      when: olap_db == 'clickhouse'
+    - include_tasks: 09-update-geodb.yml
 
-    - include_tasks: 09-migrate-clickhouse-db.yml
-      when: olap_db == 'clickhouse'
+    - include_tasks: 10-configure-cron.yml
 
-    - include_tasks: 10-update-geodb.yml
-
-    - include_tasks: 11-configure-cron.yml
-
-    - include_tasks: 12-generate-watchlist.yml
+    - include_tasks: 11-generate-watchlist.yml

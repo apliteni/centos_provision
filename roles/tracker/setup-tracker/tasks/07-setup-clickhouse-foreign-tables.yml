@@ -1,0 +1,3 @@
+- name: Recreate CH mysql proxy tables
+  command: "{{ kctl_path }} run cli-php ch_db:recreate_foreign_tables --config {{ keitaro_config_ini_php_path }}"
+  changed_when: false
