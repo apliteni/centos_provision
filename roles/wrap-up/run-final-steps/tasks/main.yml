@@ -1,19 +1,9 @@
-- name: Enable kctl-monitor
-  service:
-    name: kctl-monitor
-    state: started
-    enabled: true
-
 - name: Force service restarts
   command: /bin/true
   notify:
-    - restart mariadb
     - restart php-fpm
-    - restart redis
     - restart roadrunner
     - reload nginx
-    - restart kctl-monitor
-    - restart clickhouse
   changed_when: "'molecule-notest' not in ansible_skip_tags"
 
 - name: Enable Fail2ban Jail

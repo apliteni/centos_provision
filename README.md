@@ -158,6 +158,7 @@ Usage:
   kctl run mysql-query                        execute mysql query
   kctl run cli-php                            execute cli.php command
   kctl run redis-client                       execute redis shell
+  kctl run system-redis-client                execute system redis shell
   kctl run nginx                              perform nginx command
   kctl run certbot                            perform certbot command
 ```

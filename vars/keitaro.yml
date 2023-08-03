@@ -23,12 +23,14 @@ kctl_path: "{{ kctl_bin_dir }}/kctl"
 kctl_enable_ssl_logs_dir: /var/log/keitaro/ssl
 kctl_enable_ssl_logs_keep_for_n_days: 30
 kctl_enable_ssl_logs_max_removable_batch_size: 10000
-kctl_running_mode: "{{ lookup('env', 'KCTL_RUNNING_MODE') }}"
-kctl_tracker_directory: "{{ lookup('env', 'KCTL_TRACKER_DIRECTORY') }}"
-kctl_tracker_version_to_install: "{{ lookup('env', 'KCTL_TRACKER_VERSION_TO_INSTALL') }}"
-kctl_user_agent: "Keitaro Installer v{{ kctl_version }} PHP/{{ php_release }}"
+running_mode: "{{ lookup('env', 'RUNNING_MODE') }}"
+tracker_directory: "{{ lookup('env', 'TRACKER_DIRECTORY') }}"
+tracker_version: "{{ lookup('env', 'TRACKER_VERSION') }}"
+skip_cache: "{{ lookup('env', 'SKIP_CACHE') | default('') }}"
+tracker_skip_cache: "{{ lookup('env', 'TRACKER_SKIP_CACHE') | default('') }}"
+applied_tracker_version: "{{ lookup('env', 'APPLIED_TRACKER_VERSION') | default('') }}"
 __kctl_version: "{{ lookup('file', lookup('env', 'PLAYBOOK_ROOT') + 'RELEASE_VERSION') }}"
-kctl_force_regenerate_ssl: "{{ lookup('env', 'FORCE_REGENERATE_SSL') | default('false', true) | bool }}"
+force_regenerate_ssl: "{{ lookup('env', 'FORCE_REGENERATE_SSL') | default('false', true) | bool }}"
 
 kctld_uri: localhost:7001
 

@@ -8,9 +8,3 @@
 
 - name: Do daemon-reload & restart service if need
   meta: flush_handlers
-
-- name: Ensure mariadb is started
-  service:
-    name: mariadb
-    state: started
-    enabled: true

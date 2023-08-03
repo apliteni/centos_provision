@@ -1,6 +1,0 @@
-- stat:
-    path: /var/www/keitaro/admin/index.html
-  register: installing_page_status
-
-- assert:
-    that: not installing_page_status.stat.exists

@@ -1,6 +1,8 @@
 - name: Configure tracker
-  when: installed_tracker_version is not defined
-        or installed_tracker_version is version(kctl_tracker_version_to_install, '<')
+  when: running_mode == 'rescue'
+        or applied_tracker_version != tracker_version
+        or tracker_skip_cache != ""
+        or skip_cache != ""
         or 'tune' in kctl_tags
         or 'setup-tracker' in kctl_tags
   block:

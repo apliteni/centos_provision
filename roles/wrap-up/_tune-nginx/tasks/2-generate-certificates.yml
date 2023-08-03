@@ -15,7 +15,7 @@
     path: "{{ ssl_dhparam_path }}"
     state: absent
   when:
-    get_ssl_dhparam_validation_command_result.rc != 0 or kctl_force_regenerate_ssl
+    get_ssl_dhparam_validation_command_result.rc != 0 or force_regenerate_ssl
 
 - name: Generate strong Diffie-Hellman group
   command: "openssl dhparam  -out {{ ssl_dhparam_path }} 2048"
@@ -45,7 +45,7 @@
     get_ssl_pubkey_from_keys_bundle_command_result.rc != 0 or
     get_ssl_pubkey_from_certificate_command_result.rc != 0 or
     get_ssl_pubkey_from_keys_bundle_command_result.stdout != get_ssl_pubkey_from_certificate_command_result.stdout or
-    kctl_force_regenerate_ssl
+    force_regenerate_ssl
 
 - name: Generate self-signed SSL certificate
   command: |

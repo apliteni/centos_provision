@@ -57,7 +57,7 @@ fi
 CACHING_PERIOD_IN_DAYS="2"
 CACHING_PERIOD_IN_MINUTES="$((CACHING_PERIOD_IN_DAYS * 24 * 60))"
 
-RELEASE_VERSION='2.43.6'
+RELEASE_VERSION='2.43.7'
 VERY_FIRST_VERSION='0.9'
 
 KCTL_IN_KCTL="${KCTL_IN_KCTL:-}"
@@ -82,11 +82,25 @@ declare -a UPDATE_CHANNELS=( \
   "${UPDATE_CHANNEL_STABLE}" \
 )
 
+CERTBOT_COMPONENT="certbot"
+CERTBOT_RENEW_COMPONENT="certbot-renew"
+CLICKHOUSE_COMPONENT="clickhouse"
+KCTLD_COMPONENT="kctld"
+KCTL_CH_CONVERTER_COMPONENT="kctl-ch-converter"
+KCTL_COMPONENT="kctl"
+MARIADB_COMPONENT="mariadb"
+NGINX_COMPONENT="nginx"
+NGINX_STARTING_PAGE_COMPONENT="nginx-starting-page"
+REDIS_COMPONENT="redis"
+ROADRUNNER_COMPONENT="roadrunner"
+SYSTEM_REDIS_COMPONENT="system-redis"
+TRACKER_COMPONENT="tracker"
 
 PATH_TO_ENV_DIR="${ROOT_PREFIX}/etc/keitaro/env"
 PATH_TO_COMPONENTS_ENV="${PATH_TO_ENV_DIR}/components.env"
 PATH_TO_SYSTEM_ENV="${PATH_TO_ENV_DIR}/system.env"
-PATH_TO_APPLIED_COMPONENTS_ENV="${PATH_TO_ENV_DIR}/components-applied.env"
+PATH_TO_APPLIED_ENV="${PATH_TO_ENV_DIR}/applied.env"
+APPLIED_PREFIX="APPLIED"
 
 declare -A VARS
 declare -A ARGS
@@ -113,12 +127,12 @@ if [[ "${KCTLD_MODE}" == "" ]]; then
   LOG_PATH="${LOG_PATH:-${DEFAULT_LOG_PATH}}"
 else
   LOG_PATH=/dev/stderr
+  ADDITIONAL_LOG_PATH="${LOG_DIR}/kctld-${LOG_FILENAME}"
 fi
 
 INVENTORY_DIR="${ETC_DIR}/config"
 INVENTORY_PATH="${INVENTORY_DIR}/inventory"
 PATH_TO_TRACKER_ENV="${INVENTORY_DIR}/tracker.env"
-PATH_TO_KCTLD_ENV="${INVENTORY_DIR}/kctld.env"
 DETECTED_INVENTORY_PATH=""
 
 NGINX_CONFIG_ROOT="/etc/nginx"
@@ -157,7 +171,11 @@ TRACKER_CONFIG_FILE="${TRACKER_ROOT}/application/config/config.ini.php"
 
 debug() {
   local message="${1}"
-  echo "$message" >> "${LOG_PATH}"
+  if [[ "${LOG_PATH}" == "/dev/stderr" ]]; then
+    echo "$message" >&2
+  else
+    echo "$message" >> "${LOG_PATH}"
+  fi
   if isset "${ADDITIONAL_LOG_PATH}"; then
     echo "$message" >> "${ADDITIONAL_LOG_PATH}"
   fi
@@ -203,11 +221,10 @@ reload_file2ban(){
   systemctl reload "${FAIL2BAN_SERVICE}"
 }
 
-return_fail2ban_status(){
+return_fail2ban_status() {
   debug "Return fail2ban status"
   fail2ban-client status
 }
-  
 show_help(){
   debug "Show help"
   echo "Warning: You need to specify an correct action"

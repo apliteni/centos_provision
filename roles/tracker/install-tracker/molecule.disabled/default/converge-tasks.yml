@@ -1,2 +1,0 @@
-- set_fact:
-    kctl_running_mode: install

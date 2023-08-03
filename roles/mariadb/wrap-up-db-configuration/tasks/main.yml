@@ -6,13 +6,16 @@
     delay: 3
     timeout: 30
 
-- name: Check tracker database exists
-  command: "{{ kctl_path }} run mysql-query 'select 1'"
-  failed_when: false
-  changed_when: false
-  register: check_if_tracker_database_exists_command
+- name: Setup DB
+  when: running_mode == "install"
+  block:
+    - name: Check tracker database exists
+      command: "{{ kctl_path }} run mysql-query 'select 1'"
+      failed_when: false
+      changed_when: false
+      register: check_if_tracker_database_exists_command
 
-- include_tasks: create-user-and-database.yml
-  vars:
-    ansible_python_interpreter: "/usr/bin/python3"
-    when: check_if_tracker_database_exists_command.rc == 1    # mysql exits with rc = 1 when there is no specified db
+    - include_tasks: create-user-and-database.yml
+      vars:
+        ansible_python_interpreter: "/usr/bin/python3"
+        when: check_if_tracker_database_exists_command.rc == 1    # mysql exits with rc = 1 when there is no specified db

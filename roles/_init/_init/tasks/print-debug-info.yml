@@ -1,11 +1,12 @@
 - name: Define vars to display
   set_fact:
     vars_to_display:
+      - applied_tracker_version
       - box_creation_time
       - cpu_cores
+      - force_regenerate_ssl
       - is_ci_mode
       - kctl_ansible_hostname
-      - kctl_tracker_version_to_install
       - kctl_version
       - keitaro_user
       - mariadb_join_buffer_size_kb
@@ -30,11 +31,14 @@
       - php_fpm_workers_count
       - ram_size_mb
       - redis_memory_mb
+      - running_mode
       - roadrunner_memory_mb
       - roadrunner_worker_max_requests
       - roadrunner_worker_size_mb
       - roadrunner_workers_count
-      - kctl_force_regenerate_ssl
+      - skip_cache
+      - tracker_skip_cache
+      - tracker_version
 
 - name: Debug vars
   set_fact:

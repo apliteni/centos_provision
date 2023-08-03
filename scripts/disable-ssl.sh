@@ -59,7 +59,7 @@ fi
 CACHING_PERIOD_IN_DAYS="2"
 CACHING_PERIOD_IN_MINUTES="$((CACHING_PERIOD_IN_DAYS * 24 * 60))"
 
-RELEASE_VERSION='2.43.6'
+RELEASE_VERSION='2.43.7'
 VERY_FIRST_VERSION='0.9'
 
 KCTL_IN_KCTL="${KCTL_IN_KCTL:-}"
@@ -84,11 +84,25 @@ declare -a UPDATE_CHANNELS=( \
   "${UPDATE_CHANNEL_STABLE}" \
 )
 
+CERTBOT_COMPONENT="certbot"
+CERTBOT_RENEW_COMPONENT="certbot-renew"
+CLICKHOUSE_COMPONENT="clickhouse"
+KCTLD_COMPONENT="kctld"
+KCTL_CH_CONVERTER_COMPONENT="kctl-ch-converter"
+KCTL_COMPONENT="kctl"
+MARIADB_COMPONENT="mariadb"
+NGINX_COMPONENT="nginx"
+NGINX_STARTING_PAGE_COMPONENT="nginx-starting-page"
+REDIS_COMPONENT="redis"
+ROADRUNNER_COMPONENT="roadrunner"
+SYSTEM_REDIS_COMPONENT="system-redis"
+TRACKER_COMPONENT="tracker"
 
 PATH_TO_ENV_DIR="${ROOT_PREFIX}/etc/keitaro/env"
 PATH_TO_COMPONENTS_ENV="${PATH_TO_ENV_DIR}/components.env"
 PATH_TO_SYSTEM_ENV="${PATH_TO_ENV_DIR}/system.env"
-PATH_TO_APPLIED_COMPONENTS_ENV="${PATH_TO_ENV_DIR}/components-applied.env"
+PATH_TO_APPLIED_ENV="${PATH_TO_ENV_DIR}/applied.env"
+APPLIED_PREFIX="APPLIED"
 
 declare -A VARS
 declare -A ARGS
@@ -115,12 +129,12 @@ if [[ "${KCTLD_MODE}" == "" ]]; then
   LOG_PATH="${LOG_PATH:-${DEFAULT_LOG_PATH}}"
 else
   LOG_PATH=/dev/stderr
+  ADDITIONAL_LOG_PATH="${LOG_DIR}/kctld-${LOG_FILENAME}"
 fi
 
 INVENTORY_DIR="${ETC_DIR}/config"
 INVENTORY_PATH="${INVENTORY_DIR}/inventory"
 PATH_TO_TRACKER_ENV="${INVENTORY_DIR}/tracker.env"
-PATH_TO_KCTLD_ENV="${INVENTORY_DIR}/kctld.env"
 DETECTED_INVENTORY_PATH=""
 
 NGINX_CONFIG_ROOT="/etc/nginx"
@@ -182,9 +196,6 @@ DICT['en.validation_errors.validate_domains_list']=$(cat <<-END
 	Domains longer than 64 characters are not supported.
 END
 )
-DICT['en.validation_errors.validate_presence']='Please enter value'
-DICT['en.validation_errors.validate_absence']='Should not be specified'
-DICT['en.validation_errors.validate_yes_no']='Please answer "yes" or "no"'
 
 declare -a DOMAINS
 declare -a SUCCESSFUL_DOMAINS
@@ -208,9 +219,7 @@ assert_caller_root(){
     debug 'NOK: current user is not root'
     fail "$(translate errors.must_be_root)"
   fi
-  
 }
-
 
 assert_installed(){
   local program="${1}"
@@ -401,13 +410,17 @@ read_stdin(){
   echo "$variable"
 }
 
-clean_up(){
-  debug 'called clean_up()'
+clean_up() {
+  true
 }
 
 debug() {
   local message="${1}"
-  echo "$message" >> "${LOG_PATH}"
+  if [[ "${LOG_PATH}" == "/dev/stderr" ]]; then
+    echo "$message" >&2
+  else
+    echo "$message" >> "${LOG_PATH}"
+  fi
   if isset "${ADDITIONAL_LOG_PATH}"; then
     echo "$message" >> "${ADDITIONAL_LOG_PATH}"
   fi
@@ -462,6 +475,11 @@ init_kctl_dirs_and_links() {
       exit 1
     fi
   fi
+  if [[ ! -d "${PATH_TO_ENV_DIR}" ]]; then
+    if ! mkdir -p "${PATH_TO_ENV_DIR}"; then
+      echo "Can't create keitaro env directory ${PATH_TO_ENV_DIR}" >&2
+    fi
+  fi
 }
 
 create_kctl_dirs_and_links() {
@@ -511,8 +529,10 @@ create_log() {
 
 log_and_print_err(){
   local message="${1}"
-  print_err "$message" 'red'
   debug "$message"
+  if [[ "${KCTLD_MODE}" == "" ]]; then
+    print_err "$message" 'red'
+  fi
 }
 
 on_exit(){
@@ -859,7 +879,7 @@ help_en_common(){
 
 help_en_variables(){
   echo  "Environment variables:"
-  echo 
+  echo
   echo  "  TRACKER_STABILITY       Set up stability channel stable|unstsable. Default: stable"
   echo
 }
@@ -921,39 +941,6 @@ DOMAIN_LIST_LENGTH_REGEXP="${DOMAIN_LENGTH_REGEXP}(,${DOMAIN_LENGTH_REGEXP})*"
 validate_domains_list(){
   local value="${1}"
   [[ "$value" =~ ^${DOMAIN_LIST_REGEXP}$ ]] && [[ "${value}" =~ ^${DOMAIN_LIST_LENGTH_REGEXP}$ ]]
-}
-
-
-validate_presence(){
-  local value="${1}"
-  isset "$value"
-}
-
-is_no(){
-  local answer="${1}"
-  shopt -s nocasematch
-  [[ "$answer" =~ ^(no|n|нет|н)$ ]]
-}
-
-is_yes(){
-  local answer="${1}"
-  shopt -s nocasematch
-  [[ "$answer" =~ ^(yes|y|да|д)$ ]]
-}
-
-transform_to_yes_no(){
-  local var_name="${1}"
-  if is_yes "${VARS[$var_name]}"; then
-    debug "Transform ${var_name}: ${VARS[$var_name]} => yes"
-    VARS[$var_name]='yes'
-  else
-    debug "Transform ${var_name}: ${VARS[$var_name]} => no"
-    VARS[$var_name]='no'
-  fi
-}
-validate_yes_no(){
-  local value="${1}"
-  (is_yes "$value" || is_no "$value")
 }
 
 

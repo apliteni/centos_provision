@@ -1,1 +1,11 @@
-- include_tasks: install-redis-server.yml
+- name: Render configs
+  template:
+    src: "redis/redis.conf.j2"
+    dest: "{{ redis_path_to_config }}"
+    group: "{{ redis_group }}"
+    mode: '0640'
+  notify:
+    - restart redis
+
+- name: Restart redis if need
+  meta: flush_handlers

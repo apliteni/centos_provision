@@ -1,6 +1,6 @@
 - name: Update tracker application dir with new files
   synchronize:
-    src: "{{ kctl_tracker_directory }}/www/"
+    src: "{{ tracker_directory }}/www/"
     dest: "{{ keitaro_app_dir }}/"
     rsync_opts: '--quiet'
     owner: true
@@ -13,7 +13,7 @@
 
 - name: Delete old files from updated tracker
   synchronize:
-    src: "{{ kctl_tracker_directory }}/www/{{ item }}/"
+    src: "{{ tracker_directory }}/www/{{ item }}/"
     dest: "{{ keitaro_app_dir }}/{{ item }}/"
     owner: true
     group: true
@@ -31,4 +31,3 @@
   notify:
     - restart php-fpm
     - restart roadrunner
-    - restart kctl-monitor
