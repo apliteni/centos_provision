@@ -58,7 +58,7 @@ fi
 CACHING_PERIOD_IN_DAYS="2"
 CACHING_PERIOD_IN_MINUTES="$((CACHING_PERIOD_IN_DAYS * 24 * 60))"
 
-RELEASE_VERSION='2.43.8'
+RELEASE_VERSION='2.43.9'
 VERY_FIRST_VERSION='0.9'
 
 KCTL_IN_KCTL="${KCTL_IN_KCTL:-}"
@@ -1875,497 +1875,66 @@ kctl_check_selinux_status() {
   fi
 }
 
+on_exit(){
+  exit 1
+}
+
 kctl.get_user_id() {
   local user_name="${1}"
   get_user_id "${user_name}"
 }
 
-on_exit(){
-  exit 1
-}
+kctl.update_channels.set_from_tracker() {
+  local update_channel_from_tracker; update_channel_from_tracker="$(tracker.get_update_channel)"
+  local update_channel_from_env; update_channel_from_env="$(env_files.read_var "${PATH_TO_SYSTEM_ENV}" "update_channel")"
 
-kctl_run() {
-  local action="${1}"
-  shift
-
-  case "${action}" in
-    clickhouse-client)
-      kctl_run_clickhouse_client
-      ;;
-    clickhouse-query)
-      kctl_run_clickhouse_query  "${@}"
-      ;;
-    mariadb-client | mysql-client)
-      kctl_run_mysql_client
-      ;;
-    mariadb-query | mysql-query)
-      kctl_run_mysql_query "${@}"
-      ;;
-    cli-php)
-      kctl_run_cli_php "${@}"
-      ;;
-    redis-client)
-      kctl_run_redis_client "${@}"
-      ;;
-    system-redis-client)
-      kctl_run_system_redis_client "${@}"
-      ;;
-    nginx)
-      kctl_run_nginx "${@}"
-      ;;
-    certbot)
-      kctl_run_certbot "${@}"
-      ;;
-    certbot-renew)
-      kctl_run_certbot-renew "${@}"
-      ;;
-    help)
-      kctl_run_usage
-      ;;
-    *)
-      kctl_run_usage
-      exit 1
-      ;;
-  esac
-}
-
-kctl_certificates.revoke() {
-  local domains="${*}"
-  "${KCTL_BIN_DIR}/kctl-disable-ssl" -D "${domains// /,}"
-}
-
-kctl_certificates.prune() {
-  "${KCTL_BIN_DIR}/kctl-certificates-prune" "${@}"
-}
-
-LETSENCRYPT_ACCOUNTS_PATH="${LETSENCRYPT_DIR}/accounts/acme-v02.api.letsencrypt.org/directory/"
-
-kctl_certificates.fix_le_accounts() {
-  local accounts_count
-
-  if [[ ! -d "${LETSENCRYPT_ACCOUNTS_PATH}" ]]; then
-    certbot.register_account
-  fi
-
-  accounts_count="$(kctl_certificates.count_account)"
-
-  if [[ "${accounts_count}" == '0' ]]; then
-    certbot.register_account
-  fi
-
-  if [[ "${accounts_count}" -gt '1' ]]; then
-    kctl_certificate.remove_redundant_accounts
-  fi
-
-  kctl_certificates.fix_account_in_renewal_configs
-}
-
-kctl_certificates.count_account() {
- find "${LETSENCRYPT_ACCOUNTS_PATH}" -maxdepth 1 -mindepth 1 -type d | wc -l
-}
-
-kctl_certificates.remove_redundant_accounts() {
-  local sorted_accounts accounts_to_remove
-
-  # shellcheck disable=SC2207
-  sorted_accounts=( $(/usr/bin/ls -t "${LETSENCRYPT_ACCOUNTS_PATH}") )
-
-  accounts_to_remove=( "${sorted_accounts[@]:1}" )
-  debug "Removing ${#accounts_to_remove[@]} accounts: ${accounts_to_remove[*]}"
-
-  for account in "${accounts_to_remove[@]}"; do
-    rm -rf "${LETSENCRYPT_ACCOUNTS_PATH}/${account:?}"
-  done
-
-}
-
-kctl_certificates.fix_account_in_renewal_configs() {
-  local account
-
-  account="$(/usr/bin/ls -t "${LETSENCRYPT_ACCOUNTS_PATH}" | head -n 1)"
-
-  if [[ -d "${LETSENCRYPT_DIR}/renewal/" ]]; then
-    cmd="(grep -R -L 'account = ${account}' ${LETSENCRYPT_DIR}/renewal/ || true)"
-    cmd="${cmd} | xargs --max-args=100 --no-run-if-empty sed 's/account = .*/account = ${account}/' -i"
-    run_command "${cmd}" " Fix renewal configs"
-  fi
-}
-
-kctl_certificates.remove_old_logs() {
-  /usr/bin/find /var/log/keitaro/ssl -mtime +30 -type f -delete
-  /usr/bin/find /var/log/keitaro/letsencrypt-renew -mtime +30 -type f -delete
-  /usr/bin/find /var/log/letsencrypt -mtime +30 -type f -delete
-}
-
-kctl_certificates.renew() {
-  local success_flag_filepath="/var/lib/kctl/certbot-renew/.renewed"
-  local message="Renewing LE certificates"
-  local log_path="${LOG_DIR}/${TOOL_NAME}-renew-certificates.log"
-  local cmd
-
-  LOG_PATH="${log_path}"
-  init_log "${log_path}"
-
-  debug "Renewing certificates"
-
-  cmd="rm -f '${success_flag_filepath}'"
-  cmd="${cmd} && (${KCTL_BIN_DIR}/kctl podman stop certbot-renew || true)"
-  cmd="${cmd} && (${KCTL_BIN_DIR}/kctl podman prune certbot-renew || true)"
-  cmd="${cmd} && $(kctl_certificates.build_renew_cmd)"
-
-  run_command "${cmd}" "${message}" 'hide_output' 'allow_errors' || \
-    debug "Errors occurred while renewing some certificates. certbot exit code: ${?}"
-
-  if file_exists "${success_flag_filepath}"; then
-    debug "Some certificates have been renewed. Removing flag file ${success_flag_filepath} and reloading nginx"
-    cmd="rm -f '${success_flag_filepath}' && systemctl reload nginx"
-    run_command "${cmd}" "Reloading nginx" 'hide_output'
+  if [[ "${update_channel_from_tracker}" != "" ]]; then
+    if [[ "${update_channel_from_tracker}" != "${update_channel_from_env}" ]]; then
+      kctl.update_channels.set "${update_channel_from_tracker}"
+    fi
   else
-    debug "Certificates have not been updated."
-  fi
-}
-
-kctl_certificates.build_renew_cmd() {
-  echo "${KCTL_BIN_DIR}/kctl run certbot-renew renew" \
-        "--allow-subset-of-names" \
-        "--no-random-sleep-on-renew" \
-        "--renew-hook 'touch ${success_flag_filepath}'" \
-        "--logs-dir /var/log/keitaro/letsencrypt-renew"
-}
-
-kctl_certificates_usage() {
-  echo "Usage:"
-  echo "  kctl certificates renew                                 renew LE certificates"
-  echo "  kctl certificates remove-old-logs                       remove old issuing logs"
-  "${KCTL_BIN_DIR}/kctl-certificates-prune" help
-  echo
-}
-
-PEM_SPLITTER="-----BEGIN CERTIFICATE-----"
-
-kctl_certificates.fix_x3_expiration() {
-  local live_certificate_filepaths
-  local temporary_dir
-  local certificate_chain_without_x3
-  live_certificate_filepaths=$(get_live_certificate_filepaths)
-  for certificate_path in $live_certificate_filepaths; do
-    if is_last_certificate_issued_by_x3 "${certificate_path}"; then
-      debug "Certificate chain ${certificate_path} contains a certificate from X3, removing X3 from the chain"
-      backup_certificate "${certificate_path}"
-      remove_last_certificate_from_chain "${certificate_path}"
+    if [[ "${update_channel_from_env}" == "" ]]; then
+      echo "Current update channel is not set in the tracker. Set to ${UPDATE_CHANNEL_STABLE}"
+      kctl.update_channels.set "${UPDATE_CHANNEL_STABLE}"
     else
-      debug "Certificate chain ${certificate_path} does not contain a certificate from X3, wont modify the chain"
-    fi
-  done
-}
-
-
-get_live_certificate_filepaths(){
-  if [[ -d /etc/letsencrypt/live/ ]]; then
-    find /etc/letsencrypt/live/ -name fullchain.pem -print0 | xargs -0 --no-run-if-empty readlink -f
-  fi
-}
-
-
-backup_certificate(){
-  local certificate_path="${1}"
-  local domain_name
-  local backup_directory
-  domain_name=$(basename "$(dirname "${certificate_path}")")
-  backup_directory="/etc/keitaro/backups/letsencrypt/${CURRENT_DATETIME}/${domain_name}"
-
-  mkdir -p "${backup_directory}"
-  #copy old certificate to backup
-  cp "${certificate_path}" "${backup_directory}"
-  debug "Certificates chain for ${domain_name} was saved to ${backup_directory}"
-}
-
-
-is_last_certificate_issued_by_x3() {
-  local certificate_path="${1}"
-  local chain_content
-  chain_content="$(< "${certificate_path}")"
-  local last_certificate_content="${PEM_SPLITTER}${chain_content##*"${PEM_SPLITTER}"}"
-  echo "$last_certificate_content" | openssl x509 -text | grep 'Issuer' | grep 'DST Root CA X3' -q
-}
-
-
-remove_last_certificate_from_chain() {
-  local certificate_path="${1}"
-  local certificate_chain_content
-  certificate_chain_content="$(< "${certificate_path}")"
-  local certificate_chain_wo_x3_content="${certificate_chain_content%"${PEM_SPLITTER}"*}"
-  echo "${certificate_chain_wo_x3_content}" > "${certificate_path}"
-}
-
-kctl_certificates.issue() {
-  FORCE_ISSUING_CERTS=true "${KCTL_BIN_DIR}/kctl-enable-ssl" "${@}"
-}
-
-kctl.support_team_access.prune() {
-  local mtime
-  mtime="$(( KEITARO_SUPPORT_ACCESS_PERIOD_IN_DAYS - 1 ))"
-  if [[ -f "${PATH_TO_KEITARO_SUPPORT_SSH_AUTHORIZED_KEYS}" ]]; then
-    find "${PATH_TO_KEITARO_SUPPORT_SSH_AUTHORIZED_KEYS}" -mtime "+${mtime}" -delete
-    if [[ ! -f "${PATH_TO_KEITARO_SUPPORT_SSH_AUTHORIZED_KEYS}" ]]; then
-      echo "Pruned expired authorized_keys of the ${KEITARO_SUPPORT_USER} user"
+      fail "Couldn't get update channel from tracker"
     fi
   fi
 }
 
+kctl.update_channels.assert_update_channel_is_supported() {
+  local update_channel="${1}"
 
-kctl.support_team_access.status() {
-  if [[ -f "${PATH_TO_KEITARO_SUPPORT_SSH_AUTHORIZED_KEYS}" ]]; then
-    echo "Keitaro Support Team access to this server will expire at $(kctl.support_team_access.get_expire_time)"
-  else
-    echo "Keitaro Support Team has no access to this server"
+  if ! arrays.in "${update_channel}" "${UPDATE_CHANNELS[@]}"; then
+    kctl.update_channels.usage
+    exit 1
   fi
 }
 
-kctl.support_team_access.get_keys_creation_time() {
-  date -u -r "${PATH_TO_KEITARO_SUPPORT_SSH_AUTHORIZED_KEYS}"
+kctl.update_channels.set() {
+  local update_channel="${1}"
+
+  kctl.update_channels.assert_update_channel_is_supported "${update_channel}"
+
+  env_files.forced_save_var "${PATH_TO_SYSTEM_ENV}" "update_channel" "${update_channel}"
+
+  echo "Current update channel is set to '${update_channel}'"
 }
 
-kctl.support_team_access.get_expire_time() {
-  local keys_creation_time
-
-  keys_creation_time="$(kctl.support_team_access.get_keys_creation_time)"
-  date -u -d "${keys_creation_time} + ${KEITARO_SUPPORT_ACCESS_PERIOD_IN_DAYS} days"
-}
-
-kctl.support_team_access.usage() {
+kctl.update_channels.usage() {
   echo "Usage:"
-  echo "  kctl support-team-access allow                        allows Keitaro Support Team access to the server"
-  echo "  kctl support-team-access deny                         denies Keitaro Support Team access to the server"
-  echo "  kctl support-team-access prune                        prunes expired Keitaro Support Team access keys"
-  echo "  kctl support-team-access status                       shows Keitaro Support Team access to the server status"
-  echo "  kctl support-team-access usage                        prints this page"
+  echo "  kctl update-channels set                          sets update channel"
+  echo "  kctl update-channels set-from-tracker             sets update channel from current tracker settings"
+  echo "  kctl update-channels get                          gets current update channel"
+  echo "  kctl update-channels usage                        prints this page"
 }
 
-kctl.support_team_access.deny() {
-  rm -f "${PATH_TO_KEITARO_SUPPORT_SSH_AUTHORIZED_KEYS}"
+kctl.update_channels.get() {
+  local update_channel
 
-  kctl.support_team_access.status
-}
+  update_channel="$(env_files.read_var "${PATH_TO_SYSTEM_ENV}" "update_channel")"
 
-kctl.support_team_access.allow() {
-  local expiration_datetime pub_key_tpl_url path_to_pub_key_tpl
-
-  kctl.support_team_access.create_ssh_authorized_keys
-
-  SKIP_CACHE=true cache.retrieve_or_download "${KEITARO_SUPPORT_PUBLIC_KEY_URL}" > /dev/null
-  path_to_pub_key="$(cache.path_by_url "${KEITARO_SUPPORT_PUBLIC_KEY_URL}")"
-
-  cat "${path_to_pub_key}" > "${PATH_TO_KEITARO_SUPPORT_SSH_AUTHORIZED_KEYS}"
-
-  kctl.support_team_access.status
-}
-
-
-kctl.support_team_access.create_ssh_authorized_keys() {
-  if [[ ! -d "${PATH_TO_KEITARO_SUPPORT_SSH_DIR}" ]]; then
-    mkdir -p "${PATH_TO_KEITARO_SUPPORT_SSH_DIR}"
-    chmod 0700 "${PATH_TO_KEITARO_SUPPORT_SSH_DIR}"
-    chown "${KEITARO_SUPPORT_USER}:${KEITARO_SUPPORT_USER}" "${PATH_TO_KEITARO_SUPPORT_SSH_DIR}"
-  fi
-  if [[ ! -f "${PATH_TO_KEITARO_SUPPORT_SSH_AUTHORIZED_KEYS}" ]]; then
-    touch "${PATH_TO_KEITARO_SUPPORT_SSH_AUTHORIZED_KEYS}"
-    chmod 0600 "${PATH_TO_KEITARO_SUPPORT_SSH_AUTHORIZED_KEYS}"
-    chown "${KEITARO_SUPPORT_USER}:${KEITARO_SUPPORT_USER}" "${PATH_TO_KEITARO_SUPPORT_SSH_AUTHORIZED_KEYS}"
-  fi
-}
-
-DNS_GOOGLE="8.8.8.8"
-RESOLV_CONF=/etc/resolv.conf
-
-kctl_resolvers() {
-  local action="${1}"
-  case "${action}" in
-    set-google)
-      kctl_resolvers_set_google
-      ;;
-    reset)
-      kctl_resolvers_reset
-      ;;
-    autofix)
-      kctl_resolvers_autofix
-      ;;
-    *)
-      kctl_resolvers_usage
-  esac
-}
-
-kctl.update_channels() {
-  local action="${1}"
-  shift
-
-  case "${action}" in
-    set)
-      kctl.update_channels.set "${1}"
-      ;;
-    set-from-tracker)
-      kctl.update_channels.set_from_tracker
-      ;;
-    get)
-      kctl.update_channels.get
-      ;;
-    help|usage)
-      kctl.update_channels.usage
-      ;;
-    *)
-      kctl.update_channels.usage
-      exit 1
-      ;;
-  esac
-}
-
-kctl_check() {
-  local has_inactive=0
-
-  for component in $(components.list_all | grep -v nginx-starting-page); do
-    for service in $(components.read_var "${component}" "services"); do
-      printf 'Checking service %s .' "${service}"
-      if systemctl -q is-active "$service"; then
-        echo " OK"
-      else
-        echo " NOK"
-        echo "Service ${service} is inactive" >&2
-        has_inactive=1
-      fi
-    done
-  done
-  if [[ ${has_inactive} != 1 ]]; then
-    echo "Everything is ok"
-  fi
-  return $has_inactive
-}
-
-kctl_resolvers_usage() {
-  echo "Usage:"
-  echo "  kctl resolvers autofix                           sets google dns if current resolver works slow"
-  echo "  kctl resolvers set-google                        sets google dns"
-  echo "  kctl resolvers reset                             resets settings"
-  echo "  kctl resolvers usage                             prints this page"
-}
-
-kctl_resolvers_autofix() {
-  if resolver_works_slow; then
-    echo "DNS resolver works too slow, switching to Google DNS"
-    kctl_resolvers_set_google
-  fi
-}
-
-resolver_works_slow() {
-  local first_ipv4_dns_server
-  first_ipv4_dns_server=$(grep -Pom1 "(?<=^nameserver )\d+(\.\d+){3}$" /etc/resolv.conf)
-  if nslookup -timeout=1 -retry=0 keitaro.io "${first_ipv4_dns_server}" &>/dev/null; then
-    return ${FAILURE_RESULT}
-  else
-    return ${SUCCESS_RESULT}
-  fi
-}
-
-kctl_resolvers_reset() {
-  local resolvers_entry="nameserver ${DNS_GOOGLE}"
-  if file_content_matches "${RESOLV_CONF}" '-F' "${resolvers_entry}"; then
-    other_ipv4_entries=$(grep "^nameserver" "${RESOLV_CONF}" | grep -vF "${resolvers_entry}" | grep '\.')
-    debug "Other ipv4 entries: ${other_ipv4_entries}"
-    if isset "${other_ipv4_entries}"; then
-      debug "${RESOLV_CONF} contains 'nameserver ${DNS_GOOGLE}', deleting"
-      run_command "sed -r -i '/^nameserver ${DNS_GOOGLE}$/d' '${RESOLV_CONF}'"
-    else
-      debug "${RESOLV_CONF} contains only one ipv4 nameserver keeping"
-    fi
-  else
-    debug "${RESOLV_CONF} doesn't contain 'nameserver ${DNS_GOOGLE}', skipping"
-  fi
-}
-
-kctl_resolvers_set_google() {
-  if file_content_matches "${RESOLV_CONF}" '-F' "nameserver ${DNS_GOOGLE}"; then
-    debug "${RESOLV_CONF} already contains 'nameserver ${DNS_GOOGLE}', skipping"
-  else
-    debug "${RESOLV_CONF} doesn't contain 'nameserver ${DNS_GOOGLE}', adding"
-    run_command "sed -i '1inameserver ${DNS_GOOGLE}' ${RESOLV_CONF}"
-  fi
-}
-
-kctl_features.enable() {
-  local feature="${1}"
-  if empty "${feature}"; then
-    kctl_features.help
-  else
-    kctl_features.enable_feature "${feature}"
-    if [[ "${feature}" == "${FEATURE_RBOOSTER}" ]]; then
-      kctl_features.enable_rbooster
-    else
-      kctl_features.tune_tracker
-    fi
-  fi
-}
-
-kctl_features.enable_feature() {
-  local feature="${1}"
-  load_features
-  if ! arrays.in "${feature}" "${ENABLED_FEATURES[@]}"; then
-    # shellcheck disable=SC2207
-    ENABLED_FEATURES=($(arrays.add "${feature}" "${ENABLED_FEATURES[@]}"))
-    save_features
-  fi
-}
-
-kctl_features.help() {
-  echo "Usage:"
-  echo "  kctl features enable <feature>                  enable feature"
-  echo "  kctl features disable <feature>                 disable feature"
-  echo "  kctl features help                              print this help"
-  echo
-}
-
-kctl_features.set_olap_db() {
-  local olap_db="${1}"
-  local log_path="${KCTL_LOG_DIR}/kctl-set-olap-db-to-${olap_db}.log"
-  local roles_to_replay="install-clickhouse,install-mariadb,setup-tracker"
-
-  env_files.forced_save_var "${PATH_TO_TRACKER_ENV}" OLAP_DB "${olap_db}"
-
-  debug "Running \`KCTL_OLAP_DB='${olap_db}' LOG_PATH='${log_path}' ANSIBLE_TAGS='${roles_to_replay}' kctl-install -U '\`"
-  KCTL_OLAP_DB="${olap_db}" LOG_PATH="${log_path}" ANSIBLE_TAGS="${roles_to_replay}" "${KCTL_BIN_DIR}/kctl-install" -U
-}
-
-kctl_features.enable_rbooster() {
-  kctl_features.stop_running_tracker_tasks
-  kctl_features.set_olap_db "${OLAP_DB_CLICKHOUSE}"
-  kctl_features.run_ch_converter
-  kctl_features.start_running_tracker_tasks
-}
-
-kctl_features.run_ch_converter(){
-  local prefix converter_command
-  prefix="$(get_tracker_config_value 'db' 'prefix')"
-  converter_command="TZ=UTC ${KCTL_BIN_DIR}/kctl-ch-converter --prefix=${prefix} --env-file-path=${INVENTORY_DIR}/tracker.env"
-  run_command "sleep 20 && ${converter_command}"
-}
-
-kctl_features.start_running_tracker_tasks() {
-  systemctl start crond
-}
-
-wait_for_complete_cron_php() {
-  if pgrep -f 'cron.php' > /dev/null; then
-    echo "Keitaro cron tasks are still running, waiting for them to complete"
-    sleep 10
-    wait_for_complete_cron_php
-  fi
-}
-
-kctl_features.stop_running_tracker_tasks() {
-  systemctl stop crond
-  wait_for_complete_cron_php
-}
-
-kctl_features.disable_rbooster() {
-  kctl_features.set_olap_db "${OLAP_DB_MARIADB}"
+  echo "Current update channel is to '${update_channel}'"
 }
 
 kctl_features.disable() {
@@ -2393,79 +1962,82 @@ kctl_features.disable_feature() {
   fi
 }
 
-kctl_podman() {
-  local action="${1}"
-  shift
-
-  case "${action}" in
-    start)
-      kctl_podman.start "${1}"
-      ;;
-    stop)
-      kctl_podman.stop "${1}"
-      ;;
-    prune)
-      kctl_podman.prune "${1}"
-      ;;
-    stats)
-      kctl_podman.stats
-      ;;
-    help)
-      kctl_podman.usage
-      ;;
-    *)
-      kctl_podman.usage
-      exit 1
-      ;;
-  esac
-}
-
-ENABLED_FEATURES=()
-FEATURES_DELIMITER=','
-FEATURE_RBOOSTER='rbooster'
-
-kctl_features() {
-  local action="${1}"
-  local feature="${2}"
-  case "${action}" in
-    enable)
-      kctl_features.enable "${feature}"
-      ;;
-    disable)
-      kctl_features.disable "${feature}"
-      ;;
-    help)
-      kctl_features.help
-      ;;
-    *)
-      kctl_features.help
-      exit 1
-      ;;
-  esac
-}
-
-load_features() {
-  # shellcheck source=/dev/null
-  source "${PATH_TO_TRACKER_ENV}"
-  IFS="${FEATURES_DELIMITER}" read -r -a ENABLED_FEATURES <<< "${FEATURES:-}"
-}
-
-save_features() {
-  local enabled_features_str="${ENABLED_FEATURES[*]}"
-  debug "enabled_features_str: ${enabled_features_str}"
-  local line_to_save="FEATURES=${enabled_features_str// /${FEATURES_DELIMITER}}"
-  debug "line_to_save: ${line_to_save}"
-  if file_content_matches "${PATH_TO_TRACKER_ENV}" '-P' "^FEATURES="; then
-    sed -i "s/^FEATURES=.*/${line_to_save}/g" "${PATH_TO_TRACKER_ENV}"
+kctl_features.enable() {
+  local feature="${1}"
+  if empty "${feature}"; then
+    kctl_features.help
   else
-    echo "${line_to_save}" >> "${PATH_TO_TRACKER_ENV}"
+    kctl_features.enable_feature "${feature}"
+    if [[ "${feature}" == "${FEATURE_RBOOSTER}" ]]; then
+      kctl_features.enable_rbooster
+    else
+      kctl_features.tune_tracker
+    fi
   fi
-  debug "FEATURES env is set to '${line_to_save}' in ${PATH_TO_TRACKER_ENV}"
 }
 
-kctl_features.tune_tracker() {
-  debug "Running command \`kctl tune\`"
-  "${KCTL_BIN_DIR}/kctl" tune
+kctl_features.enable_feature() {
+  local feature="${1}"
+  load_features
+  if ! arrays.in "${feature}" "${ENABLED_FEATURES[@]}"; then
+    # shellcheck disable=SC2207
+    ENABLED_FEATURES=($(arrays.add "${feature}" "${ENABLED_FEATURES[@]}"))
+    save_features
+  fi
+}
+
+kctl_features.run_ch_converter(){
+  local prefix converter_command
+  prefix="$(get_tracker_config_value 'db' 'prefix')"
+  converter_command="TZ=UTC ${KCTL_BIN_DIR}/kctl-ch-converter --prefix=${prefix} --env-file-path=${INVENTORY_DIR}/tracker.env"
+  run_command "sleep 20 && ${converter_command}"
+}
+
+kctl_features.start_running_tracker_tasks() {
+  systemctl start crond
+}
+
+kctl_features.enable_rbooster() {
+  kctl_features.stop_running_tracker_tasks
+  kctl_features.set_olap_db "${OLAP_DB_CLICKHOUSE}"
+  kctl_features.run_ch_converter
+  kctl_features.start_running_tracker_tasks
+}
+
+kctl_features.set_olap_db() {
+  local olap_db="${1}"
+  local log_path="${KCTL_LOG_DIR}/kctl-set-olap-db-to-${olap_db}.log"
+  local roles_to_replay="install-clickhouse,install-mariadb,setup-tracker"
+
+  env_files.forced_save_var "${PATH_TO_TRACKER_ENV}" OLAP_DB "${olap_db}"
+
+  debug "Running \`KCTL_OLAP_DB='${olap_db}' LOG_PATH='${log_path}' ANSIBLE_TAGS='${roles_to_replay}' kctl-install -U '\`"
+  KCTL_OLAP_DB="${olap_db}" LOG_PATH="${log_path}" ANSIBLE_TAGS="${roles_to_replay}" "${KCTL_BIN_DIR}/kctl-install" -U
+}
+
+kctl_features.disable_rbooster() {
+  kctl_features.set_olap_db "${OLAP_DB_MARIADB}"
+}
+
+wait_for_complete_cron_php() {
+  if pgrep -f 'cron.php' > /dev/null; then
+    echo "Keitaro cron tasks are still running, waiting for them to complete"
+    sleep 10
+    wait_for_complete_cron_php
+  fi
+}
+
+kctl_features.stop_running_tracker_tasks() {
+  systemctl stop crond
+  wait_for_complete_cron_php
+}
+
+kctl_features.help() {
+  echo "Usage:"
+  echo "  kctl features enable <feature>                  enable feature"
+  echo "  kctl features disable <feature>                 disable feature"
+  echo "  kctl features help                              print this help"
+  echo
 }
 
 kctl_certificates() {
@@ -2497,172 +2069,134 @@ kctl_certificates() {
   esac
 }
 
-kctl.update_channels.set_from_tracker() {
-  local update_channel_from_tracker; update_channel_from_tracker="$(tracker.get_update_channel)"
-  local update_channel_from_env; update_channel_from_env="$(env_files.read_var "${PATH_TO_SYSTEM_ENV}" "update_channel")"
+kctl.update_channels() {
+  local action="${1}"
+  shift
 
-  if [[ "${update_channel_from_tracker}" != "" ]]; then
-    if [[ "${update_channel_from_tracker}" != "${update_channel_from_env}" ]]; then
-      kctl.update_channels.set "${update_channel_from_tracker}"
-    fi
-  else
-    if [[ "${update_channel_from_env}" == "" ]]; then
-      echo "Current update channel is not set in the tracker. Set to ${UPDATE_CHANNEL_STABLE}"
-      kctl.update_channels.set "${UPDATE_CHANNEL_STABLE}"
-    else
-      fail "Couldn't get update channel from tracker"
-    fi
-  fi
+  case "${action}" in
+    set)
+      kctl.update_channels.set "${1}"
+      ;;
+    set-from-tracker)
+      kctl.update_channels.set_from_tracker
+      ;;
+    get)
+      kctl.update_channels.get
+      ;;
+    help|usage)
+      kctl.update_channels.usage
+      ;;
+    *)
+      kctl.update_channels.usage
+      exit 1
+      ;;
+  esac
 }
 
-kctl.update_channels.usage() {
-  echo "Usage:"
-  echo "  kctl update-channels set                          sets update channel"
-  echo "  kctl update-channels set-from-tracker             sets update channel from current tracker settings"
-  echo "  kctl update-channels get                          gets current update channel"
-  echo "  kctl update-channels usage                        prints this page"
+kctl_podman() {
+  local action="${1}"
+  shift
+
+  case "${action}" in
+    start)
+      kctl_podman.start "${1}"
+      ;;
+    stop)
+      kctl_podman.stop "${1}"
+      ;;
+    prune)
+      kctl_podman.prune "${1}"
+      ;;
+    stats)
+      kctl_podman.stats
+      ;;
+    help)
+      kctl_podman.usage
+      ;;
+    *)
+      kctl_podman.usage
+      exit 1
+      ;;
+  esac
 }
 
-kctl.update_channels.set() {
-  local update_channel="${1}"
+kctl_podman.stop() {
+  local container="${1}"
 
-  kctl.update_channels.assert_update_channel_is_supported "${update_channel}"
+  kctl_podman.assert_component_is_supported "${container}"
 
-  env_files.forced_save_var "${PATH_TO_SYSTEM_ENV}" "update_channel" "${update_channel}"
+  echo "Stopping ${container} container"
+  podman stop "${container}"
 
-  echo "Current update channel is set to '${update_channel}'"
+  kctl_podman.prune "${container}"
 }
 
-kctl.update_channels.assert_update_channel_is_supported() {
-  local update_channel="${1}"
+kctl_podman.assert_component_is_supported() {
+  local component="${1}"
+  local nl=$'\n'
+  local all_components
 
-  if ! arrays.in "${update_channel}" "${UPDATE_CHANNELS[@]}"; then
-    kctl.update_channels.usage
+  # shellcheck disable=SC2207
+  all_components=( $(components.list_all) )
+
+  if ! arrays.in "${component}" "${all_components[@]}"; then
+    kctl_podman.usage
     exit 1
   fi
 }
 
-kctl.update_channels.get() {
-  local update_channel
 
-  update_channel="$(env_files.read_var "${PATH_TO_SYSTEM_ENV}" "update_channel")"
-
-  echo "Current update channel is to '${update_channel}'"
-}
-# shellcheck source=/dev/null
-
-kctl_run_mysql_in_docker() {
-  local docker_exec_args="${1}"; shift
-  source /etc/keitaro/config/tracker.env
-  podman exec --env HOME=/tmp "${docker_exec_args}" mariadb \
-         mysql --host "${MARIADB_HOST}" --port="${MARIADB_PORT}" \
-               --user="${MARIADB_USERNAME}" --password="${MARIADB_PASSWORD}"  \
-               --database="${MARIADB_DB}" \
-               "${@}"
-}
-
-kctl_run_mysql_client() {
-  kctl_run_mysql_in_docker "-it"
-}
-
-kctl_run_mysql_query() {
-  local sql="${1}"
-  if [[ "${sql}" == "" ]]; then
-    kctl_run_mysql_in_docker "-i" --raw --batch --skip-column-names --default-character-set=utf8
-  else
-    kctl_run_mysql_in_docker "-i" --raw --batch --skip-column-names --default-character-set=utf8 --execute="${sql}"
-  fi
-}
-
-kctl_run_certbot-renew() {
-  components.run "certbot-renew" "" "${@}"
-}
-
-kctl_run_usage(){
+kctl_podman.usage(){
+  local all_components
+  # shellcheck disable=SC2207
+  all_components=( $(components.list_all) )
   echo "Usage:"
-  echo "  kctl run clickhouse-client                  start clickhouse shell"
-  echo "  kctl run clickhouse-query                   execute clickhouse query"
-  echo "  kctl run mysql-client                       start mysql shell"
-  echo "  kctl run mysql-query                        execute mysql query"
-  echo "  kctl run cli-php                            execute cli.php command"
-  echo "  kctl run redis-client                       execute redis shell"
-  echo "  kctl run system-redis-client                execute system-redis shell"
-  echo "  kctl run nginx                              perform nginx command"
-  echo "  kctl run certbot                            perform certbot command"
+  echo "  kctl podman start CONTAINTER_NAME              starts container"
+  echo "  kctl podman stop CONTAINTER_NAME               stops container"
+  echo "  kctl podman prune CONTAINTER_NAME              removes container and storage assotiated with it"
+  echo "  kctl podman stats                              prints statistics"
+  echo "  kctl podman usage                              prints this info"
+  echo
+  echo "Allowed CONTAINER_NAMEs are: ${all_components[*]}"
 }
 
-kctl_run_certbot() {
-  components.run "certbot" "" "${@}"
+kctl_podman.stats() {
+  podman stats --no-stream --format json
 }
 
-# shellcheck source=/dev/null
+kctl_podman.start() {
+  local component="${1}"
 
-kctl_run_clickhouse_in_docker() {
-  local docker_exec_args="${1}"; shift
-  source /etc/keitaro/config/tracker.env
-
-  podman exec --env HOME=/tmp "${docker_exec_args}" clickhouse \
-         clickhouse-client --host "${CH_HOST}" --port="${CH_PORT}" \
-                           --user="${CH_USER}" --password="${CH_PASSWORD}"  \
-                           --database="${CH_DB}" \
-                           "${@}"
+  kctl_podman.assert_component_is_supported "${component}"
+  kctl_podman.prune "${component}"
+  kctl_podman.start_service "${component}"
 }
 
-kctl_run_clickhouse_client() {
-  kctl_run_clickhouse_in_docker "-it"
-}
+kctl_podman.start_service() {
+  local component="${1}"
+  local uid_var="${component^^}_USER_UID" gid_var="${component^^}_USER_GID"
+  local user_id group_id extra_args root_mode
+  declare -a exposed_vars="( host port )"
 
-kctl_run_clickhouse_query() {
-  local sql="${1}"
-  if [[ "${sql}" == "" ]]; then
-    kctl_run_clickhouse_in_docker "-i" --format=TabSeparated
+  root_mode="$(components.read_var "${component}" "service_run_as_root")"
+  user_id=$(components.detect_user_id "${component}")
+  group_id=$(components.detect_group_id "${component}")
+  extra_args="$(components.read_var "${component}" "service_podman_args")"
+  port="$(components.read_var "${component}" "port")"
+
+  if [[ "${root_mode}" == "" ]]; then
+    extra_args="${extra_args} --user ${user_id}:${group_id}"
   else
-    kctl_run_clickhouse_in_docker "-i" --format=TabSeparated --query="${sql}"
+    extra_args="${extra_args} --env ${uid_var}=${user_id} --env ${gid_var}=${group_id}"
   fi
-}
 
-kctl_run_nginx() {
-  if empty "${@}"; then
-    echo "Thats wrong to run nginx commang without argumets"
-  else
-    kctl_run_nginx_in_docker "${@}"
+  if [[ "${port}" != "" ]]; then
+    var_name="$(components.get_var_name "${component}" 'port')"
+    extra_args="${extra_args} --env ${var_name}=${port}"
   fi
-}
+  components.create_volumes "${component}"
 
-
-kctl_run_nginx_in_docker() {
-  podman exec -i --env HOME=/tmp nginx \
-  nginx "${@}"
-}
-
-kctl_run_cli_php() {
-  sudo -u keitaro /usr/bin/kctl-php /var/www/keitaro/bin/cli.php "${@}"
-}
-
-KEITARO_SUPPORT_ACCESS_PERIOD_IN_DAYS='5'
-KEITARO_SUPPORT_PUBLIC_KEY_URL="https://files.keitaro.io/keitaro/files/keitaro-support-public-key"
-PATH_TO_KEITARO_SUPPORT_SSH_DIR="${KEITARO_SUPPORT_HOME_DIR}/.ssh"
-PATH_TO_KEITARO_SUPPORT_SSH_AUTHORIZED_KEYS="${PATH_TO_KEITARO_SUPPORT_SSH_DIR}/authorized_keys"
-
-kctl.support_team_access() {
-  local action="${1}"
-  case "${action}" in
-    allow)
-      kctl.support_team_access.allow
-      ;;
-    deny)
-      kctl.support_team_access.deny
-      ;;
-    prune)
-      kctl.support_team_access.prune
-      ;;
-    status)
-      kctl.support_team_access.status
-      ;;
-    *)
-      kctl.support_team_access.usage
-      ;;
-  esac
+  components.run "${component}" "${extra_args}"
 }
 
 PATHS_TO_CONTAINERS_JSON=(
@@ -2759,83 +2293,549 @@ kctl_podman.prune.container_has_storage() {
   [[ -f "${path_to_containers_json}" ]] && jq -Mre "${jq_query}" "${path_to_containers_json}" > /dev/null
 }
 
-kctl_podman.start() {
-  local component="${1}"
+# shellcheck source=/dev/null
 
-  kctl_podman.assert_component_is_supported "${component}"
-  kctl_podman.prune "${component}"
-  kctl_podman.start_service "${component}"
+kctl_run_clickhouse_in_docker() {
+  local docker_exec_args="${1}"; shift
+  source /etc/keitaro/config/tracker.env
+
+  podman exec --env HOME=/tmp "${docker_exec_args}" clickhouse \
+         clickhouse-client --host "${CH_HOST}" --port="${CH_PORT}" \
+                           --user="${CH_USER}" --password="${CH_PASSWORD}"  \
+                           --database="${CH_DB}" \
+                           "${@}"
 }
 
-kctl_podman.start_service() {
-  local component="${1}"
-  local uid_var="${component^^}_USER_UID" gid_var="${component^^}_USER_GID"
-  local user_id group_id extra_args root_mode
-  declare -a exposed_vars="( host port )"
+kctl_run_clickhouse_client() {
+  kctl_run_clickhouse_in_docker "-it"
+}
 
-  root_mode="$(components.read_var "${component}" "service_run_as_root")"
-  user_id=$(components.detect_user_id "${component}")
-  group_id=$(components.detect_group_id "${component}")
-  extra_args="$(components.read_var "${component}" "service_podman_args")"
-  port="$(components.read_var "${component}" "port")"
-
-  if [[ "${root_mode}" == "" ]]; then
-    extra_args="${extra_args} --user ${user_id}:${group_id}"
+kctl_run_clickhouse_query() {
+  local sql="${1}"
+  if [[ "${sql}" == "" ]]; then
+    kctl_run_clickhouse_in_docker "-i" --format=TabSeparated
   else
-    extra_args="${extra_args} --env ${uid_var}=${user_id} --env ${gid_var}=${group_id}"
+    kctl_run_clickhouse_in_docker "-i" --format=TabSeparated --query="${sql}"
   fi
-
-  if [[ "${port}" != "" ]]; then
-    var_name="$(components.get_var_name "${component}" 'port')"
-    extra_args="${extra_args} --env ${var_name}=${port}"
-  fi
-  components.create_volumes "${component}"
-
-  components.run "${component}" "${extra_args}"
 }
 
-kctl_podman.usage(){
-  local all_components
-  # shellcheck disable=SC2207
-  all_components=( $(components.list_all) )
+kctl_run_cli_php() {
+  sudo -u keitaro /usr/bin/kctl-php /var/www/keitaro/bin/cli.php "${@}"
+}
+# shellcheck source=/dev/null
+
+kctl_run_mysql_in_docker() {
+  local docker_exec_args="${1}"; shift
+  source /etc/keitaro/config/tracker.env
+  podman exec --env HOME=/tmp "${docker_exec_args}" mariadb \
+         mysql --host "${MARIADB_HOST}" --port="${MARIADB_PORT}" \
+               --user="${MARIADB_USERNAME}" --password="${MARIADB_PASSWORD}"  \
+               --database="${MARIADB_DB}" \
+               "${@}"
+}
+
+kctl_run_mysql_client() {
+  kctl_run_mysql_in_docker "-it"
+}
+
+kctl_run_mysql_query() {
+  local sql="${1}"
+  if [[ "${sql}" == "" ]]; then
+    kctl_run_mysql_in_docker "-i" --raw --batch --skip-column-names --default-character-set=utf8
+  else
+    kctl_run_mysql_in_docker "-i" --raw --batch --skip-column-names --default-character-set=utf8 --execute="${sql}"
+  fi
+}
+
+kctl_run_nginx() {
+  if empty "${@}"; then
+    echo "Thats wrong to run nginx commang without argumets"
+  else
+    kctl_run_nginx_in_docker "${@}"
+  fi
+}
+
+
+kctl_run_nginx_in_docker() {
+  podman exec -i --env HOME=/tmp nginx \
+  nginx "${@}"
+}
+
+kctl_run_certbot() {
+  components.run "certbot" "" "${@}"
+}
+
+kctl_run_certbot-renew() {
+  components.run "certbot-renew" "" "${@}"
+}
+
+kctl_run_usage(){
   echo "Usage:"
-  echo "  kctl podman start CONTAINTER_NAME              starts container"
-  echo "  kctl podman stop CONTAINTER_NAME               stops container"
-  echo "  kctl podman prune CONTAINTER_NAME              removes container and storage assotiated with it"
-  echo "  kctl podman stats                              prints statistics"
-  echo "  kctl podman usage                              prints this info"
+  echo "  kctl run clickhouse-client                  start clickhouse shell"
+  echo "  kctl run clickhouse-query                   execute clickhouse query"
+  echo "  kctl run mysql-client                       start mysql shell"
+  echo "  kctl run mysql-query                        execute mysql query"
+  echo "  kctl run cli-php                            execute cli.php command"
+  echo "  kctl run redis-client                       execute redis shell"
+  echo "  kctl run system-redis-client                execute system-redis shell"
+  echo "  kctl run nginx                              perform nginx command"
+  echo "  kctl run certbot                            perform certbot command"
+}
+
+KEITARO_SUPPORT_ACCESS_PERIOD_IN_DAYS='5'
+KEITARO_SUPPORT_PUBLIC_KEY_URL="https://files.keitaro.io/keitaro/files/keitaro-support-public-key"
+PATH_TO_KEITARO_SUPPORT_SSH_DIR="${KEITARO_SUPPORT_HOME_DIR}/.ssh"
+PATH_TO_KEITARO_SUPPORT_SSH_AUTHORIZED_KEYS="${PATH_TO_KEITARO_SUPPORT_SSH_DIR}/authorized_keys"
+
+kctl.support_team_access() {
+  local action="${1}"
+  case "${action}" in
+    allow)
+      kctl.support_team_access.allow
+      ;;
+    deny)
+      kctl.support_team_access.deny
+      ;;
+    prune)
+      kctl.support_team_access.prune
+      ;;
+    status)
+      kctl.support_team_access.status
+      ;;
+    *)
+      kctl.support_team_access.usage
+      ;;
+  esac
+}
+
+kctl_run() {
+  local action="${1}"
+  shift
+
+  case "${action}" in
+    clickhouse-client)
+      kctl_run_clickhouse_client
+      ;;
+    clickhouse-query)
+      kctl_run_clickhouse_query  "${@}"
+      ;;
+    mariadb-client | mysql-client)
+      kctl_run_mysql_client
+      ;;
+    mariadb-query | mysql-query)
+      kctl_run_mysql_query "${@}"
+      ;;
+    cli-php)
+      kctl_run_cli_php "${@}"
+      ;;
+    redis-client)
+      kctl_run_redis_client "${@}"
+      ;;
+    system-redis-client)
+      kctl_run_system_redis_client "${@}"
+      ;;
+    nginx)
+      kctl_run_nginx "${@}"
+      ;;
+    certbot)
+      kctl_run_certbot "${@}"
+      ;;
+    certbot-renew)
+      kctl_run_certbot-renew "${@}"
+      ;;
+    help)
+      kctl_run_usage
+      ;;
+    *)
+      kctl_run_usage
+      exit 1
+      ;;
+  esac
+}
+
+kctl_resolvers_usage() {
+  echo "Usage:"
+  echo "  kctl resolvers autofix                           sets google dns if current resolver works slow"
+  echo "  kctl resolvers set-google                        sets google dns"
+  echo "  kctl resolvers reset                             resets settings"
+  echo "  kctl resolvers usage                             prints this page"
+}
+
+kctl_resolvers_set_google() {
+  if file_content_matches "${RESOLV_CONF}" '-F' "nameserver ${DNS_GOOGLE}"; then
+    debug "${RESOLV_CONF} already contains 'nameserver ${DNS_GOOGLE}', skipping"
+  else
+    debug "${RESOLV_CONF} doesn't contain 'nameserver ${DNS_GOOGLE}', adding"
+    run_command "sed -i '1inameserver ${DNS_GOOGLE}' ${RESOLV_CONF}"
+  fi
+}
+
+kctl_resolvers_autofix() {
+  if resolver_works_slow; then
+    echo "DNS resolver works too slow, switching to Google DNS"
+    kctl_resolvers_set_google
+  fi
+}
+
+resolver_works_slow() {
+  local first_ipv4_dns_server
+  first_ipv4_dns_server=$(grep -Pom1 "(?<=^nameserver )\d+(\.\d+){3}$" /etc/resolv.conf)
+  if nslookup -timeout=1 -retry=0 keitaro.io "${first_ipv4_dns_server}" &>/dev/null; then
+    return ${FAILURE_RESULT}
+  else
+    return ${SUCCESS_RESULT}
+  fi
+}
+
+kctl_resolvers_reset() {
+  local resolvers_entry="nameserver ${DNS_GOOGLE}"
+  if file_content_matches "${RESOLV_CONF}" '-F' "${resolvers_entry}"; then
+    other_ipv4_entries=$(grep "^nameserver" "${RESOLV_CONF}" | grep -vF "${resolvers_entry}" | grep '\.')
+    debug "Other ipv4 entries: ${other_ipv4_entries}"
+    if isset "${other_ipv4_entries}"; then
+      debug "${RESOLV_CONF} contains 'nameserver ${DNS_GOOGLE}', deleting"
+      run_command "sed -r -i '/^nameserver ${DNS_GOOGLE}$/d' '${RESOLV_CONF}'"
+    else
+      debug "${RESOLV_CONF} contains only one ipv4 nameserver keeping"
+    fi
+  else
+    debug "${RESOLV_CONF} doesn't contain 'nameserver ${DNS_GOOGLE}', skipping"
+  fi
+}
+
+DNS_GOOGLE="8.8.8.8"
+RESOLV_CONF=/etc/resolv.conf
+
+kctl_resolvers() {
+  local action="${1}"
+  case "${action}" in
+    set-google)
+      kctl_resolvers_set_google
+      ;;
+    reset)
+      kctl_resolvers_reset
+      ;;
+    autofix)
+      kctl_resolvers_autofix
+      ;;
+    *)
+      kctl_resolvers_usage
+  esac
+}
+
+kctl_check() {
+  local has_inactive=0
+
+  for component in $(components.list_all | grep -v nginx-starting-page); do
+    for service in $(components.read_var "${component}" "services"); do
+      printf 'Checking service %s .' "${service}"
+      if systemctl -q is-active "$service"; then
+        echo " OK"
+      else
+        echo " NOK"
+        echo "Service ${service} is inactive" >&2
+        has_inactive=1
+      fi
+    done
+  done
+  if [[ ${has_inactive} != 1 ]]; then
+    echo "Everything is ok"
+  fi
+  return $has_inactive
+}
+
+kctl_certificates.issue() {
+  FORCE_ISSUING_CERTS=true "${KCTL_BIN_DIR}/kctl-enable-ssl" "${@}"
+}
+
+kctl_certificates.renew() {
+  local success_flag_filepath="/var/lib/kctl/certbot-renew/.renewed"
+  local message="Renewing LE certificates"
+  local log_path="${LOG_DIR}/${TOOL_NAME}-renew-certificates.log"
+  local cmd
+
+  LOG_PATH="${log_path}"
+  init_log "${log_path}"
+
+  debug "Renewing certificates"
+
+  cmd="rm -f '${success_flag_filepath}'"
+  cmd="${cmd} && (${KCTL_BIN_DIR}/kctl podman stop certbot-renew || true)"
+  cmd="${cmd} && (${KCTL_BIN_DIR}/kctl podman prune certbot-renew || true)"
+  cmd="${cmd} && $(kctl_certificates.build_renew_cmd)"
+
+  run_command "${cmd}" "${message}" 'hide_output' 'allow_errors' || \
+    debug "Errors occurred while renewing some certificates. certbot exit code: ${?}"
+
+  if file_exists "${success_flag_filepath}"; then
+    debug "Some certificates have been renewed. Removing flag file ${success_flag_filepath} and reloading nginx"
+    cmd="rm -f '${success_flag_filepath}' && systemctl reload nginx"
+    run_command "${cmd}" "Reloading nginx" 'hide_output'
+  else
+    debug "Certificates have not been updated."
+  fi
+}
+
+kctl_certificates.build_renew_cmd() {
+  echo "${KCTL_BIN_DIR}/kctl run certbot-renew renew" \
+        "--allow-subset-of-names" \
+        "--no-random-sleep-on-renew" \
+        "--renew-hook 'touch ${success_flag_filepath}'" \
+        "--logs-dir /var/log/keitaro/letsencrypt-renew"
+}
+
+kctl_certificates.revoke() {
+  local domains="${*}"
+  "${KCTL_BIN_DIR}/kctl-disable-ssl" -D "${domains// /,}"
+}
+
+kctl_certificates.remove_old_logs() {
+  /usr/bin/find /var/log/keitaro/ssl -mtime +30 -type f -delete
+  /usr/bin/find /var/log/keitaro/letsencrypt-renew -mtime +30 -type f -delete
+  /usr/bin/find /var/log/letsencrypt -mtime +30 -type f -delete
+}
+
+kctl_certificates_usage() {
+  echo "Usage:"
+  echo "  kctl certificates renew                                 renew LE certificates"
+  echo "  kctl certificates remove-old-logs                       remove old issuing logs"
+  "${KCTL_BIN_DIR}/kctl-certificates-prune" help
   echo
-  echo "Allowed CONTAINER_NAMEs are: ${all_components[*]}"
 }
 
-kctl_podman.stop() {
-  local container="${1}"
+LETSENCRYPT_ACCOUNTS_PATH="${LETSENCRYPT_DIR}/accounts/acme-v02.api.letsencrypt.org/directory/"
 
-  kctl_podman.assert_component_is_supported "${container}"
+kctl_certificates.fix_le_accounts() {
+  local accounts_count
 
-  echo "Stopping ${container} container"
-  podman stop "${container}"
+  if [[ ! -d "${LETSENCRYPT_ACCOUNTS_PATH}" ]]; then
+    certbot.register_account
+  fi
 
-  kctl_podman.prune "${container}"
+  accounts_count="$(kctl_certificates.count_account)"
+
+  if [[ "${accounts_count}" == '0' ]]; then
+    certbot.register_account
+  fi
+
+  if [[ "${accounts_count}" -gt '1' ]]; then
+    kctl_certificate.remove_redundant_accounts
+  fi
+
+  kctl_certificates.fix_account_in_renewal_configs
 }
 
-kctl_podman.assert_component_is_supported() {
-  local component="${1}"
-  local nl=$'\n'
-  local all_components
+kctl_certificates.count_account() {
+ find "${LETSENCRYPT_ACCOUNTS_PATH}" -maxdepth 1 -mindepth 1 -type d | wc -l
+}
+
+kctl_certificates.remove_redundant_accounts() {
+  local sorted_accounts accounts_to_remove
 
   # shellcheck disable=SC2207
-  all_components=( $(components.list_all) )
+  sorted_accounts=( $(/usr/bin/ls -t "${LETSENCRYPT_ACCOUNTS_PATH}") )
 
-  if ! arrays.in "${component}" "${all_components[@]}"; then
-    kctl_podman.usage
-    exit 1
+  accounts_to_remove=( "${sorted_accounts[@]:1}" )
+  debug "Removing ${#accounts_to_remove[@]} accounts: ${accounts_to_remove[*]}"
+
+  for account in "${accounts_to_remove[@]}"; do
+    rm -rf "${LETSENCRYPT_ACCOUNTS_PATH}/${account:?}"
+  done
+
+}
+
+kctl_certificates.fix_account_in_renewal_configs() {
+  local account
+
+  account="$(/usr/bin/ls -t "${LETSENCRYPT_ACCOUNTS_PATH}" | head -n 1)"
+
+  if [[ -d "${LETSENCRYPT_DIR}/renewal/" ]]; then
+    cmd="(grep -R -L 'account = ${account}' ${LETSENCRYPT_DIR}/renewal/ || true)"
+    cmd="${cmd} | xargs --max-args=100 --no-run-if-empty sed 's/account = .*/account = ${account}/' -i"
+    run_command "${cmd}" " Fix renewal configs"
+  fi
+}
+
+PEM_SPLITTER="-----BEGIN CERTIFICATE-----"
+
+kctl_certificates.fix_x3_expiration() {
+  local live_certificate_filepaths
+  local temporary_dir
+  local certificate_chain_without_x3
+  live_certificate_filepaths=$(get_live_certificate_filepaths)
+  for certificate_path in $live_certificate_filepaths; do
+    if is_last_certificate_issued_by_x3 "${certificate_path}"; then
+      debug "Certificate chain ${certificate_path} contains a certificate from X3, removing X3 from the chain"
+      backup_certificate "${certificate_path}"
+      remove_last_certificate_from_chain "${certificate_path}"
+    else
+      debug "Certificate chain ${certificate_path} does not contain a certificate from X3, wont modify the chain"
+    fi
+  done
+}
+
+
+get_live_certificate_filepaths(){
+  if [[ -d /etc/letsencrypt/live/ ]]; then
+    find /etc/letsencrypt/live/ -name fullchain.pem -print0 | xargs -0 --no-run-if-empty readlink -f
   fi
 }
 
 
-kctl_podman.stats() {
-  podman stats --no-stream --format json
+backup_certificate(){
+  local certificate_path="${1}"
+  local domain_name
+  local backup_directory
+  domain_name=$(basename "$(dirname "${certificate_path}")")
+  backup_directory="/etc/keitaro/backups/letsencrypt/${CURRENT_DATETIME}/${domain_name}"
+
+  mkdir -p "${backup_directory}"
+  #copy old certificate to backup
+  cp "${certificate_path}" "${backup_directory}"
+  debug "Certificates chain for ${domain_name} was saved to ${backup_directory}"
+}
+
+
+is_last_certificate_issued_by_x3() {
+  local certificate_path="${1}"
+  local chain_content
+  chain_content="$(< "${certificate_path}")"
+  local last_certificate_content="${PEM_SPLITTER}${chain_content##*"${PEM_SPLITTER}"}"
+  echo "$last_certificate_content" | openssl x509 -text | grep 'Issuer' | grep 'DST Root CA X3' -q
+}
+
+
+remove_last_certificate_from_chain() {
+  local certificate_path="${1}"
+  local certificate_chain_content
+  certificate_chain_content="$(< "${certificate_path}")"
+  local certificate_chain_wo_x3_content="${certificate_chain_content%"${PEM_SPLITTER}"*}"
+  echo "${certificate_chain_wo_x3_content}" > "${certificate_path}"
+}
+
+kctl_certificates.prune() {
+  "${KCTL_BIN_DIR}/kctl-certificates-prune" "${@}"
+}
+
+kctl.support_team_access.deny() {
+  rm -f "${PATH_TO_KEITARO_SUPPORT_SSH_AUTHORIZED_KEYS}"
+
+  kctl.support_team_access.status
+}
+
+kctl.support_team_access.allow() {
+  local expiration_datetime pub_key_tpl_url path_to_pub_key_tpl
+
+  kctl.support_team_access.create_ssh_authorized_keys
+
+  SKIP_CACHE=true cache.retrieve_or_download "${KEITARO_SUPPORT_PUBLIC_KEY_URL}" > /dev/null
+  path_to_pub_key="$(cache.path_by_url "${KEITARO_SUPPORT_PUBLIC_KEY_URL}")"
+
+  cat "${path_to_pub_key}" > "${PATH_TO_KEITARO_SUPPORT_SSH_AUTHORIZED_KEYS}"
+
+  kctl.support_team_access.status
+}
+
+
+kctl.support_team_access.create_ssh_authorized_keys() {
+  if [[ ! -d "${PATH_TO_KEITARO_SUPPORT_SSH_DIR}" ]]; then
+    mkdir -p "${PATH_TO_KEITARO_SUPPORT_SSH_DIR}"
+    chmod 0700 "${PATH_TO_KEITARO_SUPPORT_SSH_DIR}"
+    chown "${KEITARO_SUPPORT_USER}:${KEITARO_SUPPORT_USER}" "${PATH_TO_KEITARO_SUPPORT_SSH_DIR}"
+  fi
+  if [[ ! -f "${PATH_TO_KEITARO_SUPPORT_SSH_AUTHORIZED_KEYS}" ]]; then
+    touch "${PATH_TO_KEITARO_SUPPORT_SSH_AUTHORIZED_KEYS}"
+    chmod 0600 "${PATH_TO_KEITARO_SUPPORT_SSH_AUTHORIZED_KEYS}"
+    chown "${KEITARO_SUPPORT_USER}:${KEITARO_SUPPORT_USER}" "${PATH_TO_KEITARO_SUPPORT_SSH_AUTHORIZED_KEYS}"
+  fi
+}
+
+kctl.support_team_access.usage() {
+  echo "Usage:"
+  echo "  kctl support-team-access allow                        allows Keitaro Support Team access to the server"
+  echo "  kctl support-team-access deny                         denies Keitaro Support Team access to the server"
+  echo "  kctl support-team-access prune                        prunes expired Keitaro Support Team access keys"
+  echo "  kctl support-team-access status                       shows Keitaro Support Team access to the server status"
+  echo "  kctl support-team-access usage                        prints this page"
+}
+
+kctl.support_team_access.status() {
+  if [[ -f "${PATH_TO_KEITARO_SUPPORT_SSH_AUTHORIZED_KEYS}" ]]; then
+    echo "Keitaro Support Team access to this server will expire at $(kctl.support_team_access.get_expire_time)"
+  else
+    echo "Keitaro Support Team has no access to this server"
+  fi
+}
+
+kctl.support_team_access.get_keys_creation_time() {
+  date -u -r "${PATH_TO_KEITARO_SUPPORT_SSH_AUTHORIZED_KEYS}"
+}
+
+kctl.support_team_access.get_expire_time() {
+  local keys_creation_time
+
+  keys_creation_time="$(kctl.support_team_access.get_keys_creation_time)"
+  date -u -d "${keys_creation_time} + ${KEITARO_SUPPORT_ACCESS_PERIOD_IN_DAYS} days"
+}
+
+kctl.support_team_access.prune() {
+  local mtime
+  mtime="$(( KEITARO_SUPPORT_ACCESS_PERIOD_IN_DAYS - 1 ))"
+  if [[ -f "${PATH_TO_KEITARO_SUPPORT_SSH_AUTHORIZED_KEYS}" ]]; then
+    find "${PATH_TO_KEITARO_SUPPORT_SSH_AUTHORIZED_KEYS}" -mtime "+${mtime}" -delete
+    if [[ ! -f "${PATH_TO_KEITARO_SUPPORT_SSH_AUTHORIZED_KEYS}" ]]; then
+      echo "Pruned expired authorized_keys of the ${KEITARO_SUPPORT_USER} user"
+    fi
+  fi
+}
+
+
+ENABLED_FEATURES=()
+FEATURES_DELIMITER=','
+FEATURE_RBOOSTER='rbooster'
+
+kctl_features() {
+  local action="${1}"
+  local feature="${2}"
+  case "${action}" in
+    enable)
+      kctl_features.enable "${feature}"
+      ;;
+    disable)
+      kctl_features.disable "${feature}"
+      ;;
+    help)
+      kctl_features.help
+      ;;
+    *)
+      kctl_features.help
+      exit 1
+      ;;
+  esac
+}
+
+load_features() {
+  # shellcheck source=/dev/null
+  source "${PATH_TO_TRACKER_ENV}"
+  IFS="${FEATURES_DELIMITER}" read -r -a ENABLED_FEATURES <<< "${FEATURES:-}"
+}
+
+save_features() {
+  local enabled_features_str="${ENABLED_FEATURES[*]}"
+  debug "enabled_features_str: ${enabled_features_str}"
+  local line_to_save="FEATURES=${enabled_features_str// /${FEATURES_DELIMITER}}"
+  debug "line_to_save: ${line_to_save}"
+  if file_content_matches "${PATH_TO_TRACKER_ENV}" '-P' "^FEATURES="; then
+    sed -i "s/^FEATURES=.*/${line_to_save}/g" "${PATH_TO_TRACKER_ENV}"
+  else
+    echo "${line_to_save}" >> "${PATH_TO_TRACKER_ENV}"
+  fi
+  debug "FEATURES env is set to '${line_to_save}' in ${PATH_TO_TRACKER_ENV}"
+}
+
+kctl_features.tune_tracker() {
+  debug "Running command \`kctl tune\`"
+  "${KCTL_BIN_DIR}/kctl" tune
 }
 # shellcheck source=/dev/null
 
@@ -2843,26 +2843,6 @@ reset_machine_id() {
   generate_uuid > /etc/machine-id
   source /etc/keitaro/config/kctl-monitor.env
   kctl-monitor -r > /dev/null
-}
-
-reset_ch_password(){
-  local new_password
-  local new_hashed_password
-  local old_hashed_password
-
-  old_hashed_password="$(grep  -oP '(?<=<password_sha256_hex>).*?(?=</password_sha256_hex>)' /etc/clickhouse/users.xml)"
-  new_password="$(generate_password)"
-  new_hashed_password=$(echo -n "${new_password}" | sha256sum -b | awk '{print$1}')
-
-  sed -i "s/${old_hashed_password}/${new_hashed_password}/g" /etc/clickhouse/users.xml
-  sed -i -e "s/^CH_PASSWORD=.*/CH_PASSWORD=${new_password}/g" /etc/keitaro/config/tracker.env
-  sed -i -e "s/^ch_password=.*/ch_password=${new_password}/g" /etc/keitaro/config/inventory
-  systemctl restart clickhouse
-}
-
-reset_license_ip() {
-  detect_server_ip
-  sed -i -e "s/^LICENSE_IP=.*/LICENSE_IP=${SERVER_IP}/g" /etc/keitaro/config/tracker.env
 }
 
 reset_mysql_password(){
@@ -2885,16 +2865,25 @@ reset_tracker_salt() {
   new_salt="$(generate_uuid)"
   sed -i -e "s/^SALT=.*/SALT=${new_salt}/g" /etc/keitaro/config/tracker.env
 }
-# shellcheck source=/dev/null
 
-kctl_run_system_redis_in_docker() {
-  local docker_exec_args="${1}"; shift
-  podman exec "${docker_exec_args}" system-redis \
-         redis-cli  "${@}"
+reset_ch_password(){
+  local new_password
+  local new_hashed_password
+  local old_hashed_password
+
+  old_hashed_password="$(grep  -oP '(?<=<password_sha256_hex>).*?(?=</password_sha256_hex>)' /etc/clickhouse/users.xml)"
+  new_password="$(generate_password)"
+  new_hashed_password=$(echo -n "${new_password}" | sha256sum -b | awk '{print$1}')
+
+  sed -i "s/${old_hashed_password}/${new_hashed_password}/g" /etc/clickhouse/users.xml
+  sed -i -e "s/^CH_PASSWORD=.*/CH_PASSWORD=${new_password}/g" /etc/keitaro/config/tracker.env
+  sed -i -e "s/^ch_password=.*/ch_password=${new_password}/g" /etc/keitaro/config/inventory
+  systemctl restart clickhouse
 }
 
-kctl_run_system_redis_client() {
-  kctl_run_system_redis_in_docker "-it" "${@}"
+reset_license_ip() {
+  detect_server_ip
+  sed -i -e "s/^LICENSE_IP=.*/LICENSE_IP=${SERVER_IP}/g" /etc/keitaro/config/tracker.env
 }
 # shellcheck source=/dev/null
 
@@ -2907,6 +2896,17 @@ kctl_run_redis_in_docker() {
 
 kctl_run_redis_client() {
   kctl_run_redis_in_docker "-it" "${@}"
+}
+# shellcheck source=/dev/null
+
+kctl_run_system_redis_in_docker() {
+  local docker_exec_args="${1}"; shift
+  podman exec "${docker_exec_args}" system-redis \
+         redis-cli  "${@}"
+}
+
+kctl_run_system_redis_client() {
+  kctl_run_system_redis_in_docker "-it" "${@}"
 }
 CURRENT_DATETIME="$(date +%Y%m%d%H%M)"
 SKIP_START_CERTIFICATES_RENEWAL="${SKIP_START_CERTIFICATES_RENEWAL:-}"

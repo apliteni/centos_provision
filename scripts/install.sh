@@ -60,7 +60,7 @@ fi
 CACHING_PERIOD_IN_DAYS="2"
 CACHING_PERIOD_IN_MINUTES="$((CACHING_PERIOD_IN_DAYS * 24 * 60))"
 
-RELEASE_VERSION='2.43.8'
+RELEASE_VERSION='2.43.9'
 VERY_FIRST_VERSION='0.9'
 
 KCTL_IN_KCTL="${KCTL_IN_KCTL:-}"
@@ -2139,6 +2139,10 @@ packages.actualize_rpm() {
   fi
 }
 
+get_free_disk_space_mb() {
+  (df -m --output=avail / | tail -n1) 2>/dev/null
+}
+
 get_config_value(){
   local var="${1}"
   local file="${2}"
@@ -2151,14 +2155,6 @@ get_config_value(){
       awk '{$1=$1; print}' | \
       unquote
   fi
-}
-
-get_ram_size_mb() {
-  (free -m | grep Mem: | awk '{print $2}') 2>/dev/null
-}
-
-clean_up() {
-  popd &> /dev/null || true
 }
 
 # If installed version less than or equal to version from array value
@@ -2235,6 +2231,10 @@ get_installed_version_on_upgrade() {
   echo "${INSTALLED_VERSION}"
 }
 
+clean_up() {
+  popd &> /dev/null || true
+}
+
 is_running_in_upgrade_mode() {
   [[ "${RUNNING_MODE}" == "${RUNNING_MODE_UPGRADE}" ]]
 }
@@ -2248,8 +2248,8 @@ is_running_in_rescue_mode() {
 }
 
 
-get_free_disk_space_mb() {
-  (df -m --output=avail / | tail -n1) 2>/dev/null
+get_ram_size_mb() {
+  (free -m | grep Mem: | awk '{print $2}') 2>/dev/null
 }
 
 RUNNING_MODE_INSTALL="install"
@@ -2376,15 +2376,62 @@ stage1() {
   debug "Running in mode '${RUNNING_MODE}'"
 }
 
-
-assert_not_running_under_openvz() {
-  debug "Assert we are not running under OpenVZ"
-
-  virtualization_type="$(hostnamectl status | grep Virtualization | awk '{print $2}')"
-  debug "Detected virtualization type: '${virtualization_type}'"
-  if isset "${virtualization_type}" && [[ "${virtualization_type}" == "openvz" ]]; then
-    fail "Servers with OpenVZ virtualization are not supported"
+assert_pannels_not_installed(){
+  if is_installed mysql; then
+    assert_isp_manager_not_installed
+    assert_vesta_cp_not_installed
   fi
+}
+
+
+assert_isp_manager_not_installed(){
+  if database_exists roundcube; then
+    debug "ISP Manager database detected"
+    fail "$(translate errors.isp_manager_installed)"
+  fi
+}
+
+
+assert_vesta_cp_not_installed(){
+  if database_exists admin_default; then
+    debug "Vesta CP database detected"
+    fail "$(translate errors.vesta_cp_installed)"
+  fi
+}
+
+
+database_exists(){
+  local database="${1}"
+  debug "Check if database ${database} exists"
+  mysql -Nse 'show databases' 2>/dev/null | tr '\n' ' ' | grep -Pq "${database}"
+}
+
+assert_server_ip_is_valid() {
+  if ! valid_ip "${SERVER_IP}"; then
+    fail "$(translate 'errors.cant_detect_server_ip')"
+  fi
+}
+
+valid_ip(){
+  local value="${1}"
+  [[ "$value" =~  ^[[:digit:]]+(\.[[:digit:]]+){3}$ ]] && valid_ip_segments "$value"
+}
+
+
+valid_ip_segments(){
+  local ip="${1}"
+  local segments
+  IFS='.' read -r -a segments <<< "${ip}"
+  for segment in "${segments[@]}"; do
+    if ! valid_ip_segment "${segment}"; then
+      return "${FAILURE_RESULT}"
+    fi
+  done
+}
+
+valid_ip_segment(){
+  local ip_segment="${1}"
+  [ "$ip_segment" -ge 0 ] && [ "$ip_segment" -le 255 ]
 }
 
 assert_systemctl_works_properly () {
@@ -2410,6 +2457,12 @@ assert_has_enough_ram(){
     fail "$(translate errors.not_enough_ram)"
   else
     debug "RAM size ${current_ram_size_mb}mb is greater than ${MIN_RAM_SIZE_MB}mb, continuing"
+  fi
+}
+
+assert_apache_not_installed(){
+  if is_installed httpd; then
+    fail "$(translate errors.apache_installed)"
   fi
 }
 MIN_FREE_DISK_SPACE_MB=2048
@@ -2458,34 +2511,15 @@ are_thp_sys_files_existing() {
   file_exists "/sys/kernel/mm/transparent_hugepage/enabled" && file_exists "/sys/kernel/mm/transparent_hugepage/defrag"
 }
 
-assert_pannels_not_installed(){
-  if is_installed mysql; then
-    assert_isp_manager_not_installed
-    assert_vesta_cp_not_installed
+
+assert_not_running_under_openvz() {
+  debug "Assert we are not running under OpenVZ"
+
+  virtualization_type="$(hostnamectl status | grep Virtualization | awk '{print $2}')"
+  debug "Detected virtualization type: '${virtualization_type}'"
+  if isset "${virtualization_type}" && [[ "${virtualization_type}" == "openvz" ]]; then
+    fail "Servers with OpenVZ virtualization are not supported"
   fi
-}
-
-
-assert_isp_manager_not_installed(){
-  if database_exists roundcube; then
-    debug "ISP Manager database detected"
-    fail "$(translate errors.isp_manager_installed)"
-  fi
-}
-
-
-assert_vesta_cp_not_installed(){
-  if database_exists admin_default; then
-    debug "Vesta CP database detected"
-    fail "$(translate errors.vesta_cp_installed)"
-  fi
-}
-
-
-database_exists(){
-  local database="${1}"
-  debug "Check if database ${database} exists"
-  mysql -Nse 'show databases' 2>/dev/null | tr '\n' ' ' | grep -Pq "${database}"
 }
 
 assert_running_on_supported_centos(){
@@ -2506,40 +2540,6 @@ assert_centos_release_is_supportded(){
   fi
 }
 
-assert_apache_not_installed(){
-  if is_installed httpd; then
-    fail "$(translate errors.apache_installed)"
-  fi
-}
-
-assert_server_ip_is_valid() {
-  if ! valid_ip "${SERVER_IP}"; then
-    fail "$(translate 'errors.cant_detect_server_ip')"
-  fi
-}
-
-valid_ip(){
-  local value="${1}"
-  [[ "$value" =~  ^[[:digit:]]+(\.[[:digit:]]+){3}$ ]] && valid_ip_segments "$value"
-}
-
-
-valid_ip_segments(){
-  local ip="${1}"
-  local segments
-  IFS='.' read -r -a segments <<< "${ip}"
-  for segment in "${segments[@]}"; do
-    if ! valid_ip_segment "${segment}"; then
-      return "${FAILURE_RESULT}"
-    fi
-  done
-}
-
-valid_ip_segment(){
-  local ip_segment="${1}"
-  [ "$ip_segment" -ge 0 ] && [ "$ip_segment" -le 255 ]
-}
-
 stage2(){
   debug "Starting stage 2: make some asserts"
   if [[ "${KCTL_IN_KCTL}" != "" ]]; then
@@ -2557,6 +2557,46 @@ stage2(){
   assert_thp_deactivatable
   assert_server_ip_is_valid
   assert_architecture_is_valid
+}
+
+read_inventory(){
+  detect_inventory_path
+  if isset "${DETECTED_INVENTORY_PATH}"; then
+    parse_inventory "${DETECTED_INVENTORY_PATH}"
+  fi
+}
+
+parse_inventory() {
+  local file="${1}"
+  debug "Found inventory file ${file}, reading defaults from it"
+  while IFS="" read -r line; do
+    if [[ "$line" =~ = ]]; then
+      parse_line_from_inventory_file "$line"
+    fi
+  done < "${file}"
+}
+
+parse_line_from_inventory_file(){
+  local line="${1}"
+  local quoted_string_regex="^'.*'\$"
+  IFS="=" read -r var_name value <<< "$line"
+  if [[ "$var_name" != "db_restore_path" ]]; then
+    if [[ "${value}" =~ ${quoted_string_regex} ]]; then
+      value_without_quotes="${value:1:-1}"
+      value="${value_without_quotes}"
+    fi
+    if empty "${VARS[$var_name]}"; then
+      VARS[$var_name]=$value
+      debug "# read '$var_name' from inventory"
+    else
+      debug "# $var_name is set from options, skip inventory value"
+    fi
+    if [[ "${var_name}" =~ passw ]]; then
+      debug "  $var_name=***MASKED***"
+    else
+      debug "  $var_name=${VARS[$var_name]}"
+    fi
+  fi
 }
 
 assert_upgrade_allowed() {
@@ -2659,46 +2699,6 @@ setup_default_value() {
   fi
 }
 
-read_inventory(){
-  detect_inventory_path
-  if isset "${DETECTED_INVENTORY_PATH}"; then
-    parse_inventory "${DETECTED_INVENTORY_PATH}"
-  fi
-}
-
-parse_inventory() {
-  local file="${1}"
-  debug "Found inventory file ${file}, reading defaults from it"
-  while IFS="" read -r line; do
-    if [[ "$line" =~ = ]]; then
-      parse_line_from_inventory_file "$line"
-    fi
-  done < "${file}"
-}
-
-parse_line_from_inventory_file(){
-  local line="${1}"
-  local quoted_string_regex="^'.*'\$"
-  IFS="=" read -r var_name value <<< "$line"
-  if [[ "$var_name" != "db_restore_path" ]]; then
-    if [[ "${value}" =~ ${quoted_string_regex} ]]; then
-      value_without_quotes="${value:1:-1}"
-      value="${value_without_quotes}"
-    fi
-    if empty "${VARS[$var_name]}"; then
-      VARS[$var_name]=$value
-      debug "# read '$var_name' from inventory"
-    else
-      debug "# $var_name is set from options, skip inventory value"
-    fi
-    if [[ "${var_name}" =~ passw ]]; then
-      debug "  $var_name=***MASKED***"
-    else
-      debug "  $var_name=${VARS[$var_name]}"
-    fi
-  fi
-}
-
 stage3(){
   debug "Starting stage 3: read values from inventory file"
   read_inventory
@@ -2723,22 +2723,6 @@ get_ssh_port(){
   fi
   debug "Detected ssh port: ${ssh_port}"
   echo "${ssh_port}"
-}
-
-DEFAULT_SSH_PORT="22"
-
-detect_sshd_port() {
-  local port
-  if ! is_ci_mode && is_installed ss; then
-    debug "Detecting sshd port"
-    port=$(ss -l -4 -p -n | grep -w tcp | grep -w sshd | awk '{ print $5 }' | awk -F: '{ print $2 }' | head -n1)
-    debug "Detected sshd port: ${port}"
-  fi
-  if empty "${port}"; then
-    debug "Reset detected sshd port to 22"
-    port="${DEFAULT_SSH_PORT}"
-  fi
-  echo "${port}"
 }
 
 write_inventory_file(){
@@ -2843,29 +2827,26 @@ print_line_to_inventory_file() {
   echo "$line" >> "$INVENTORY_PATH"
 }
 
+DEFAULT_SSH_PORT="22"
+
+detect_sshd_port() {
+  local port
+  if ! is_ci_mode && is_installed ss; then
+    debug "Detecting sshd port"
+    port=$(ss -l -4 -p -n | grep -w tcp | grep -w sshd | awk '{ print $5 }' | awk -F: '{ print $2 }' | head -n1)
+    debug "Detected sshd port: ${port}"
+  fi
+  if empty "${port}"; then
+    debug "Reset detected sshd port to 22"
+    port="${DEFAULT_SSH_PORT}"
+  fi
+  echo "${port}"
+}
+
 stage4() {
   debug "Starting stage 4: generate inventory file (running mode is ${RUNNING_MODE})."
   upgrades.run_upgrade_checkpoints 'early'
   write_inventory_file
-}
-
-FASTESTMIROR_CONF_PATH="/etc/yum/pluginconf.d/fastestmirror.conf"
-
-disable_fastestmirror(){
-  local disabling_message="Disabling mirrors in repo files"
-  local disabling_command="sed -i -e 's/^#baseurl/baseurl/g; s/^mirrorlist/#mirrorlist/g;'  /etc/yum.repos.d/*"
-  run_command "${disabling_command}" "${disabling_message}" "hide_output"
-
-  if [[ "$(get_centos_major_release)" == "7" ]] && is_fastestmirror_enabled; then
-    disabling_message="Disabling fastestmirror plugin on Centos7"
-    disabling_command="sed -i -e 's/^enabled=1/enabled=0/g' /etc/yum/pluginconf.d/fastestmirror.conf"
-    run_command "${disabling_command}" "${disabling_message}" "hide_output"
-  fi
-}
-
-is_fastestmirror_enabled() {
-  file_exists "${FASTESTMIROR_CONF_PATH}" && \
-      grep -q '^enabled=1' "${FASTESTMIROR_CONF_PATH}"
 }
 
 install_ansible() {
@@ -2916,6 +2897,15 @@ install_core_packages.switch_to_centos8_stream() {
   run_command "dnf distro-sync -y" "  Syncing distro"
 }
 
+install_kctl() {
+  install_kctl.install_components_env
+  install_kctl.preinstall_kctl
+  install_kctl.install_kctl_files
+  install_kctl.install_components
+
+  system.users.create "${KEITARO_SUPPORT_USER}" "${KEITARO_SUPPORT_HOME_DIR}"
+}
+
 disable_selinux() {
   if [[ "$(get_selinux_status)" == "Enforcing" ]]; then
     run_command 'setenforce 0' 'Disabling Selinux' 'hide_output'
@@ -2930,57 +2920,122 @@ get_selinux_status(){
   getenforce
 }
 
-install_kctl() {
-  install_kctl.install_components_env
-  install_kctl.preinstall_kctl
-  install_kctl.install_kctl_files
-  install_kctl.install_components
+install_kctl.install_components() {
+  systemd.update_units
 
-  system.users.create "${KEITARO_SUPPORT_USER}" "${KEITARO_SUPPORT_HOME_DIR}"
-}
-clean_packages_metadata() {
-  if empty "$WITHOUTH_YUM_UPDATE"; then
-    run_command "yum clean all" "Cleaninig yum meta" "hide_output"
-  fi
-}
-
-PATH_TO_CONTAINERS_DIR="/var/lib/containers/"
-
-install_kctl.clean_podman_fs() {
-  local msg cmd
-
-  if versions.lt "${INSTALLED_VERSION}" '2.43.0'; then
-    msg="Skip resetting podman - current kctl v${INSTALLED_VERSION} is too old."
-    msg="${msg} Upgrade kctl and then run \`RESET_PODMAN=true kctl rescue\`"
-    print_with_color "${msg}" 'yellow'; debug "${msg}"
-    return
+  if is_running_in_rescue_mode; then
+    install_kctl.clean_podman_fs
   fi
 
-  if [[ "${RESET_PODMAN:-}" == "" ]]; then
-    msg="Skip resetting podman - RESET_PODMAN is not set. Run \`RESET_PODMAN=true kctl rescue\`"
-    print_with_color "${msg}" 'yellow'; debug "${msg}"
-    return
+  if [[ ! -f "${PATH_TO_APPLIED_ENV}" ]]; then
+    touch "${PATH_TO_APPLIED_ENV}"
   fi
 
-  msg='Resetting podman'; print_with_color "${msg}" 'yellow'; debug "${msg}"
+  for component in $(components.list_all); do
+    if install_kctl.need_to_install_component "${component}"; then
+      install_kctl.install_component "${component}"
+    fi
 
-  for component in $(components.list_all | tac); do
-    components.with_services_do "${component}" "stop"
+    if install_kctl.need_to_stop_services "${component}"; then
+      components.with_services_do "${component}" 'stop'
+    fi
+
+    if install_kctl.need_to_start_services "${component}"; then
+      components.with_services_do "${component}" 'start'
+    fi
+
+    if install_kctl.need_to_enable_services "${component}"; then
+      components.with_services_do "${component}" 'enable'
+    fi
   done
-  systemd.stop_service 'podman'
+}
 
-  cmd="mount"
-  cmd="${cmd} | { grep -F ${PATH_TO_CONTAINERS_DIR} || [[ \$? == 1 ]] ; }"
-  cmd="${cmd} | awk '/^shm/ {print \$3}'"
-  cmd="${cmd} | xargs --no-run-if-empty umount"
-  run_command "${cmd}" 'Unmounting Podman SHM entries'
+install_kctl.is_component_upgradeable() {
+  local component="${1}"
+  is_running_in_rescue_mode || { is_running_in_upgrade_mode && components.is_changed "${component}"; }
+}
 
-  cmd="rm -rf ${PATH_TO_CONTAINERS_DIR}"
-  run_command "${cmd}" 'Removing Podman FS entries'
+install_kctl.need_to_install_component() {
+  local component="${1}"
+  # We wan't reinstall kctl binaries
+  [[ "${component}" != "kctl" ]] \
+    && { is_running_in_install_mode || install_kctl.is_component_upgradeable "${component}"; }
+}
 
-  msg='Podman reset'; print_with_color "${msg}" 'green'; debug "${msg}"
+install_kctl.install_component() {
+  local component="${1}" image
 
-  systemd.start_service 'podman'
+  image="$(components.read_var "${component}" 'image')"
+
+  if [[ "${image}" != "" ]]; then
+    components.install_image "${component}"
+  else
+    components.install_binaries "${component}"
+  fi
+}
+
+install_kctl.need_to_enable_services() {
+  local component="${1}"
+  [[ "${component}" != 'nginx-starting-page' ]]
+}
+
+install_kctl.need_to_stop_services() {
+  local component="${1}"
+  install_kctl.is_component_upgradeable "${component}" \
+    && ! { [[ "${component}" == "kctld" ]] && [[ "${KCTLD_MODE}" == "true" ]]; }
+}
+
+install_kctl.need_to_start_services() {
+  local component="${1}"
+  { is_running_in_install_mode && [[ "${component}" != "nginx" ]] && [[ "${component}" != "roadrunner" ]]; } \
+    || { install_kctl.is_component_upgradeable "${component}" && [[ "${component}" != 'nginx-starting-page' ]]; }
+}
+
+install_kctl.install_kctl_files() {
+  local provivsion_directory msg
+
+  preinstalled_kctl_directory="$(components.detect_directory "${KCTL_COMPONENT}")"
+  msg="Installing kctl from ${preinstalled_kctl_directory}"
+  debug "${msg}"; print_with_color "${msg}" "blue"
+  install_kctl.install_kctl_files.install_binaries "${preinstalled_kctl_directory}"
+  install_kctl.install_kctl_files.install_configs "${preinstalled_kctl_directory}"
+}
+
+install_kctl.install_kctl_files.install_binaries() {
+  local preinstalled_kctl_directory="${1}"
+
+  install "${preinstalled_kctl_directory}"/bin/* "${KCTL_BIN_DIR}"/
+
+  for existing_file_path in "${KCTL_BIN_DIR}"/*; do
+    local file_name="${existing_file_path##*/}"
+    ln -s -f "${existing_file_path}" "/usr/local/bin/${file_name}"
+  done
+
+  install -m 0755 "${preinstalled_kctl_directory}/files/bin/"* "${ROOT_PREFIX}/usr/local/bin/"
+}
+
+install_kctl.install_kctl_files.install_configs() {
+  local preinstalled_kctl_directory="${1}"
+
+  mkdir -p "${ROOT_PREFIX}/etc/keitaro/env/components/"
+  mkdir -p "${ROOT_PREFIX}/etc/keitaro/config/"
+  mkdir -p "${ROOT_PREFIX}/etc/nginx/"
+  mkdir -p "${ROOT_PREFIX}/etc/containers/registries.conf.d/"
+
+  install -m 0444 "${preinstalled_kctl_directory}/files/etc/sudoers.d"/* "${ROOT_PREFIX}/etc/sudoers.d/"
+  install -m 0755 "${preinstalled_kctl_directory}/files/etc/cron.daily"/* "${ROOT_PREFIX}/etc/cron.daily/"
+  install -m 0644 "${preinstalled_kctl_directory}/files/etc/cron.d"/* "${ROOT_PREFIX}/etc/cron.d/"
+  install -m 0644 "${preinstalled_kctl_directory}/files/etc/systemd/system"/* "${ROOT_PREFIX}/etc/systemd/system/"
+  install -m 0644 "${preinstalled_kctl_directory}/files/etc/keitaro/env/components"/* "${ROOT_PREFIX}/etc/keitaro/env/components/"
+  install -m 0644 "${preinstalled_kctl_directory}/files/etc/keitaro/config"/*.env "${ROOT_PREFIX}/etc/keitaro/config/"
+  install -m 0644 "${preinstalled_kctl_directory}/files/etc/logrotate.d"/* "${ROOT_PREFIX}/etc/logrotate.d"/
+  install -m 0644 "${preinstalled_kctl_directory}/files/etc/nginx"/* "${ROOT_PREFIX}/etc/nginx/"
+  install -m 0644 "${preinstalled_kctl_directory}/files/etc/containers"/nodocker "${ROOT_PREFIX}/etc/containers/"
+
+  if [[ "$(get_centos_major_release)" != "7" ]]; then
+    install -m 0644 "${preinstalled_kctl_directory}/files/etc/containers/registries.conf.d"/* \
+            "${ROOT_PREFIX}/etc/containers/registries.conf.d/"
+  fi
 }
 
 install_kctl.preinstall_kctl() {
@@ -3020,6 +3075,45 @@ install_kctl.preinstall_kctl() {
   KCTL_IN_KCTL=true "${path_to_preinstalled_kctl}/bin/kctl-install" -${installer_mode}
 
   exit
+}
+
+PATH_TO_CONTAINERS_DIR="/var/lib/containers/"
+
+install_kctl.clean_podman_fs() {
+  local msg cmd
+
+  if versions.lt "${INSTALLED_VERSION}" '2.43.0'; then
+    msg="Skip resetting podman - current kctl v${INSTALLED_VERSION} is too old."
+    msg="${msg} Upgrade kctl and then run \`RESET_PODMAN=true kctl rescue\`"
+    print_with_color "${msg}" 'yellow'; debug "${msg}"
+    return
+  fi
+
+  if [[ "${RESET_PODMAN:-}" == "" ]]; then
+    msg="Skip resetting podman - RESET_PODMAN is not set. Run \`RESET_PODMAN=true kctl rescue\`"
+    print_with_color "${msg}" 'yellow'; debug "${msg}"
+    return
+  fi
+
+  msg='Resetting podman'; print_with_color "${msg}" 'yellow'; debug "${msg}"
+
+  for component in $(components.list_all | tac); do
+    components.with_services_do "${component}" "stop"
+  done
+  systemd.stop_service 'podman'
+
+  cmd="mount"
+  cmd="${cmd} | { grep -F ${PATH_TO_CONTAINERS_DIR} || [[ \$? == 1 ]] ; }"
+  cmd="${cmd} | awk '/^shm/ {print \$3}'"
+  cmd="${cmd} | xargs --no-run-if-empty umount"
+  run_command "${cmd}" 'Unmounting Podman SHM entries'
+
+  cmd="rm -rf ${PATH_TO_CONTAINERS_DIR}"
+  run_command "${cmd}" 'Removing Podman FS entries'
+
+  msg='Podman reset'; print_with_color "${msg}" 'green'; debug "${msg}"
+
+  systemd.start_service 'podman'
 }
 
 install_kctl.install_components_env() {
@@ -3139,122 +3233,28 @@ install_kctl.install_components_env.install() {
   install -m 0600 "${path_to_new_components_env}" "${PATH_TO_ENV_DIR}"
 }
 
-install_kctl.install_kctl_files() {
-  local provivsion_directory msg
+FASTESTMIROR_CONF_PATH="/etc/yum/pluginconf.d/fastestmirror.conf"
 
-  preinstalled_kctl_directory="$(components.detect_directory "${KCTL_COMPONENT}")"
-  msg="Installing kctl from ${preinstalled_kctl_directory}"
-  debug "${msg}"; print_with_color "${msg}" "blue"
-  install_kctl.install_kctl_files.install_binaries "${preinstalled_kctl_directory}"
-  install_kctl.install_kctl_files.install_configs "${preinstalled_kctl_directory}"
-}
+disable_fastestmirror(){
+  local disabling_message="Disabling mirrors in repo files"
+  local disabling_command="sed -i -e 's/^#baseurl/baseurl/g; s/^mirrorlist/#mirrorlist/g;'  /etc/yum.repos.d/*"
+  run_command "${disabling_command}" "${disabling_message}" "hide_output"
 
-install_kctl.install_kctl_files.install_binaries() {
-  local preinstalled_kctl_directory="${1}"
-
-  install "${preinstalled_kctl_directory}"/bin/* "${KCTL_BIN_DIR}"/
-
-  for existing_file_path in "${KCTL_BIN_DIR}"/*; do
-    local file_name="${existing_file_path##*/}"
-    ln -s -f "${existing_file_path}" "/usr/local/bin/${file_name}"
-  done
-
-  install -m 0755 "${preinstalled_kctl_directory}/files/bin/"* "${ROOT_PREFIX}/usr/local/bin/"
-}
-
-install_kctl.install_kctl_files.install_configs() {
-  local preinstalled_kctl_directory="${1}"
-
-  mkdir -p "${ROOT_PREFIX}/etc/keitaro/env/components/"
-  mkdir -p "${ROOT_PREFIX}/etc/keitaro/config/"
-  mkdir -p "${ROOT_PREFIX}/etc/nginx/"
-  mkdir -p "${ROOT_PREFIX}/etc/containers/registries.conf.d/"
-
-  install -m 0444 "${preinstalled_kctl_directory}/files/etc/sudoers.d"/* "${ROOT_PREFIX}/etc/sudoers.d/"
-  install -m 0755 "${preinstalled_kctl_directory}/files/etc/cron.daily"/* "${ROOT_PREFIX}/etc/cron.daily/"
-  install -m 0644 "${preinstalled_kctl_directory}/files/etc/cron.d"/* "${ROOT_PREFIX}/etc/cron.d/"
-  install -m 0644 "${preinstalled_kctl_directory}/files/etc/systemd/system"/* "${ROOT_PREFIX}/etc/systemd/system/"
-  install -m 0644 "${preinstalled_kctl_directory}/files/etc/keitaro/env/components"/* "${ROOT_PREFIX}/etc/keitaro/env/components/"
-  install -m 0644 "${preinstalled_kctl_directory}/files/etc/keitaro/config"/*.env "${ROOT_PREFIX}/etc/keitaro/config/"
-  install -m 0644 "${preinstalled_kctl_directory}/files/etc/logrotate.d"/* "${ROOT_PREFIX}/etc/logrotate.d"/
-  install -m 0644 "${preinstalled_kctl_directory}/files/etc/nginx"/* "${ROOT_PREFIX}/etc/nginx/"
-  install -m 0644 "${preinstalled_kctl_directory}/files/etc/containers"/nodocker "${ROOT_PREFIX}/etc/containers/"
-
-  if [[ "$(get_centos_major_release)" != "7" ]]; then
-    install -m 0644 "${preinstalled_kctl_directory}/files/etc/containers/registries.conf.d"/* \
-            "${ROOT_PREFIX}/etc/containers/registries.conf.d/"
+  if [[ "$(get_centos_major_release)" == "7" ]] && is_fastestmirror_enabled; then
+    disabling_message="Disabling fastestmirror plugin on Centos7"
+    disabling_command="sed -i -e 's/^enabled=1/enabled=0/g' /etc/yum/pluginconf.d/fastestmirror.conf"
+    run_command "${disabling_command}" "${disabling_message}" "hide_output"
   fi
 }
 
-install_kctl.install_components() {
-  systemd.update_units
-
-  if is_running_in_rescue_mode; then
-    install_kctl.clean_podman_fs
+is_fastestmirror_enabled() {
+  file_exists "${FASTESTMIROR_CONF_PATH}" && \
+      grep -q '^enabled=1' "${FASTESTMIROR_CONF_PATH}"
+}
+clean_packages_metadata() {
+  if empty "$WITHOUTH_YUM_UPDATE"; then
+    run_command "yum clean all" "Cleaninig yum meta" "hide_output"
   fi
-
-  if [[ ! -f "${PATH_TO_APPLIED_ENV}" ]]; then
-    touch "${PATH_TO_APPLIED_ENV}"
-  fi
-
-  for component in $(components.list_all); do
-    if install_kctl.need_to_install_component "${component}"; then
-      install_kctl.install_component "${component}"
-    fi
-
-    if install_kctl.need_to_stop_services "${component}"; then
-      components.with_services_do "${component}" 'stop'
-    fi
-
-    if install_kctl.need_to_start_services "${component}"; then
-      components.with_services_do "${component}" 'start'
-    fi
-
-    if install_kctl.need_to_enable_services "${component}"; then
-      components.with_services_do "${component}" 'enable'
-    fi
-  done
-}
-
-install_kctl.is_component_upgradeable() {
-  local component="${1}"
-  is_running_in_rescue_mode || { is_running_in_upgrade_mode && components.is_changed "${component}"; }
-}
-
-install_kctl.need_to_install_component() {
-  local component="${1}"
-  # We wan't reinstall kctl binaries
-  [[ "${component}" != "kctl" ]] \
-    && { is_running_in_install_mode || install_kctl.is_component_upgradeable "${component}"; }
-}
-
-install_kctl.install_component() {
-  local component="${1}" image
-
-  image="$(components.read_var "${component}" 'image')"
-
-  if [[ "${image}" != "" ]]; then
-    components.install_image "${component}"
-  else
-    components.install_binaries "${component}"
-  fi
-}
-
-install_kctl.need_to_enable_services() {
-  local component="${1}"
-  [[ "${component}" != 'nginx-starting-page' ]]
-}
-
-install_kctl.need_to_stop_services() {
-  local component="${1}"
-  install_kctl.is_component_upgradeable "${component}" \
-    && ! { [[ "${component}" == "kctld" ]] && [[ "${KCTLD_MODE}" == "true" ]]; }
-}
-
-install_kctl.need_to_start_services() {
-  local component="${1}"
-  { is_running_in_install_mode && [[ "${component}" != "nginx" ]] && [[ "${component}" != "roadrunner" ]]; } \
-    || { install_kctl.is_component_upgradeable "${component}" && [[ "${component}" != 'nginx-starting-page' ]]; }
 }
 
 stage5() {
@@ -3622,31 +3622,6 @@ earlyupgrade_checkpoint_2_42_1() {
   packages.actualize_rpm
 }
 
-earlyupgrade_checkpoint_2_43_6() {
-  local cmd applied_kctld_version var
-  if [[ -f /etc/keitaro/env/components-applied.env ]] && [[ ! -f /etc/keitaro/env/applied.env ]]; then
-    local cmd="sed 's/^/APPLIED_/g' /etc/keitaro/env/components-applied.env > /etc/keitaro/env/applied.env"
-    upgrades.run_upgrade_checkpoint_command "${cmd}" "Converting applied components env file"
-  fi
-  if [[ "${KCTLD_MODE}" == "" ]]; then
-    debug "Running in usual mode - skip unsetting vars"
-    return
-  fi
-  applied_kctld_version="$(components.read_applied_var 'kctld' 'version')"
-  debug "Detected applied kctld version '${applied_kctld_version}'"
-  if [[ "${applied_kctld_version}" != "" ]] && [[ "${applied_kctld_version}" != "0.3.2" ]]; then
-    return
-  fi
-  upgrades.print_checkpoint_info "Unsetting variables"
-  debug 'unset KEITARO_VERSION' && unset "KEITARO_VERSION"
-  for component in $(components.list_all); do
-    for suffix in "url" "version" "image"; do
-      local var; var="$(components.get_var_name "${component}" "${suffix}")"
-      debug "unset ${var}" && unset "${var}"
-    done
-  done
-}
-
 earlyupgrade_checkpoint_2_40_0() {
   earlyupgrade_checkpoint_2_40_0.move_nginx_file \
           /etc/nginx/conf.d/vhosts.conf /etc/nginx/conf.d/keitaro.conf
@@ -3754,33 +3729,29 @@ earlyupgrade_checkpoint_2_41_10.remove_old_ansible() {
   fi
 }
 
-postupgrade_checkpoint_2_42_8() {
-  local cmd
-
-  cmd="nohup /etc/cron.daily/kctl-certificates-renew &> /dev/null &"
-  upgrades.run_upgrade_checkpoint_command "${cmd}" "Schedule renewing certificates"
-
-  cmd="(${KCTL_BIN_DIR}/kctl podman stop certbot || true)"
-  cmd="${cmd} && (${KCTL_BIN_DIR}/kctl podman prune certbot || true)"
-  upgrades.run_upgrade_checkpoint_command "${cmd}" "Prune certbot containers"
-}
-
-postupgrade_checkpoint_2_43_6() {
-  if [[ -f /etc/keitaro/env/components-applied.env ]]; then
-    local cmd="rm -f /etc/keitaro/env/components-applied.env"
-    upgrades.run_upgrade_checkpoint_command "${cmd}" "Remove old env files"
+earlyupgrade_checkpoint_2_43_6() {
+  local cmd applied_kctld_version var
+  if [[ -f /etc/keitaro/env/components-applied.env ]] && [[ ! -f /etc/keitaro/env/applied.env ]]; then
+    local cmd="sed 's/^/APPLIED_/g' /etc/keitaro/env/components-applied.env > /etc/keitaro/env/applied.env"
+    upgrades.run_upgrade_checkpoint_command "${cmd}" "Converting applied components env file"
   fi
-}
-
-postupgrade_checkpoint_2_42_6() {
-  run_command "${KCTL_BIN_DIR}/kctl certificates fix-le-accounts" "Fixing LE accounts" hide_output
-}
-
-postupgrade_checkpoint_2_42_9() {
-  local dir='/etc/keitaro/config'
-  local cmd="rm -rf ${dir}/components.env ${dir}/components.local.env ${dir}/components"
-
-  upgrades.run_upgrade_checkpoint_command "${cmd}" "Remove old env files"
+  if [[ "${KCTLD_MODE}" == "" ]]; then
+    debug "Running in usual mode - skip unsetting vars"
+    return
+  fi
+  applied_kctld_version="$(components.read_applied_var 'kctld' 'version')"
+  debug "Detected applied kctld version '${applied_kctld_version}'"
+  if [[ "${applied_kctld_version}" != "" ]] && [[ "${applied_kctld_version}" != "0.3.2" ]]; then
+    return
+  fi
+  upgrades.print_checkpoint_info "Unsetting variables"
+  debug 'unset KEITARO_VERSION' && unset "KEITARO_VERSION"
+  for component in $(components.list_all); do
+    for suffix in "url" "version" "image"; do
+      local var; var="$(components.get_var_name "${component}" "${suffix}")"
+      debug "unset ${var}" && unset "${var}"
+    done
+  done
 }
 
 postupgrade_checkpoint_2_41_7() {
@@ -3857,14 +3828,43 @@ postupgrade_checkpoint_2_41_7.set_ch_table_ttl() {
 }
 
 
+postupgrade_checkpoint_2_43_7() {
+  systemd.enable_and_start_service 'logrotate.timer'
+  systemd.enable_and_start_service 'podman'
+}
+
+postupgrade_checkpoint_2_42_6() {
+  run_command "${KCTL_BIN_DIR}/kctl certificates fix-le-accounts" "Fixing LE accounts" hide_output
+}
+
 postupgrade_checkpoint_2_41_10() {
   rm -f /etc/keitaro/config/nginx.env
   find /var/www/keitaro/var/ -maxdepth 1 -type f -name 'stats.json-*.tmp' -delete || true
 }
 
-postupgrade_checkpoint_2_43_7() {
-  systemd.enable_and_start_service 'logrotate.timer'
-  systemd.enable_and_start_service 'podman'
+postupgrade_checkpoint_2_42_9() {
+  local dir='/etc/keitaro/config'
+  local cmd="rm -rf ${dir}/components.env ${dir}/components.local.env ${dir}/components"
+
+  upgrades.run_upgrade_checkpoint_command "${cmd}" "Remove old env files"
+}
+
+postupgrade_checkpoint_2_43_6() {
+  if [[ -f /etc/keitaro/env/components-applied.env ]]; then
+    local cmd="rm -f /etc/keitaro/env/components-applied.env"
+    upgrades.run_upgrade_checkpoint_command "${cmd}" "Remove old env files"
+  fi
+}
+
+postupgrade_checkpoint_2_42_8() {
+  local cmd
+
+  cmd="nohup /etc/cron.daily/kctl-certificates-renew &> /dev/null &"
+  upgrades.run_upgrade_checkpoint_command "${cmd}" "Schedule renewing certificates"
+
+  cmd="(${KCTL_BIN_DIR}/kctl podman stop certbot || true)"
+  cmd="${cmd} && (${KCTL_BIN_DIR}/kctl podman prune certbot || true)"
+  upgrades.run_upgrade_checkpoint_command "${cmd}" "Prune certbot containers"
 }
 
 preupgrade_checkpoint_2_41_8() {
