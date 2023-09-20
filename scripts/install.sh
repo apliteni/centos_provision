@@ -60,7 +60,7 @@ fi
 CACHING_PERIOD_IN_DAYS="2"
 CACHING_PERIOD_IN_MINUTES="$((CACHING_PERIOD_IN_DAYS * 24 * 60))"
 
-RELEASE_VERSION='2.43.7'
+RELEASE_VERSION='2.43.8'
 VERY_FIRST_VERSION='0.9'
 
 KCTL_IN_KCTL="${KCTL_IN_KCTL:-}"
@@ -223,40 +223,6 @@ assert_installed(){
   fi
 }
 
-USE_NEW_ALGORITHM_FOR_INSTALLATION_CHECK_SINCE="2.12"
-KEITARO_LOCK_FILEPATH="${TRACKER_ROOT}/var/install.lock"
-
-assert_keitaro_not_installed() {
-  debug 'Ensure keitaro is not installed yet'
-  if is_keitaro_installed; then
-    debug 'NOK: keitaro is already installed'
-    print_with_color "$(translate messages.keitaro_already_installed)" 'yellow'
-    clean_up
-    print_url
-    exit "${KEITARO_ALREADY_INSTALLED_RESULT}"
-  else
-    debug 'OK: keitaro is not installed yet'
-  fi
-}
-
-is_keitaro_installed() {
-   if isset "${VARS['installed']}"; then
-     debug "installed flag is set"
-     return ${SUCCESS_RESULT}
-   fi
-   if use_old_algorithm_for_installation_check; then
-     debug "Current version is ${INSTALLED_VERSION} - using old algorithm (check '${KEITARO_LOCK_FILEPATH}' file)"
-     if file_exists "${KEITARO_LOCK_FILEPATH}"; then
-       return ${SUCCESS_RESULT}
-     fi
-   fi
-   return ${FAILURE_RESULT}
-}
-
-use_old_algorithm_for_installation_check() {
-  versions.lte "${INSTALLED_VERSION}" "${USE_NEW_ALGORITHM_FOR_INSTALLATION_CHECK_SINCE}"
-}
-
 assert_no_another_process_running() {
 
   if [[ "${KCTL_IN_KCTL}" != "" ]]; then
@@ -406,37 +372,6 @@ cache.download() {
   fi
 }
 
-assert_upgrade_allowed() {
-  if ! is_keitaro_installed; then
-    echo 'Running in upgrade mode - skip checking nginx configs'
-    debug "Can't upgrade because installation process is not finished yet"
-    fail "$(translate errors.cant_upgrade)"
-  fi
-  if need_to_check_nginx_configs; then
-    debug 'Running in fast upgrade mode - checking nginx configs'
-    ensure_nginx_config_correct
-    debug 'Everything looks good, running upgrade'
-  else
-    debug 'Skip checking nginx configs'
-  fi
-}
-
-need_to_check_nginx_configs() {
-  is_running_in_upgrade_mode && [[ "${SKIP_NGINX_CHECK:-}" == "" ]]
-}
-
-ensure_nginx_config_correct() {
-  if is_installed "nginx"; then
-    run_command "nginx -t" "$(translate 'messages.validate_nginx_conf')" "hide_output"
-  else
-    if podman ps | grep -q nginx; then
-      run_command "${KCTL_BIN_DIR}/kctl run nginx -t" "$(translate 'messages.validate_nginx_conf')" "hide_output"
-    else
-      print_with_color "Can't find running nginx container, skipping nginx config checks", 'yellow'
-    fi
-  fi
-}
-
 detect_installed_version(){
   if empty "${INSTALLED_VERSION}"; then
     detect_inventory_path
@@ -546,19 +481,25 @@ components.create_volumes() {
   group="$(components.read_var "${component}" "group")"
 
   for volume in ${volumes}; do
-    if [[ ${volume} =~ /$ ]] && [[ ! -d ${volume} ]]; then
-      components.create_volumes.create_volume_dir "${volume}" "${user}" "${group}"
-    fi
+    components.create_volumes.init_volume "${volume}" "${user}" "${group}"
   done
 }
 
-components.create_volumes.create_volume_dir() {
-  local volume="${1}" user="${2}" group="${3}"
+components.create_volumes.init_volume() {
+  local volume="${1}" user="${2}" group="${3}" host_path
+  host_path="${volume%:*}"
 
-  mkdir -p "${volume}"
+  if [[ ! "${host_path}" =~ /$ ]]; then
+    return
+  fi
+
+  if [[ ! -d "${host_path}" ]]; then
+    mkdir -p "${host_path}"
+  fi
+
   for own_volume_prefix in ${COMPONENTS_OWN_VOLUMES_PREFIXES}; do
-    if [[ "${volume}" =~ ^${own_volume_prefix} ]]; then
-      chown "${user}:${group}" "${volume}"
+    if [[ "${host_path}" =~ ^${own_volume_prefix} ]]; then
+      chown "${user}:${group}" "${host_path}"
     fi
   done
 }
@@ -611,7 +552,11 @@ components.install_binaries() {
   src_dir="$(components.detect_directory "${component}")"
   dst_dir="$(components.read_var "${component}" "working_directory")"
 
-  components.assert_var_is_set "${component}" "working_directory"
+  if [[ "${dst_dir}" == "" ]]; then
+    msg="Working directory for ${component} v${version} is not set, skip installing files"
+    debug "${msg}"; print_with_color "${msg}" 'blue'
+    return
+  fi
 
   msg="Installing ${component} v${version} from ${src_dir} to ${dst_dir}"
   debug "${msg}"; print_with_color "${msg}" 'blue'
@@ -644,28 +589,8 @@ components.install_image() {
 components.is_changed() {
   local component="${1}"
 
-  is_running_in_rescue_mode ||
-    is_running_in_install_mode ||
-    components.is_variable_changed "${component}" 'image' ||
+  components.is_variable_changed "${component}" 'image' ||
     components.is_variable_changed "${component}" 'url'
-}
-
-components.is_variable_changed() {
-  local component="${1}" variable="${2}" value applied_value
-  local component_skip_cache_variable
-  component_skip_cache_variable="$(components.get_var_name "${component}" "skip_cache")"
-  local component_skip_cache="${!component_skip_cache_variable:-}"
-  local skip_cache
-
-  if [[ "${SKIP_CACHE:-}" != "" ]] || [[ "${!component_skip_cache_variable:-}" != "" ]]; then
-    skip_cache='1'
-  fi
-
-  value="$(components.read_var "${component}" "${variable}")"
-  applied_value="$(components.read_applied_var "${component}" "${variable}")"
-
-  [[ "${value}" != "" ]] && \
-    { [[ "${skip_cache}" == '1' ]] || [[ "${value}" != "${applied_value}" ]]; }
 }
 
 components.is_common_variable() {
@@ -676,11 +601,21 @@ components.is_common_variable() {
     || [[ "${variable}" == 'url' ]]
 }
 
+components.is_variable_changed() {
+  local component="${1}" variable="${2}" value applied_value
+
+  value="$(components.read_var "${component}" "${variable}")"
+  applied_value="$(components.read_applied_var "${component}" "${variable}")"
+
+  [[ "${value}" != "" ]] && \
+    { [[ "${SKIP_CACHE}" != '' ]] || [[ "${value}" != "${applied_value}" ]]; }
+}
+
 components.list_all() {
   echo "${NGINX_STARTING_PAGE_COMPONENT}"
   echo "${KCTL_COMPONENT}"
-  echo "${REDIS_COMPONENT}"
   echo "${SYSTEM_REDIS_COMPONENT}"
+  echo "${REDIS_COMPONENT}"
   echo "${KCTLD_COMPONENT}"
   echo "${MARIADB_COMPONENT}"
   echo "${CLICKHOUSE_COMPONENT}"
@@ -771,7 +706,10 @@ components.run() {
   volumes="$(components.read_var "${component}" "volumes")"
 
   for volume_path in ${volumes}; do
-    volumes_args="${volumes_args} -v ${volume_path}:${volume_path}"
+    local source_path="${volume_path%:*}"
+    local target_path="${volume_path##*:}"
+
+    volumes_args="${volumes_args} -v ${source_path}:${target_path}"
   done
 
   cmd="podman run --rm --net host --name ${component} --cap-add CAP_NET_BIND_SERVICE"
@@ -876,6 +814,14 @@ components.is_alive() {
   timeout 0.1 bash -c "</dev/tcp/${host}/${port}" &>/dev/null
 }
 
+components.with_services_do() {
+  local component="${1}" action="${2}"
+
+  for service in $(components.read_var "${component}" "services"); do
+    systemd.with_service_do "${service}" "${action}"
+  done
+}
+
 env_files.assert_var_is_set() {
   local path_to_env_file="${1}" var_name="${2}"
 
@@ -926,7 +872,7 @@ env_files.read_var() {
     cmd="source ${path_to_env_file}"
 
     if [[ -f "${path_to_local_env_file}" ]]; then
-      cmd="${cmd} && source ${path_to_env_file}"
+      cmd="${cmd} && source ${path_to_local_env_file}"
     fi
 
     cmd="${cmd} && echo \"\$${var_name}\""
@@ -1639,9 +1585,8 @@ systemd.disable_and_stop_service() {
 }
 
 systemd.disable_service() {
-  local name="${1}"
-  local command="systemctl disable ${name}"
-  run_command "${command}" "Disabling SystemD service ${name}" "hide_output"
+  local service_name="${1}"
+  systemd.with_service_do "${service_name}" 'disable'
 }
 
 systemd.enable_and_start_service() {
@@ -1651,37 +1596,59 @@ systemd.enable_and_start_service() {
 }
 
 systemd.enable_service() {
-  local name="${1}"
-  local command="systemctl enable ${name}"
-  run_command "${command}" "Enabling SystemD service ${name}" "hide_output"
+  local service_name="${1}"
+  systemd.with_service_do "${service_name}" 'enable'
+}
+
+systemd.is_service_installed() {
+  local service_name="${1}" full_service_name
+
+  if [[ "${service_name}" =~ \. ]]; then
+    full_service_name="${service_name}"
+  else
+    full_service_name="${service_name}.service"
+  fi
+
+  systemctl list-unit-files | awk '{print $1}' | grep -q "^${full_service_name}$"
 }
 
 systemd.reload_service() {
-  local name="${1}"
-  local command="systemctl reload ${name}"
-  run_command "${command}" "Reloading SystemD service ${name}" "hide_output"
+  local service_name="${1}"
+  systemd.with_service_do "${service_name}" 'reload'
 }
 
 systemd.restart_service() {
-  local name="${1}"
-  local command="systemctl restart ${name}"
-  run_command "${command}" "Restarting SystemD service ${name}" "hide_output"
+  local service_name="${1}"
+  systemd.with_service_do "${service_name}" 'restart'
 }
 
 systemd.start_service() {
-  local name="${1}"
-  local command="systemctl start ${name}"
-  run_command "${command}" "Starting SystemD service ${name}" "hide_output"
+  local service_name="${1}"
+  systemd.with_service_do "${service_name}" 'start'
 }
 
 systemd.stop_service() {
-  local name="${1}"
-  local command="systemctl stop ${name}"
-  run_command "${command}" "Stopping SystemD service ${name}" "hide_output"
+  local service_name="${1}"
+  systemd.with_service_do "${service_name}" 'stop'
 }
 
 systemd.update_units() {
   run_command 'systemctl daemon-reload' "Updating SystemD units" "hide_output"
+}
+
+systemd.with_service_do() {
+  local service_name="${1}" systemctl_command="${2}" action_description msg
+
+  action_description="$(strings.add_suffix "${systemctl_command}" 'ing')"
+
+  if systemd.is_service_installed "${service_name}"; then
+    run_command "systemctl ${systemctl_command} ${service_name}" \
+                "${action_description^} SystemD service ${service_name}" \
+                "hide_output"
+  else
+    msg="Skip ${action_description} ${service_name} because it is not installed"
+    print_with_color "${msg}" 'yellow'; debug "${msg}"
+  fi
 }
 
 tracker.get_update_channel() {
@@ -1724,6 +1691,64 @@ join_by(){
   shift
   printf "%s" "${@/#/${delimiter}}"
 }
+
+VOWELS="aeiou"
+
+# From https://speakspeak.com/resources/english-grammar-rules/english-spelling-rules/double-consonant-ed-ing
+
+strings.add_suffix() {
+  local value="${1}" suffix="${2}"
+
+  if stings.add_suffix.remove_last_char "${value}"; then
+    echo "${value:0: -1}${suffix}"
+    return
+  fi
+  if strings.add_suffix.dublicate_last_char "${value}"; then
+    echo "${value}${value: -1}${suffix}" 
+  else
+    echo "${value}${suffix}"
+  fi
+}
+
+# We remove last e:
+#   enable – enabling, enabled.
+stings.add_suffix.remove_last_char() {
+  local value="${1}"
+  [[ "${value}" =~ e$ ]]
+}
+
+# We double the final letter when a one-syllable verb ends in consonant + vowel + consonant.
+# stop, rob, sit 	stopping, stopped, robbing, robbed, sitting
+#
+# We double the final letter when a word has more than one syllable, and when the final syllable is stressed in speech.
+# beGIN, preFER 	beginning, preferring, preferred
+#
+# We do not double the final letter if the final syllable is not stressed
+# LISten, HAPpen 	listening, listened, happening, happened
+#
+# We duplicate last letter if word contains less then 3 syllables
+strings.add_suffix.dublicate_last_char() {
+  local value="${1}"
+
+  ! stings.add_suffix.keep_last_char "${value}" \
+    && [[ ! "${value}" =~ [${VOWELS}]+[^${VOWELS}]+[$VOWELS]+[^${VOWELS}]+[$VOWELS]+ ]]
+}
+
+# We do not double final letter when:
+#   w or y at the end of words:
+#     play – playing, played; snow - snowing, snowed;
+#   a word ends in two consonants (-rt, -rn, etc.):
+#     start – starting, started; burn - burn, burned;
+#   two vowels come directly before it:
+#     remain – remaining, remained.
+stings.add_suffix.keep_last_char() {
+  local value="${1}"
+  [[ "${value}" =~ [${VOWELS}]$ ]] \
+    || [[ "${value}" =~ [wy]$ ]] \
+    || [[ "${value}" =~ [^${VOWELS}][^${VOWELS}]$ ]] \
+    || [[ "${value}" =~ [${VOWELS}][${VOWELS}][^${VOWELS}]$ ]]
+}
+
 
 strings.mask() {
   local var_name="${1}" var_value="${2}"
@@ -2100,6 +2125,20 @@ get_ansible_package_name() {
   fi
 }
 
+MINIMAL_RPM_VERSION='4.14'
+
+packages.actualize_rpm() {
+  local rpm_version
+
+  if [[ "$(get_centos_major_release)" == "8" ]]; then
+    rpm_version="$(rpm  --version | awk '{print $3}')"
+
+    if versions.lt "${rpm_version}" "${MINIMAL_RPM_VERSION}"; then
+      upgrade_package 'rpm'
+    fi
+  fi
+}
+
 get_config_value(){
   local var="${1}"
   local file="${2}"
@@ -2146,11 +2185,10 @@ declare -A REPLAY_ROLE_TAGS_SINCE=(
 
   ['install-clickhouse']='2.43.4'
   ['install-mariadb']='2.41.10'
-  ['install-redis']='2.41.10'
 
   ['tune-nginx']='2.43.4'
 
-  ['install-php']='2.30.10'
+  ['install-php']='2.43.7'
   ['setup-php']='2.38.2'
   ['tune-roadrunner']='2.41.10'
   ['tune']='2.42.9'
@@ -2504,20 +2542,86 @@ valid_ip_segment(){
 
 stage2(){
   debug "Starting stage 2: make some asserts"
-  if [[ "${KCTL_IN_KCTL}" == "" ]]; then
-    assert_no_another_process_running
-    assert_caller_root
-    assert_apache_not_installed
-    assert_running_on_supported_centos
-    assert_systemctl_works_properly
-    assert_has_enough_ram
-    assert_has_enough_free_disk_space
-    assert_not_running_under_openvz
-    assert_pannels_not_installed
-    assert_thp_deactivatable
-    assert_server_ip_is_valid
-    assert_architecture_is_valid
+  if [[ "${KCTL_IN_KCTL}" != "" ]]; then
+    return
   fi
+  assert_no_another_process_running
+  assert_caller_root
+  assert_apache_not_installed
+  assert_running_on_supported_centos
+  assert_systemctl_works_properly
+  assert_has_enough_ram
+  assert_has_enough_free_disk_space
+  assert_not_running_under_openvz
+  assert_pannels_not_installed
+  assert_thp_deactivatable
+  assert_server_ip_is_valid
+  assert_architecture_is_valid
+}
+
+assert_upgrade_allowed() {
+  if ! is_keitaro_installed; then
+    echo 'Running in upgrade mode - skip checking nginx configs'
+    debug "Can't upgrade because installation process is not finished yet"
+    fail "$(translate errors.cant_upgrade)"
+  fi
+  if need_to_check_nginx_configs; then
+    debug 'Running in fast upgrade mode - checking nginx configs'
+    ensure_nginx_config_correct
+    debug 'Everything looks good, running upgrade'
+  else
+    debug 'Skip checking nginx configs'
+  fi
+}
+
+need_to_check_nginx_configs() {
+  is_running_in_upgrade_mode && [[ "${SKIP_NGINX_CHECK:-}" == "" ]]
+}
+
+ensure_nginx_config_correct() {
+  if is_installed "nginx"; then
+    run_command "nginx -t" "$(translate 'messages.validate_nginx_conf')" "hide_output"
+  else
+    if podman ps | grep -q nginx; then
+      run_command "${KCTL_BIN_DIR}/kctl run nginx -t" "$(translate 'messages.validate_nginx_conf')" "hide_output"
+    else
+      print_with_color "Can't find running nginx container, skipping nginx config checks", 'yellow'
+    fi
+  fi
+}
+
+USE_NEW_ALGORITHM_FOR_INSTALLATION_CHECK_SINCE="2.12"
+KEITARO_LOCK_FILEPATH="${TRACKER_ROOT}/var/install.lock"
+
+assert_keitaro_not_installed() {
+  debug 'Ensure keitaro is not installed yet'
+  if is_keitaro_installed; then
+    debug 'NOK: keitaro is already installed'
+    print_with_color "$(translate messages.keitaro_already_installed)" 'yellow'
+    clean_up
+    stage9.print_url
+    exit "${KEITARO_ALREADY_INSTALLED_RESULT}"
+  else
+    debug 'OK: keitaro is not installed yet'
+  fi
+}
+
+is_keitaro_installed() {
+   if isset "${VARS['installed']}"; then
+     debug "installed flag is set"
+     return ${SUCCESS_RESULT}
+   fi
+   if use_old_algorithm_for_installation_check; then
+     debug "Current version is ${INSTALLED_VERSION} - using old algorithm (check '${KEITARO_LOCK_FILEPATH}' file)"
+     if file_exists "${KEITARO_LOCK_FILEPATH}"; then
+       return ${SUCCESS_RESULT}
+     fi
+   fi
+   return ${FAILURE_RESULT}
+}
+
+use_old_algorithm_for_installation_check() {
+  versions.lte "${INSTALLED_VERSION}" "${USE_NEW_ALGORITHM_FOR_INSTALLATION_CHECK_SINCE}"
 }
 
 setup_vars() {
@@ -2599,9 +2703,11 @@ stage3(){
   debug "Starting stage 3: read values from inventory file"
   read_inventory
   setup_vars
+
   if [[ "${KCTL_IN_KCTL}" != "" ]]; then
     return
   fi
+
   if is_running_in_install_mode; then
     assert_keitaro_not_installed
   else
@@ -2777,35 +2883,20 @@ install_core_packages() {
     install_core_packages.switch_to_centos8_stream
   fi
 
-  if [[ "$(get_centos_major_release)" == "8" ]] && is_running_in_install_mode; then
-    upgrade_package 'rpm'
-  fi
+  packages.actualize_rpm
 
   install_packages epel-release file tar curl crontabs logrotate jq unzip
   install_core_packages.install_podman
 }
 
 install_core_packages.install_podman() {
-  if is_package_installed 'podman-docker'; then
-    return
-  fi
-
   install_package 'podman-docker'
 
   if [[ "$(get_centos_major_release)" == "8" ]]; then
     install_package 'libseccomp-devel'
   fi
 
-  if [[ "$(get_centos_major_release)" != "7" ]]; then
-    install_core_packages.install_podman.start_and_enable_podman_unit
-  fi
-}
-
-install_core_packages.install_podman.start_and_enable_podman_unit() {
-  if ! systemctl is-active 'podman' &>/dev/null; then
-    systemd.enable_service 'podman'
-    systemd.restart_service 'podman'
-  fi
+  systemd.enable_and_start_service 'podman'
 }
 
 install_core_packages.is_centos8_distro() {
@@ -2844,7 +2935,6 @@ install_kctl() {
   install_kctl.preinstall_kctl
   install_kctl.install_kctl_files
   install_kctl.install_components
-  install_kctl.configure_systemd
 
   system.users.create "${KEITARO_SUPPORT_USER}" "${KEITARO_SUPPORT_HOME_DIR}"
 }
@@ -2854,48 +2944,43 @@ clean_packages_metadata() {
   fi
 }
 
-install_kctl.configure_systemd() {
-  systemd.update_units
-  systemd.enable_service 'schedule-fs-check-on-boot'
-  systemd.restart_service 'schedule-fs-check-on-boot'
-  systemd.enable_service 'disable-thp'
-  systemd.restart_service 'disable-thp'
-  systemd.enable_service 'kctl-monitor'
-  systemd.restart_service 'kctl-monitor'
+PATH_TO_CONTAINERS_DIR="/var/lib/containers/"
 
-  for component in $(components.list_all); do
-    if [[ "${component}" =~ nginx ]]; then
-      continue
-    fi
-    if ! install_kctl.can_auto_manage_systemd "${component}"; then
-      continue
-    fi
-    if components.is_variable_changed "${component}" 'image'; then
-      systemd.stop_service "${component}"
-    fi
-    systemd.enable_service "${component}"
-    systemd.start_service "${component}"
-  done
+install_kctl.clean_podman_fs() {
+  local msg cmd
 
-  systemd.enable_service "nginx"
-
-  systemd.enable_service 'kctld-worker'
-  systemd.enable_service 'kctld-server'
-  if [[ "${KCTLD_MODE}" == "true" ]]; then
-    systemd.start_service 'kctld-worker'
-    systemd.start_service 'kctld-server'
-  else
-    systemd.restart_service 'kctld-worker'
-    systemd.restart_service 'kctld-server'
+  if versions.lt "${INSTALLED_VERSION}" '2.43.0'; then
+    msg="Skip resetting podman - current kctl v${INSTALLED_VERSION} is too old."
+    msg="${msg} Upgrade kctl and then run \`RESET_PODMAN=true kctl rescue\`"
+    print_with_color "${msg}" 'yellow'; debug "${msg}"
+    return
   fi
-}
 
-install_kctl.can_auto_manage_systemd() {
-  local component="${1}" image port
-  image="$(components.read_var "${component}" 'image')"
-  port="$(components.read_var "${component}" 'port')"
+  if [[ "${RESET_PODMAN:-}" == "" ]]; then
+    msg="Skip resetting podman - RESET_PODMAN is not set. Run \`RESET_PODMAN=true kctl rescue\`"
+    print_with_color "${msg}" 'yellow'; debug "${msg}"
+    return
+  fi
 
-  [[ "${image}" != "" ]] && [[ "${port}" != "" ]]
+  msg='Resetting podman'; print_with_color "${msg}" 'yellow'; debug "${msg}"
+
+  for component in $(components.list_all | tac); do
+    components.with_services_do "${component}" "stop"
+  done
+  systemd.stop_service 'podman'
+
+  cmd="mount"
+  cmd="${cmd} | { grep -F ${PATH_TO_CONTAINERS_DIR} || [[ \$? == 1 ]] ; }"
+  cmd="${cmd} | awk '/^shm/ {print \$3}'"
+  cmd="${cmd} | xargs --no-run-if-empty umount"
+  run_command "${cmd}" 'Unmounting Podman SHM entries'
+
+  cmd="rm -rf ${PATH_TO_CONTAINERS_DIR}"
+  run_command "${cmd}" 'Removing Podman FS entries'
+
+  msg='Podman reset'; print_with_color "${msg}" 'green'; debug "${msg}"
+
+  systemd.start_service 'podman'
 }
 
 install_kctl.preinstall_kctl() {
@@ -3102,11 +3187,10 @@ install_kctl.install_kctl_files.install_configs() {
 }
 
 install_kctl.install_components() {
-  if is_running_in_install_mode; then
-    components.install_image "nginx-starting-page"
-    systemd.update_units
-    systemd.disable_and_stop_service "nginx"
-    systemd.enable_and_start_service "nginx-starting-page"
+  systemd.update_units
+
+  if is_running_in_rescue_mode; then
+    install_kctl.clean_podman_fs
   fi
 
   if [[ ! -f "${PATH_TO_APPLIED_ENV}" ]]; then
@@ -3114,25 +3198,63 @@ install_kctl.install_components() {
   fi
 
   for component in $(components.list_all); do
-    if components.is_changed "${component}"; then
-      install_kctl.reinstall_component "${component}"
+    if install_kctl.need_to_install_component "${component}"; then
+      install_kctl.install_component "${component}"
+    fi
+
+    if install_kctl.need_to_stop_services "${component}"; then
+      components.with_services_do "${component}" 'stop'
+    fi
+
+    if install_kctl.need_to_start_services "${component}"; then
+      components.with_services_do "${component}" 'start'
+    fi
+
+    if install_kctl.need_to_enable_services "${component}"; then
+      components.with_services_do "${component}" 'enable'
     fi
   done
 }
 
-
-install_kctl.reinstall_component() {
+install_kctl.is_component_upgradeable() {
   local component="${1}"
+  is_running_in_rescue_mode || { is_running_in_upgrade_mode && components.is_changed "${component}"; }
+}
 
-  if [[ "${component}" =~ nignx ]] || [[ "${component}" == 'kctl' ]]; then
-    debug "Skip reinstalling ${component}"
-  elif [[ "${component}" == 'tracker' ]]; then
-    components.preinstall 'tracker'
-  elif components.is_variable_changed "${component}" 'image'; then
+install_kctl.need_to_install_component() {
+  local component="${1}"
+  # We wan't reinstall kctl binaries
+  [[ "${component}" != "kctl" ]] \
+    && { is_running_in_install_mode || install_kctl.is_component_upgradeable "${component}"; }
+}
+
+install_kctl.install_component() {
+  local component="${1}" image
+
+  image="$(components.read_var "${component}" 'image')"
+
+  if [[ "${image}" != "" ]]; then
     components.install_image "${component}"
   else
     components.install_binaries "${component}"
   fi
+}
+
+install_kctl.need_to_enable_services() {
+  local component="${1}"
+  [[ "${component}" != 'nginx-starting-page' ]]
+}
+
+install_kctl.need_to_stop_services() {
+  local component="${1}"
+  install_kctl.is_component_upgradeable "${component}" \
+    && ! { [[ "${component}" == "kctld" ]] && [[ "${KCTLD_MODE}" == "true" ]]; }
+}
+
+install_kctl.need_to_start_services() {
+  local component="${1}"
+  { is_running_in_install_mode && [[ "${component}" != "nginx" ]] && [[ "${component}" != "roadrunner" ]]; } \
+    || { install_kctl.is_component_upgradeable "${component}" && [[ "${component}" != 'nginx-starting-page' ]]; }
 }
 
 stage5() {
@@ -3151,6 +3273,7 @@ stage5() {
 
 stage6() {
   debug "Running stage6"
+  upgrades.run_upgrade_checkpoints 'pre'
 }
 
 json2dict() {
@@ -3291,35 +3414,6 @@ json2dict() {
   printf "( %s)" "$(tokenize | json_parse || true)"
 }
 
-stage7.enable_services() {
-  return
-}
-
-stage7.write_inventory_on_finish() {
-  debug "Signaling successful installation by writing 'installed' flag to the inventory file"
-  VARS['db_password']=""
-  VARS['db_restore_path']=""
-  VARS['db_root_password']=""
-  VARS['installed']=true
-  VARS['installer_version']="${RELEASE_VERSION}"
-  VARS['license_key']=""
-  VARS['salt']=""
-  VARS['postback_key']=""
-  reset_changeable_values
-  write_inventory_file
-}
-
-
-reset_changeable_values() {
-  for key in "${!VARS[@]}"; do
-    if [[ "${key}" =~ _changed$ ]]; then
-      debug "resetting key VARS[${key}]"
-      VARS["${key}"]=""
-    fi
-  done
-}
-
-
 ANSIBLE_TASK_HEADER="^TASK \[(.*)\].*"
 ANSIBLE_TASK_FAILURE_HEADER="^(fatal|failed): \[localhost\]: [A-Z]+! => "
 ANSIBLE_LAST_TASK_LOG="${WORKING_DIR}/ansible_last_task.log"
@@ -3448,27 +3542,62 @@ print_field_content() {
 
 stage7() {
   debug "Starting stage 7: run ansible playbook"
-  upgrades.run_upgrade_checkpoints 'pre'
   stage7.run_ansible_playbook
   clean_up
-  upgrades.run_upgrade_checkpoints 'post'
-  stage7.enable_services
-  components.save_applied
-  stage7.write_inventory_on_finish
+}
+
+stage8.enable_services() {
+  if is_running_in_install_mode; then
+    systemd.enable_and_start_service 'podman'
+    systemd.enable_and_start_service 'logrotate.timer'
+  fi
   systemd.restart_service kctl-monitor
 }
 
-print_successful_message(){
-  print_with_color "$(translate "messages.successful_${RUNNING_MODE}")" 'green'
-  print_with_color "$(translate 'messages.visit_url')" 'green'
-  print_url
+stage8.write_inventory_on_finish() {
+  debug "Signaling successful installation by writing 'installed' flag to the inventory file"
+  VARS['db_password']=""
+  VARS['db_restore_path']=""
+  VARS['db_root_password']=""
+  VARS['installed']=true
+  VARS['installer_version']="${RELEASE_VERSION}"
+  VARS['license_key']=""
+  VARS['salt']=""
+  VARS['postback_key']=""
+  stage8.reset_changeable_values
+  write_inventory_file
 }
 
-print_url() {
+
+stage8.reset_changeable_values() {
+  for key in "${!VARS[@]}"; do
+    if [[ "${key}" =~ _changed$ ]]; then
+      debug "resetting key VARS[${key}]"
+      VARS["${key}"]=""
+    fi
+  done
+}
+
+
+stage8() {
+  debug "Starting stage 8: run post upgrade/install steps"
+  upgrades.run_upgrade_checkpoints 'post'
+  components.save_applied
+  stage8.write_inventory_on_finish
+  stage8.enable_services
+}
+
+stage9.print_successful_message(){
+  print_with_color "$(translate "messages.successful_${RUNNING_MODE}")" 'green'
+  print_with_color "$(translate 'messages.visit_url')" 'green'
+  stage9.print_url
+}
+
+stage9.print_url() {
   print_with_color "http://${SERVER_IP}/admin" 'light.green'
 }
 
-upgrade_packages() {
+stage9.upgrade_packages() {
   if empty "$WITHOUTH_YUM_UPDATE"; then
     debug "Upgrading packages"
     if [[ "$(get_centos_major_release)" == "7" ]]; then
@@ -3479,19 +3608,18 @@ upgrade_packages() {
   fi
 }
 
-stage8() {
-  debug "Starting stage 8: finalyze installation"
-  upgrade_packages
-  print_successful_message
+stage9() {
+  debug "Starting stage 9: Upgrade packages"
+
+  stage9.upgrade_packages
+  stage9.print_successful_message
 }
 
 earlyupgrade_checkpoint_2_42_1() {
   upgrades.run_upgrade_checkpoint_command "rm -f /etc/logrotate.d/{redis,mysql}" \
             "Removing old logrotate configs"
 
-  if [[ "$(get_centos_major_release)" == "8" ]]; then
-    upgrade_package 'rpm'
-  fi
+  packages.actualize_rpm
 }
 
 earlyupgrade_checkpoint_2_43_6() {
@@ -3517,7 +3645,6 @@ earlyupgrade_checkpoint_2_43_6() {
       debug "unset ${var}" && unset "${var}"
     done
   done
-
 }
 
 earlyupgrade_checkpoint_2_40_0() {
@@ -3572,18 +3699,12 @@ earlyupgrade_checkpoint_2_40_0.remove_old_log_format_from_nginx_configs() {
 }
 
 earlyupgrade_checkpoint_2_40_0.disable_and_stop_services() {
-  if systemctl list-unit-files | grep -q redis.service; then
-    systemd.disable_and_stop_service 'redis'
-  fi
-  if systemctl list-unit-files | grep -q mariadb.service; then
-    systemd.disable_and_stop_service 'mariadb'
-  fi
-  if systemctl list-unit-files | grep -q nginx.service; then
-    systemd.disable_and_stop_service 'nginx'
-  fi
-  if systemctl list-unit-files | grep -q clickhouse.service; then
-    systemd.disable_and_stop_service 'clickhouse'
-  fi
+  for service in nginx redis mariadb clickhouse; do
+    local path_to_systemd_unit="/etc/systemd/system/${service}.service"
+    if [[ -f "${path_to_systemd_unit}" ]] && ! grep -wq kctl "${path_to_systemd_unit}"; then
+      systemd.stop_service "${service}"
+    fi
+  done
 }
 
 earlyupgrade_checkpoint_2_41_10() {
@@ -3741,6 +3862,11 @@ postupgrade_checkpoint_2_41_10() {
   find /var/www/keitaro/var/ -maxdepth 1 -type f -name 'stats.json-*.tmp' -delete || true
 }
 
+postupgrade_checkpoint_2_43_7() {
+  systemd.enable_and_start_service 'logrotate.timer'
+  systemd.enable_and_start_service 'podman'
+}
+
 preupgrade_checkpoint_2_41_8() {
   preupgrade_checkpoint_2_41_8.fix_db_engine
   preupgrade_checkpoint_2_41_8.fix_nginx_log_dir_permissions
@@ -3857,9 +3983,10 @@ main(){
   stage4                    # get and save vars to the inventory file
   pushd "${TMPDIR}" &> /dev/null
   stage5                    # install kctl* scripts and related packages
-  stage6                    # apply fixes
+  stage6                    # run pre upgrading steps
   stage7                    # run ansible playbook
-  stage8                    # upgrade packages
+  stage8                    # run post upgrading steps
+  stage9                    # upgrade packages
   popd &> /dev/null || true
 }
 

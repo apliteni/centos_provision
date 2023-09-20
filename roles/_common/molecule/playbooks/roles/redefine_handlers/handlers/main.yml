@@ -14,10 +14,6 @@
   debug:
     msg: handle 'restart mariadb' event
 
-- name: restart redis
-  debug:
-    msg: handle 'restart redis' event
-
 - name: restart nginx
   debug:
     msg: handle 'restart nginx' event

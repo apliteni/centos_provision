@@ -57,6 +57,11 @@
     enabled: false
   register: stop_nginx_starting_page
 
+- name: Sleep a bit
+  command: sleep 5
+  changed_when: false
+  when: stop_nginx_starting_page.changed
+
 - name: Start nginx
   service:
     name: nginx

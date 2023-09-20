@@ -58,7 +58,7 @@ fi
 CACHING_PERIOD_IN_DAYS="2"
 CACHING_PERIOD_IN_MINUTES="$((CACHING_PERIOD_IN_DAYS * 24 * 60))"
 
-RELEASE_VERSION='2.43.7'
+RELEASE_VERSION='2.43.8'
 VERY_FIRST_VERSION='0.9'
 
 KCTL_IN_KCTL="${KCTL_IN_KCTL:-}"
@@ -192,40 +192,6 @@ assert_installed(){
   if ! is_installed "$program"; then
     fail "$(translate "${error}")"
   fi
-}
-
-USE_NEW_ALGORITHM_FOR_INSTALLATION_CHECK_SINCE="2.12"
-KEITARO_LOCK_FILEPATH="${TRACKER_ROOT}/var/install.lock"
-
-assert_keitaro_not_installed() {
-  debug 'Ensure keitaro is not installed yet'
-  if is_keitaro_installed; then
-    debug 'NOK: keitaro is already installed'
-    print_with_color "$(translate messages.keitaro_already_installed)" 'yellow'
-    clean_up
-    print_url
-    exit "${KEITARO_ALREADY_INSTALLED_RESULT}"
-  else
-    debug 'OK: keitaro is not installed yet'
-  fi
-}
-
-is_keitaro_installed() {
-   if isset "${VARS['installed']}"; then
-     debug "installed flag is set"
-     return ${SUCCESS_RESULT}
-   fi
-   if use_old_algorithm_for_installation_check; then
-     debug "Current version is ${INSTALLED_VERSION} - using old algorithm (check '${KEITARO_LOCK_FILEPATH}' file)"
-     if file_exists "${KEITARO_LOCK_FILEPATH}"; then
-       return ${SUCCESS_RESULT}
-     fi
-   fi
-   return ${FAILURE_RESULT}
-}
-
-use_old_algorithm_for_installation_check() {
-  versions.lte "${INSTALLED_VERSION}" "${USE_NEW_ALGORITHM_FOR_INSTALLATION_CHECK_SINCE}"
 }
 
 assert_no_another_process_running() {
@@ -484,19 +450,25 @@ components.create_volumes() {
   group="$(components.read_var "${component}" "group")"
 
   for volume in ${volumes}; do
-    if [[ ${volume} =~ /$ ]] && [[ ! -d ${volume} ]]; then
-      components.create_volumes.create_volume_dir "${volume}" "${user}" "${group}"
-    fi
+    components.create_volumes.init_volume "${volume}" "${user}" "${group}"
   done
 }
 
-components.create_volumes.create_volume_dir() {
-  local volume="${1}" user="${2}" group="${3}"
+components.create_volumes.init_volume() {
+  local volume="${1}" user="${2}" group="${3}" host_path
+  host_path="${volume%:*}"
 
-  mkdir -p "${volume}"
+  if [[ ! "${host_path}" =~ /$ ]]; then
+    return
+  fi
+
+  if [[ ! -d "${host_path}" ]]; then
+    mkdir -p "${host_path}"
+  fi
+
   for own_volume_prefix in ${COMPONENTS_OWN_VOLUMES_PREFIXES}; do
-    if [[ "${volume}" =~ ^${own_volume_prefix} ]]; then
-      chown "${user}:${group}" "${volume}"
+    if [[ "${host_path}" =~ ^${own_volume_prefix} ]]; then
+      chown "${user}:${group}" "${host_path}"
     fi
   done
 }
@@ -549,7 +521,11 @@ components.install_binaries() {
   src_dir="$(components.detect_directory "${component}")"
   dst_dir="$(components.read_var "${component}" "working_directory")"
 
-  components.assert_var_is_set "${component}" "working_directory"
+  if [[ "${dst_dir}" == "" ]]; then
+    msg="Working directory for ${component} v${version} is not set, skip installing files"
+    debug "${msg}"; print_with_color "${msg}" 'blue'
+    return
+  fi
 
   msg="Installing ${component} v${version} from ${src_dir} to ${dst_dir}"
   debug "${msg}"; print_with_color "${msg}" 'blue'
@@ -582,28 +558,8 @@ components.install_image() {
 components.is_changed() {
   local component="${1}"
 
-  is_running_in_rescue_mode ||
-    is_running_in_install_mode ||
-    components.is_variable_changed "${component}" 'image' ||
+  components.is_variable_changed "${component}" 'image' ||
     components.is_variable_changed "${component}" 'url'
-}
-
-components.is_variable_changed() {
-  local component="${1}" variable="${2}" value applied_value
-  local component_skip_cache_variable
-  component_skip_cache_variable="$(components.get_var_name "${component}" "skip_cache")"
-  local component_skip_cache="${!component_skip_cache_variable:-}"
-  local skip_cache
-
-  if [[ "${SKIP_CACHE:-}" != "" ]] || [[ "${!component_skip_cache_variable:-}" != "" ]]; then
-    skip_cache='1'
-  fi
-
-  value="$(components.read_var "${component}" "${variable}")"
-  applied_value="$(components.read_applied_var "${component}" "${variable}")"
-
-  [[ "${value}" != "" ]] && \
-    { [[ "${skip_cache}" == '1' ]] || [[ "${value}" != "${applied_value}" ]]; }
 }
 
 components.is_common_variable() {
@@ -614,11 +570,21 @@ components.is_common_variable() {
     || [[ "${variable}" == 'url' ]]
 }
 
+components.is_variable_changed() {
+  local component="${1}" variable="${2}" value applied_value
+
+  value="$(components.read_var "${component}" "${variable}")"
+  applied_value="$(components.read_applied_var "${component}" "${variable}")"
+
+  [[ "${value}" != "" ]] && \
+    { [[ "${SKIP_CACHE}" != '' ]] || [[ "${value}" != "${applied_value}" ]]; }
+}
+
 components.list_all() {
   echo "${NGINX_STARTING_PAGE_COMPONENT}"
   echo "${KCTL_COMPONENT}"
-  echo "${REDIS_COMPONENT}"
   echo "${SYSTEM_REDIS_COMPONENT}"
+  echo "${REDIS_COMPONENT}"
   echo "${KCTLD_COMPONENT}"
   echo "${MARIADB_COMPONENT}"
   echo "${CLICKHOUSE_COMPONENT}"
@@ -709,7 +675,10 @@ components.run() {
   volumes="$(components.read_var "${component}" "volumes")"
 
   for volume_path in ${volumes}; do
-    volumes_args="${volumes_args} -v ${volume_path}:${volume_path}"
+    local source_path="${volume_path%:*}"
+    local target_path="${volume_path##*:}"
+
+    volumes_args="${volumes_args} -v ${source_path}:${target_path}"
   done
 
   cmd="podman run --rm --net host --name ${component} --cap-add CAP_NET_BIND_SERVICE"
@@ -814,6 +783,14 @@ components.is_alive() {
   timeout 0.1 bash -c "</dev/tcp/${host}/${port}" &>/dev/null
 }
 
+components.with_services_do() {
+  local component="${1}" action="${2}"
+
+  for service in $(components.read_var "${component}" "services"); do
+    systemd.with_service_do "${service}" "${action}"
+  done
+}
+
 env_files.assert_var_is_set() {
   local path_to_env_file="${1}" var_name="${2}"
 
@@ -864,7 +841,7 @@ env_files.read_var() {
     cmd="source ${path_to_env_file}"
 
     if [[ -f "${path_to_local_env_file}" ]]; then
-      cmd="${cmd} && source ${path_to_env_file}"
+      cmd="${cmd} && source ${path_to_local_env_file}"
     fi
 
     cmd="${cmd} && echo \"\$${var_name}\""
@@ -1865,6 +1842,7 @@ kctl_show_version() {
     echo "CPU Cores:      $(grep -c -w ^processor /proc/cpuinfo)"
     echo "Update Channel: $(env_files.read_var "${PATH_TO_SYSTEM_ENV}" "update_channel")"
     echo "OS:             $(kctl_show_version.get_pretty_os_name)"
+    echo "SELinux:        $(kctl_check_selinux_status)"
   else
     fail "$(translate 'errors.tracker_is_not_installed')"
   fi
@@ -1883,6 +1861,18 @@ kctl_show_version.show_component_version() {
 
 kctl_show_version.get_pretty_os_name() {
   env_files.read_var "/etc/os-release" "pretty_name"
+}
+
+kctl_check_selinux_status() {
+  if [ -x "$(command -v sestatus)" ]; then
+    if sestatus | grep -q "SELinux status:" | awk '{ print $NF}'| grep -i 'enabled'; then
+      echo -e "\e[31menabled ( Need to reboot )\e[0m"
+    else
+      echo "disabled"
+    fi
+  else
+    echo "not supported"
+  fi
 }
 
 kctl.get_user_id() {
@@ -2227,6 +2217,27 @@ kctl.update_channels() {
       exit 1
       ;;
   esac
+}
+
+kctl_check() {
+  local has_inactive=0
+
+  for component in $(components.list_all | grep -v nginx-starting-page); do
+    for service in $(components.read_var "${component}" "services"); do
+      printf 'Checking service %s .' "${service}"
+      if systemctl -q is-active "$service"; then
+        echo " OK"
+      else
+        echo " NOK"
+        echo "Service ${service} is inactive" >&2
+        has_inactive=1
+      fi
+    done
+  done
+  if [[ ${has_inactive} != 1 ]]; then
+    echo "Everything is ok"
+  fi
+  return $has_inactive
 }
 
 kctl_resolvers_usage() {
@@ -2654,23 +2665,98 @@ kctl.support_team_access() {
   esac
 }
 
-PATH_TO_CONTAINERS_JSON="/var/lib/containers/storage/overlay-containers/containers.json"
+PATHS_TO_CONTAINERS_JSON=(
+  "/var/lib/containers/storage/overlay-containers/containers.json"
+  "/var/lib/containers/storage/overlay-containers/volatile-containers.json"
+)
 
 kctl_podman.prune() {
   local container="${1}"
-  local container_json_regex="\"names\":[\"${container}\"]"
-
   kctl_podman.assert_component_is_supported "${container}"
 
-  if podman ps -a --format "{{.Names}}" | grep -qwF "${container}"; then
-    echo "Removing running ${container} container"
-    podman rm --force "${container}"
-  fi
+  kctl_podman.prune.safely_stop_container "${container}"
+  kctl_podman.prune.safely_remove_container "${container}"
+  kctl_podman.prune.safely_remove_container_storage "${container}"
+  kctl_podman.prune.safely_remove_container "${container}"
+  kctl_podman.prune.safely_remove_container_storage "${container}"
+  kctl_podman.prune.safely_remove_container_from_json "${container}"
+  kctl_podman.prune.safely_remove_container "${container}"
+}
 
-  if [[ -f "${PATH_TO_CONTAINERS_JSON}" ]] && grep -q -F "${container_json_regex}" "${PATH_TO_CONTAINERS_JSON}"; then
-    echo "Removing ${container} container's storage"
-    podman rm --force --storage "${container}"
+
+kctl_podman.prune.safely_stop_container() {
+  local container="${1}"
+
+  if podman ps -a --format "{{.Names}}" | grep -q "^${container}$"; then
+    kctl_podman.prune.stop_container "${container}" || true
   fi
+}
+
+kctl_podman.prune.stop_container() {
+  local container="${1}"
+
+  echo "Stopping container ${container}: \`podman stop ${container}\`"
+  podman stop "${container}"
+}
+
+kctl_podman.prune.safely_remove_container_storage() {
+  local container="${1}"
+  for path_to_containers_json in "${PATHS_TO_CONTAINERS_JSON[@]}"; do
+    if kctl_podman.prune.container_has_storage "${container}" "${path_to_containers_json}"; then
+      kctl_podman.prune.remove_container_storage "${container}" || true
+    fi
+  done
+}
+
+kctl_podman.prune.remove_container_storage() {
+  local container="${1}"
+
+  echo "Removing ${container} container's storage: \`podman rm --force --storage ${container}\`"
+  podman rm --force --storage "${container}"
+}
+
+kctl_podman.prune.safely_remove_container() {
+  local container="${1}"
+
+  if podman ps -a --format "{{.Names}}" | grep -q "^${container}$"; then
+    kctl_podman.prune.remove_container "${container}" || true
+  fi
+}
+
+kctl_podman.prune.remove_container() {
+  local container="${1}"
+
+  echo "Removing running ${container} container: \`podman rm --force ${container}\`"
+  podman rm --force "${container}"
+}
+
+kctl_podman.prune.safely_remove_container_from_json() {
+  local container="${1}"
+
+  for path_to_containers_json in "${PATHS_TO_CONTAINERS_JSON[@]}"; do
+    if kctl_podman.prune.container_has_storage "${container}" "${path_to_containers_json}"; then
+      kctl_podman.prune.remove_container_from_json "${container}" "${path_to_containers_json}" || true
+    fi
+  done
+}
+
+kctl_podman.prune.remove_container_from_json() {
+  local container="${1}" path_to_containers_json="${2}"
+  local jq_query="del(.[] | select(.names[] == \"${container}\"))"
+
+  cmd="jq -Mre '${jq_query}' ${path_to_containers_json} > ${path_to_containers_json}.new"
+  cmd="${cmd} && mv ${path_to_containers_json}.new ${path_to_containers_json}"
+
+  echo "Removing container from json: \`${cmd}\`"
+  jq -Mre "${jq_query}" "${path_to_containers_json}" > "${path_to_containers_json}.new" \
+    && mv "${path_to_containers_json}.new" "${path_to_containers_json}"
+}
+
+kctl_podman.prune.container_has_storage() {
+  local container="${1}" path_to_containers_json="${2}"
+  local jq_query="[ .[] | select( .names[] == \"${container}\") ] | .[0]"
+
+  [[ -f "${path_to_containers_json}" ]] && jq -Mre "${jq_query}" "${path_to_containers_json}" > /dev/null
 }
 
 kctl_podman.start() {
@@ -2703,6 +2789,7 @@ kctl_podman.start_service() {
     var_name="$(components.get_var_name "${component}" 'port')"
     extra_args="${extra_args} --env ${var_name}=${port}"
   fi
+  components.create_volumes "${component}"
 
   components.run "${component}" "${extra_args}"
 }
@@ -2722,14 +2809,14 @@ kctl_podman.usage(){
 }
 
 kctl_podman.stop() {
-  local component="${1}"
+  local container="${1}"
 
-  kctl_podman.assert_component_is_supported "${component}"
+  kctl_podman.assert_component_is_supported "${container}"
 
   echo "Stopping ${container} container"
-  /usr/bin/podman stop "${component}"
+  podman stop "${container}"
 
-  kctl_podman.prune "${component}"
+  kctl_podman.prune "${container}"
 }
 
 kctl_podman.assert_component_is_supported() {
@@ -2990,6 +3077,9 @@ case "${action}" in
     ;;
   run)
     LOG_PATH=/dev/null kctl_run "${@}"
+    ;;
+  check)
+    LOG_PATH=/dev/null kctl_check
     ;;
   reset|password-change)
     kctl_reset

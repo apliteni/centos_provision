@@ -9,11 +9,6 @@
     name: mariadb
     state: restarted
 
-- name: restart redis
-  service:
-    name: redis
-    state: restarted
-
 - name: restart php-fpm
   service:
     name: "{{ php_version }}-php-fpm"

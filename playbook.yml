@@ -26,7 +26,6 @@
     - {role: 'php/install-php',                       tags: 'install-php'}                            # noqa yaml
     - {role: 'php/tune-php',                          tags: 'tune-php,                      tune'}    # noqa yaml
     - {role: 'php/tune-roadrunner',                   tags: 'tune-roadrunner,               tune'}    # noqa yaml
-    - {role: 'redis/install-redis',                   tags: 'install-redis,                 tune'}    # noqa yaml
     - {role: 'tracker/fix-permissions',               tags: 'fix-permissions,               always'}  # noqa yaml
     - {role: 'tracker/install-tracker',               tags: 'install-tracker,               always'}  # noqa yaml
     - {role: 'tracker/setup-tracker',                 tags: 'setup-tracker,                 always'}  # noqa yaml

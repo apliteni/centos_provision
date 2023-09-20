@@ -59,7 +59,7 @@ fi
 CACHING_PERIOD_IN_DAYS="2"
 CACHING_PERIOD_IN_MINUTES="$((CACHING_PERIOD_IN_DAYS * 24 * 60))"
 
-RELEASE_VERSION='2.43.7'
+RELEASE_VERSION='2.43.8'
 VERY_FIRST_VERSION='0.9'
 
 KCTL_IN_KCTL="${KCTL_IN_KCTL:-}"
@@ -253,40 +253,6 @@ assert_installed(){
   fi
 }
 
-USE_NEW_ALGORITHM_FOR_INSTALLATION_CHECK_SINCE="2.12"
-KEITARO_LOCK_FILEPATH="${TRACKER_ROOT}/var/install.lock"
-
-assert_keitaro_not_installed() {
-  debug 'Ensure keitaro is not installed yet'
-  if is_keitaro_installed; then
-    debug 'NOK: keitaro is already installed'
-    print_with_color "$(translate messages.keitaro_already_installed)" 'yellow'
-    clean_up
-    print_url
-    exit "${KEITARO_ALREADY_INSTALLED_RESULT}"
-  else
-    debug 'OK: keitaro is not installed yet'
-  fi
-}
-
-is_keitaro_installed() {
-   if isset "${VARS['installed']}"; then
-     debug "installed flag is set"
-     return ${SUCCESS_RESULT}
-   fi
-   if use_old_algorithm_for_installation_check; then
-     debug "Current version is ${INSTALLED_VERSION} - using old algorithm (check '${KEITARO_LOCK_FILEPATH}' file)"
-     if file_exists "${KEITARO_LOCK_FILEPATH}"; then
-       return ${SUCCESS_RESULT}
-     fi
-   fi
-   return ${FAILURE_RESULT}
-}
-
-use_old_algorithm_for_installation_check() {
-  versions.lte "${INSTALLED_VERSION}" "${USE_NEW_ALGORITHM_FOR_INSTALLATION_CHECK_SINCE}"
-}
-
 assert_no_another_process_running() {
 
   if [[ "${KCTL_IN_KCTL}" != "" ]]; then
@@ -365,37 +331,6 @@ certbot.register_account() {
   cmd="${cmd} --agree-tos --non-interactive --register-unsafely-without-email"
 
   run_command "${cmd}" "Creating certbot account" "hide_output"
-}
-
-assert_upgrade_allowed() {
-  if ! is_keitaro_installed; then
-    echo 'Running in upgrade mode - skip checking nginx configs'
-    debug "Can't upgrade because installation process is not finished yet"
-    fail "$(translate errors.cant_upgrade)"
-  fi
-  if need_to_check_nginx_configs; then
-    debug 'Running in fast upgrade mode - checking nginx configs'
-    ensure_nginx_config_correct
-    debug 'Everything looks good, running upgrade'
-  else
-    debug 'Skip checking nginx configs'
-  fi
-}
-
-need_to_check_nginx_configs() {
-  is_running_in_upgrade_mode && [[ "${SKIP_NGINX_CHECK:-}" == "" ]]
-}
-
-ensure_nginx_config_correct() {
-  if is_installed "nginx"; then
-    run_command "nginx -t" "$(translate 'messages.validate_nginx_conf')" "hide_output"
-  else
-    if podman ps | grep -q nginx; then
-      run_command "${KCTL_BIN_DIR}/kctl run nginx -t" "$(translate 'messages.validate_nginx_conf')" "hide_output"
-    else
-      print_with_color "Can't find running nginx container, skipping nginx config checks", 'yellow'
-    fi
-  fi
 }
 
 detect_installed_version(){
@@ -1072,6 +1007,64 @@ join_by(){
   shift
   printf "%s" "${@/#/${delimiter}}"
 }
+
+VOWELS="aeiou"
+
+# From https://speakspeak.com/resources/english-grammar-rules/english-spelling-rules/double-consonant-ed-ing
+
+strings.add_suffix() {
+  local value="${1}" suffix="${2}"
+
+  if stings.add_suffix.remove_last_char "${value}"; then
+    echo "${value:0: -1}${suffix}"
+    return
+  fi
+  if strings.add_suffix.dublicate_last_char "${value}"; then
+    echo "${value}${value: -1}${suffix}" 
+  else
+    echo "${value}${suffix}"
+  fi
+}
+
+# We remove last e:
+#   enable – enabling, enabled.
+stings.add_suffix.remove_last_char() {
+  local value="${1}"
+  [[ "${value}" =~ e$ ]]
+}
+
+# We double the final letter when a one-syllable verb ends in consonant + vowel + consonant.
+# stop, rob, sit 	stopping, stopped, robbing, robbed, sitting
+#
+# We double the final letter when a word has more than one syllable, and when the final syllable is stressed in speech.
+# beGIN, preFER 	beginning, preferring, preferred
+#
+# We do not double the final letter if the final syllable is not stressed
+# LISten, HAPpen 	listening, listened, happening, happened
+#
+# We duplicate last letter if word contains less then 3 syllables
+strings.add_suffix.dublicate_last_char() {
+  local value="${1}"
+
+  ! stings.add_suffix.keep_last_char "${value}" \
+    && [[ ! "${value}" =~ [${VOWELS}]+[^${VOWELS}]+[$VOWELS]+[^${VOWELS}]+[$VOWELS]+ ]]
+}
+
+# We do not double final letter when:
+#   w or y at the end of words:
+#     play – playing, played; snow - snowing, snowed;
+#   a word ends in two consonants (-rt, -rn, etc.):
+#     start – starting, started; burn - burn, burned;
+#   two vowels come directly before it:
+#     remain – remaining, remained.
+stings.add_suffix.keep_last_char() {
+  local value="${1}"
+  [[ "${value}" =~ [${VOWELS}]$ ]] \
+    || [[ "${value}" =~ [wy]$ ]] \
+    || [[ "${value}" =~ [^${VOWELS}][^${VOWELS}]$ ]] \
+    || [[ "${value}" =~ [${VOWELS}][${VOWELS}][^${VOWELS}]$ ]]
+}
+
 
 strings.mask() {
   local var_name="${1}" var_value="${2}"

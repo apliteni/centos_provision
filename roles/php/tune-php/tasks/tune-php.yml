@@ -7,6 +7,7 @@
     memory_limit: '{{ php_memory_limit }}'
     post_max_size: '{{ php_max_upload_size }}'
     upload_max_filesize: '{{ php_max_upload_size }}'
+    pcre.backtrack_limit: '{{ php_backtrack_limit }}'
     short_open_tag: 'On'
   notify:
     - restart php-fpm
@@ -24,7 +25,7 @@
     dest: /etc/php/php.d/01-sourceguardian_loader.ini
     mode: '0644'
 
-- name: Change dirrectory owner
+- name: Change directory owner
   file:
     dest: "/var/opt/remi/{{ php_version }}/log/php-fpm"
     owner: "{{ keitaro_user }}"

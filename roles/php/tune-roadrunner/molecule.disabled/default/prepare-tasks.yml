@@ -4,7 +4,5 @@
     name: php/install-php
 - include_role:
     name: install-roadrunner
-- include_role:
-    name: redis/install-redis
 - include_tasks: ../../../tracker/_shared/detect-tracker-version-to-install.yml
 - include_tasks: ../../../tracker/_shared/install-package.yml

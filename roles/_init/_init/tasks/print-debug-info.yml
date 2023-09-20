@@ -30,7 +30,6 @@
       - php_fpm_pools
       - php_fpm_workers_count
       - ram_size_mb
-      - redis_memory_mb
       - running_mode
       - roadrunner_memory_mb
       - roadrunner_worker_max_requests

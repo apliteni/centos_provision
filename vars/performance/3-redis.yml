@@ -1,2 +1,0 @@
-redis_memory_mb: "{{ (redis_memory_usage_to_ram_ratio * ansible_memtotal_mb) | int }}"
-redis_uri: "127.0.0.1:6379/1"

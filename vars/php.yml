@@ -4,6 +4,7 @@ php_ioc_version: php71
 php_memory_limit: 500M
 php_max_upload_size: "{{ max_upload_size }}"
 php_path: "/usr/bin/{{ php_version }}"
+php_backtrack_limit: 100000000
 kctl_php_path: "/usr/bin/kctl-php"
 
 php_logging_level: E_ERROR
@@ -17,3 +18,5 @@ rr_config_path: "{{ rr_config_dir }}/config.yml"
 
 php_fpm_user: phpfpm
 php_fpm_group: phpfpm
+
+redis_uri: "127.0.0.1:6379/1"

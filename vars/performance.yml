@@ -2,8 +2,6 @@
 php_fpm_memory_usage_to_ram_ratio: 0.2
 # 10% RAM - RoadRunner
 roadrunner_memory_usage_to_ram_ratio: 0.1
-# 30% RAM - Redis
-redis_memory_usage_to_ram_ratio: 0.3
 # 10% RAM - MariaDB
 mariadb_memory_usage_to_ram_ratio: 0.1
 # 70% RAM - OLAP CH engine size, 30% - OLAP MariaDB
