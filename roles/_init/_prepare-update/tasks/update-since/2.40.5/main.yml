@@ -1,0 +1,22 @@
+- name: Clean CH logs
+  changed_when: false
+  shell: |
+    set -o pipefail
+
+    tables_sql="SELECT DISTINCT table FROM system.parts WHERE active AND (table ILIKE '%_log' OR table ILIKE '%_log_%')"
+
+    tables="$(kctl run system-clickhouse-query "${tables_sql}")"
+
+    for table in ${tables}; do
+      echo "Cleaning table ${table}"
+      kctl run system-clickhouse-query "TRUNCATE TABLE $table" || true
+    done
+
+    for table in query_log trace_log metric_log asynchronous_metric_log; do
+      echo "Cleaning table ${table}"
+      kctl run system-clickhouse-query "TRUNCATE TABLE $table" || true
+    done
+
+    if [[ -d /var/log/clickhouse ]]; then
+      rm -f /var/log/clickhouse/*
+    fi

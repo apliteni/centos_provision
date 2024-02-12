@@ -1,3 +1,0 @@
-- set_fact:
-    kctl_installed_version: "0.9"
-    kctl_tags:              upgrade

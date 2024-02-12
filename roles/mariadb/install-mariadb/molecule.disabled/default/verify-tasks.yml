@@ -1,7 +1,0 @@
-- name: Evaluate query
-  shell: mysql --raw --batch --skip-column-names --execute "SELECT 1"
-  register: mysql_query_output
-
-- name: Ensure postfix runtime config contains expected host name
-  assert:
-    that: mysql_query_output.stdout == "1"

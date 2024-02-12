@@ -1,0 +1,56 @@
+- name: Prepare keitaro app dirs
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ keitaro_user }}"
+    group: "{{ keitaro_group }}"
+    mode: '0755'
+  with_items:
+    - "{{ keitaro_app_dir }}"
+    - "{{ keitaro_app_logs_dir }}"
+    - "{{ keitaro_stats_json_dir }}"
+
+- name: Ensure ssl logs dir exists
+  file:
+    path: "{{ kctl_enable_ssl_logs_dir }}"
+    group: "{{ keitaro_group }}"
+    state: directory
+    mode: '0750'
+
+- name: Create symlink for SSL logs
+  file:
+    src: "{{ kctl_enable_ssl_logs_dir }}"
+    dest: "{{ keitaro_app_ssl_logs_dir }}"
+    state: link
+
+- name: Create directory for ssl certs
+  file:
+    path: "{{ ssl_root }}"
+    state: directory
+    mode: '0755'
+
+- name: Setup limits
+  pam_limits:
+    domain: "{{ keitaro_user }}"
+    limit_type: '-'
+    limit_item: nofile
+    value: '4096'
+
+- name: Create keitaro nginx dirs
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  with_items:
+    - /etc/nginx/conf.d/keitaro
+    - /etc/nginx/conf.d/local/keitaro
+
+- name: Create letsencrypt mountable dirs
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  with_items:
+    - "{{ certbot_path_to_configs }}"
+    - "{{ certbot_path_to_libs }}"
+    - "{{ certbot_path_to_logs }}"

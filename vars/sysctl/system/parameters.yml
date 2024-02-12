@@ -1,4 +1,6 @@
 sysctl_system:
   fs.file-max: "{{ opened_files_system }}"
-  vm.overcommit_memory: 1
   kernel.threads-max: 40000 # resolve clickhouse warning
+  vm.overcommit_memory: 1
+  vm.vfs_cache_pressure: 50
+  vm.swappiness: 10

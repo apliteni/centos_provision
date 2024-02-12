@@ -1,8 +1,0 @@
-- include_role:
-    name: _init/create-user-and-dirs
-- include_role:
-    name: php/install-php
-- include_role:
-    name: install-roadrunner
-- include_tasks: ../../../tracker/_shared/detect-tracker-version-to-install.yml
-- include_tasks: ../../../tracker/_shared/install-package.yml

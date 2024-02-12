@@ -2,23 +2,13 @@
   set_fact:
     vars_to_display:
       - applied_tracker_version
+      - tracker_version
+      - kctl_version
       - box_creation_time
-      - cpu_cores
       - force_regenerate_ssl
       - is_ci_mode
       - kctl_ansible_hostname
-      - kctl_version
       - keitaro_user
-      - mariadb_join_buffer_size_kb
-      - mariadb_key_buffer_size_kb
-      - mariadb_max_connections
-      - mariadb_max_heap_table_size_kb
-      - mariadb_memory_1pct
-      - mariadb_memory_mb
-      - mariadb_olap_memory_mb
-      - mariadb_query_cache_size_kb
-      - mariadb_table_open_cache
-      - mariadb_tmp_table_size_kb
       - nginx_worker_connections
       - nginx_workers_count
       - opened_files_mariadb
@@ -36,8 +26,6 @@
       - roadrunner_worker_size_mb
       - roadrunner_workers_count
       - skip_cache
-      - tracker_skip_cache
-      - tracker_version
 
 - name: Debug vars
   set_fact:

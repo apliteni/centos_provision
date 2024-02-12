@@ -1,0 +1,21 @@
+- name: Setup MariaDB database schema
+  when: running_mode == 'install'
+  block:
+  - name: Check if Keitaro schema exists
+    command: |
+      {{ kctl_path }} run mariadb-query "SHOW TABLES LIKE 'schema_migrations'"
+    changed_when: false
+    register: mariadb_schema_migrations_table_exists_cmd
+
+  - name: Setup MariaDB schema if it's not set up yet
+    command: "{{ kctl_path }} run cli-php db:setup"
+    changed_when: false
+    environment:
+      MARIADB_DB: "{{ mariadb_keitaro_database }}"
+      MARIADB_USERNAME: "{{ mariadb_keitaro_user }}"
+      MARIADB_PASSWORD: "{{ mariadb_keitaro_password }}"
+    when: mariadb_schema_migrations_table_exists_cmd.stdout == ''
+
+- name: Migrate MariaDB database
+  command: "{{ kctl_path }} run cli-php db:migrate"
+  changed_when: false

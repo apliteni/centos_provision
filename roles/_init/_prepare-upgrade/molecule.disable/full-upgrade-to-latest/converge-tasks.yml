@@ -1,3 +1,0 @@
-- set_fact:
-    kctl_installed_version: "2.26.0"
-    kctl_tags:              full-upgrade

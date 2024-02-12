@@ -1,7 +1,0 @@
-- file:
-    path: "{{ item }}"
-    state: touch
-  with_items:
-    - /keitaro.3.swap
-    - /keitaro.0.swap
-    - /keitaro.2.swap

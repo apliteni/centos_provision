@@ -1,8 +1,0 @@
-- include_role:
-    name: _init/create-user-and-dirs
-
-- name: Stub kctl-fail2ban
-  command: "cp /usr/bin/true {{ kctl_bin_dir }}/kctl-fail2ban"
-
-- name: Reload SystemD
-  command: "systemctl daemon-reload"

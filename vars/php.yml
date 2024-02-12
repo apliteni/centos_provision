@@ -18,5 +18,3 @@ rr_config_path: "{{ rr_config_dir }}/config.yml"
 
 php_fpm_user: phpfpm
 php_fpm_group: phpfpm
-
-redis_uri: "127.0.0.1:6379/1"

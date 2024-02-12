@@ -1,23 +1,17 @@
 - name: Force all notified handlers to run at this point
   meta: flush_handlers
 
-- name: Install tracker application
-  include_tasks: "install-tracker-app.yml"
-  when: running_mode == 'rescue'
+- name: Install and configure tracker
+  when: running_mode == 'repair'
+        or running_mode == 'tune'
         or applied_tracker_version != tracker_version
-        or tracker_skip_cache != ""
         or skip_cache != ""
-
-- name: Setup keitaro database
-  when: running_mode == "install"
+        or 'install-tracker' in ansible_run_tags
   block:
-  - name: Get lockfile status
-    stat:
-      path: "{{ keitaro_app_dir }}/var/install.lock"
-    register: lockfile
-
-  - name: Execute appropriate tasks
-    when: not lockfile.stat.exists
-    include_tasks: "setup-database.yml"
-    vars:
-      ansible_python_interpreter: "/usr/bin/python3"
+    - include_tasks: 01-install-tracker-app.yml
+    - include_tasks: 02-clear-locales-cache.yml
+    - include_tasks: 03-generate-stats-json.yml
+    - include_tasks: 04-update-mariadb-db.yml
+    - include_tasks: 05-update-clickhouse-db.yml
+    - include_tasks: 06-update-geodb.yml
+    - include_tasks: 07-generate-watchlist.yml

@@ -1,8 +1,0 @@
-- name: Get keitaro app directory stats
-  stat:
-    path: "{{ keitaro_app_dir }}"
-  register: keitaro_app_dir_status
-
-- name: Test swap file is present
-  assert:
-    that: keitaro_app_dir_status.stat.pw_name == "{{ keitaro_user }}"

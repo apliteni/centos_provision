@@ -1,4 +1,4 @@
-opened_files_mariadb: "{{ (mariadb_table_open_cache|int) * 20 }}"
+opened_files_mariadb: "{{ (php_fpm_workers_count | int) * 3000 }}"
 opened_files_nginx: "{{ 2 * (nginx_worker_connections|int) * (nginx_workers_count|int) }}"
 opened_files_php_fpm: "{{ 400 * (php_fpm_workers_count|int) }}"
 opened_files_roadrunner: "{{ ansible_memtotal_mb * 4 }}"

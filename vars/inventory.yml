@@ -1,0 +1,24 @@
+running_mode:               "{{ lookup('env', 'RUNNING_MODE') }}"
+tracker_directory:          "{{ lookup('env', 'TRACKER_DIRECTORY') }}"
+skip_cache:                 "{{ lookup('env', 'SKIP_CACHE') | default('') }}"
+force_regenerate_ssl:       "{{ lookup('env', 'FORCE_REGENERATE_SSL') | default('false', true) | bool }}"
+
+kctl_version:               "{{ lookup('env', 'KCTL_VERSION') }}"
+tracker_version:            "{{ lookup('env', 'TRACKER_VERSION') }}"
+applied_tracker_version:    "{{ lookup('env', 'APPLIED_TRACKER_VERSION') | default('') }}"
+
+ram_size_mb:                "{{ lookup('env', 'RAM_SIZE_MB') }}"
+cpu_cores:                  "{{ lookup('env', 'CPU_CORES') }}"
+ssh_port:                   "{{ lookup('env', 'SSH_PORT') }}"
+olap_db:                    "{{ lookup('env', 'OLAP_DB') }}"
+server_ip:                  "{{ lookup('env', 'SERVER_IP') }}"
+
+mariadb_storage_engine:     "{{ lookup('env', 'MARIADB_STORAGE_ENGINE') }}"
+mariadb_keitaro_database:   "{{ lookup('env', 'MARIADB_KEITARO_DATABASE') }}"
+mariadb_keitaro_user:       "{{ lookup('env', 'MARIADB_KEITARO_USER') }}"
+mariadb_keitaro_password:   "{{ lookup('env', 'MARIADB_KEITARO_PASSWORD') }}"
+mariadb_root_password:      "{{ lookup('env', 'MARIADB_ROOT_PASSWORD') }}"
+mariadb_host:               "{{ lookup('env', 'MARIADB_HOST') }}"
+mariadb_port:               "{{ lookup('env', 'MARIADB_PORT') }}"
+
+kctld_uri:                  "{{ lookup('env', 'KCTLD_URI') }}"

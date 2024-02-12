@@ -1,0 +1,20 @@
+- name: Setup MariaDB database schema
+  when: running_mode == 'install'
+  block:
+  - name: Check if Keitaro schema exists
+    command: "{{ kctl_path }} run clickhouse-query 'EXISTS TABLE schema_migrations'"
+    changed_when: false
+    register: clickhouse_schema_migrations_table_exists_cmd
+
+  - name: Setup ClickHouse schema if it's not set up yet
+    command: "kctl run cli-php ch_db:setup --config {{ keitaro_app_dir }}/application/config/config.ini.php"
+    when: clickhouse_schema_migrations_table_exists_cmd.stdout == '0'
+    changed_when: false
+
+- name: Migrate CH database
+  command: "{{ kctl_path }} run cli-php ch_db:migrate"
+  changed_when: false
+
+- name: Recreate CH mysql proxy tables
+  command: "{{ kctl_path }} run cli-php ch_db:recreate_foreign_tables --config {{ keitaro_config_ini_php_path }}"
+  changed_when: false

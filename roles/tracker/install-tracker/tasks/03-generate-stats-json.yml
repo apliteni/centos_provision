@@ -1,0 +1,4 @@
+- name: Generage stats.json
+  command: "{{ kctl_bin_dir }}/kctl-monitor -r"
+  args:
+    creates: /var/www/keitaro/var/stats.json

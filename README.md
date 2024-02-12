@@ -30,23 +30,22 @@ Example:
   kctl install
 
 Actions:
-   kctl install                           - install and tune tracker and system components
-   kctl upgrade                           - upgrades system & tracker
-   kctl rescue                            - fixes common problems
-   kctl downgrade [version]               - downgrades tracker to version (by default downgrades to latest stable version)
-   kctl install-tracker <version>         - installs tracker with specified version
+  kctl check                      - checks if all componets operates normally
+  kctl downgrade                  - installs the latest stable tracker version
+  kctl install                    - installs tracker and system components
+  kctl repair                     - fixes common problems
+  kctl tune                       - tunes all components
+  kctl update                     - updates system & tracker (you have to to set UPDATE_CHANNEL or KEITARO_VERSION)
+  kctl use-clickhouse-olapdb      - configures Keitaro to use ClickHouse as OLAP DB
 
 Modules:
-   kctl certificates                      - manage LE certificates
-   kctl features                          - manage features
-   kctl podman                            - manage podman containers
-   kctl resolvers                         - manage DNS resolvers
-   kctl transfers                         - manage tracker data transfers
-   kctl run                               - simplifies running dockerized commands
-
-Environment variables:
-
-  TRACKER_STABILITY                       - Set up stability channel stable|unstsable. Default: stable
+  kctl certificates               - manage LE certificates
+  kctl podman                     - manage podman containers
+  kctl resolvers                  - manage DNS resolvers
+  kctl run                        - simplifies running dockerized commands
+  kctl support-team-access        - allow/deny access to this server to Keitaro support team
+  kctl tracker-options            - manage tracker options
+  kctl transfers                  - manage tracker data transfers
 ```
 
 <!-- end of 'kctl help' output -->
@@ -56,6 +55,8 @@ Environment variables:
 
 ```
 Usage:
+  kctl certificates issue DOMAIN1[ DOMAIN2][...]          issue LE certificates for the specified domains
+  kctl certificates revoke DOMAIN1[ DOMAIN2][...]         revoke LE certificates for the specified domains
   kctl certificates renew                                 renew LE certificates
   kctl certificates remove-old-logs                       remove old issuing logs
   kctl certificates prune <KIND>                          prunes LE ssl certificates
@@ -71,30 +72,30 @@ Usage:
 
 <!-- end of 'kctl certificates help' output -->
 
-### kctl features
-<!-- start of 'kctl features help' output -->
+### kctl tracker-options
+<!-- start of 'kctl tracker-options help' output -->
 
 ```
 Usage:
-  kctl features enable <feature>                  enable feature
-  kctl features disable <feature>                 disable feature
-  kctl features help                              print this help
+  kctl tracker-options enable <tracker_option>                  enable tracker_option
+  kctl tracker-options disable <tracker_option>                 disable tracker_option
+  kctl tracker-options help                                     print this help
 ```
 
-<!-- end of 'kctl features help' output -->
+<!-- end of 'kctl tracker-options help' output -->
 
 ### kctl podman
 <!-- start of 'kctl podman help' output -->
 
 ```
 Usage:
-  kctl podman start CONTAINTER_NAME              starts container
-  kctl podman stop CONTAINTER_NAME               stops container
-  kctl podman prune CONTAINTER_NAME              removes container and storage assotiated with it
-  kctl podman stats                              prints statistics
-  kctl podman usage                              prints this info
+  kctl podman start COMPONENT                   starts COMPONENT's container (it stops and prunes COMPONENT before)
+  kctl podman stop  COMPONENT                   stops COMPONENT's container
+  kctl podman prune COMPONENT                   removes COMPONENT's container and storage assotiated with it
+  kctl podman stats                             prints statistics
+  kctl podman usage                             prints this info
 
-Allowed CONTAINER_NAMEs are: certbot certbot-renew clickhouse mariadb nginx nginx_starting_page nginx-starting-page redis
+Allowed COMPONENTs are: nginx-starting-page kctl system-redis redis kctld mariadb clickhouse kctl-ch-converter tracker roadrunner nginx certbot certbot-renew
 ```
 
 <!-- end of 'kctl podman help' output -->
@@ -152,15 +153,22 @@ Examples:
 
 ```
 Usage:
-  kctl run clickhouse-client                  start clickhouse shell
-  kctl run clickhouse-query                   execute clickhouse query
-  kctl run mysql-client                       start mysql shell
-  kctl run mysql-query                        execute mysql query
-  kctl run cli-php                            execute cli.php command
-  kctl run redis-client                       execute redis shell
-  kctl run system-redis-client                execute system redis shell
-  kctl run nginx                              perform nginx command
+  kctl run clickhouse-client                  run clickhouse keitaro db shell
+  kctl run clickhouse-query                   execute clickhouse keitaro db query
+  kctl run mariadb-client                     run mariadb keitaro db shell
+  kctl run mariadb-query                      execute mariadb keitaro db query
+  kctl run redis-client                       run redis keitaro db shell
+  kctl run redis-query                        execute redis keitaro db query
+  kctl run system-clickhouse-client           run clickhouse system db shell
+  kctl run system-clickhouse-query            execute clickhouse system db query
+  kctl run system-mariadb-client              run mariadb system db shell
+  kctl run system-mariadb-query               execute mariadb system db query
+  kctl run system-redis-client                run redis system db shell
+  kctl run system-redis-query                 execute redis system db query
+  kctl run cli-php <command>                  execute cli.php command
+  kctl run nginx <command>                    perform nginx command
   kctl run certbot                            perform certbot command
+  kctl run certbot-renew                      perform certbot-renew command
 ```
 
 <!-- end of 'kctl run help' output -->
@@ -173,24 +181,21 @@ Usage: kctl-install [OPTION]...
 
 kctl-install installs and configures Keitaro
 
-Example: kctl-install
+Example: ANSIBLE_IGNORE_TAGS=tune-swap LOG_PATH=/dev/stderr kctl-install
 
 Modes:
-  -U                       upgrade the system configuration and tracker
+  -U                       updates the system configuration and tracker
 
-  -C                       rescue the system configuration and tracker
+  -R                       repairs the system configuration and tracker
 
-Customization:
-  -a PATH_TO_PACKAGE       set path to Keitaro installation package
+  -T                       tunes the system configuration and tracker
 
-  -t TAGS                  set ansible-playbook tags, TAGS=tag1[,tag2...]
+Environment variables:
+  LOG_PAH                  sets the log output file
 
-  -i TAGS                  set ansible-playbook ignore tags, TAGS=tag1[,tag2...]
+  ANSIBLE_TAGS             sets ansible-playbook tags, ANSIBLE_TAGS=tag1[,tag2...]
 
-  -o output                sset the full path of the installer log output
-
-  -w                       do not run 'yum upgrade'
-
+  ANSIBLE_IGNORE_TAGS      sets ansible-playbook ignore tags, ANSIBLE_IGNORE_TAGS=tag1[,tag2...]
 Miscellaneous:
   -h                       display this help text and exit
 
@@ -205,21 +210,13 @@ Environment variables:
 
 ## FAQ
 
-### How to specify installation package
+### How to force tracker to use ClickHouse as OLAP DB
 
-    kctl-install -a http://keitaro.io/test.zip
+    kctl use-clickhouse
 
-### How to specify ansible tags
+### How to update kctl tool set
 
-    kctl-install -t tag1,tag2
-
-or ignore
-
-    kctl-install -i tag3,tag4
-
-### How to upgrade kctl tool set
-
-    kctl upgrade
+    kctl update
 
 ### How to reinstall tracker
 
@@ -228,7 +225,7 @@ or ignore
 
 ### How to repair tracker
 
-    kctl rescue
+    kctl repair
 
 
 ## Update README

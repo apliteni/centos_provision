@@ -47,7 +47,7 @@ TOOL_NAME='disable-ssl'
 SELF_NAME=${0}
 
 is_ci_mode() {
-  [[ "$EUID" != "$ROOT_UID" || "${CI}" != "" ]]
+  [[ "${CI}" != "" ]]
 }
 
 if is_ci_mode; then
@@ -59,12 +59,9 @@ fi
 CACHING_PERIOD_IN_DAYS="2"
 CACHING_PERIOD_IN_MINUTES="$((CACHING_PERIOD_IN_DAYS * 24 * 60))"
 
-RELEASE_VERSION='2.43.9'
+RELEASE_VERSION='2.45.0'
 VERY_FIRST_VERSION='0.9'
 
-KCTL_IN_KCTL="${KCTL_IN_KCTL:-}"
-
-KEITARO_URL='https://keitaro.io'
 FILES_KEITARO_ROOT_URL="https://files.keitaro.io"
 RELEASE_API_BASE_URL="https://release-api.keitaro.io"
 
@@ -73,42 +70,27 @@ KEITARO_SUPPORT_HOME_DIR="/home/${KEITARO_SUPPORT_USER}"
 
 UPDATE_CHANNEL_ALPHA="alpha"
 UPDATE_CHANNEL_BETA="beta"
-UPDATE_CHANNEL_RC="rc"
 UPDATE_CHANNEL_STABLE="stable"
 DEFAULT_UPDATE_CHANNEL="${UPDATE_CHANNEL_STABLE}"
 
-declare -a UPDATE_CHANNELS=( \
-  "${UPDATE_CHANNEL_ALPHA}" \
-  "${UPDATE_CHANNEL_BETA}" \
-  "${UPDATE_CHANNEL_RC}" \
-  "${UPDATE_CHANNEL_STABLE}" \
-)
+UPDATE_CHANNELS=("${UPDATE_CHANNEL_ALPHA}" "${UPDATE_CHANNEL_BETA}" "${UPDATE_CHANNEL_STABLE}")
 
-CERTBOT_COMPONENT="certbot"
-CERTBOT_RENEW_COMPONENT="certbot-renew"
-CLICKHOUSE_COMPONENT="clickhouse"
-KCTLD_COMPONENT="kctld"
-KCTL_CH_CONVERTER_COMPONENT="kctl-ch-converter"
 KCTL_COMPONENT="kctl"
-MARIADB_COMPONENT="mariadb"
-NGINX_COMPONENT="nginx"
-NGINX_STARTING_PAGE_COMPONENT="nginx-starting-page"
-REDIS_COMPONENT="redis"
-ROADRUNNER_COMPONENT="roadrunner"
-SYSTEM_REDIS_COMPONENT="system-redis"
 TRACKER_COMPONENT="tracker"
 
 PATH_TO_ENV_DIR="${ROOT_PREFIX}/etc/keitaro/env"
 PATH_TO_COMPONENTS_ENV="${PATH_TO_ENV_DIR}/components.env"
-PATH_TO_SYSTEM_ENV="${PATH_TO_ENV_DIR}/system.env"
+PATH_TO_COMPONENTS_ENV_ORIGIN="${PATH_TO_ENV_DIR}/components.env.origin"
+PATH_TO_COMPONENTS_ENVS_DIR="${PATH_TO_ENV_DIR}/components"
 PATH_TO_APPLIED_ENV="${PATH_TO_ENV_DIR}/applied.env"
+PATH_TO_INVENTORY_ENV="${PATH_TO_ENV_DIR}/inventory.env"
 APPLIED_PREFIX="APPLIED"
 
 declare -A VARS
 declare -A ARGS
 declare -A DETECTED_VARS
 
-TRACKER_ROOT="${ROOT_PREFIX}/var/www/keitaro"
+TRACKER_ROOT="${TRACKER_ROOT:-${ROOT_PREFIX}/var/www/keitaro}"
 
 KCTL_ROOT="${ROOT_PREFIX}/opt/keitaro"
 KCTL_BIN_DIR="${KCTL_ROOT}/bin"
@@ -132,10 +114,6 @@ else
   ADDITIONAL_LOG_PATH="${LOG_DIR}/kctld-${LOG_FILENAME}"
 fi
 
-INVENTORY_DIR="${ETC_DIR}/config"
-INVENTORY_PATH="${INVENTORY_DIR}/inventory"
-PATH_TO_TRACKER_ENV="${INVENTORY_DIR}/tracker.env"
-DETECTED_INVENTORY_PATH=""
 
 NGINX_CONFIG_ROOT="/etc/nginx"
 NGINX_VHOSTS_DIR="${NGINX_CONFIG_ROOT}/conf.d"
@@ -154,32 +132,22 @@ INDENTATION_SPACES=$(printf "%${INDENTATION_LENGTH}s")
 
 TOOL_ARGS="${*}"
 
-DB_ENGINE_INNODB="innodb"
-DB_ENGINE_TOKUDB="tokudb"
-DB_ENGINE_DEFAULT="${DB_ENGINE_INNODB}"
-
 OLAP_DB_MARIADB="mariadb"
 OLAP_DB_CLICKHOUSE="clickhouse"
 OLAP_DB_DEFAULT="${OLAP_DB_MARIADB}"
 
-TRACKER_STABILITY_STABLE="stable"
-TRACKER_STABILITY_UNSTABLE="unstable"
-TRACKER_STABILITY_DEFAULT="${TRACKER_STABILITY_STABLE}"
-
 KEITARO_USER='keitaro'
 KEITARO_GROUP='keitaro'
 
-TRACKER_CONFIG_FILE="${TRACKER_ROOT}/application/config/config.ini.php"
+KCTL_LIB_PATH="${ROOT_PREFIX}/var/lib/kctl"
 declare -A DICT
 
 DICT['en.errors.program_failed']='PROGRAM FAILED'
 DICT['en.errors.must_be_root']='Please run this program as root.'
-DICT['en.errors.upgrade_server']='You should upgrade the server configuration. Please contact Keitaro support team.'
 DICT['en.errors.run_command.fail']='There was an error evaluating current command'
 DICT['en.errors.run_command.fail_extra']=''
 DICT['en.errors.terminated']='Terminated by user'
 DICT['en.errors.unexpected']='Unexpected error'
-DICT['en.errors.cant_upgrade']='Cannot upgrade because installation process is not finished yet'
 DICT['en.errors.wrong_architecture']='Sorry, this script supports only x64 architecture.'
 DICT['en.certbot_errors.another_proccess']="Another certbot process is already running"
 DICT['en.messages.generating_nginx_vhost']="Generating nginx config for domain :domain:"
@@ -210,33 +178,53 @@ DICT['en.messages.ssl_disabled_for_domains']="SSL certificates are deleted for d
 DICT['en.messages.ssl_not_disabled_for_domains']="There were errors while deleted certificates for domains:"
 
 
+# Check if lock file exist
+#https://certbot.eff.org/docs/using.html#id5
+#
+assert_another_certbot_process_is_not_runing() {
+  if [ -f "${CERTBOT_LOCK_FILE}" ]; then
+    debug "Find lock file, raise error"
+    fail "$(translate 'certbot_errors.another_proccess')"
+  fi
+}
 
-assert_caller_root(){
-  debug 'Ensure current user is root'
-  if [[ "$EUID" == "$ROOT_UID" ]]; then
-    debug 'OK: current user is root'
-  else
-    debug 'NOK: current user is not root'
+assert_current_user_is_root() {
+  if [[ "$EUID" != "$ROOT_UID" ]]; then
     fail "$(translate errors.must_be_root)"
   fi
 }
 
-assert_installed(){
-  local program="${1}"
-  local error="${2}"
-  if ! is_installed "$program"; then
-    fail "$(translate "${error}")"
+assert_same_process_is_not_running() {
+  exec 8>/var/run/${SCRIPT_NAME}.lock
+
+  if ! flock -n -x 8; then
+    fail "$(translate 'errors.already_running')" "${INTERRUPTED_ON_PARALLEL_RUN}"
   fi
 }
 
-file_exists(){
-  local file="${1}"
-  debug "Checking ${file} file existence"
-  if [ -f "${file}" ]; then
-    debug "YES: ${file} file exists"
+check_assertion() {
+  local name="${1}" fn_name
+
+  fn_name="${name,,}"
+  fn_name="${fn_name// /_}"
+  fn_name="assert_${fn_name}"
+
+  if system.list_defined_fns | grep -q "^${fn_name}$"; then
+    ${fn_name}
+    debug "Assertion '${name}' is passed"
+  else
+    fail "Couldn't find fn ${fn_name}() for checking assertion '${name}'"
+  fi
+}
+
+directory_exists(){
+  local directory="${1}"
+  debug "Checking ${directory} directory existence"
+  if [ -d "${directory}" ]; then
+    debug "YES: ${directory} directory exists"
     return ${SUCCESS_RESULT}
   else
-    debug "NO: ${file} file does not exist"
+    debug "NO: ${directory} directory does not exist"
     return ${FAILURE_RESULT}
   fi
 }
@@ -255,33 +243,20 @@ file_content_matches(){
   fi
 }
 
-directory_exists(){
-  local directory="${1}"
-  debug "Checking ${directory} directory existence"
-  if [ -d "${directory}" ]; then
-    debug "YES: ${directory} directory exists"
+file_exists(){
+  local file="${1}"
+  debug "Checking ${file} file existence"
+  if [ -f "${file}" ]; then
+    debug "YES: ${file} file exists"
     return ${SUCCESS_RESULT}
   else
-    debug "NO: ${directory} directory does not exist"
+    debug "NO: ${file} file does not exist"
     return ${FAILURE_RESULT}
   fi
 }
-# Check if lock file exist
-#https://certbot.eff.org/docs/using.html#id5
-#
-assert_that_another_certbot_process_not_runing() {
-  debug
-  if [ -f "${CERTBOT_LOCK_FILE}" ]; then
-    debug "Find lock file, raise error"
-    fail "$(translate 'certbot_errors.another_proccess')"
-  else
-    debug "another certbot proccess not running"
-  fi
-
-}
 
 build_certbot_command() {
-  echo "${KCTL_BIN_DIR}/kctl run certbot"
+  echo "LOG_PATH=/dev/stderr ${KCTL_BIN_DIR}/kctl run certbot"
 }
 
 certbot.register_account() {
@@ -290,24 +265,6 @@ certbot.register_account() {
   cmd="${cmd} --agree-tos --non-interactive --register-unsafely-without-email"
 
   run_command "${cmd}" "Creating certbot account" "hide_output"
-}
-
-detect_installed_version(){
-  if empty "${INSTALLED_VERSION}"; then
-    detect_inventory_path
-    if isset "${DETECTED_INVENTORY_PATH}"; then
-      INSTALLED_VERSION=$(grep "^installer_version=" "${DETECTED_INVENTORY_PATH}" | sed s/^installer_version=//g)
-      debug "Got installer_version='${INSTALLED_VERSION}' from ${DETECTED_INVENTORY_PATH}"
-    fi
-    if empty "${INSTALLED_VERSION}"; then
-      debug "Couldn't detect installer_version, resetting to ${VERY_FIRST_VERSION}"
-      INSTALLED_VERSION="${VERY_FIRST_VERSION}"
-    fi
-  fi
-}
-
-is_compatible_with_current_release() {
-  [[ "${RELEASE_VERSION}" == "${INSTALLED_VERSION}" ]]
 }
 
 
@@ -333,19 +290,21 @@ interpolate(){
 
 is_installed(){
   local command="${1}"
-  debug "Looking for command '$command'"
   if is_command_installed "${command}"; then
-    debug "FOUND: Command '$command' found"
+    debug "Command '$command' is installed"
   else
-    debug "NOT FOUND: Command '$command' not found"
+    debug "Command '$command' is not installed"
     return ${FAILURE_RESULT}
   fi
 }
 
 is_command_installed() {
   local command="${1}"
-  (is_ci_mode && sh -c "command -v '$command' -gt /dev/null") ||
-    which "$command" &>/dev/null
+  if is_ci_mode; then
+    sh -c "command -v '${command}'" > /dev/null
+  else
+    which "${command}" &>/dev/null
+  fi
 }
 
 is_package_installed(){
@@ -359,46 +318,8 @@ is_package_installed(){
   fi
 }
 
-detect_inventory_path(){
-  debug "Detecting inventory path"
-  paths=("${INVENTORY_PATH}" /root/.keitaro/installer_config .keitaro/installer_config /root/hosts.txt hosts.txt)
-  for path in "${paths[@]}"; do
-    if [[ -f "${path}" ]]; then
-      DETECTED_INVENTORY_PATH="${path}"
-      debug "Inventory found - ${DETECTED_INVENTORY_PATH}"
-      return
-    fi
-  done
-  debug "Inventory file not found"
-}
-
 add_indentation(){
   sed -r "s/^/${INDENTATION_SPACES}/g"
-}
-#
-
-
-
-
-
-print_prompt(){
-  local var_name="${1}"
-  prompt=$(translate "prompts.$var_name")
-  prompt="$(print_with_color "$prompt" 'bold')"
-  if ! empty "${VARS[$var_name]}"; then
-    prompt="$prompt [${VARS[$var_name]}]"
-  fi
-  echo -en "$prompt > "
-}
-print_prompt_error(){
-  local error_key="${1}"
-  error=$(translate "validation_errors.$error_key")
-  print_with_color "*** ${error}" 'red'
-}
-
-print_prompt_help(){
-  local var_name="${1}"
-  print_translated "prompts.$var_name.help"
 }
 
 read_stdin(){
@@ -426,6 +347,19 @@ debug() {
   fi
 }
 
+expand_ansible_tags_with_tag() {
+  local tag="${1}"
+  local tag_regex="\<${tag}\>"
+  if [[ "${ANSIBLE_TAGS}" =~ ${tag_regex} ]]; then
+    return
+  fi
+  if empty "${ANSIBLE_TAGS}"; then
+    ANSIBLE_TAGS="${tag}"
+  else
+    ANSIBLE_TAGS="${tag},${ANSIBLE_TAGS}"
+  fi
+}
+
 fail() {
   local message="${1}"
   local exit_code="${2-${FAILURE_RESULT}}"
@@ -438,15 +372,72 @@ fail() {
   exit "${exit_code}"
 }
 
-init() {
-  init_kctl
-  debug "Starting init stage: log basic info"
-  debug "Command: ${SCRIPT_NAME} ${TOOL_ARGS}"
-  debug "Script version: ${RELEASE_VERSION}"
-  debug "User ID: ${EUID}"
-  debug "Current date time: $(date +'%Y-%m-%d %H:%M:%S %:z')"
-  trap on_exit SIGHUP SIGTERM
-  trap on_exit_by_user_interrupt SIGINT
+common_parse_options(){
+  local option="${1}"
+  local argument="${2}"
+  case $option in
+    v)
+      version
+      ;;
+    h)
+      help
+      ;;
+    *)
+      wrong_options
+      ;;
+  esac
+}
+
+
+help(){
+  usage_en_header
+  help_en
+  help_en_common
+  exit ${SUCCESS_RESULT}
+}
+
+
+usage(){
+  usage_en
+  exit ${FAILURE_RESULT}
+}
+
+
+version(){
+  echo "${SCRIPT_NAME} v${RELEASE_VERSION}"
+  exit ${SUCCESS_RESULT}
+}
+
+
+wrong_options(){
+  WRONG_OPTIONS="wrong_options"
+}
+
+
+ensure_options_correct(){
+  if isset "${WRONG_OPTIONS}"; then
+    usage
+  fi
+}
+
+
+usage_en(){
+  usage_en_header
+  echo "Try '${SCRIPT_NAME} -h' for more information."
+  echo
+}
+
+usage_en_header(){
+  echo "Usage: ${SCRIPT_NAME} [OPTION]..."
+  echo
+}
+
+help_en_common(){
+  echo "Miscellaneous:"
+  echo "  -h                       display this help text and exit"
+  echo
+  echo "  -v                       display version information and exit"
+  echo
 }
 
 LOGS_TO_KEEP=5
@@ -483,7 +474,7 @@ init_kctl_dirs_and_links() {
 }
 
 create_kctl_dirs_and_links() {
-  mkdir -p "${LOG_DIR}" "${SSL_LOG_DIR}" "${INVENTORY_DIR}" "${KCTL_BIN_DIR}" "${WORKING_DIR}" &&
+  mkdir -p "${LOG_DIR}" "${SSL_LOG_DIR}" "${PATH_TO_ENV_DIR}" "${KCTL_BIN_DIR}" "${WORKING_DIR}" &&
     chmod 0750 "${ETC_DIR}" &&
     ln -s "${ETC_DIR}" "${KCTL_ETC_DIR}" &&
     ln -s "${LOG_DIR}" "${KCTL_LOG_DIR}" &&
@@ -527,12 +518,36 @@ create_log() {
   fi
 }
 
+init() {
+  init_kctl
+  debug "Command: ${SCRIPT_NAME} ${TOOL_ARGS}"
+  debug "Script version: ${RELEASE_VERSION}"
+  debug "Current date time: $(date +'%Y-%m-%d %H:%M:%S %:z')"
+  trap on_exit SIGHUP SIGTERM
+  trap on_exit_by_user_interrupt SIGINT
+}
+
+system.is_keitaro_installed() {
+  [[ -f "${PATH_TO_APPLIED_ENV}" ]]
+}
+
+system.list_defined_fns() {
+  declare -F | awk '{print $3}'
+}
+
 log_and_print_err(){
   local message="${1}"
   debug "$message"
   if [[ "${KCTLD_MODE}" == "" ]]; then
     print_err "$message" 'red'
   fi
+}
+
+on_exit_by_user_interrupt(){
+  debug "Terminated by user"
+  echo
+  clean_up
+  fail "$(translate 'errors.terminated')" "${INTERRUPTED_BY_USER_RESULT}"
 }
 
 on_exit(){
@@ -554,6 +569,10 @@ print_content_of(){
   else
     debug "Can't show '${filepath}' content - file does not exist"
   fi
+}
+print_deprecation_warning() {
+  local message="${1}"
+  print_err "DEPRECATION WARNING: ${message}" "yellow"
 }
 
 print_err(){
@@ -600,19 +619,6 @@ print_with_color(){
     echo -e "${escape_sequence}${message}${RESET_FORMATTING}"
   else
     echo "$message"
-  fi
-}
-
-PATH_TO_NGINX_PIDFILE="/var/run/nginx.pid"
-
-start_or_reload_nginx(){
-  if podman exec nginx test -f "${PATH_TO_NGINX_PIDFILE}" || is_ci_mode; then
-    debug "Nginx is started, reloading"
-    run_command "systemctl reload nginx" "$(translate 'messages.reloading_nginx')" 'hide_output'
-  else
-    debug "Nginx is not running, starting"
-    print_with_color "$(translate 'messages.nginx_is_not_running')" "yellow"
-    run_command "systemctl start nginx" "$(translate 'messages.starting_nginx')" 'hide_output'
   fi
 }
 
@@ -805,83 +811,26 @@ remove_current_command(){
   rmdir "$(dirname "$current_command_script")"
 }
 
-common_parse_options(){
-  local option="${1}"
-  local argument="${2}"
-  case $option in
-    l|L)
-      print_deprecation_warning '-L option is ignored'
-      ;;
-    v)
-      version
-      ;;
-    h)
-      help
-      ;;
-    *)
-      wrong_options
-      ;;
-  esac
-}
+PATH_TO_NGINX_PIDFILE="/var/run/nginx.pid"
 
-
-help(){
-  usage_en_header
-  help_en
-  help_en_common
-  help_en_variables
-  exit ${SUCCESS_RESULT}
-}
-
-
-usage(){
-  usage_en
-  exit ${FAILURE_RESULT}
-}
-
-
-version(){
-  echo "${SCRIPT_NAME} v${RELEASE_VERSION}"
-  exit ${SUCCESS_RESULT}
-}
-
-
-wrong_options(){
-  WRONG_OPTIONS="wrong_options"
-}
-
-
-ensure_options_correct(){
-  if isset "${WRONG_OPTIONS}"; then
-    usage
+start_or_reload_nginx(){
+  if podman exec nginx test -f "${PATH_TO_NGINX_PIDFILE}" || is_ci_mode; then
+    debug "Nginx is started, reloading"
+    run_command "systemctl reload nginx" "$(translate 'messages.reloading_nginx')" 'hide_output'
+  else
+    debug "Nginx is not running, starting"
+    print_with_color "$(translate 'messages.nginx_is_not_running')" "yellow"
+    run_command "systemctl start nginx" "$(translate 'messages.starting_nginx')" 'hide_output'
   fi
 }
 
+system.users.create() {
+  local user="${1}" home_dir="${2}" cmd
 
-usage_en(){
-  usage_en_header
-  echo "Try '${SCRIPT_NAME} -h' for more information."
-  echo
-}
-
-usage_en_header(){
-  echo "Usage: ${SCRIPT_NAME} [OPTION]..."
-  echo
-}
-
-help_en_common(){
-  echo "Miscellaneous:"
-  echo "  -h                       display this help text and exit"
-  echo
-  echo "  -v                       display version information and exit"
-  echo
-}
-
-help_en_variables(){
-  echo  "Environment variables:"
-  echo
-  echo  "  TRACKER_STABILITY       Set up stability channel stable|unstsable. Default: stable"
-  echo
+  if ! getent passwd "${user}" > /dev/null; then
+    cmd="/usr/sbin/useradd --create-home --home-dir ${home_dir} --user-group --shell /bin/bash ${user}"
+    run_command "${cmd}" "Creating user ${user}" 'hide_output'
+  fi
 }
 
 join_by(){
@@ -976,11 +925,10 @@ help_en(){
   print_err
 }
 
-stage2(){
-  debug "Starting stage 2: make some asserts"
-  assert_caller_root
-  assert_that_another_certbot_process_not_runing
-  detect_installed_version
+stage2() {
+  debug 'Starting stage 2: make some asserts'
+  check_assertion 'Same process is not running'
+  check_assertion 'Another certbot process is not runing'
 }
 
 stage3(){

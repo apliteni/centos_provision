@@ -19,7 +19,7 @@
 - name: Generate roadrunner systemd open files limitation config
   template:
     src: systemd/open-files-limit.conf.j2
-    dest: /etc/systemd/system/roadrunner.service.d/opened-files-limit.conf.j2
+    dest: /etc/systemd/system/roadrunner.service.d/opened-files-limit.conf
     mode: '0644'
   notify:
     - reconfigure systemd

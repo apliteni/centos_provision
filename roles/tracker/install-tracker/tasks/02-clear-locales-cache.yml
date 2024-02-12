@@ -1,0 +1,4 @@
+- name: Clear locales cache
+  shell: "rm -f /var/www/keitaro/var/cache_locales/*.php"
+  args:
+    removes: /var/www/keitaro/var/cache_locales/en.php

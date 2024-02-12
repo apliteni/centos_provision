@@ -14,10 +14,22 @@ location / {
     include /etc/nginx/conf.d/keitaro/locations/roadrunner.inc;
   }
 
+  location ~ (index.html|_preview.png)$ {
+    error_page 419 = @purgecache;
+    if ($arg_purgecache) {
+      return 419;
+    }
+  }
+
   # Handle robots.txt with tracker's engine
   location = /robots.txt {
     include /etc/nginx/conf.d/keitaro/locations/roadrunner.inc;
   }
 
+  try_files $uri $uri/ /index.php$is_args$args;
+}
+
+location @purgecache {
+  open_file_cache_valid 0s;
   try_files $uri $uri/ /index.php$is_args$args;
 }

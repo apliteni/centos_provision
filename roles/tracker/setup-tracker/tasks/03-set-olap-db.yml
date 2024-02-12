@@ -1,6 +1,0 @@
-- name: Set data storage
-  command: "{{ kctl_path }} run cli-php system:set_setting olap_db {{ olap_db }}"
-  changed_when: false
-  notify:
-    - restart roadrunner
-    - restart php-fpm

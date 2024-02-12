@@ -4,7 +4,7 @@
     - restart php-fpm
     - restart roadrunner
     - reload nginx
-  changed_when: "'molecule-notest' not in ansible_skip_tags"
+  changed_when: true
 
 - name: Enable Fail2ban Jail
   command: "{{ kctl_bin_dir }}/kctl-fail2ban enable"

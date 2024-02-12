@@ -1,9 +1,0 @@
-- set_fact:
-    files_to_be_deleted:
-      - /etc/nginx/conf.d/some.domain.inc
-      - /etc/nginx/conf.d/keitaro/some.domain.local.inc
-      - /etc/nginx/conf.d/keitaro/local/some.domain.conf
-    files_to_be_kept:
-      - /etc/nginx/conf.d/some.domain.conf
-      - /etc/nginx/conf.d/local/some.domain.inc
-      - /etc/nginx/conf.d/keitaro/realip.cloudflare-ipv4.inc
