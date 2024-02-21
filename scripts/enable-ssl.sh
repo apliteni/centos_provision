@@ -59,7 +59,7 @@ fi
 CACHING_PERIOD_IN_DAYS="2"
 CACHING_PERIOD_IN_MINUTES="$((CACHING_PERIOD_IN_DAYS * 24 * 60))"
 
-RELEASE_VERSION='2.45.0'
+RELEASE_VERSION='2.45.2'
 VERY_FIRST_VERSION='0.9'
 
 FILES_KEITARO_ROOT_URL="https://files.keitaro.io"
@@ -1223,7 +1223,7 @@ request_certificate_for(){
   certbot_command="${certbot_command} --agree-tos --non-interactive"
   certbot_command="${certbot_command} --domain ${domain}"
   certbot_command="${certbot_command} --register-unsafely-without-email"
-  certbot_command="${certbot_command} --preferred-chain '${CERTBOT_PREFERRED_CHAIN}'"
+  certbot_command="${certbot_command} --preferred-chain \"${CERTBOT_PREFERRED_CHAIN}\""
   requesting_message="$(translate "messages.requesting_certificate_for") ${domain}"
   run_command "${certbot_command}" "${requesting_message}" "hide_output" "allow_errors" "" "" "$CERTBOT_LOG"
 }

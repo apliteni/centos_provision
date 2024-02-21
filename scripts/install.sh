@@ -60,7 +60,7 @@ fi
 CACHING_PERIOD_IN_DAYS="2"
 CACHING_PERIOD_IN_MINUTES="$((CACHING_PERIOD_IN_DAYS * 24 * 60))"
 
-RELEASE_VERSION='2.45.0'
+RELEASE_VERSION='2.45.2'
 VERY_FIRST_VERSION='0.9'
 
 FILES_KEITARO_ROOT_URL="https://files.keitaro.io"
@@ -1851,6 +1851,31 @@ tracker.reconfigure() {
   systemd.restart_service 'roadrunner'
   systemd.restart_service 'tracker-timers.target'
 }
+
+tracker.start_running_tracker_tasks() {
+  systemd.start_service tracker-timers.target
+}
+
+TRACKER_CRON_WAIT_CYCLES=60
+TRACKER_CRON_WAIT_PERIOD_IN_SEC=10
+
+tracker.stop_running_tracker_tasks() {
+  systemd.stop_service tracker-timers.target
+
+  local pattern="cli-php"
+  for ((i=0; i<TRACKER_CRON_WAIT_CYCLES; i++)); do
+    if pgrep -f cli-php > /dev/null; then
+      local msg
+      msg="$((i+1))/${TRACKER_CRON_WAIT_CYCLES} Tracker's background tasks are still running."
+      msg="${msg}. Wait ${TRACKER_CRON_WAIT_PERIOD_IN_SEC} seconds."
+      echo "${msg}"
+      sleep "${TRACKER_CRON_WAIT_PERIOD_IN_SEC}"
+    else
+      echo "All tracker background tasks are finished. Continue."
+      break
+    fi
+  done
+}
 generate_16hex() {
   uuidgen | tr -d '-'
 }
@@ -2250,6 +2275,41 @@ packages.actualize_rpm() {
   fi
 }
 
+get_config_value(){
+  local var="${1}"
+  local file="${2}"
+  local separator="${3}"
+  if file_exists "${file}"; then
+    grep "^${var}\\b" "${file}" | \
+      grep "${separator}" | \
+      head -n1 | \
+      awk -F"${separator}" '{print $2}' | \
+      awk '{$1=$1; print}' | \
+      unquote
+  fi
+}
+
+clean_up() {
+  popd &> /dev/null || true
+}
+
+is_running_in_update_mode() {
+  [[ "${RUNNING_MODE}" == "${RUNNING_MODE_UPDATE}" ]]
+}
+
+is_running_in_install_mode() {
+  [[ "${RUNNING_MODE}" == "${RUNNING_MODE_INSTALL}" ]]
+}
+
+is_running_in_repair_mode() {
+  [[ "${RUNNING_MODE}" == "${RUNNING_MODE_REPAIR}" ]]
+}
+
+is_running_in_tune_mode() {
+  [[ "${RUNNING_MODE}" == "${RUNNING_MODE_TUNE}" ]]
+}
+
+
 # If installed version less than or equal to version from array value
 # then ANSIBLE_TAGS will be expanded by appropriate tags (given from array key)
 # Example:
@@ -2320,41 +2380,6 @@ expand_ansible_tags_with_role_tags() {
       expand_ansible_tags_with_tag "${role_tag}"
     fi
   done
-}
-
-clean_up() {
-  popd &> /dev/null || true
-}
-
-is_running_in_update_mode() {
-  [[ "${RUNNING_MODE}" == "${RUNNING_MODE_UPDATE}" ]]
-}
-
-is_running_in_install_mode() {
-  [[ "${RUNNING_MODE}" == "${RUNNING_MODE_INSTALL}" ]]
-}
-
-is_running_in_repair_mode() {
-  [[ "${RUNNING_MODE}" == "${RUNNING_MODE_REPAIR}" ]]
-}
-
-is_running_in_tune_mode() {
-  [[ "${RUNNING_MODE}" == "${RUNNING_MODE_TUNE}" ]]
-}
-
-
-get_config_value(){
-  local var="${1}"
-  local file="${2}"
-  local separator="${3}"
-  if file_exists "${file}"; then
-    grep "^${var}\\b" "${file}" | \
-      grep "${separator}" | \
-      head -n1 | \
-      awk -F"${separator}" '{print $2}' | \
-      awk '{$1=$1; print}' | \
-      unquote
-  fi
 }
 
 RUNNING_MODE_INSTALL="install"
@@ -2437,64 +2462,10 @@ stage0() {
   debug "Running in mode '${RUNNING_MODE}'"
 }
 
-stage1.run_kctl_install() {
-  local running_mode="${RUNNING_MODE:0:1}" # get first char from current mode - `i` for `install`, `u` for `update`
-  local installer_mode="${running_mode^^}" # upcase it
-  stage1.run_kctl_install.run "-${installer_mode}"
-}
-
-stage1.run_kctl_install.run() {
-  local installer_mode="${1}" path_to_kctl_dist msg
-
-  path_to_kctl_dist="$(components.build_path_to_preinstalled_directory 'kctl')"
-
-  msg="Running \`ACTUAL_KCTL=true ${path_to_kctl_dist}/bin/kctl-install ${installer_mode}\`"
-  debug "${msg}"; print_with_color "  ${msg}" 'blue'
-
-  ACTUAL_KCTL=true exec "${path_to_kctl_dist}/bin/kctl-install" "${installer_mode}"
-}
-
-stage1.generate_components_env() {
-  stage1.generate_components_env.protect_components
-  stage1.generate_components_env.generate
-}
-
-stage1.generate_components_env.protect_components() {
-  for component in $(components.list_protected); do
-    local version_var; version_var="$(env_files.normalize_var_name "${component}_version")"
-    if [[ -v "${version_var}" ]]; then
-      debug "Env var ${version_var} is set explicitely, force using ${!version_var} version for ${component}"
-      continue
-    fi
-    new_version="$(components.read_origin_var "${component}" 'version')"
-    applied_version="$(components.read_applied_var "${component}" 'version')"
-    if [[ "${applied_version}" != "" ]] && versions.lt "${new_version}" "${applied_version}"; then
-      updates.print_checkpoint_info "Protect ${component} from downgrading to ${new_version}, keep ${applied_version}"
-      export "${version_var}=${applied_version}"
-    fi
-  done
-}
-
-stage1.generate_components_env.generate() {
-  local components_template_path="${PATH_TO_COMPONENTS_ENV_ORIGIN}"
-  local temp_path_1="${PATH_TO_COMPONENTS_ENV}.1" temp_path_2="${PATH_TO_COMPONENTS_ENV}.2"
-  local redefined_env_vars
-  updates.run_update_checkpoint_command "cp -f ${components_template_path} ${temp_path_1}" 'Generating components.env #1'
-  for var in $(env_files.list_vars "${components_template_path}"); do
-    if [[ -v "${var}" ]]; then
-      redefined_env_vars="${redefined_env_vars} ${var}"
-      env_files.forced_save_var "${temp_path_1}" "${var}" "${!var}"
-    fi
-  done
-  local cmd="set -o allexport"
-  cmd="${cmd} && source ${temp_path_1}"
-  cmd="${cmd} && envsubst < ${temp_path_1} > ${temp_path_2}"
-  cmd="${cmd} && rm -f ${temp_path_1}"
-  cmd="${cmd} && mv -f ${temp_path_2} ${PATH_TO_COMPONENTS_ENV}"
-  updates.run_update_checkpoint_command "${cmd}" 'Generating components.env #2'
-}
-
-stage1.preinstall_kctl_dist() {
+stage1.preinstall_kctl() {
+  if is_running_in_install_mode; then
+    install_package 'tar'
+  fi
   components.preinstall 'kctl'
   stage1.preinstall_kctl.install_components_envs
 }
@@ -2594,6 +2565,63 @@ stage1.apply_hot_fixes.fix_downgrading_kctl_to_2_43_9.remove_systemd_timers() {
   systemd.uninstall "tracker-timers.target"
 }
 
+stage1.run_kctl_install() {
+  local running_mode="${RUNNING_MODE:0:1}" # get first char from current mode - `i` for `install`, `u` for `update`
+  local installer_mode="${running_mode^^}" # upcase it
+  stage1.run_kctl_install.run "-${installer_mode}"
+}
+
+stage1.run_kctl_install.run() {
+  local installer_mode="${1}" path_to_kctl_dist msg
+
+  path_to_kctl_dist="$(components.build_path_to_preinstalled_directory 'kctl')"
+
+  msg="Running \`ACTUAL_KCTL=true ${path_to_kctl_dist}/bin/kctl-install ${installer_mode}\`"
+  debug "${msg}"; print_with_color "  ${msg}" 'blue'
+
+  ACTUAL_KCTL=true exec "${path_to_kctl_dist}/bin/kctl-install" "${installer_mode}"
+}
+
+stage1.generate_components_env() {
+  stage1.generate_components_env.protect_components
+  stage1.generate_components_env.generate
+}
+
+stage1.generate_components_env.protect_components() {
+  for component in $(components.list_protected); do
+    local version_var; version_var="$(env_files.normalize_var_name "${component}_version")"
+    if [[ -v "${version_var}" ]]; then
+      debug "Env var ${version_var} is set explicitely, force using ${!version_var} version for ${component}"
+      continue
+    fi
+    new_version="$(components.read_origin_var "${component}" 'version')"
+    applied_version="$(components.read_applied_var "${component}" 'version')"
+    if [[ "${applied_version}" != "" ]] && versions.lt "${new_version}" "${applied_version}"; then
+      updates.print_checkpoint_info "Protect ${component} from downgrading to ${new_version}, keep ${applied_version}"
+      export "${version_var}=${applied_version}"
+    fi
+  done
+}
+
+stage1.generate_components_env.generate() {
+  local components_template_path="${PATH_TO_COMPONENTS_ENV_ORIGIN}"
+  local temp_path_1="${PATH_TO_COMPONENTS_ENV}.1" temp_path_2="${PATH_TO_COMPONENTS_ENV}.2"
+  local redefined_env_vars
+  updates.run_update_checkpoint_command "cp -f ${components_template_path} ${temp_path_1}" 'Generating components.env #1'
+  for var in $(env_files.list_vars "${components_template_path}"); do
+    if [[ -v "${var}" ]]; then
+      redefined_env_vars="${redefined_env_vars} ${var}"
+      env_files.forced_save_var "${temp_path_1}" "${var}" "${!var}"
+    fi
+  done
+  local cmd="set -o allexport"
+  cmd="${cmd} && source ${temp_path_1}"
+  cmd="${cmd} && envsubst < ${temp_path_1} > ${temp_path_2}"
+  cmd="${cmd} && rm -f ${temp_path_1}"
+  cmd="${cmd} && mv -f ${temp_path_2} ${PATH_TO_COMPONENTS_ENV}"
+  updates.run_update_checkpoint_command "${cmd}" 'Generating components.env #2'
+}
+
 stage1.install_components_env_origin() {
   local component_env_path
   local components_env_url="${COMPONENTS_ENV_URL:-}"
@@ -2690,7 +2718,7 @@ stage1() {
   fi
 
   if stage1.need_to_update_kctl_dist; then
-    stage1.preinstall_kctl_dist
+    stage1.preinstall_kctl
     stage1.apply_hot_fixes
     stage1.run_kctl_install
   fi
@@ -2723,46 +2751,6 @@ stage2() {
 
   updates.run 'early'
 }
-MIN_RAM_SIZE_MB=1500
-
-assert_server_has_enough_ram() {
-  local current_ram_size_mb; current_ram_size_mb="$(gathering.gather 'ram_size_mb')"
-
-  if [[ "${current_ram_size_mb}" -lt "${MIN_RAM_SIZE_MB}" ]]; then
-    fail "$(translate errors.not_enough_ram)"
-  fi
-}
-
-assert_os_is_supported() {
-  if ! file_exists /etc/centos-release; then
-    fail "$(translate 'errors.wrong_distro')"
-  fi
-  if empty "${SKIP_CENTOS_RELEASE_CHECK}"; then
-    if is_running_in_install_mode; then
-      assert_centos_release_is_supportded
-    fi
-  fi
-}
-
-assert_centos_release_is_supportded(){
-  if ! file_content_matches /etc/centos-release '-P' '^CentOS .* (8|9)\b'; then
-    fail "$(translate 'errors.wrong_distro')"
-  fi
-}
-MIN_FREE_DISK_SPACE_MB=2048
-
-assert_server_has_enough_free_disk_space() {
-  if [[ "${SKIP_FREE_SPACE_CHECK}" != "" ]] || is_running_in_repair_mode; then
-    debug "Free disk space checking skipped"
-    return
-  fi
-
-  local disk_free_size_mb; disk_free_size_mb="$(gathering.gather 'disk_free_size_mb')"
-
-  if [[ "${disk_free_size_mb}" -lt "${MIN_FREE_DISK_SPACE_MB}" ]]; then
-    fail "$(translate errors.not_enough_free_disk_space)"
-  fi
-}
 
 assert_vm_is_not_openvz() {
   local virtualization_type; virtualization_type="$(gathering.gather 'virtualization_type')"
@@ -2772,17 +2760,16 @@ assert_vm_is_not_openvz() {
   fi
 }
 
-assert_nginx_configs_are_correct() {
-  if is_running_in_repair_mode || [[ "${SKIP_NGINX_CHECK:-}" != "" ]]; then
-    print_with_color 'Running in repair mode - skip checking nginx configs' 'yellow'
-    return
-  fi
-  if podman ps --format '{{.Names}}' | grep -q '^nginx$'; then
-    local cmd="LOG_PATH=/dev/stderr ${KCTL_BIN_DIR}/kctl run nginx -t"
-    local msg='Checking nginx config'
-    run_command "${cmd}" "${msg}" "hide_output"
-  else
-    print_with_color "Couldn't find running nginx container, skip checking nginx configs" 'yellow'
+assert_keitaro_is_not_installed() {
+  local applied_keitaro_version
+
+  applied_keitaro_version="$(components.read_applied_var 'keitaro' 'version')"
+
+  if [[ "${applied_keitaro_version}" != "" ]]; then
+    print_with_color "$(translate messages.keitaro_already_installed)" 'yellow'
+    clean_up
+    stage9.print_url
+    exit "${KEITARO_ALREADY_INSTALLED_RESULT}"
   fi
 }
 
@@ -2812,16 +2799,52 @@ are_thp_sys_files_existing() {
   file_exists "/sys/kernel/mm/transparent_hugepage/enabled" && file_exists "/sys/kernel/mm/transparent_hugepage/defrag"
 }
 
-assert_keitaro_is_not_installed() {
-  local applied_keitaro_version
+assert_systemd_works_properly() {
+  if ! systemctl &> /dev/null; then
+    fail "$(translate errors.systemctl_doesnt_work_properly)"
+  fi
+}
+MIN_RAM_SIZE_MB=1500
 
-  applied_keitaro_version="$(components.read_applied_var 'keitaro' 'version')"
+assert_server_has_enough_ram() {
+  local current_ram_size_mb; current_ram_size_mb="$(gathering.gather 'ram_size_mb')"
 
-  if [[ "${applied_keitaro_version}" != "" ]]; then
-    print_with_color "$(translate messages.keitaro_already_installed)" 'yellow'
-    clean_up
-    stage9.print_url
-    exit "${KEITARO_ALREADY_INSTALLED_RESULT}"
+  if [[ "${current_ram_size_mb}" -lt "${MIN_RAM_SIZE_MB}" ]]; then
+    fail "$(translate errors.not_enough_ram)"
+  fi
+}
+MIN_FREE_DISK_SPACE_MB=2048
+
+assert_server_has_enough_free_disk_space() {
+  if [[ "${SKIP_FREE_SPACE_CHECK}" != "" ]] || is_running_in_repair_mode; then
+    debug "Free disk space checking skipped"
+    return
+  fi
+
+  local disk_free_size_mb; disk_free_size_mb="$(gathering.gather 'disk_free_size_mb')"
+
+  if [[ "${disk_free_size_mb}" -lt "${MIN_FREE_DISK_SPACE_MB}" ]]; then
+    fail "$(translate errors.not_enough_free_disk_space)"
+  fi
+}
+
+assert_nginx_configs_are_correct() {
+  if is_running_in_repair_mode || [[ "${SKIP_NGINX_CHECK:-}" != "" ]]; then
+    print_with_color 'Running in repair mode - skip checking nginx configs' 'yellow'
+    return
+  fi
+  if podman ps --format '{{.Names}}' | grep -q '^nginx$'; then
+    local cmd="LOG_PATH=/dev/stderr ${KCTL_BIN_DIR}/kctl run nginx -t"
+    local msg='Checking nginx config'
+    run_command "${cmd}" "${msg}" "hide_output"
+  else
+    print_with_color "Couldn't find running nginx container, skip checking nginx configs" 'yellow'
+  fi
+}
+
+assert_package_httpd_is_not_installed() {
+  if is_installed httpd; then
+    fail "$(translate errors.apache_installed)"
   fi
 }
 
@@ -2831,15 +2854,20 @@ assert_architecture_is_supported() {
   fi
 }
 
-assert_systemd_works_properly() {
-  if ! systemctl &> /dev/null; then
-    fail "$(translate errors.systemctl_doesnt_work_properly)"
+assert_os_is_supported() {
+  if ! file_exists /etc/centos-release; then
+    fail "$(translate 'errors.wrong_distro')"
+  fi
+  if empty "${SKIP_CENTOS_RELEASE_CHECK}"; then
+    if is_running_in_install_mode; then
+      assert_centos_release_is_supportded
+    fi
   fi
 }
 
-assert_package_httpd_is_not_installed() {
-  if is_installed httpd; then
-    fail "$(translate errors.apache_installed)"
+assert_centos_release_is_supportded(){
+  if ! file_content_matches /etc/centos-release '-P' '^CentOS .* (8|9)\b'; then
+    fail "$(translate 'errors.wrong_distro')"
   fi
 }
 
@@ -2914,23 +2942,17 @@ stage4.gather_and_save_hw_vars.for_var() {
   inventory.save_var "${var_name}" "${value}"
 }
 
-stage4.init_inventory.init_mariadb_entries() {
-  stage4.init_inventory.init_var 'mariadb_storage_engine' 'innodb'
-
-  stage4.init_inventory.init_var 'mariadb_keitaro_database' 'keitaro'
-  stage4.init_inventory.init_var 'mariadb_keitaro_user'     'keitaro'
-  stage4.init_inventory.init_var 'mariadb_keitaro_password' "$(generate_16hex)"
-
-  stage4.init_inventory.init_var 'mariadb_system_database'  'mysql'
-  stage4.init_inventory.init_var 'mariadb_system_user'      'root'
-  stage4.init_inventory.init_var 'mariadb_system_password'  "$(generate_16hex)"
+stage4.init_applied_env() {
+  touch "${PATH_TO_APPLIED_ENV}"
 }
 
-stage4.init_inventory.init_tracker_entries() {
-  stage4.init_inventory.init_var 'tracker_options' ''
-  stage4.init_inventory.init_var 'tracker_postback_key' ''
-  stage4.init_inventory.init_var 'tracker_salt' "$(generate_16hex)"
-  stage4.init_inventory.init_var 'tracker_tables_prefix' 'keitaro_'
+stage4.init_inventory() {
+  stage4.init_inventory.init_clickhouse_entries
+  stage4.init_inventory.init_mariadb_entries
+  stage4.init_inventory.init_redis_entries 'redis'
+  stage4.init_inventory.init_redis_entries 'system-redis'
+  stage4.init_inventory.init_tracker_entries
+  stage4.init_inventory.init_system_entries
 }
 
 stage4.init_inventory.init_var() {
@@ -2943,6 +2965,22 @@ stage4.init_inventory.init_var() {
   if [[ "${old_value}" == "" ]]; then
     inventory.save_var "${variable}" "${new_value}"
   fi
+}
+
+stage4.init_inventory.init_system_entries() {
+  stage4.init_inventory.init_var 'olap_db' 'clickhouse'
+}
+
+stage4.init_inventory.init_tracker_entries() {
+  stage4.init_inventory.init_var 'tracker_options' ''
+  stage4.init_inventory.init_var 'tracker_postback_key' ''
+  stage4.init_inventory.init_var 'tracker_salt' "$(generate_16hex)"
+  stage4.init_inventory.init_var 'tracker_tables_prefix' 'keitaro_'
+}
+
+stage4.init_inventory.init_redis_entries() {
+  local var_prefix="${1}"
+  inventory.save_var "${var_prefix}_keitaro_database" '1'
 }
 
 stage4.init_inventory.init_clickhouse_entries() {
@@ -2963,26 +3001,16 @@ stage4.init_inventory.init_clickhouse_entries.init_for_user_and_database() {
   inventory.save_var "clickhouse_${database}_password" "${password}"
 }
 
-stage4.init_inventory.init_redis_entries() {
-  local var_prefix="${1}"
-  inventory.save_var "${var_prefix}_keitaro_database" '1'
-}
+stage4.init_inventory.init_mariadb_entries() {
+  stage4.init_inventory.init_var 'mariadb_storage_engine' 'innodb'
 
-stage4.init_inventory.init_system_entries() {
-  stage4.init_inventory.init_var 'olap_db' 'clickhouse'
-}
+  stage4.init_inventory.init_var 'mariadb_keitaro_database' 'keitaro'
+  stage4.init_inventory.init_var 'mariadb_keitaro_user'     'keitaro'
+  stage4.init_inventory.init_var 'mariadb_keitaro_password' "$(generate_16hex)"
 
-stage4.init_inventory() {
-  stage4.init_inventory.init_clickhouse_entries
-  stage4.init_inventory.init_mariadb_entries
-  stage4.init_inventory.init_redis_entries 'redis'
-  stage4.init_inventory.init_redis_entries 'system-redis'
-  stage4.init_inventory.init_tracker_entries
-  stage4.init_inventory.init_system_entries
-}
-
-stage4.init_applied_env() {
-  touch "${PATH_TO_APPLIED_ENV}"
+  stage4.init_inventory.init_var 'mariadb_system_database'  'mysql'
+  stage4.init_inventory.init_var 'mariadb_system_user'      'root'
+  stage4.init_inventory.init_var 'mariadb_system_password'  "$(generate_16hex)"
 }
 
 stage4() {
@@ -2994,59 +3022,6 @@ stage4() {
   fi
 
   stage4.gather_and_save_hw_vars
-}
-
-FASTESTMIROR_CONF_PATH="/etc/yum/pluginconf.d/fastestmirror.conf"
-
-stage5.disable_fastestmirror(){
-  local disabling_message="Disabling mirrors in repo files"
-  local disabling_command="sed -i -e 's/^#baseurl/baseurl/g; s/^mirrorlist/#mirrorlist/g;'  /etc/yum.repos.d/*"
-  run_command "${disabling_command}" "${disabling_message}" "hide_output"
-
-  if [[ "$(get_centos_major_release)" == "7" ]] && stage5.is_fastestmirror_enabled; then
-    disabling_message="Disabling fastestmirror plugin on Centos7"
-    disabling_command="sed -i -e 's/^enabled=1/enabled=0/g' /etc/yum/pluginconf.d/fastestmirror.conf"
-    run_command "${disabling_command}" "${disabling_message}" "hide_output"
-  fi
-}
-
-stage5.is_fastestmirror_enabled() {
-  file_exists "${FASTESTMIROR_CONF_PATH}" && \
-      grep -q '^enabled=1' "${FASTESTMIROR_CONF_PATH}"
-}
-
-stage5.disable_selinux() {
-  if [[ "$(getenforce)" == "Enforcing" ]]; then
-    run_command 'setenforce 0' 'Disabling Selinux' 'hide_output'
-  fi
-
-  if file_exists /usr/sbin/setroubleshootd; then
-    run_command 'yum erase setroubleshoot-server -y && systemctl daemon-reload' 'Removing setroubleshootd' 'hide_output'
-  fi
-}
-
-stage5.install_kctl() {
-  debug "Install KCTL"
-
-  components.with_services_do 'kctl' 'stop'
-
-  stage5.install_kctl.install_kctl_files
-
-  stage5.install_kctl.uninstall_redundant_components
-
-  if is_running_in_repair_mode; then
-    stage5.install_kctl.reset_podman
-  fi
-
-  stage5.install_kctl.install_components
-}
-
-stage5.install_core_packages() {
-  install_packages epel-release tar crontabs logrotate jq unzip gettext podman-docker
-
-  if [[ "$(get_centos_major_release)" == "8" ]]; then
-    install_package 'libseccomp-devel'
-  fi
 }
 
 stage5.actualize_distro() {
@@ -3073,38 +3048,35 @@ stage5.actualize_distro.switch_to_centos8_stream() {
   run_command "dnf distro-sync -y" "  Syncing distro"
 }
 
-stage5.install_kctl.run_after_update_admin_component_hook() {
-  updates.run_update_checkpoint_command "rm -f ${TRACKER_ROOT}/cache_locales/*.php" "Clearing locales cache"
-  updates.run_update_checkpoint_command "${KCTL_BIN_DIR}/kctl-monitor -r" "Updating stats.json"
+stage5.clean_packages_metadata() {
+  if [[ "${SKIP_YUM_UPDATE}" == "" ]]; then
+    run_command "yum clean all" "Cleaninig yum meta" "hide_output"
+  fi
 }
 
-PATH_TO_CONTAINERS_DIR="/var/lib/containers/"
+FASTESTMIROR_CONF_PATH="/etc/yum/pluginconf.d/fastestmirror.conf"
 
-stage5.install_kctl.reset_podman() {
-  local msg cmd
+stage5.disable_fastestmirror(){
+  local disabling_message="Disabling mirrors in repo files"
+  local disabling_command="sed -i -e 's/^#baseurl/baseurl/g; s/^mirrorlist/#mirrorlist/g;'  /etc/yum.repos.d/*"
+  run_command "${disabling_command}" "${disabling_message}" "hide_output"
 
-  if [[ "${RESET_PODMAN:-}" == "" ]]; then
-    msg="Skip resetting podman - RESET_PODMAN is not set. Run \`RESET_PODMAN=true kctl repair\`"
-    print_with_color "${msg}" 'yellow'; debug "${msg}"
-    return
+  if [[ "$(get_centos_major_release)" == "7" ]] && stage5.is_fastestmirror_enabled; then
+    disabling_message="Disabling fastestmirror plugin on Centos7"
+    disabling_command="sed -i -e 's/^enabled=1/enabled=0/g' /etc/yum/pluginconf.d/fastestmirror.conf"
+    run_command "${disabling_command}" "${disabling_message}" "hide_output"
   fi
+}
 
-  msg='Resetting podman'; print_with_color "${msg}" 'yellow'; debug "${msg}"
+stage5.is_fastestmirror_enabled() {
+  file_exists "${FASTESTMIROR_CONF_PATH}" && \
+      grep -q '^enabled=1' "${FASTESTMIROR_CONF_PATH}"
+}
 
-  for component in $(components.list_origin | tac); do
-    components.with_services_do "${component}" "stop"
+stage5.install_kctl.uninstall_redundant_components() {
+  for redundant_component in $(components.list_redundant); do
+    components.uninstall "${redundant_component}"
   done
-
-  cmd="mount"
-  cmd="${cmd} | { grep -F ${PATH_TO_CONTAINERS_DIR} || [[ \$? == 1 ]] ; }"
-  cmd="${cmd} | awk '/^shm/ {print \$3}'"
-  cmd="${cmd} | xargs --no-run-if-empty umount"
-  run_command "${cmd}" 'Unmounting Podman SHM entries'
-
-  cmd="rm -rf ${PATH_TO_CONTAINERS_DIR}"
-  run_command "${cmd}" 'Removing Podman FS entries'
-
-  msg='Podman reset'; print_with_color "${msg}" 'green'; debug "${msg}"
 }
 
 stage5.install_kctl.install_kctl_files() {
@@ -3152,6 +3124,35 @@ stage5.install_kctl.install_configs() {
     install -m 0644 "${path_to_kctl}/files/etc/containers/registries.conf.d"/* \
             "${ROOT_PREFIX}/etc/containers/registries.conf.d/"
   fi
+}
+
+PATH_TO_CONTAINERS_DIR="/var/lib/containers/"
+
+stage5.install_kctl.reset_podman() {
+  local msg cmd
+
+  if [[ "${RESET_PODMAN:-}" == "" ]]; then
+    msg="Skip resetting podman - RESET_PODMAN is not set. Run \`RESET_PODMAN=true kctl repair\`"
+    print_with_color "${msg}" 'yellow'; debug "${msg}"
+    return
+  fi
+
+  msg='Resetting podman'; print_with_color "${msg}" 'yellow'; debug "${msg}"
+
+  for component in $(components.list_origin | tac); do
+    components.with_services_do "${component}" "stop"
+  done
+
+  cmd="mount"
+  cmd="${cmd} | { grep -F ${PATH_TO_CONTAINERS_DIR} || [[ \$? == 1 ]] ; }"
+  cmd="${cmd} | awk '/^shm/ {print \$3}'"
+  cmd="${cmd} | xargs --no-run-if-empty umount"
+  run_command "${cmd}" 'Unmounting Podman SHM entries'
+
+  cmd="rm -rf ${PATH_TO_CONTAINERS_DIR}"
+  run_command "${cmd}" 'Removing Podman FS entries'
+
+  msg='Podman reset'; print_with_color "${msg}" 'green'; debug "${msg}"
 }
 
 stage5.install_kctl.install_components() {
@@ -3241,19 +3242,37 @@ stage5.install_kctl.need_to_restart_services() {
     && { stage5.install_kctl.is_component_updateable "${component}" || is_running_in_tune_mode; }
 }
 
-stage5.install_kctl.uninstall_redundant_components() {
-  for redundant_component in $(components.list_redundant); do
-    components.uninstall "${redundant_component}"
-  done
+stage5.install_kctl.run_after_update_admin_component_hook() {
+  updates.run_update_checkpoint_command "rm -f ${TRACKER_ROOT}/cache_locales/*.php" "Clearing locales cache"
+  updates.run_update_checkpoint_command "${KCTL_BIN_DIR}/kctl-monitor -r" "Updating stats.json"
 }
 
-stage5.clean_packages_metadata() {
-  if [[ "${SKIP_YUM_UPDATE}" == "" ]]; then
-    run_command "yum clean all" "Cleaninig yum meta" "hide_output"
+stage5.install_kctl() {
+  debug "Install KCTL"
+
+  components.with_services_do 'kctl' 'stop'
+
+  stage5.install_kctl.install_kctl_files
+
+  stage5.install_kctl.uninstall_redundant_components
+
+  if is_running_in_repair_mode; then
+    stage5.install_kctl.reset_podman
+  fi
+
+  stage5.install_kctl.install_components
+}
+
+stage5.install_core_packages() {
+  install_packages crontabs logrotate jq unzip gettext podman-docker
+
+  if [[ "$(get_centos_major_release)" == "8" ]]; then
+    install_package 'libseccomp-devel'
   fi
 }
 
 stage5.install_extra_packages() {
+  stage5.install_extra_packages.install_epel_release
   stage5.install_extra_packages.install_packages
   stage5.install_extra_packages.install_chrony
 }
@@ -3266,6 +3285,38 @@ stage5.install_extra_packages.install_chrony() {
 stage5.install_extra_packages.install_packages() {
   install_packages bind-utils git htop httpd-tools lsof nano python3 python3-pip rsync
   install_packages socat strace sudo unzip openssl screen
+}
+
+stage5.install_extra_packages.install_epel_release() {
+  local centos_release; centos_release="$(get_centos_major_release)"
+  if stage5.install_extra_packages.need_to_install_epel_from_url "${centos_release}"; then
+    local url="https://dl.fedoraproject.org/pub/epel/epel-release-latest-${centos_release}.noarch.rpm"
+    run_command "yum install -y ${url}" "Installing epel-release from ${url}" "hide_output"
+  else
+    install_package epel-release
+  fi
+}
+
+stage5.install_extra_packages.need_to_install_epel_from_url() {
+  local centos_release="${1}"
+  [[ "${centos_release}" == "9" ]] \
+    && ! stage5.install_extra_packages.is_repo_installed epel \
+    && ! stage5.install_extra_packages.is_repo_installed extras-common
+}
+
+stage5.install_extra_packages.is_repo_installed() {
+  local repo_name="${1}"
+  dnf repolist all | awk '{print $1}' | grep -q "^${repo_name}\$"
+}
+
+stage5.disable_selinux() {
+  if [[ "$(getenforce)" == "Enforcing" ]]; then
+    run_command 'setenforce 0' 'Disabling Selinux' 'hide_output'
+  fi
+
+  if file_exists /usr/sbin/setroubleshootd; then
+    run_command 'yum erase setroubleshoot-server -y && systemctl daemon-reload' 'Removing setroubleshootd' 'hide_output'
+  fi
 }
 
 stage5() {
@@ -3296,136 +3347,6 @@ stage5() {
 stage6() {
   debug "Running stage6"
   updates.run 'middle'
-}
-
-ANSIBLE_TASK_HEADER="^TASK \[(.*)\].*"
-ANSIBLE_TASK_FAILURE_HEADER="^(fatal|failed): \[localhost\]: [A-Z]+! => "
-ANSIBLE_LAST_TASK_LOG="${WORKING_DIR}/ansible_last_task.log"
-
-stage7.run_ansible_playbook() {
-  local env cmd applied_tracker_version tracker_version tracker_directory playbook_directory
-
-  playbook_directory="$(components.build_path_to_preinstalled_directory "${KCTL_COMPONENT}")/playbook"
-  tracker_directory="$(components.build_path_to_preinstalled_directory "${TRACKER_COMPONENT}")"
-
-  env="${env} ANSIBLE_FORCE_COLOR=true"
-  env="${env} ANSIBLE_CONFIG=${playbook_directory}/ansible.cfg"
-  env="${env} RUNNING_MODE=${RUNNING_MODE}"
-  env="${env} TRACKER_DIRECTORY=${tracker_directory}"
-
-  cmd="set -o allexport"
-  cmd="${cmd} && source ${PATH_TO_COMPONENTS_ENV}"
-  for component in $(components.list_origin); do
-    cmd="${cmd} && source ${PATH_TO_ENV_DIR}/components/${component}.env"
-  done
-  if [[ -f "${PATH_TO_APPLIED_ENV}" ]]; then
-    cmd="${cmd} && source ${PATH_TO_APPLIED_ENV}"
-  fi
-  cmd="${cmd} && source ${PATH_TO_INVENTORY_ENV}"
-  cmd="${cmd} && ${env} $(get_ansible_playbook_command) -v -i localhost, --connection=local ${playbook_directory}/playbook.yml"
-
-  expand_ansible_tags_on_update
-
-  if isset "${ANSIBLE_TAGS}"; then
-    cmd="${cmd} --tags ${ANSIBLE_TAGS}"
-  fi
-  if isset "${ANSIBLE_IGNORE_TAGS}"; then
-    cmd="${cmd} --skip-tags ${ANSIBLE_IGNORE_TAGS}"
-  fi
-  run_command "${cmd}" '' '' '' '' 'print_ansible_fail_message'
-}
-
-get_ansible_playbook_command() {
-  if [[ "$(get_centos_major_release)" == "7" ]]; then
-    echo "LC_ALL=C ansible-playbook-3"
-  else
-    echo "LC_ALL=C.UTF-8 ansible-playbook"
-  fi
-}
-
-print_ansible_fail_message(){
-  local current_command_script="${1}"
-  if ansible_task_found; then
-    debug "Found last ansible task"
-    print_tail_content_of "$CURRENT_COMMAND_ERROR_LOG"
-    cat "$CURRENT_COMMAND_OUTPUT_LOG" | remove_text_before_last_pattern_occurence "$ANSIBLE_TASK_HEADER" > "$ANSIBLE_LAST_TASK_LOG"
-    print_ansible_last_task_info
-    print_ansible_last_task_external_info
-    rm "$ANSIBLE_LAST_TASK_LOG"
-  else
-    print_common_fail_message "$current_command_script"
-  fi
-}
-
-ansible_task_found(){
-  grep -qE "$ANSIBLE_TASK_HEADER" "$CURRENT_COMMAND_OUTPUT_LOG"
-}
-
-print_ansible_last_task_info(){
-  echo "Task info:"
-  head -n2 "$ANSIBLE_LAST_TASK_LOG" | sed -r 's/\*+$//g' | add_indentation
-}
-
-print_ansible_last_task_external_info(){
-  if file_content_matches "${ANSIBLE_LAST_TASK_LOG}" "-P" "${ANSIBLE_TASK_FAILURE_HEADER}"; then
-    debug "Found ansible failure"
-    echo
-    cat "${ANSIBLE_LAST_TASK_LOG}" | extract_ansible_task_json | print_ansible_task_json
-  fi
-}
-
-extract_ansible_task_json() {
-  # The json with error is inbuilt into text. The structure of the text is about:
-  #
-  # TASK [$ROLE_NAME : "$TASK_NAME"] *******
-  # task path: /path/to/task/file.yml:$LINE
-  # fatal: [localhost]: FAILED! => {"some": "json", "content": "here"}
-  #
-  # So, we simply remove JSON prefix (fatal: ... => ) from this message
-  grep -Po "${ANSIBLE_TASK_FAILURE_HEADER}\K.*" | head -n 1
-}
-
-remove_text_before_last_pattern_occurence(){
-  local pattern="${1}"
-  sed -n -r "H;/${pattern}/h;\${g;p;}"
-}
-
-print_ansible_task_json() {
-  local error_dict_string
-  read -r json_string
-
-  error_dict_string="$(echo "${json_string}" | json2dict)"
-
-  declare -A error_dict="${error_dict_string}"
-
-  if isset "${error_dict['cmd']}" || isset "${error_dict['msg']}" || isset "${error_dict['stdout']}" || isset "${error_dict['stderr']}"; then
-     print_field_content "ansible module" "${error_dict['invocation.module_name']}"
-     print_field_content "command" "${error_dict['cmd']}"
-     print_field_content "error" "${error_dict['msg']}"
-     print_field_content "stdout" "${error_dict['stdout']}"
-     print_field_content "stderr" "${error_dict['stderr']}"
-  else
-    for field in "${!error_dict[@]}"; do
-      if [[ ! "${field}" =~ _lines$ ]]; then
-        print_field_content "${field}" "${error_dict["${field}"]}"
-      fi
-    done
-  fi
-}
-
-print_field_content() {
-  local field_caption="${1}" field_content="${2}"
-
-  if isset "${field_content}"; then
-    if [[ "${field_content}" =~ \\\n ]]; then
-      echo "----------------------------------  ${field_caption^^} ----------------------------------"
-      echo -e "${field_content}"
-      echo "----------------------------------  ${field_caption^^} ----------------------------------"
-    else
-      echo "${field_caption^^}: ${field_content}" | add_indentation
-    fi
-    echo
-  fi
 }
 
 json2dict() {
@@ -3566,6 +3487,136 @@ json2dict() {
   printf "( %s)" "$(tokenize | json_parse || true)"
 }
 
+ANSIBLE_TASK_HEADER="^TASK \[(.*)\].*"
+ANSIBLE_TASK_FAILURE_HEADER="^(fatal|failed): \[localhost\]: [A-Z]+! => "
+ANSIBLE_LAST_TASK_LOG="${WORKING_DIR}/ansible_last_task.log"
+
+stage7.run_ansible_playbook() {
+  local env cmd applied_tracker_version tracker_version tracker_directory playbook_directory
+
+  playbook_directory="$(components.build_path_to_preinstalled_directory "${KCTL_COMPONENT}")/playbook"
+  tracker_directory="$(components.build_path_to_preinstalled_directory "${TRACKER_COMPONENT}")"
+
+  env="${env} ANSIBLE_FORCE_COLOR=true"
+  env="${env} ANSIBLE_CONFIG=${playbook_directory}/ansible.cfg"
+  env="${env} RUNNING_MODE=${RUNNING_MODE}"
+  env="${env} TRACKER_DIRECTORY=${tracker_directory}"
+
+  cmd="set -o allexport"
+  cmd="${cmd} && source ${PATH_TO_COMPONENTS_ENV}"
+  for component in $(components.list_origin); do
+    cmd="${cmd} && source ${PATH_TO_ENV_DIR}/components/${component}.env"
+  done
+  if [[ -f "${PATH_TO_APPLIED_ENV}" ]]; then
+    cmd="${cmd} && source ${PATH_TO_APPLIED_ENV}"
+  fi
+  cmd="${cmd} && source ${PATH_TO_INVENTORY_ENV}"
+  cmd="${cmd} && ${env} $(get_ansible_playbook_command) -v -i localhost, --connection=local ${playbook_directory}/playbook.yml"
+
+  expand_ansible_tags_on_update
+
+  if isset "${ANSIBLE_TAGS}"; then
+    cmd="${cmd} --tags ${ANSIBLE_TAGS}"
+  fi
+  if isset "${ANSIBLE_IGNORE_TAGS}"; then
+    cmd="${cmd} --skip-tags ${ANSIBLE_IGNORE_TAGS}"
+  fi
+  run_command "${cmd}" '' '' '' '' 'print_ansible_fail_message'
+}
+
+get_ansible_playbook_command() {
+  if [[ "$(get_centos_major_release)" == "7" ]]; then
+    echo "LC_ALL=C ansible-playbook-3"
+  else
+    echo "LC_ALL=C.UTF-8 ansible-playbook"
+  fi
+}
+
+print_ansible_fail_message(){
+  local current_command_script="${1}"
+  if ansible_task_found; then
+    debug "Found last ansible task"
+    print_tail_content_of "$CURRENT_COMMAND_ERROR_LOG"
+    cat "$CURRENT_COMMAND_OUTPUT_LOG" | remove_text_before_last_pattern_occurence "$ANSIBLE_TASK_HEADER" > "$ANSIBLE_LAST_TASK_LOG"
+    print_ansible_last_task_info
+    print_ansible_last_task_external_info
+    rm "$ANSIBLE_LAST_TASK_LOG"
+  else
+    print_common_fail_message "$current_command_script"
+  fi
+}
+
+ansible_task_found(){
+  grep -qE "$ANSIBLE_TASK_HEADER" "$CURRENT_COMMAND_OUTPUT_LOG"
+}
+
+print_ansible_last_task_info(){
+  echo "Task info:"
+  head -n2 "$ANSIBLE_LAST_TASK_LOG" | sed -r 's/\*+$//g' | add_indentation
+}
+
+print_ansible_last_task_external_info(){
+  if file_content_matches "${ANSIBLE_LAST_TASK_LOG}" "-P" "${ANSIBLE_TASK_FAILURE_HEADER}"; then
+    debug "Found ansible failure"
+    echo
+    cat "${ANSIBLE_LAST_TASK_LOG}" | extract_ansible_task_json | print_ansible_task_json
+  fi
+}
+
+extract_ansible_task_json() {
+  # The json with error is inbuilt into text. The structure of the text is about:
+  #
+  # TASK [$ROLE_NAME : "$TASK_NAME"] *******
+  # task path: /path/to/task/file.yml:$LINE
+  # fatal: [localhost]: FAILED! => {"some": "json", "content": "here"}
+  #
+  # So, we simply remove JSON prefix (fatal: ... => ) from this message
+  grep -Po "${ANSIBLE_TASK_FAILURE_HEADER}\K.*" | head -n 1
+}
+
+remove_text_before_last_pattern_occurence(){
+  local pattern="${1}"
+  sed -n -r "H;/${pattern}/h;\${g;p;}"
+}
+
+print_ansible_task_json() {
+  local error_dict_string
+  read -r json_string
+
+  error_dict_string="$(echo "${json_string}" | json2dict)"
+
+  declare -A error_dict="${error_dict_string}"
+
+  if isset "${error_dict['cmd']}" || isset "${error_dict['msg']}" || isset "${error_dict['stdout']}" || isset "${error_dict['stderr']}"; then
+     print_field_content "ansible module" "${error_dict['invocation.module_name']}"
+     print_field_content "command" "${error_dict['cmd']}"
+     print_field_content "error" "${error_dict['msg']}"
+     print_field_content "stdout" "${error_dict['stdout']}"
+     print_field_content "stderr" "${error_dict['stderr']}"
+  else
+    for field in "${!error_dict[@]}"; do
+      if [[ ! "${field}" =~ _lines$ ]]; then
+        print_field_content "${field}" "${error_dict["${field}"]}"
+      fi
+    done
+  fi
+}
+
+print_field_content() {
+  local field_caption="${1}" field_content="${2}"
+
+  if isset "${field_content}"; then
+    if [[ "${field_content}" =~ \\\n ]]; then
+      echo "----------------------------------  ${field_caption^^} ----------------------------------"
+      echo -e "${field_content}"
+      echo "----------------------------------  ${field_caption^^} ----------------------------------"
+    else
+      echo "${field_caption^^}: ${field_content}" | add_indentation
+    fi
+    echo
+  fi
+}
+
 stage7.install_ansible() {
   install_package "$(stage7.get_ansible_package_name)"
   stage7.install_ansible_collection "containers.podman"
@@ -3640,6 +3691,17 @@ stage8() {
   components.update_applied_vars 'keitaro'
 }
 
+stage9.print_url() {
+  local server_ip; server_ip="$(inventory.read_var 'server_ip')"
+  print_with_color "http://${server_ip}/admin" 'light.green'
+}
+
+stage9.print_successful_message(){
+  print_with_color "$(translate "messages.successful_${RUNNING_MODE}")" 'green'
+  print_with_color "$(translate 'messages.visit_url')" 'green'
+  stage9.print_url
+}
+
 stage9.update_packages() {
   if [[ "${SKIP_YUM_UPDATE}" == "" ]]; then
     debug "Updating packages"
@@ -3658,17 +3720,6 @@ stage9.update_packages() {
   fi
 }
 
-stage9.print_successful_message(){
-  print_with_color "$(translate "messages.successful_${RUNNING_MODE}")" 'green'
-  print_with_color "$(translate 'messages.visit_url')" 'green'
-  stage9.print_url
-}
-
-stage9.print_url() {
-  local server_ip; server_ip="$(inventory.read_var 'server_ip')"
-  print_with_color "http://${server_ip}/admin" 'light.green'
-}
-
 stage9() {
   debug "Starting stage 9: Update packages"
 
@@ -3676,63 +3727,6 @@ stage9() {
     stage9.update_packages
   fi
   stage9.print_successful_message
-}
-
-updates.early.since_2_43_6() {
-  local cmd applied_kctld_version var
-
-  if [[ -f /etc/keitaro/env/components-applied.env ]] && [[ ! -f /etc/keitaro/env/applied.env ]]; then
-    local cmd="sed 's/^/APPLIED_/g' /etc/keitaro/env/components-applied.env > /etc/keitaro/env/applied.env"
-    updates.run_update_checkpoint_command "${cmd}" "Converting applied components env file"
-  fi
-}
-
-updates.early.since_2_44_0() {
-  updates.early.since_2_44_0.fix_mariadb_dirs_permissions
-}
-
-updates.early.since_2_44_0.fix_mariadb_dirs_permissions() {
-  local user group cmd
-
-  user="$(components.read_var 'mariadb' 'user')"
-  group="$(components.read_var 'mariadb' 'group')"
-  cmd="chown "${user}:${group}" -R /var/lib/mysql" # Change the Owner of the MariaDB data files
-  cmd="${cmd} && find /var/lib/mysql -type f -exec chmod 0644 {} \\;" # Set permissions for files
-  cmd="${cmd} && find /var/lib/mysql -type d -exec chmod 0755 {} \\;" # Set permissions for directories
-
-  updates.run_update_checkpoint_command "${cmd}" "Fix MariaDB files permissions"
-}
-
-updates.early.since_2_44_1() {
-  updates.early.since_2_44_1.disable_old_kctl_monitor
-
-  stage5.actualize_distro
-  stage5.install_core_packages
-  stage5.install_extra_packages
-  system.users.create "${KEITARO_SUPPORT_USER}" "${KEITARO_SUPPORT_HOME_DIR}"
-}
-
-updates.early.since_2_44_1.disable_old_kctl_monitor () {
-  systemd.disable_and_stop_service 'kctl-monitor'
-}
-
-updates.early.since_2_43_9.migrate_inventory() {
-  local path_to_temp_inventory_env="${PATH_TO_INVENTORY_ENV}.tmp"
-
-  updates.early.since_2_43_9.migrate_inventory.clickhouse_entries "${path_to_temp_inventory_env}"
-  updates.print_checkpoint_info "Migrated Clickhouse inventory entries"
-
-  updates.early.since_2_43_9.migrate_inventory.mariadb_entries "${path_to_temp_inventory_env}"
-  updates.print_checkpoint_info "Migrated MariaDB inventory entries"
-
-  updates.early.since_2_43_9.migrate_inventory.redis_entries "${path_to_temp_inventory_env}"
-  updates.print_checkpoint_info "Migrated Redis inventory entries"
-
-  updates.early.since_2_43_9.migrate_inventory.tracker_entries "${path_to_temp_inventory_env}"
-  updates.print_checkpoint_info "Migrated tracker inventory entries"
-
-  updates.early.since_2_43_9.migrate_inventory.system_entries "${path_to_temp_inventory_env}"
-  updates.print_checkpoint_info "Migrated system inventory entries"
 }
 
 updates.early.since_2_43_9.detect_ansible_inventory_path() {
@@ -3746,35 +3740,17 @@ updates.early.since_2_43_9.detect_ansible_inventory_path() {
 }
 
 
-updates.early.since_2_43_9.assert_value_is_set() {
-  local value="${1}" description="${2}"
-  if [[ "${value}" == "" ]]; then
-    fail "${description} is not set!"
-  fi
-}
+PATH_TO_BACKUP_INVENTORY_DIR="${ETC_DIR}/backups/inventory"
 
+updates.early.since_2_43_9.backup_old_inventory_files() {
+  local ansible_inventory_path="${1}" cmd
 
-updates.early.since_2_43_9.migrate_inventory.system_entries() {
-  local path_to_inventory_env="${1}" value
+  cmd="mkdir -p ${PATH_TO_BACKUP_INVENTORY_DIR}"
+  cmd="${cmd} && /bin/cp -f ${ansible_inventory_path} ${PATH_TO_BACKUP_INVENTORY_DIR}/inventory"
+  cmd="${cmd} && /bin/cp -f /etc/keitaro/config/tracker.env ${PATH_TO_BACKUP_INVENTORY_DIR}/tracker.env"
+  cmd="${cmd} && /bin/cp -f /etc/keitaro/env/system.env ${PATH_TO_BACKUP_INVENTORY_DIR}/system.env"
 
-  value="$(components.read_applied_var 'kctl' 'version')"
-  if [[ "${value}" == "" ]]; then
-    value="$(updates.early.since_2_43_9.gather_value 'installer_version')"
-  fi
-  if [[ "${value}" == "" ]]; then
-    value="${VERY_FIRST_VERSION}"
-  fi
-  env_files.save_applied_var 'kctl_version' "${value}"
-
-  value="$(updates.early.since_2_43_9.gather_value 'olap_db')"
-  if [[ "${value}" != "${OLAP_DB_CLICKHOUSE}" ]]; then
-    value="${OLAP_DB_MARIADB}"
-    local features; features="$(updates.early.since_2_43_9.gather_value 'features')"
-    if [[ "${features}" =~ rbooster ]]; then
-      value="${OLAP_DB_CLICKHOUSE}"
-    fi
-  fi
-  env_files.forced_save_var "${path_to_inventory_env}" 'olap_db' "${value}"
+  updates.run_update_checkpoint_command "${cmd}" "Backing up old inventory files"
 }
 
 updates.early.since_2_43_9.migrate_inventory.clickhouse_entries() {
@@ -3798,35 +3774,6 @@ updates.early.since_2_43_9.migrate_inventory.clickhouse_entries.migrate_for_user
   env_files.forced_save_var "${path_to_inventory_env}" "clickhouse_${database}_database"  "${database}"
   env_files.forced_save_var "${path_to_inventory_env}" "clickhouse_${database}_user"      "${user}"
   env_files.forced_save_var "${path_to_inventory_env}" "clickhouse_${database}_password"  "${password}"
-}
-
-updates.early.since_2_43_9.migrate_inventory.redis_entries() {
-  local path_to_inventory_env="${1}" value
-
-  env_files.forced_save_var "${path_to_inventory_env}" 'redis_keitaro_database' '1'
-  env_files.forced_save_var "${path_to_inventory_env}" 'system_redis_keitaro_database' '1'
-}
-
-updates.early.since_2_43_9.migrate_inventory.tracker_entries() {
-  local path_to_inventory_env="${1}" value
-
-  value="$(updates.early.since_2_43_9.gather_value 'options')"
-  if [[ "${value}" != "" ]]; then
-    env_files.forced_save_var "${path_to_inventory_env}" 'tracker_options' "${value}"
-  fi
-
-  value="$(updates.early.since_2_43_9.gather_value 'postback_key')"
-  if [[ "${value}" != "" ]]; then
-    env_files.forced_save_var "${path_to_inventory_env}" 'tracker_postback_key' "${value}"
-  fi
-
-  value="$(updates.early.since_2_43_9.gather_value 'salt')"
-  updates.early.since_2_43_9.assert_value_is_set "${value}" "Tracker's salt"
-  env_files.forced_save_var "${path_to_inventory_env}" 'tracker_salt' "${value}"
-
-  value="$(updates.early.since_2_43_9.gather_value 'prefix' 'table_prefix' 'db/prefix')"
-  updates.early.since_2_43_9.assert_value_is_set "${value}" 'Tables prefix'
-  env_files.forced_save_var "${path_to_inventory_env}" 'tracker_tables_prefix' "${value}"
 }
 
 updates.early.since_2_43_9.migrate_inventory.mariadb_entries() {
@@ -3887,18 +3834,84 @@ updates.early.since_2_43_9.migrate_inventory.mariadb_entries.detect_storage_engi
   fi
 }
 
-PATH_TO_BACKUP_INVENTORY_DIR="${ETC_DIR}/backups/inventory"
+updates.early.since_2_43_9.migrate_inventory.tracker_entries() {
+  local path_to_inventory_env="${1}" value
 
-updates.early.since_2_43_9.backup_old_inventory_files() {
-  local ansible_inventory_path="${1}" cmd
+  value="$(updates.early.since_2_43_9.gather_value 'options')"
+  if [[ "${value}" != "" ]]; then
+    env_files.forced_save_var "${path_to_inventory_env}" 'tracker_options' "${value}"
+  fi
 
-  cmd="mkdir -p ${PATH_TO_BACKUP_INVENTORY_DIR}"
-  cmd="${cmd} && /bin/cp -f ${ansible_inventory_path} ${PATH_TO_BACKUP_INVENTORY_DIR}/inventory"
-  cmd="${cmd} && /bin/cp -f /etc/keitaro/config/tracker.env ${PATH_TO_BACKUP_INVENTORY_DIR}/tracker.env"
-  cmd="${cmd} && /bin/cp -f /etc/keitaro/env/system.env ${PATH_TO_BACKUP_INVENTORY_DIR}/system.env"
+  value="$(updates.early.since_2_43_9.gather_value 'postback_key')"
+  if [[ "${value}" != "" ]]; then
+    env_files.forced_save_var "${path_to_inventory_env}" 'tracker_postback_key' "${value}"
+  fi
 
-  updates.run_update_checkpoint_command "${cmd}" "Backing up old inventory files"
+  value="$(updates.early.since_2_43_9.gather_value 'salt')"
+  updates.early.since_2_43_9.assert_value_is_set "${value}" "Tracker's salt"
+  env_files.forced_save_var "${path_to_inventory_env}" 'tracker_salt' "${value}"
+
+  value="$(updates.early.since_2_43_9.gather_value 'prefix' 'table_prefix' 'db/prefix')"
+  updates.early.since_2_43_9.assert_value_is_set "${value}" 'Tables prefix'
+  env_files.forced_save_var "${path_to_inventory_env}" 'tracker_tables_prefix' "${value}"
 }
+
+updates.early.since_2_43_9.migrate_inventory.redis_entries() {
+  local path_to_inventory_env="${1}" value
+
+  env_files.forced_save_var "${path_to_inventory_env}" 'redis_keitaro_database' '1'
+  env_files.forced_save_var "${path_to_inventory_env}" 'system_redis_keitaro_database' '1'
+}
+
+updates.early.since_2_43_9.migrate_inventory.system_entries() {
+  local path_to_inventory_env="${1}" value
+
+  value="$(components.read_applied_var 'kctl' 'version')"
+  if [[ "${value}" == "" ]]; then
+    value="$(updates.early.since_2_43_9.gather_value 'installer_version')"
+  fi
+  if [[ "${value}" == "" ]]; then
+    value="${VERY_FIRST_VERSION}"
+  fi
+  env_files.save_applied_var 'kctl_version' "${value}"
+
+  value="$(updates.early.since_2_43_9.gather_value 'olap_db')"
+  if [[ "${value}" != "${OLAP_DB_CLICKHOUSE}" ]]; then
+    value="${OLAP_DB_MARIADB}"
+    local features; features="$(updates.early.since_2_43_9.gather_value 'features')"
+    if [[ "${features}" =~ rbooster ]]; then
+      value="${OLAP_DB_CLICKHOUSE}"
+    fi
+  fi
+  env_files.forced_save_var "${path_to_inventory_env}" 'olap_db' "${value}"
+}
+
+updates.early.since_2_43_9.migrate_inventory() {
+  local path_to_temp_inventory_env="${PATH_TO_INVENTORY_ENV}.tmp"
+
+  updates.early.since_2_43_9.migrate_inventory.clickhouse_entries "${path_to_temp_inventory_env}"
+  updates.print_checkpoint_info "Migrated Clickhouse inventory entries"
+
+  updates.early.since_2_43_9.migrate_inventory.mariadb_entries "${path_to_temp_inventory_env}"
+  updates.print_checkpoint_info "Migrated MariaDB inventory entries"
+
+  updates.early.since_2_43_9.migrate_inventory.redis_entries "${path_to_temp_inventory_env}"
+  updates.print_checkpoint_info "Migrated Redis inventory entries"
+
+  updates.early.since_2_43_9.migrate_inventory.tracker_entries "${path_to_temp_inventory_env}"
+  updates.print_checkpoint_info "Migrated tracker inventory entries"
+
+  updates.early.since_2_43_9.migrate_inventory.system_entries "${path_to_temp_inventory_env}"
+  updates.print_checkpoint_info "Migrated system inventory entries"
+}
+
+updates.early.since_2_43_9.assert_value_is_set() {
+  local value="${1}" description="${2}"
+  if [[ "${value}" == "" ]]; then
+    fail "${description} is not set!"
+  fi
+}
+
 
 updates.early.since_2_43_9.gather_value() {
   local tracker_env_var="${1^^}"
@@ -3959,6 +3972,22 @@ updates.early.since_2_43_9.read_config_value() {
   fi
 }
 
+updates.early.since_2_42_1() {
+  updates.run_update_checkpoint_command "rm -f /etc/logrotate.d/{redis,mysql}" \
+            "Removing old logrotate configs"
+
+  packages.actualize_rpm
+}
+
+updates.early.since_2_43_6() {
+  local cmd applied_kctld_version var
+
+  if [[ -f /etc/keitaro/env/components-applied.env ]] && [[ ! -f /etc/keitaro/env/applied.env ]]; then
+    local cmd="sed 's/^/APPLIED_/g' /etc/keitaro/env/components-applied.env > /etc/keitaro/env/applied.env"
+    updates.run_update_checkpoint_command "${cmd}" "Converting applied components env file"
+  fi
+}
+
 updates.early.since_2_43_9() {
   updates.early.since_2_43_9.update_inventory
   updates.early.since_2_43_9.remove_old_cron_tasks
@@ -3994,76 +4023,37 @@ updates.early.since_2_43_9.remove_old_cron_tasks() {
   updates.run_update_checkpoint_command 'pkill -f cron.php || true' 'Terminating runing tracker cron tasks'
 }
 
-updates.middle.since_2_41_10() {
-  updates.middle.since_2_41_10.remove_packages
-  updates.middle.since_2_41_10.change_nginx_home
-  updates.middle.since_2_41_10.fix_nginx_log_dir_permissions
-  updates.middle.since_2_41_10.remove_repos
-  updates.middle.since_2_41_10.remove_old_ansible
+updates.early.since_2_44_0() {
+  updates.early.since_2_44_0.fix_mariadb_dirs_permissions
 }
 
-updates.middle.since_2_41_10.remove_packages() {
-  local packages_to_remove=(
-    nginx redis clickhouse-server MariaDB-server MariaDB-client MariaDB-tokudb-engine MariaDB-common MariaDB-shared
-  )
+updates.early.since_2_44_0.fix_mariadb_dirs_permissions() {
+  local user group cmd
 
-  for package in "${packages_to_remove[@]}"; do
-    if is_package_installed "${package}"; then
-      updates.run_update_checkpoint_command "yum erase -y ${package}" "Erasing ${package} package"
-    fi
-  done
+  user="$(components.read_var 'mariadb' 'user')"
+  group="$(components.read_var 'mariadb' 'group')"
+  cmd="chown "${user}:${group}" -R /var/lib/mysql" # Change the Owner of the MariaDB data files
+  cmd="${cmd} && find /var/lib/mysql -type f -exec chmod 0644 {} \\;" # Set permissions for files
+  cmd="${cmd} && find /var/lib/mysql -type d -exec chmod 0755 {} \\;" # Set permissions for directories
+
+  updates.run_update_checkpoint_command "${cmd}" "Fix MariaDB files permissions"
 }
 
-updates.middle.since_2_41_10.change_nginx_home() {
-  local nginx_home
-  nginx_home="$( (getent passwd nginx | awk -F: '{print $6}') &>/dev/null || true)"
-  if [[ "${nginx_home}" != "/var/cache/nginx" ]]; then
-    updates.run_update_checkpoint_command "usermod -d /var/cache/nginx nginx; rm -rf /home/nginx" "Changing nginx user home"
-  fi
-}
-
-updates.middle.since_2_41_10.fix_nginx_log_dir_permissions() {
-  local cmd
-  local nginx_log_dir="/var/log/nginx"
-  cmd="mkdir -p ${nginx_log_dir}"
-  cmd="${cmd} && chown nginx:nginx ${nginx_log_dir}"
-  cmd="${cmd} && chmod 0750 ${nginx_log_dir}"
-  updates.run_update_checkpoint_command "${cmd}" "Fixing nginx directory permissions"
-}
-
-updates.middle.since_2_41_10.remove_repos() {
-  if [ -f /etc/yum.repos.d/mariadb.repo ]; then
-    updates.run_update_checkpoint_command "rm -f /etc/yum.repos.d/mariadb.repo" "Removing mariadb repo"
-  fi
-  if [ -f /etc/yum.repos.d/Altinity-ClickHouse.repo ]; then
-    updates.run_update_checkpoint_command "rm -f /etc/yum.repos.d/Altinity-ClickHouse.repo" "Removing clickhouse repo"
-  fi
-}
-
-updates.middle.since_2_41_10.remove_old_ansible() {
-  if [[ "$(get_centos_major_release)" == "7" ]] && [[ -f /usr/bin/ansible-2 ]]; then
-    updates.run_update_checkpoint_command "yum erase -y ansible" "Removing old ansible"
-  fi
-  if [[ "$(get_centos_major_release)" == "8" ]] && is_package_installed "ansible"; then
-    updates.run_update_checkpoint_command "yum install -y ansible-core --allowerasing" "Removing old ansible"
-  fi
-}
-
-updates.middle.since_2_40_0() {
-  updates.middle.since_2_40_0.move_nginx_file \
+updates.early.since_2_40_0() {
+  updates.early.since_2_40_0.move_nginx_file \
           /etc/nginx/conf.d/vhosts.conf /etc/nginx/conf.d/keitaro.conf
 
   for old_dir in /etc/ssl/certs /etc/nginx/ssl; do
     for cert_name in dhparam.pem cert.pem privkey.pem; do
-      updates.middle.since_2_40_0.move_nginx_file \
+      updates.early.since_2_40_0.move_nginx_file \
               "${old_dir}/${cert_name}" "/etc/keitaro/ssl/${cert_name}"
     done
   done
 
-  updates.middle.since_2_40_0.remove_old_log_format_from_nginx_configs
+  updates.early.since_2_40_0.remove_old_log_format_from_nginx_configs
 }
 
-updates.middle.since_2_40_0.move_nginx_file() {
+updates.early.since_2_40_0.move_nginx_file() {
   local path_to_old_file="${1}" path_to_new_file="${2}" old_configs_count cmd msg
 
   if [[ -f "${path_to_old_file}" ]] && [[ ! -f ${path_to_new_file} ]]; then
@@ -4084,7 +4074,7 @@ updates.middle.since_2_40_0.move_nginx_file() {
   fi
 }
 
-updates.middle.since_2_40_0.remove_old_log_format_from_nginx_configs() {
+updates.early.since_2_40_0.remove_old_log_format_from_nginx_configs() {
   local old_log_format="tracker.status" cmd
 
   old_configs_count="$(grep -r -l -F "${old_log_format}" /etc/nginx/conf.d | wc -l)"
@@ -4097,26 +4087,86 @@ updates.middle.since_2_40_0.remove_old_log_format_from_nginx_configs() {
   fi
 }
 
-updates.middle.since_2_42_1() {
-  packages.actualize_rpm
+updates.early.since_2_44_1() {
+  updates.early.since_2_44_1.disable_old_kctl_monitor
+
+  stage5.actualize_distro
+  stage5.install_core_packages
+  stage5.install_extra_packages
+  system.users.create "${KEITARO_SUPPORT_USER}" "${KEITARO_SUPPORT_HOME_DIR}"
 }
 
-updates.middle.since_2_38_2() {
-  updates.middle.since_2_38_2.remove_old_files
+updates.early.since_2_44_1.disable_old_kctl_monitor () {
+  systemd.disable_and_stop_service 'kctl-monitor'
 }
 
-updates.middle.since_2_38_2.remove_old_files() {
-  local file
+updates.early.since_2_41_10() {
+  updates.early.since_2_41_10.remove_packages
+  updates.early.since_2_41_10.change_nginx_home
+  updates.early.since_2_41_10.remove_repos
+  updates.early.since_2_41_10.remove_old_ansible
+}
 
-  for file in /usr/local/bin/keitaro-generate_cf_ip_lists /usr/local/bin/kctl-prune-ssl /opt/keitaro/bin/kctl-prune-ssl; do
-    if [[ -f "${file}" ]]; then
-      updates.run_update_checkpoint_command "rm -f ${file}" "Remove unneeded ${file}"
+PACKAGES_TO_REMOVE_SINCE_2_41_10=(
+  nginx redis clickhouse-server MariaDB-server MariaDB-client MariaDB-tokudb-engine MariaDB-common MariaDB-shared
+)
+
+updates.early.since_2_41_10.remove_packages() {
+  for package in "${PACKAGES_TO_REMOVE_SINCE_2_41_10[@]}"; do
+    if is_package_installed "${package}"; then
+      updates.run_update_checkpoint_command "yum erase -y ${package}" "Erasing ${package} package"
     fi
   done
 }
 
-updates.middle.since_2_42_5() {
-  system.users.create "${KEITARO_SUPPORT_USER}" "${KEITARO_SUPPORT_HOME_DIR}"
+updates.early.since_2_41_10.change_nginx_home() {
+  local nginx_home
+  nginx_home="$( (getent passwd nginx | awk -F: '{print $6}') &>/dev/null || true)"
+  if [[ "${nginx_home}" != "/var/cache/nginx" ]]; then
+    updates.run_update_checkpoint_command "usermod -d /var/cache/nginx nginx; rm -rf /home/nginx" "Changing nginx user home"
+  fi
+}
+
+updates.early.since_2_41_10.remove_repos() {
+  if [ -f /etc/yum.repos.d/mariadb.repo ]; then
+    updates.run_update_checkpoint_command "rm -f /etc/yum.repos.d/mariadb.repo" "Removing mariadb repo"
+  fi
+  if [ -f /etc/yum.repos.d/Altinity-ClickHouse.repo ]; then
+    updates.run_update_checkpoint_command "rm -f /etc/yum.repos.d/Altinity-ClickHouse.repo" "Removing clickhouse repo"
+  fi
+}
+
+updates.early.since_2_41_10.remove_old_ansible() {
+  if [[ "$(get_centos_major_release)" == "7" ]] && [[ -f /usr/bin/ansible-2 ]]; then
+    updates.run_update_checkpoint_command "yum erase -y ansible" "Removing old ansible"
+  fi
+  if [[ "$(get_centos_major_release)" == "8" ]] && is_package_installed "ansible"; then
+    updates.run_update_checkpoint_command "yum install -y ansible-core --allowerasing" "Removing old ansible"
+  fi
+}
+
+updates.middle.since_2_30_0() {
+  updates.middle.since_2_30_0.remove_packages
+  updates.middle.since_2_30_0.remove_files
+}
+
+updates.middle.since_2_30_0.remove_packages() {
+  local cmd="yum erase -y sendmail sendmail-cf ntp certbot docker* containerd"
+  updates.run_update_checkpoint_command "${cmd}" "Removing unneeded packages"
+}
+
+updates.middle.since_2_30_0.remove_files() {
+  local cmd="rm -f"
+  cmd="${cmd} /etc/firewall.bash"
+  cmd="${cmd} /etc/nginx/conf.d/keitaro/tracker.roadrunner.inc"
+  cmd="${cmd} /etc/php/roadrunner.yml"
+  cmd="${cmd} /etc/yum.repos.d/mariadb-mirror.repo"
+  cmd="${cmd} /usr/local/bin/keitaro-generate_stats_json"
+  cmd="${cmd} /usr/local/bin/keitaro-print_stats_json"
+  cmd="${cmd} /usr/local/bin/keitaro-rotate_nginx_status_logs"
+  cmd="${cmd} /var/log/mysql/slow_queries.log"
+  cmd="${cmd} && find /var/www/keitaro/var/ -maxdepth 1 -type f -name '*.tmp' -delete"
+  updates.run_update_checkpoint_command "${cmd}" "Removing unneeded files"
 }
 
 updates.middle.since_2_43_9() {
@@ -4178,6 +4228,219 @@ updates.middle.since_2_43_9.clean_preinstalled_tracker() {
   fi
 }
 
+updates.middle.since_2_38_2() {
+  updates.middle.since_2_38_2.fix_mariadb_permissions
+}
+
+updates.middle.since_2_38_2.fix_mariadb_permissions() {
+  systemd.stop_service mariadb
+  local cmd="chown -R mysql:mysql /var/lib/mysql"
+  cmd="${cmd} && chmod -R a-x /var/lib/mysql"
+  cmd="${cmd} && chmod -R u=rwX,g=rX,o= /var/lib/mysql"
+  updates.run_update_checkpoint_command "${cmd}" "Fixing mariadb permissions"
+  systemd.start_service mariadb
+  components.wait_until_is_up mariadb
+}
+
+updates.middle.since_2_39_16() {
+  if is_ci_mode; then
+    return
+  fi
+  updates.middle.since_2_39_16.enable_ipv6_in_nginx
+  updates.middle.since_2_39_16.remove_cron_tasks
+  updates.middle.since_2_39_16.remove_old_files
+  updates.middle.since_2_39_16.fix_nginx_configs
+}
+
+updates.middle.since_2_39_16.enable_ipv6_in_nginx() {
+  local cmd="find /etc/nginx/conf.d -mindepth 1 -maxdepth 1 -type f -name *.conf"
+  cmd="${cmd} | xargs --max-args=1000 --no-run-if-empty sed -i 's/listen \\[::]:443;/listen [::]:443 ssl;/g'"
+  if grep -LF '[::]' /etc/nginx/conf.d/*.conf | xargs grep -qP '^#.*Keitaro'; then
+    cmd="${cmd} && grep -LF '[::]' /etc/nginx/conf.d/*.conf"
+    cmd="${cmd} | xargs grep -lP '^#.*Keitaro'"
+    cmd="${cmd} | xargs sed -i -r -e '/listen 80/a \  listen [::]:80;' -e '/listen 443/a \  listen [::]:443 ssl;'"
+  fi
+  updates.run_update_checkpoint_command "${cmd}" "Enable ipv6 in nginx"
+}
+
+updates.middle.since_2_39_16.remove_cron_tasks() {
+  local cmd="crontab -r -u nginx || true"
+  if [[ -f /var/spool/cron/root ]]; then
+    cmd="${cmd}; sed -r -i '/(cron.php|certbot)/d' /var/spool/cron/root"
+    cmd="${cmd}; sed -i '/\\/usr\\/local\\/bin\\/keitaro-/d' /var/spool/cron/root"
+  fi
+  updates.run_update_checkpoint_command "${cmd}" "Removing old cron tasks"
+}
+
+updates.middle.since_2_39_16.remove_old_files() {
+  local cmd="rm -f"
+  cmd="${cmd} /etc/my.cnf.d/keitaro-mysqld-configure_network.cnf"
+  cmd="${cmd} /etc/nginx/conf.d/keitaro/admin.inc"
+  cmd="${cmd} /etc/nginx/conf.d/keitaro/locations-common.inc"
+  cmd="${cmd} /etc/nginx/conf.d/keitaro/locations-tracker.inc"
+  cmd="${cmd} /etc/nginx/conf.d/keitaro/nontracker.inc"
+  cmd="${cmd} /etc/nginx/conf.d/keitaro/nontracker.php-fpm.inc"
+  cmd="${cmd} /etc/opt/remi/php74/php-fpm.d/keitaro-nontracker.conf"
+  cmd="${cmd} /etc/yum.repos.d/docker-ce.repo"
+  cmd="${cmd} /etc/yum.repos.d/mariadb-mirror.repo"
+  cmd="${cmd} /opt/keitaro/bin/kctl-prune-ssl"
+  cmd="${cmd} /usr/local/bin/kctl-prune-ssl"
+  cmd="${cmd} /usr/local/bin/keitaro-generate_cf_ip_lists"
+  cmd="${cmd} /usr/local/bin/keitaro-generate_stats_json"
+  cmd="${cmd} /usr/local/bin/keitaro-print_stats_json"
+  cmd="${cmd} /usr/local/bin/keitaro-rotate_nginx_status_logs"
+  cmd="${cmd} /var/log/mysql/slow_queries.log"
+
+  cmd="${cmd} && find /var/www/keitaro/var/ -maxdepth 1 -type f -name '*.tmp' -delete"
+  updates.run_update_checkpoint_command "${cmd}" "Removing unneeded files"
+}
+
+
+updates.middle.since_2_39_16.fix_nginx_configs() {
+  if grep -q 'locations-common' /etc/nginx/conf.d/*.conf; then
+    local cmd="grep -l 'locations-common' /etc/nginx/conf.d/*.conf | xargs --max-args=1000 sed -i -r"
+    cmd="${cmd} -e '/locations-common/a \\  include /etc/nginx/conf.d/keitaro/locations/1-common.inc;'"
+    cmd="${cmd} -e '/locations-common/a \\  include /etc/nginx/conf.d/keitaro/locations/2-www.inc;'"
+    cmd="${cmd} -e '/locations-common/a \\  include /etc/nginx/conf.d/keitaro/locations/3-admin.inc;'"
+    cmd="${cmd} -e '/locations-common/a \\  include /etc/nginx/conf.d/keitaro/locations/4-tracker.inc;'"
+    cmd="${cmd} -e '/locations-common/d'"
+    cmd="${cmd} -e '/locations-tracker/d'"
+    updates.run_update_checkpoint_command "${cmd}" "Upgrading nginx configs"
+  fi
+}
+
+updates.middle.since_2_42_5() {
+  system.users.create "${KEITARO_SUPPORT_USER}" "${KEITARO_SUPPORT_HOME_DIR}"
+}
+
+updates.middle.since_2_41_10() {
+  updates.middle.since_2_41_10.remove_packages
+  updates.middle.since_2_41_10.change_nginx_home
+  updates.middle.since_2_41_10.fix_nginx_log_dir_permissions
+  updates.middle.since_2_41_10.remove_repos
+  updates.middle.since_2_41_10.remove_old_ansible
+}
+
+updates.middle.since_2_41_10.remove_packages() {
+  local packages_to_remove=(
+    nginx redis clickhouse-server MariaDB-server MariaDB-client MariaDB-tokudb-engine MariaDB-common MariaDB-shared
+  )
+
+  for package in "${packages_to_remove[@]}"; do
+    if is_package_installed "${package}"; then
+      updates.run_update_checkpoint_command "yum erase -y ${package}" "Erasing ${package} package"
+    fi
+  done
+}
+
+updates.middle.since_2_41_10.change_nginx_home() {
+  local nginx_home
+  nginx_home="$( (getent passwd nginx | awk -F: '{print $6}') &>/dev/null || true)"
+  if [[ "${nginx_home}" != "/var/cache/nginx" ]]; then
+    updates.run_update_checkpoint_command "usermod -d /var/cache/nginx nginx; rm -rf /home/nginx" "Changing nginx user home"
+  fi
+}
+
+updates.middle.since_2_41_10.fix_nginx_log_dir_permissions() {
+  local cmd
+  local nginx_log_dir="/var/log/nginx"
+  cmd="mkdir -p ${nginx_log_dir}"
+  cmd="${cmd} && chown nginx:nginx ${nginx_log_dir}"
+  cmd="${cmd} && chmod 0750 ${nginx_log_dir}"
+  updates.run_update_checkpoint_command "${cmd}" "Fixing nginx directory permissions"
+}
+
+updates.middle.since_2_41_10.remove_repos() {
+  if [ -f /etc/yum.repos.d/mariadb.repo ]; then
+    updates.run_update_checkpoint_command "rm -f /etc/yum.repos.d/mariadb.repo" "Removing mariadb repo"
+  fi
+  if [ -f /etc/yum.repos.d/Altinity-ClickHouse.repo ]; then
+    updates.run_update_checkpoint_command "rm -f /etc/yum.repos.d/Altinity-ClickHouse.repo" "Removing clickhouse repo"
+  fi
+}
+
+updates.middle.since_2_41_10.remove_old_ansible() {
+  if [[ "$(get_centos_major_release)" == "7" ]] && [[ -f /usr/bin/ansible-2 ]]; then
+    updates.run_update_checkpoint_command "yum erase -y ansible" "Removing old ansible"
+  fi
+  if [[ "$(get_centos_major_release)" == "8" ]] && is_package_installed "ansible"; then
+    updates.run_update_checkpoint_command "yum install -y ansible-core --allowerasing" "Removing old ansible"
+  fi
+}
+
+updates.middle.since_2_40_6() {
+  updates.middle.since_2_40_6.clean_ch_logs
+  updates.middle.since_2_40_6.remove_old_php_packages
+}
+
+updates.middle.since_2_40_6.remove_old_php_packages() {
+  cmd="yum erase 'php5*' 'php70*' 'php71*' 'php72*' 'php73*'"
+  updates.run_update_checkpoint_command "${cmd}" "Removing old PHP packages"
+}
+
+updates.middle.since_2_40_6.clean_ch_logs() {
+  local tables_sql
+
+  tables_sql="SELECT DISTINCT table FROM system.parts WHERE active AND (table ILIKE '%_log' OR table ILIKE '%_log_%')"
+  tables="$(kctl run system-clickhouse-query "${tables_sql}")"
+
+  for table in ${tables}; do
+    local cmd; cmd="kctl run system-clickhouse-query 'TRUNCATE TABLE $table'"
+    updates.run_update_checkpoint_command "${cmd}" "Cleaning CH log table ${table}"
+  done
+}
+
+updates.middle.since_2_27_0() {
+  updates.middle.since_2_27_0.remove_files
+  updates.middle.since_2_27_0.disable_firewall
+}
+
+updates.middle.since_2_27_0.remove_files() {
+  local cmd="rm -rf"
+  cmd="${cmd} /var/log/mariadb"
+  cmd="${cmd} /etc/keitaro/roadrunner.yml"
+  cmd="${cmd} /etc/logrotate.d/mariadb"
+  cmd="${cmd} /etc/my.cnf.d/keitaro-mysqld-error_log.cnf"
+  cmd="${cmd} /etc/my.cnf.d/keitaro-mysqld-log_slow_queries.cnf"
+  cmd="${cmd} /etc/my.cnf.d/keitaro-mysqld-set_default_storage_engine.cnf"
+  cmd="${cmd} /etc/my.cnf.d/mysqld-error_log.cnf"
+  cmd="${cmd} /etc/my.cnf.d/mysqld-log_slow_queries.cnf"
+  cmd="${cmd} /etc/my.cnf.d/mysqld-optimize_performance.cnf"
+  cmd="${cmd} /etc/my.cnf.d/mysqld-set_pidfile_path.cnf"
+  cmd="${cmd} /etc/my.cnf.d/mysqld.cnf"
+  cmd="${cmd} /etc/my.cnf.d/network.cnf"
+  cmd="${cmd} /etc/nginx/conf.d/vhosts.conf"
+  cmd="${cmd} /etc/nginx/ssl/cert.pem"
+  cmd="${cmd} /etc/nginx/ssl/privkey.pem"
+  cmd="${cmd} /etc/ssl/certs/dhparam.pem"
+  cmd="${cmd} /etc/sudoers.d/10-enable-ssl-command"
+  cmd="${cmd} /opt/eff.org/certbot"
+  cmd="${cmd} /root/add-site.log"
+  cmd="${cmd} /root/enable-ssl.log"
+  cmd="${cmd} /root/hosts.txt"
+  cmd="${cmd} /root/install.log"
+  cmd="${cmd} /usr/bin/kctl-add-site"
+  cmd="${cmd} /usr/bin/kctl-disable-ssl"
+  cmd="${cmd} /usr/bin/kctl-enable-ssl"
+  cmd="${cmd} /usr/bin/kctl-fail2ban"
+  cmd="${cmd} /usr/bin/kctl-install"
+  cmd="${cmd} /usr/bin/kctl-prune-ssl"
+  cmd="${cmd} /usr/local/bin/certbot"
+  cmd="${cmd} /var/www/keitaro/install.php"
+
+  updates.run_update_checkpoint_command "${cmd}" "Removing unneeded files"
+}
+
+updates.middle.since_2_27_0.disable_firewall() {
+  if [[ -f /etc/systemd/system/firewall.service ]]; then
+    local cmd="systemctl stop firewall"
+    cmd="${cmd} && systemctl disable firewall"
+    cmd="${cmd} && rm -f /etc/systemd/system/firewall.service"
+    cmd="${cmd} && systemctl daemon-reload"
+    updates.run_update_checkpoint_command "${cmd}" "Disable old firewall service"
+  fi
+}
+
 updates.post.since_2_42_8() {
   local cmd
 
@@ -4188,19 +4451,81 @@ updates.post.since_2_42_8() {
   systemd.restart_service 'tracker-maintain-certificates'
 }
 
-updates.post.always_run() {
-  local path_to_kctl cmd
-  
-  path_to_kctl="$(components.build_path_to_preinstalled_directory 'kctl')"
-
-  cmd="find ${KCTL_LIB_PATH}/kctl -mindepth 2 -not -path '${path_to_kctl}/*' -not -path '${path_to_kctl}' -delete"
-
-  updates.run_update_checkpoint_command "${cmd}" "Remove old kctl files"
+updates.post.since_2_44_3() {
+  updates.post.since_2_44_3.create_certbot_renew_volumes
+  updates.post.since_2_44_3.remove_old_cron_tasks
+  updates.post.since_2_44_3.remove_old_kctl_configs
 }
 
-updates.post.since_2_41_10() {
-  rm -f /etc/keitaro/config/nginx.env
-  find /var/www/keitaro/var/ -maxdepth 1 -type f -name 'stats.json-*.tmp' -delete || true
+updates.post.since_2_44_3.create_certbot_renew_volumes() {
+  components.create_volumes 'certbot'
+  updates.print_checkpoint_info 'Created certbot volumes'
+}
+
+updates.post.since_2_44_3.remove_old_cron_tasks() {
+  local cmd='rm -f'
+  cmd="${cmd} /etc/cron.daily/kctl-certificates-renew"
+  cmd="${cmd} /etc/cron.d/restart-died-kctld-worker"
+  cmd="${cmd} /etc/cron.d/keitaro-traffic-log-trimmer"
+  updates.run_update_checkpoint_command "${cmd}" "Removing old cron tasks"
+}
+
+updates.post.since_2_44_3.remove_old_kctl_configs() {
+  local cmd='rm -f'
+  cmd="${cmd} /etc/keitaro/config/{tracker.env,inventory}"
+  cmd="${cmd} /etc/keitaro/env/system.env"
+  updates.run_update_checkpoint_command "${cmd}" "Removing old kctl configs"
+
+}
+
+updates.post.since_2_43_9() {
+  updates.post.since_2_43_9.remove_old_files
+}
+
+updates.post.since_2_43_9.remove_old_files() {
+  local cmd="rm -f /etc/keitaro/config/components.env /etc/keitaro/config/components.local.env"
+  cmd="${cmd} && rm -f /etc/keitaro/env/system.env"
+  cmd="${cmd} && rm -f /etc/keitaro/config/kctl-monitor.env"
+  cmd="${cmd} && rm -f /etc/keitaro/config/kctld.env"
+
+  updates.run_update_checkpoint_command "${cmd}" "Remove old env files"
+}
+
+updates.post.since_2_40_0() {
+  updates.post.since_2_40_0.remove_old_files
+  updates.post.since_2_40_0.schedule_certificate_renew
+}
+
+updates.post.since_2_40_0.remove_old_files() {
+  local cmd="rm -rf"
+  cmd="${cmd} /etc/clickhouse-server"
+  cmd="${cmd} /etc/my.cnf.d/keitaro-mysqld-configure_error_log.cnf"
+  cmd="${cmd} /etc/my.cnf.d/keitaro-mysqld-configure_network.cnf"
+  cmd="${cmd} /etc/my.cnf.d/keitaro-mysqld-optimize_performance.cnf"
+  cmd="${cmd} /etc/my.cnf.d/keitaro-mysqld-set_default_storage_engine.cnf"
+  cmd="${cmd} /etc/my.cnf.d/keitaro-mysqldump-disable_column_statistics.cnf"
+  cmd="${cmd} /etc/php/php-fpm.d/keitaro-tracker.conf.disabled"
+  cmd="${cmd} /etc/systemd/system/mysql.service.d"
+  cmd="${cmd} /etc/systemd/system/nginx.service.d"
+  cmd="${cmd} /etc/systemd/system/redis.service.d"
+  cmd="${cmd} /var/log/clickhouse"
+  cmd="${cmd} /var/log/clickhouse-server"
+  cmd="${cmd} /var/log/nginx/tracker.status"
+  cmd="${cmd} /var/log/nginx/tracker.status.snapshot"
+  cmd="${cmd} /var/run/php74-php-fpm-admin.sock"
+  cmd="${cmd} /var/run/php74-php-fpm-nontracker.sock"
+  cmd="${cmd} /var/run/php74-php-fpm-www.sock"
+
+  updates.run_update_checkpoint_command "${cmd}" 'Removing old CH files'
+}
+
+updates.post.since_2_40_0.schedule_certificate_renew() {
+  local cmd
+  cmd="pkill certboti || true"
+  cmd="${cmd}; ${KCTL_BIN_DIR}/kctl certificates prune safe"
+  cmd="${cmd}; nohup ${KCTL_BIN_DIR}/kctl certificates renew &>/dev/null &"
+
+  updates.run_update_checkpoint_command "${cmd}" 'Scheduling LE certificates renew'
 }
 
 updates.post.since_2_44_1() {
@@ -4228,6 +4553,16 @@ updates.post.since_2_44_1.clean_nginx_cache() {
   updates.run_update_checkpoint_command "${cmd}" "Remove nginx cache entries"
 
   systemd.start_service nginx
+}
+
+updates.post.always_run() {
+  local path_to_kctl cmd
+  
+  path_to_kctl="$(components.build_path_to_preinstalled_directory 'kctl')"
+
+  cmd="find ${KCTL_LIB_PATH}/kctl -mindepth 2 -not -path '${path_to_kctl}/*' -not -path '${path_to_kctl}' -delete"
+
+  updates.run_update_checkpoint_command "${cmd}" "Remove old kctl files"
 }
 
 updates.post.since_2_41_7() {
@@ -4303,49 +4638,37 @@ updates.post.since_2_41_7.set_ch_table_ttl() {
   updates.run_update_checkpoint_command "LOG_PATH=/dev/stderr ${KCTL_BIN_DIR}/kctl run clickhouse-query '${sql}'" "${msg}"
 }
 
-updates.post.since_2_42_6() {
-  run_command "LOG_PATH=/dev/stderr ${KCTL_BIN_DIR}/kctl certificates fix-le-accounts" "Fixing LE accounts" hide_output
-  updates.run_update_checkpoint_command 'rm -f /etc/logrotate.d/{redis,mysql}' 'Removing old logrotate configs'
+updates.post.since_2_41_10() {
+  rm -f /etc/keitaro/config/nginx.env
+  find /var/www/keitaro/var/ -maxdepth 1 -type f -name 'stats.json-*.tmp' -delete || true
 }
 
-updates.post.since_2_43_9() {
-  updates.post.since_2_43_9.remove_old_files
+updates.post.since_1_20_0() {
+  updates.post.since_1_20_0.remove_old_nginx_files
+  updates.post.since_1_20_0.regenerate_nginx_domain_configs
 }
 
-updates.post.since_2_43_9.remove_old_files() {
-  local cmd="rm -f /etc/keitaro/config/components.env /etc/keitaro/config/components.local.env"
-  cmd="${cmd} && rm -f /etc/keitaro/env/system.env"
-  cmd="${cmd} && rm -f /etc/keitaro/config/kctl-monitor.env"
-  cmd="${cmd} && rm -f /etc/keitaro/config/kctld.env"
-
-  updates.run_update_checkpoint_command "${cmd}" "Remove old env files"
+updates.post.since_1_20_0.regenerate_nginx_domain_configs() {
+  local old_domains
+  # shellcheck disable=SC2038
+  old_domains="$(find /etc/nginx/conf.d/ -mindepth 1 -maxdepth 1 -name '*.conf' | \
+                 xargs grep -l /var/www/keitaro | \
+                 xargs grep -LF 'Generated by Keitaro install tool v2.' | \
+                 grep -vP '/(keitaro|vhosts|default).conf' | \
+                 sed -r 's|^/etc/nginx/conf.d/(.*).conf$|\1|g' | \
+                 tr "\n" " ")"
+  if [[ "${old_domains}" != "" ]]; then
+    local cmd="KCLTD_MODE=true kctl certificates issue ${old_domains}"
+    updates.run_update_checkpoint_command "${cmd}" 'Regenerate old domain configs'
+    systemd.reload_service "nginx"
+  fi
 }
 
-updates.post.since_2_44_3() {
-  updates.post.since_2_44_3.create_certbot_renew_volumes
-  updates.post.since_2_44_3.remove_old_cron_tasks
-  updates.post.since_2_44_3.remove_old_kctl_configs
-}
-
-updates.post.since_2_44_3.create_certbot_renew_volumes() {
-  components.create_volumes 'certbot'
-  updates.print_checkpoint_info 'Created certbot volumes'
-}
-
-updates.post.since_2_44_3.remove_old_cron_tasks() {
-  local cmd='rm -f'
-  cmd="${cmd} /etc/cron.daily/kctl-certificates-renew"
-  cmd="${cmd} /etc/cron.d/restart-died-kctld-worker"
-  cmd="${cmd} /etc/cron.d/keitaro-traffic-log-trimmer"
-  updates.run_update_checkpoint_command "${cmd}" "Removing old cron tasks"
-}
-
-updates.post.since_2_44_3.remove_old_kctl_configs() {
-  local cmd='rm -f'
-  cmd="${cmd} /etc/keitaro/config/{tracker.env,inventory}"
-  cmd="${cmd} /etc/keitaro/env/system.env"
-  updates.run_update_checkpoint_command "${cmd}" "Removing old kctl configs"
-
+updates.post.since_1_20_0.remove_old_nginx_files() {
+  local cmd="rm -rf /etc/nginx/conf.d/keitaro/local"
+  cmd="${cmd} && find /etc/nginx/conf.d/keitaro -name '*.local.inc' -or -name 'tracker.*' -delete"
+  cmd="${cmd} && find /etc/nginx/conf.d -maxdepth 1 -name '*.conf.20*' -or -name '*.inc' -delete"
+  updates.run_update_checkpoint_command "${cmd}" 'Removing old nginx files'
 }
 
 UPDATE_FN_PREFIX="updates"

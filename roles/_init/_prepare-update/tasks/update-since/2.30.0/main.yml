@@ -1,4 +1,0 @@
-- include_tasks: fix-certs-issues.yml
-- include_tasks: fix-swap-entry.yml
-- include_tasks: remove-unneeded-files.yml
-- include_tasks: uninstall-docker.yml

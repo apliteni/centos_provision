@@ -1,4 +1,0 @@
-- include_tasks: "{{ update_checkpoint_path }}"
-  loop_control:
-    loop_var: update_checkpoint_path
-  with_update_checkpoints: 'tasks/update-since'

@@ -8,7 +8,6 @@
     - {role: '_init/_init',                           tags: 'init,                          always'}  # noqa yaml
     - {role: '_init/_apply-hot-fixes',                tags: 'apply-hot-fixes'}                        # noqa yaml
     - {role: '_init/_install-packages',               tags: 'install-packages'}                       # noqa yaml
-    - {role: '_init/_prepare-update',                 tags: 'prepare-update,                update'}  # noqa yaml
     - {role: '_init/create-dirs',                     tags: 'create-dirs'}                            # noqa yaml
     - {role: '_init/disable-selinux',                 tags: 'disable-selinux'}                        # noqa yaml
     - {role: '_init/install-fail2ban',                tags: 'install-fail2ban'}                       # noqa yaml
@@ -22,8 +21,6 @@
     - {role: 'php/install-php',                       tags: 'install-php'}                            # noqa yaml
     - {role: 'php/tune-php',                          tags: 'tune-php,                      tune'}    # noqa yaml
     - {role: 'php/tune-roadrunner',                   tags: 'tune-roadrunner,               tune'}    # noqa yaml
-    - {role: 'tracker/fix-permissions',               tags: 'fix-permissions,               always'}  # noqa yaml
     - {role: 'tracker/install-tracker',               tags: 'install-tracker,               always'}  # noqa yaml
     - {role: 'wrap-up/_tune-nginx',                   tags: 'tune-nginx,                    tune'}    # noqa yaml
-    - {role: 'wrap-up/finish-update',                 tags: 'finish-update,                 update'}  # noqa yaml
     - {role: 'wrap-up/run-final-steps',               tags: 'run-final-steps,               always'}  # noqa yaml

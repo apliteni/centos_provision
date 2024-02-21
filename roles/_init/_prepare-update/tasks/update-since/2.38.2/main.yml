@@ -1,7 +1,0 @@
-- name: Remove old cron tasks
-  cron:
-    name: "{{ item }}"
-    state: absent
-  with_items:
-    - "Generate {{ keitaro_stats_json_path }}"
-    - "Generate CloudFlare IP list"

@@ -15,3 +15,4 @@
     - include_tasks: 05-update-clickhouse-db.yml
     - include_tasks: 06-update-geodb.yml
     - include_tasks: 07-generate-watchlist.yml
+    - include_tasks: 08-fix-permissions.yml

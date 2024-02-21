@@ -1,7 +1,5 @@
 #!/usr/bin/python
 
-from distutils.version import StrictVersion
-
 class FilterModule(object):
     def filters(self):
         return {

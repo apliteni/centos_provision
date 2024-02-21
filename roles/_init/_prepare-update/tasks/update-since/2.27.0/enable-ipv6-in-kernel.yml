@@ -1,9 +1,0 @@
-- name: Enable ipv6
-  sysctl:
-    name: "{{ item.key }}"
-    value: "{{ item.value }}"
-    state: present
-  failed_when: false
-  with_dict:
-    net.ipv6.conf.all.disable_ipv6: 0
-    net.ipv6.conf.default.disable_ipv6: 0
