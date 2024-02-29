@@ -60,7 +60,7 @@ fi
 CACHING_PERIOD_IN_DAYS="2"
 CACHING_PERIOD_IN_MINUTES="$((CACHING_PERIOD_IN_DAYS * 24 * 60))"
 
-RELEASE_VERSION='2.45.2'
+RELEASE_VERSION='2.45.3'
 VERY_FIRST_VERSION='0.9'
 
 FILES_KEITARO_ROOT_URL="https://files.keitaro.io"
@@ -393,13 +393,12 @@ components.create_user() {
   run_command "${cmd}" "  Creating user ${user}" 'hide_output'
 }
 
-COMPONENTS_OWN_VOLUMES_PREFIXES="/var/cache/ /var/log/ /var/lib/"
-
 components.create_volumes() {
-  local component="${1}" user group volumes
+  local component="${1}" user group volumes_host_paths
 
-  volumes="$(components.read_var "${component}" "volumes")"
-  if [[ "${volumes}" == "" ]]; then
+  volumes_host_paths="$(components.get_volumes_host_paths "${component}")"
+
+  if [[ "${volumes_host_paths}" == "" ]]; then
     return
   fi
 
@@ -409,28 +408,25 @@ components.create_volumes() {
   components.assert_var_is_set "${component}" "group"
   group="$(components.read_var "${component}" "group")"
 
-  for volume in ${volumes}; do
-    components.create_volumes.init_volume "${volume}" "${user}" "${group}"
+  for volume_host_path in ${volumes_host_paths}; do
+    components.create_volumes.init_volume "${volume_host_path}" "${user}" "${group}"
   done
 }
 
 components.create_volumes.init_volume() {
-  local volume="${1}" user="${2}" group="${3}" host_path
-  host_path="${volume%:*}"
+  local volume_host_path="${1}" user="${2}" group="${3}"
 
-  if [[ ! "${host_path}" =~ /$ ]]; then
+  if [[ ! "${volume_host_path}" =~ /$ ]]; then
     return
   fi
 
-  if [[ ! -d "${host_path}" ]]; then
-    mkdir -p "${host_path}"
+  if [[ ! -d "${volume_host_path}" ]]; then
+    mkdir -p "${volume_host_path}"
   fi
 
-  for own_volume_prefix in ${COMPONENTS_OWN_VOLUMES_PREFIXES}; do
-    if [[ "${host_path}" =~ ^${own_volume_prefix} ]]; then
-      chown "${user}:${group}" "${host_path}"
-    fi
-  done
+  if components.is_own_volume_host_path "${volume_host_path}"; then
+    chown "${user}:${group}" "${volume_host_path}"
+  fi
 }
 
 components.detect_group_id() {
@@ -451,10 +447,37 @@ components.detect_user_id() {
   id -u "${user}" 2>/dev/null || true
 }
 
+components.fix_volumes_host_paths_permissions() {
+  local component="${1}" user group volumes_host_paths cmd
+
+  volumes_host_paths="$(components.get_volumes_host_paths "${component}")"
+
+  components.assert_var_is_set "${component}" "user"
+  user="$(components.read_var "${component}" "user")"
+
+  for volume_host_path in ${volumes_host_paths}; do
+    if components.is_own_volume_host_path "${volume_host_path}"; then
+      local cmd="find ${volume_host_path} -not -user ${user} -exec chown ${user} {} \\;"
+      run_command "${cmd}" "Setting ${volume_host_path} owner to ${user}"
+    fi
+  done
+}
+
 components.get_var_name() {
   local component="${1}" var="${2}"
 
   env_files.normalize_var_name "${component}_${var}"
+}
+
+components.get_volumes_host_paths() {
+  local component="${1}" volumes
+
+  volumes="$(components.read_var "${component}" "volumes")"
+
+  for volume in ${volumes}; do
+    local host_path="${volume%:*}"
+    echo "${host_path}"
+  done
 }
 
 components.has_var() {
@@ -531,6 +554,18 @@ components.is_installed() {
   local applied_url; applied_url="$(components.read_applied_var "${component}" 'url')"
   local applied_image; applied_image="$(components.read_applied_var "${component}" 'image')"
   [[ "${applied_url}" != '' || "${applied_image}" != '' ]]
+}
+
+components.is_own_volume_host_path() {
+  local volume_host_path="${1}"
+  
+  for own_volume_prefix in /var/cache/ /var/log/ /var/lib/; do
+    if [[ "${volume_host_path}" =~ ^${own_volume_prefix} ]]; then
+      return
+    fi
+  done
+
+  false
 }
 
 components.is_variable_changed() {
@@ -920,6 +955,16 @@ env_files.safely_save_var() {
 env_files.save_applied_var() {
   local var_name="${1}" value="${2}"
   env_files.forced_save_var "${PATH_TO_APPLIED_ENV}" "${APPLIED_PREFIX}_${var_name}" "${value}"
+}
+
+gathering.gather_ansible_inventory_path() {
+  paths=(/etc/keitaro/config/inventory /root/.keitaro/installer_config /root/.keitaro /root/hosts.txt)
+  for path in "${paths[@]}"; do
+    if [[ -f "${path}" ]]; then
+      echo "${path}"
+      return
+    fi
+  done
 }
 
 gathering.gather_cpu_cores() {
@@ -1815,7 +1860,7 @@ tracker.generate_artefacts() {
   tracker.generate_artefacts.generate_stats_json "${path_to_kctl}" "${tracker_root}"
 
   for path in "${TRACKER_CONFIG_INI_PHP_PATH}" "${TRACKER_STATS_JSON_PATH}"; do
-    if [[ -f "${TRACKER_ROOT}/${path}" ]]; then
+    if [[ -f "${TRACKER_ROOT}/${path}" ]] && [[ -f "${tracker_root}/${path}" ]]; then
       run_command "/bin/cp -f ${tracker_root}/${path} ${TRACKER_ROOT}/${path}" "Updating tracker's ${path}" 'hide_output'
     fi
   done
@@ -2463,9 +2508,6 @@ stage0() {
 }
 
 stage1.preinstall_kctl() {
-  if is_running_in_install_mode; then
-    install_package 'tar'
-  fi
   components.preinstall 'kctl'
   stage1.preinstall_kctl.install_components_envs
 }
@@ -2646,7 +2688,7 @@ stage1.install_components_env_origin() {
     components_env_url="${FILES_KEITARO_ROOT_URL}/keitaro/keitaro/releases/${keitaro_version}/components.env"
   fi
 
-  print_with_color 'Installing components' 'blue'
+  print_with_color 'Installing components.env' 'blue'
   cache.download "${components_env_url}"
   components_env_path="$(cache.path_by_url "${components_env_url}")"
 
@@ -2701,6 +2743,14 @@ stage1() {
   local path_to_kctl
 
   debug "Starting stage 1: Preinstall and run new KCTL"
+
+  if [[ ! -f /usr/bin/jq ]]; then
+    install_package jq
+  fi
+
+  if is_running_in_install_mode; then
+    install_packages tar
+  fi
 
   if [[ "${COMPONENTS_UPDATED:-}" == "" ]]; then
     if stage1.need_to_update_components_env_origin; then
@@ -2764,8 +2814,9 @@ assert_keitaro_is_not_installed() {
   local applied_keitaro_version
 
   applied_keitaro_version="$(components.read_applied_var 'keitaro' 'version')"
+  ansible_inventory_path="$(gathering.gather_ansible_inventory_path)"
 
-  if [[ "${applied_keitaro_version}" != "" ]]; then
+  if [[ "${applied_keitaro_version}" != "" ]] || [[ "${ansible_inventory_path}" != "" ]]; then
     print_with_color "$(translate messages.keitaro_already_installed)" 'yellow'
     clean_up
     stage9.print_url
@@ -3244,7 +3295,7 @@ stage5.install_kctl.need_to_restart_services() {
 
 stage5.install_kctl.run_after_update_admin_component_hook() {
   updates.run_update_checkpoint_command "rm -f ${TRACKER_ROOT}/cache_locales/*.php" "Clearing locales cache"
-  updates.run_update_checkpoint_command "${KCTL_BIN_DIR}/kctl-monitor -r" "Updating stats.json"
+  updates.run_update_checkpoint_command "${KCTL_BIN_DIR}/kctl-monitor" "Updating stats.json"
 }
 
 stage5.install_kctl() {
@@ -3264,7 +3315,7 @@ stage5.install_kctl() {
 }
 
 stage5.install_core_packages() {
-  install_packages crontabs logrotate jq unzip gettext podman-docker
+  install_packages crontabs logrotate unzip gettext podman-docker
 
   if [[ "$(get_centos_major_release)" == "8" ]]; then
     install_package 'libseccomp-devel'
@@ -3288,17 +3339,15 @@ stage5.install_extra_packages.install_packages() {
 }
 
 stage5.install_extra_packages.install_epel_release() {
-  local centos_release; centos_release="$(get_centos_major_release)"
-  if stage5.install_extra_packages.need_to_install_epel_from_url "${centos_release}"; then
-    local url="https://dl.fedoraproject.org/pub/epel/epel-release-latest-${centos_release}.noarch.rpm"
-    run_command "yum install -y ${url}" "Installing epel-release from ${url}" "hide_output"
-  else
-    install_package epel-release
+  if stage5.install_extra_packages.need_to_install_epel_repo; then
+    local cmd="cp /etc/keitaro/config/epel.repo /etc/yum.repos.d/ && yum clean all"
+    run_command "${cmd}" "Preinstalling EPEL repo" "hide_output"
   fi
+  install_package epel-release
 }
 
-stage5.install_extra_packages.need_to_install_epel_from_url() {
-  local centos_release="${1}"
+stage5.install_extra_packages.need_to_install_epel_repo() {
+  local centos_release; centos_release="$(get_centos_major_release)"
   [[ "${centos_release}" == "9" ]] \
     && ! stage5.install_extra_packages.is_repo_installed epel \
     && ! stage5.install_extra_packages.is_repo_installed extras-common
@@ -3703,20 +3752,22 @@ stage9.print_successful_message(){
 }
 
 stage9.update_packages() {
-  if [[ "${SKIP_YUM_UPDATE}" == "" ]]; then
-    debug "Updating packages"
-    cmd='yum update -y'
+  if [[ "${SKIP_YUM_UPDATE}" != "" ]] || is_running_in_tune_mode; then
+    return
+  fi
 
-    if [[ "$(get_centos_major_release)" != "7" ]]; then
-      cmd="${cmd} --nobest"
-    fi
+  debug "Updating packages"
+  cmd='yum update -y'
 
-    if run_command "${cmd}" "" "" "allow_errors"; then
-      print_with_color 'All packages has been succesfully updated' 'green'
-    else
-      debug 'There were errors packages while updating system packages. See log for details'
-      print_with_color 'There were errors packages while updating system packages' 'red'
-    fi
+  if [[ "$(get_centos_major_release)" != "7" ]]; then
+    cmd="${cmd} --nobest"
+  fi
+
+  if run_command "${cmd}" "" "" "allow_errors"; then
+    print_with_color 'All packages has been succesfully updated' 'green'
+  else
+    debug 'There were errors packages while updating system packages. See log for details'
+    print_with_color 'There were errors packages while updating system packages' 'red'
   fi
 }
 
@@ -3729,26 +3780,21 @@ stage9() {
   stage9.print_successful_message
 }
 
-updates.early.since_2_43_9.detect_ansible_inventory_path() {
-  paths=(/etc/keitaro/config/inventory /root/.keitaro/installer_config /root/.keitaro /root/hosts.txt)
-  for path in "${paths[@]}"; do
-    if [[ -f "${path}" ]]; then
-      echo "${path}"
-      return
-    fi
-  done
-}
-
-
 PATH_TO_BACKUP_INVENTORY_DIR="${ETC_DIR}/backups/inventory"
 
 updates.early.since_2_43_9.backup_old_inventory_files() {
   local ansible_inventory_path="${1}" cmd
 
   cmd="mkdir -p ${PATH_TO_BACKUP_INVENTORY_DIR}"
-  cmd="${cmd} && /bin/cp -f ${ansible_inventory_path} ${PATH_TO_BACKUP_INVENTORY_DIR}/inventory"
-  cmd="${cmd} && /bin/cp -f /etc/keitaro/config/tracker.env ${PATH_TO_BACKUP_INVENTORY_DIR}/tracker.env"
-  cmd="${cmd} && /bin/cp -f /etc/keitaro/env/system.env ${PATH_TO_BACKUP_INVENTORY_DIR}/system.env"
+  if [[ -f "${ansible_inventory_path}" ]]; then
+    cmd="${cmd} && /bin/cp -f ${ansible_inventory_path} ${PATH_TO_BACKUP_INVENTORY_DIR}/inventory"
+  fi
+  if [[ -f /etc/keitaro/config/tracker.env ]]; then
+    cmd="${cmd} && /bin/cp -f /etc/keitaro/config/tracker.env ${PATH_TO_BACKUP_INVENTORY_DIR}/tracker.env"
+  fi
+  if [[ -f /etc/keitaro/env/system.env ]]; then
+    cmd="${cmd} && /bin/cp -f /etc/keitaro/env/system.env ${PATH_TO_BACKUP_INVENTORY_DIR}/system.env"
+  fi
 
   updates.run_update_checkpoint_command "${cmd}" "Backing up old inventory files"
 }
@@ -3972,6 +4018,15 @@ updates.early.since_2_43_9.read_config_value() {
   fi
 }
 
+updates.early.since_2_30_0() {
+  updates.early.since_2_30_0.remove_docker_ce_packages
+}
+
+updates.early.since_2_30_0.remove_docker_ce_packages() {
+  local cmd="yum erase -y docker* containerd"
+  updates.run_update_checkpoint_command "${cmd}" "Removing Docker CE packages"
+}
+
 updates.early.since_2_42_1() {
   updates.run_update_checkpoint_command "rm -f /etc/logrotate.d/{redis,mysql}" \
             "Removing old logrotate configs"
@@ -4002,7 +4057,7 @@ updates.early.since_2_43_9.update_inventory() {
     return
   fi
 
-  ansible_inventory_path="$(updates.early.since_2_43_9.detect_ansible_inventory_path)"
+  ansible_inventory_path="$(gathering.gather_ansible_inventory_path)"
 
   if [[ "${ansible_inventory_path}" == "" ]]; then
     fail "Couldn't detect inventory file. Is Keitaro installed?"
@@ -4016,7 +4071,6 @@ updates.early.since_2_43_9.update_inventory() {
 
   msg='Inventory migrated'; print_with_color "${msg}" 'green'; debug "${msg}"
 }
-
 
 updates.early.since_2_43_9.remove_old_cron_tasks() {
   updates.run_update_checkpoint_command 'crontab -ru keitaro || true' 'Removing old tracker updaing cron tasks'
@@ -4087,17 +4141,36 @@ updates.early.since_2_40_0.remove_old_log_format_from_nginx_configs() {
   fi
 }
 
+updates.early.since_2_45_2() {
+  updates.early.since_2_45_2.remove_old_php_packages
+  updates.early.since_2_45_2.remove_old_systemd_services
+  updates.early.since_2_45_2.remove_old_nginx_configs
+}
+
+updates.early.since_2_45_2.remove_old_php_packages() {
+  cmd="yum erase -y 'php5*' 'php70*' 'php71*' 'php72*' 'php73*'"
+  updates.run_update_checkpoint_command "${cmd}" "Removing old PHP packages"
+}
+
+updates.early.since_2_45_2.remove_old_systemd_services() {
+  systemd.disable_and_stop_service disable-thp
+  systemd.disable_and_stop_service schedule-fs-check-on-boot
+  cmd="rm -f /etc/systemd/system/{disable-thp,schedule-fs-check-on-boot}.service"
+  updates.run_update_checkpoint_command "${cmd}" "Removing old SystemD services"
+}
+
+updates.early.since_2_45_2.remove_old_nginx_configs() {
+  cmd="rm -f /etc/nginx/conf.d/*.conf.202[2-4][0-1][0-9][0-3][0-9][0-5][0-9][0-5][0-9][0-5][0-9]"
+  updates.run_update_checkpoint_command "${cmd}" "Removing old Nginx config backups"
+}
+
 updates.early.since_2_44_1() {
-  updates.early.since_2_44_1.disable_old_kctl_monitor
+  systemd.stop_service 'kctl-monitor'
 
   stage5.actualize_distro
   stage5.install_core_packages
   stage5.install_extra_packages
   system.users.create "${KEITARO_SUPPORT_USER}" "${KEITARO_SUPPORT_HOME_DIR}"
-}
-
-updates.early.since_2_44_1.disable_old_kctl_monitor () {
-  systemd.disable_and_stop_service 'kctl-monitor'
 }
 
 updates.early.since_2_41_10() {
@@ -4151,7 +4224,7 @@ updates.middle.since_2_30_0() {
 }
 
 updates.middle.since_2_30_0.remove_packages() {
-  local cmd="yum erase -y sendmail sendmail-cf ntp certbot docker* containerd"
+  local cmd="yum erase -y sendmail sendmail-cf ntp certbot"
   updates.run_update_checkpoint_command "${cmd}" "Removing unneeded packages"
 }
 
@@ -4370,18 +4443,16 @@ updates.middle.since_2_41_10.remove_old_ansible() {
 
 updates.middle.since_2_40_6() {
   updates.middle.since_2_40_6.clean_ch_logs
-  updates.middle.since_2_40_6.remove_old_php_packages
-}
-
-updates.middle.since_2_40_6.remove_old_php_packages() {
-  cmd="yum erase 'php5*' 'php70*' 'php71*' 'php72*' 'php73*'"
-  updates.run_update_checkpoint_command "${cmd}" "Removing old PHP packages"
 }
 
 updates.middle.since_2_40_6.clean_ch_logs() {
   local tables_sql
 
-  tables_sql="SELECT DISTINCT table FROM system.parts WHERE active AND (table ILIKE '%_log' OR table ILIKE '%_log_%')"
+  tables_sql="${tables_sql} SELECT DISTINCT table"
+  tables_sql="${tables_sql} FROM system.parts"
+  tables_sql="${tables_sql} WHERE active"
+  tables_sql="${tables_sql}   AND (table ILIKE '%_log' OR table ILIKE '%_log_%')"
+  tables_sql="${tables_sql}   AND database='system'"
   tables="$(kctl run system-clickhouse-query "${tables_sql}")"
 
   for table in ${tables}; do
@@ -4530,7 +4601,8 @@ updates.post.since_2_40_0.schedule_certificate_renew() {
 
 updates.post.since_2_44_1() {
   updates.post.since_2_44_1.remove_old_files
-  updates.post.since_2_44_1.clean_nginx_cache
+
+  components.fix_volumes_host_paths_permissions 'nginx'
 
   stage5.disable_selinux
   stage5.disable_fastestmirror
@@ -4541,18 +4613,10 @@ updates.post.since_2_44_1() {
 }
 
 updates.post.since_2_44_1.remove_old_files() {
-  local cmd="rm -f /etc/systemd/system/roadrunner.service.d/opened-files-limit.conf.j2"
-
-  updates.run_update_checkpoint_command "${cmd}" "Remove wrong RR config"
-}
-
-updates.post.since_2_44_1.clean_nginx_cache() {
-  systemd.stop_service nginx
-
-  local cmd="rm -rf /var/cache/nginx/{client,fastcgi,proxy,scgi,uwsgi}_temp"
-  updates.run_update_checkpoint_command "${cmd}" "Remove nginx cache entries"
-
-  systemd.start_service nginx
+  local file='/etc/systemd/system/roadrunner.service.d/opened-files-limit.conf.j2'
+  if [[ -f "${file}" ]]; then
+    updates.run_update_checkpoint_command "rm -f ${file}" "Remove wrong RR config"
+  fi
 }
 
 updates.post.always_run() {

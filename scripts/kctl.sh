@@ -58,7 +58,7 @@ fi
 CACHING_PERIOD_IN_DAYS="2"
 CACHING_PERIOD_IN_MINUTES="$((CACHING_PERIOD_IN_DAYS * 24 * 60))"
 
-RELEASE_VERSION='2.45.2'
+RELEASE_VERSION='2.45.3'
 VERY_FIRST_VERSION='0.9'
 
 FILES_KEITARO_ROOT_URL="https://files.keitaro.io"
@@ -395,13 +395,12 @@ components.create_user() {
   run_command "${cmd}" "  Creating user ${user}" 'hide_output'
 }
 
-COMPONENTS_OWN_VOLUMES_PREFIXES="/var/cache/ /var/log/ /var/lib/"
-
 components.create_volumes() {
-  local component="${1}" user group volumes
+  local component="${1}" user group volumes_host_paths
 
-  volumes="$(components.read_var "${component}" "volumes")"
-  if [[ "${volumes}" == "" ]]; then
+  volumes_host_paths="$(components.get_volumes_host_paths "${component}")"
+
+  if [[ "${volumes_host_paths}" == "" ]]; then
     return
   fi
 
@@ -411,28 +410,25 @@ components.create_volumes() {
   components.assert_var_is_set "${component}" "group"
   group="$(components.read_var "${component}" "group")"
 
-  for volume in ${volumes}; do
-    components.create_volumes.init_volume "${volume}" "${user}" "${group}"
+  for volume_host_path in ${volumes_host_paths}; do
+    components.create_volumes.init_volume "${volume_host_path}" "${user}" "${group}"
   done
 }
 
 components.create_volumes.init_volume() {
-  local volume="${1}" user="${2}" group="${3}" host_path
-  host_path="${volume%:*}"
+  local volume_host_path="${1}" user="${2}" group="${3}"
 
-  if [[ ! "${host_path}" =~ /$ ]]; then
+  if [[ ! "${volume_host_path}" =~ /$ ]]; then
     return
   fi
 
-  if [[ ! -d "${host_path}" ]]; then
-    mkdir -p "${host_path}"
+  if [[ ! -d "${volume_host_path}" ]]; then
+    mkdir -p "${volume_host_path}"
   fi
 
-  for own_volume_prefix in ${COMPONENTS_OWN_VOLUMES_PREFIXES}; do
-    if [[ "${host_path}" =~ ^${own_volume_prefix} ]]; then
-      chown "${user}:${group}" "${host_path}"
-    fi
-  done
+  if components.is_own_volume_host_path "${volume_host_path}"; then
+    chown "${user}:${group}" "${volume_host_path}"
+  fi
 }
 
 components.detect_group_id() {
@@ -453,10 +449,37 @@ components.detect_user_id() {
   id -u "${user}" 2>/dev/null || true
 }
 
+components.fix_volumes_host_paths_permissions() {
+  local component="${1}" user group volumes_host_paths cmd
+
+  volumes_host_paths="$(components.get_volumes_host_paths "${component}")"
+
+  components.assert_var_is_set "${component}" "user"
+  user="$(components.read_var "${component}" "user")"
+
+  for volume_host_path in ${volumes_host_paths}; do
+    if components.is_own_volume_host_path "${volume_host_path}"; then
+      local cmd="find ${volume_host_path} -not -user ${user} -exec chown ${user} {} \\;"
+      run_command "${cmd}" "Setting ${volume_host_path} owner to ${user}"
+    fi
+  done
+}
+
 components.get_var_name() {
   local component="${1}" var="${2}"
 
   env_files.normalize_var_name "${component}_${var}"
+}
+
+components.get_volumes_host_paths() {
+  local component="${1}" volumes
+
+  volumes="$(components.read_var "${component}" "volumes")"
+
+  for volume in ${volumes}; do
+    local host_path="${volume%:*}"
+    echo "${host_path}"
+  done
 }
 
 components.has_var() {
@@ -533,6 +556,18 @@ components.is_installed() {
   local applied_url; applied_url="$(components.read_applied_var "${component}" 'url')"
   local applied_image; applied_image="$(components.read_applied_var "${component}" 'image')"
   [[ "${applied_url}" != '' || "${applied_image}" != '' ]]
+}
+
+components.is_own_volume_host_path() {
+  local volume_host_path="${1}"
+  
+  for own_volume_prefix in /var/cache/ /var/log/ /var/lib/; do
+    if [[ "${volume_host_path}" =~ ^${own_volume_prefix} ]]; then
+      return
+    fi
+  done
+
+  false
 }
 
 components.is_variable_changed() {
@@ -922,6 +957,16 @@ env_files.safely_save_var() {
 env_files.save_applied_var() {
   local var_name="${1}" value="${2}"
   env_files.forced_save_var "${PATH_TO_APPLIED_ENV}" "${APPLIED_PREFIX}_${var_name}" "${value}"
+}
+
+gathering.gather_ansible_inventory_path() {
+  paths=(/etc/keitaro/config/inventory /root/.keitaro/installer_config /root/.keitaro /root/hosts.txt)
+  for path in "${paths[@]}"; do
+    if [[ -f "${path}" ]]; then
+      echo "${path}"
+      return
+    fi
+  done
 }
 
 gathering.gather_cpu_cores() {
@@ -2002,7 +2047,8 @@ kctl_install(){
   local install_args="${1}"
   local log_file="${2}"
 
-  if [[ ! -f "${PATH_TO_COMPONENTS_ENV}" ]]; then # too old kctl is installed or no kctl
+  if [[ ! -f "${PATH_TO_COMPONENTS_ENV}" ]] || [[ ! -f "${KCTL_BIN_DIR}/kctl-install" ]]; then
+    # too old kctl is installed or no kctl
     debug "Running \`curl -fsSL4 'https://keitaro.io/install.sh' | bash -s -- ${install_args}\`"
     curl -fsSL4 'https://keitaro.io/install.sh' | LOG_PATH="${KCTL_LOG_DIR}/${log_file}" bash -s -- "${install_args}"
   else
@@ -3227,7 +3273,7 @@ tracker.generate_artefacts() {
   tracker.generate_artefacts.generate_stats_json "${path_to_kctl}" "${tracker_root}"
 
   for path in "${TRACKER_CONFIG_INI_PHP_PATH}" "${TRACKER_STATS_JSON_PATH}"; do
-    if [[ -f "${TRACKER_ROOT}/${path}" ]]; then
+    if [[ -f "${TRACKER_ROOT}/${path}" ]] && [[ -f "${tracker_root}/${path}" ]]; then
       run_command "/bin/cp -f ${tracker_root}/${path} ${TRACKER_ROOT}/${path}" "Updating tracker's ${path}" 'hide_output'
     fi
   done
