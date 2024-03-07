@@ -2,11 +2,8 @@
   synchronize:
     src: "{{ tracker_directory }}/www/"
     dest: "{{ keitaro_app_dir }}/"
-    rsync_opts: '--quiet'
-    owner: true
-    group: true
+    rsync_opts: '--quiet --chown keitaro:keitaro'
   delegate_to: "{{ inventory_hostname }}"
-  become_user: "{{ keitaro_user }}"
   notify:
     - restart php-fpm
     - restart roadrunner
@@ -15,9 +12,8 @@
   synchronize:
     src: "{{ tracker_directory }}/www/{{ item }}/"
     dest: "{{ keitaro_app_dir }}/{{ item }}/"
-    owner: true
-    group: true
     delete: true
+    rsync_opts: '--quiet --chown keitaro:keitaro'
   with_items:
     - "application/Admin"
     - "application/Component"
@@ -27,7 +23,6 @@
     - "bin"
     - "vendor"
   delegate_to: "{{ inventory_hostname }}"
-  become_user: "{{ keitaro_user }}"
   notify:
     - restart php-fpm
     - restart roadrunner
